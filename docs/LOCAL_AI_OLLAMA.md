@@ -42,11 +42,13 @@ También se puede usar otro modelo pequeño sin cambiar el programa:
 CARI_OLLAMA_MODEL=qwen3:1.7b
 ```
 
-Si por "Ollama 3 1B" se refiere a Llama 3.2 1B, el nombre de Ollama es:
+Si por "Ollama 3 1B" se refiere a **Llama 3.2 1B**, el nombre de Ollama es:
 
 ```text
 CARI_OLLAMA_MODEL=llama3.2:1b
 ```
+
+La biblioteca oficial de Ollama ofrece Llama 3.2 en 1B y 3B; la variante `llama3.2:1b` aparece con unos 1.3 GB, y existen variantes cuantizadas más pequeñas. Para Cari, el 1B es una candidata razonable para probar conversación local, pero su calidad/latencia deben medirse en el PC real en lugar de asumirlas. citeturn0search0turn0search2
 
 No se debe instalar un modelo dentro del repositorio. Ollama administra los modelos en su propia instalación.
 
@@ -69,11 +71,19 @@ Antes de integrar cambios relacionados con Ollama, se puede comprobar el entorno
 
 El script comprueba que Ollama esté instalado, que `127.0.0.1:11434` responda, que el modelo exista y que una inferencia local devuelva contenido.
 
+Para comparar modelos pequeños en el mismo PC:
+
+```powershell
+.\experimental\ollama\benchmark.ps1
+```
+
+Por defecto compara `llama3.2:1b` y `qwen3:0.6b`, omitiendo los modelos que no estén instalados. El resultado mide el tiempo total de una petición sencilla y muestra la respuesta; no modifica Cari ni instala nada.
+
 ## ¿Existe un truco para usar una API sin API key?
 
-No hay una "puerta trasera" legítima que convierta un servicio cloud que exige autenticación en uno sin autenticación. La solución real es cambiar el punto de inferencia: ejecutar un modelo localmente. Ollama expone ese modelo mediante HTTP en localhost, por lo que Cari puede usar el mismo patrón de cliente sin enviar el texto a un proveedor externo.
+No hay una "puerta trasera" legítima que convierta un servicio cloud que exige autenticación en uno sin autenticación. La solución real es cambiar el punto de inferencia: ejecutar un modelo localmente. Ollama expone ese modelo mediante HTTP en localhost, por lo que Cari puede usar el mismo patrón de cliente sin enviar el texto a un proveedor externo. La API local de Ollama está documentada como una interfaz HTTP en `localhost:11434`. citeturn0search0turn0search7
 
-Los proyectos open source de VTuber ya utilizan este enfoque: backend LLM intercambiable, Ollama/local inference y componentes locales de voz. Cari adopta el patrón sin copiar código de terceros.
+Los proyectos open source de VTuber ya utilizan este enfoque: backend LLM intercambiable, inferencia local y componentes desacoplados. Cari adopta el patrón sin copiar código de terceros.
 
 ## Regla de arquitectura
 
