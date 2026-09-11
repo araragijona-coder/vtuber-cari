@@ -9,7 +9,13 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0.067, 0.075, 0.10);
 
 const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 30);
-camera.position.set(0, 1.15, 5.2);
+const CAMERA_PRESETS = {
+  full_body: { position: new THREE.Vector3(0, 1.15, 5.2), target: new THREE.Vector3(0, 1.0, 0) },
+  three_quarter: { position: new THREE.Vector3(1.7, 1.35, 4.6), target: new THREE.Vector3(0, 1.15, 0) },
+  bust: { position: new THREE.Vector3(0, 1.55, 3.0), target: new THREE.Vector3(0, 1.45, 0) },
+};
+let activeCameraPreset = 'full_body';
+camera.position.copy(CAMERA_PRESETS.full_body.position);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -30,6 +36,12 @@ let currentUrl = null;
 const clock = new THREE.Clock();
 const lookAtTarget = new THREE.Object3D();
 scene.add(lookAtTarget);
+
+let fpsSampleTime = 0;
+let fpsFrames = 0;
+let fps = 0;
+let blinkTimer = 2.5;
+let blinkPhase = null;
 
 function setStatus(message) {
   status.textContent = message;
@@ -57,6 +69,41 @@ function removeCurrentModel() {
   currentVrm = null;
 }
 
+function setCameraPreset(name) {
+  const preset = CAMERA_PRESETS[name];
+  if (!preset) return;
+  activeCameraPreset = name;
+  camera.position.copy(preset.position);
+  lookAtTarget.position.copy(preset.target);
+  setStatus(`Cámara ${name} · esperando VRM`);
+}
+
+function updateBlink(delta) {
+  if (!currentVrm?.expressionManager) return;
+
+  const manager = currentVrm.expressionManager;
+  if (blinkPhase === null) {
+    blinkTimer -= delta;
+    if (blinkTimer > 0) return;
+    blinkPhase = 0;
+  }
+
+  blinkPhase += delta;
+  const duration = 0.16;
+  const half = duration / 2;
+  let weight;
+  if (blinkPhase < half) {
+    weight = blinkPhase / half;
+  } else if (blinkPhase < duration) {
+    weight = 1 - ((blinkPhase - half) / half);
+  } else {
+    weight = 0;
+    blinkPhase = null;
+    blinkTimer = 2.0 + Math.random() * 4.0;
+  }
+  manager.setValue('blink', weight);
+}
+
 async function loadVrm(url) {
   setStatus('Cargando VRM…');
   removeCurrentModel();
@@ -79,7 +126,9 @@ async function loadVrm(url) {
     scene.add(vrm.scene);
     currentVrm = vrm;
     vrm.lookAt.target = lookAtTarget;
-    setStatus('VRM cargado · renderer experimental activo');
+    blinkTimer = 2.5;
+    blinkPhase = null;
+    setStatus(`VRM cargado · ${activeCameraPreset} · ${Math.round(fps)} FPS`);
   } catch (error) {
     setStatus(`Error VRM: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -104,11 +153,28 @@ window.addEventListener('pointermove', (event) => {
   lookAtTarget.position.y = 2.5 * (0.5 - (event.clientY / window.innerHeight));
 });
 
+window.addEventListener('keydown', (event) => {
+  const presets = { '1': 'full_body', '2': 'three_quarter', '3': 'bust' };
+  const preset = presets[event.key];
+  if (preset) setCameraPreset(preset);
+});
+
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
+  fpsFrames += 1;
+  fpsSampleTime += delta;
+  if (fpsSampleTime >= 0.5) {
+    fps = fpsFrames / fpsSampleTime;
+    fpsFrames = 0;
+    fpsSampleTime = 0;
+    if (currentVrm) setStatus(`VRM cargado · ${activeCameraPreset} · ${Math.round(fps)} FPS`);
+  }
+
+  updateBlink(delta);
   if (currentVrm) currentVrm.update(delta);
   renderer.render(scene, camera);
 }
 
+setCameraPreset('full_body');
 animate();
