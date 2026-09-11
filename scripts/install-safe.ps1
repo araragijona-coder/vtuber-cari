@@ -28,6 +28,29 @@ function Write-Step([string]$Name, [scriptblock]$Action) {
     }
 }
 
+function Test-Ollama([string]$Model) {
+    $ollama = Get-Command ollama -ErrorAction SilentlyContinue
+    if ($null -eq $ollama) {
+        Write-Host "Ollama no está instalado. Se deja sin instalar porque es opcional."
+        return
+    }
+
+    Write-Step "Verificar ejecutable Ollama" { & $ollama.Source --version }
+
+    try {
+        $tags = Invoke-RestMethod -Uri "http://127.0.0.1:11434/api/tags" -TimeoutSec 2
+        Write-Host "Ollama responde en localhost:11434."
+        $names = @($tags.models | ForEach-Object { $_.name })
+        if ($names -contains $Model) {
+            Write-Host "Modelo encontrado: $Model" -ForegroundColor Green
+        } else {
+            Write-Host "Modelo $Model no está descargado. No se descarga automáticamente." -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "Ollama está instalado pero el servicio no responde. No se fuerza el arranque." -ForegroundColor Yellow
+    }
+}
+
 Start-Transcript -Path $log -Append | Out-Null
 try {
     Write-Host "Cari - instalación segura y paso a paso" -ForegroundColor Magenta
@@ -64,24 +87,6 @@ try {
         & $venvPython -m unittest discover -s (Join-Path $root "tests") -q
     }
 
-    Write-Step "Comprobar Ollama sin arrancarlo a la fuerza" {
-        $ollama = Get-Command ollama -ErrorAction SilentlyContinue
-        if ($null -eq $ollama) {
-            Write-Host "Ollama no está instalado. Se deja sin instalar porque es opcional."
-        } else {
-            & $ollama.Source --version
-            try {
-                $tags = Invoke-RestMethod -Uri "http://127.0.0.1:11434/api/tags" -TimeoutSec 2
-                Write-Host "Ollama responde en localhost:11434."
-                $names = @($tags.models | ForEach-Object { $_.name })
-                if ($names -contains $OllamaModel) { Write-Host "Modelo encontrado: $OllamaModel" }
-                else { Write-Host "Modelo $OllamaModel no está descargado. No se descarga automáticamente." }
-            } catch {
-                Write-Host "Ollama instalado pero su servicio no responde todavía. No se fuerza el arranque."
-            }
-        }
-    }
-
     if ($InstallOllama) {
         Write-Step "Instalar Ollama mediante WinGet" {
             $winget = Get-Command winget -ErrorAction Stop
@@ -89,6 +94,10 @@ try {
             $ollamaAfter = Get-Command ollama -ErrorAction Stop
             & $ollamaAfter.Source --version
         }
+    }
+
+    Write-Step "Leer y diagnosticar Ollama sin forzar su arranque" {
+        Test-Ollama -Model $OllamaModel
     }
 
     Write-Host ""
