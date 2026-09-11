@@ -18,6 +18,14 @@ Pose = Literal["neutral", "relaxed", "thinking", "greeting", "excited"]
 BodyAnimation = Literal["idle", "talk", "think", "wave", "nod", "celebrate"]
 FacialExpression = Literal["neutral", "smile", "blink", "surprised", "sad", "angry"]
 
+EMOTIONS = frozenset({
+    "neutral", "happy", "sad", "surprised", "angry", "thinking", "excited", "embarrassed"
+})
+GAZES = frozenset({"camera", "left", "right", "up", "down", "target"})
+POSES = frozenset({"neutral", "relaxed", "thinking", "greeting", "excited"})
+BODY_ANIMATIONS = frozenset({"idle", "talk", "think", "wave", "nod", "celebrate"})
+FACIAL_EXPRESSIONS = frozenset({"neutral", "smile", "blink", "surprised", "sad", "angry"})
+
 
 @dataclass(frozen=True, slots=True)
 class AvatarActingState:
@@ -32,21 +40,30 @@ class AvatarActingState:
     lip_sync: str | None = None
 
     def __post_init__(self) -> None:
+        fields = (
+            ("emotion", self.emotion, EMOTIONS),
+            ("gaze", self.gaze, GAZES),
+            ("pose", self.pose, POSES),
+            ("body_animation", self.body_animation, BODY_ANIMATIONS),
+            ("facial_expression", self.facial_expression, FACIAL_EXPRESSIONS),
+        )
+        for name, value, allowed in fields:
+            if value not in allowed:
+                raise ValueError(f"invalid {name}: {value!r}")
+        if not isinstance(self.head_tilt, (int, float)) or isinstance(self.head_tilt, bool):
+            raise TypeError("head_tilt must be a number")
         if not -1.0 <= self.head_tilt <= 1.0:
             raise ValueError("head_tilt must be between -1.0 and 1.0")
+        if self.lip_sync is not None and not isinstance(self.lip_sync, str):
+            raise TypeError("lip_sync must be a string or None")
         if not self.lip_sync or not self.lip_sync.strip():
             object.__setattr__(self, "lip_sync", None)
 
     def with_updates(self, **changes: object) -> "AvatarActingState":
         """Return a validated state without mutating the current state."""
         allowed = {
-            "emotion",
-            "gaze",
-            "head_tilt",
-            "pose",
-            "body_animation",
-            "facial_expression",
-            "lip_sync",
+            "emotion", "gaze", "head_tilt", "pose",
+            "body_animation", "facial_expression", "lip_sync",
         }
         unknown = set(changes) - allowed
         if unknown:
