@@ -18,6 +18,10 @@ class RuleRouterTests(unittest.TestCase):
             "quién sos": "Soy Cari ♡ Tu compañera virtual.",
             "gracias cari": "¡De nada! ♡",
             "nos vemos": "¡Nos vemos! Gracias por pasar por el stream ♡",
+            "alguien tiene un pedido": "¡A ver, a ver! ¿Qué hacemos ahora? Si tienen algún pedido, tírenlo al chat ♡",
+            "qué hacemos ahora?": "¡A ver, a ver! ¿Qué hacemos ahora? Si tienen algún pedido, tírenlo al chat ♡",
+            "estoy aburrido": "¡Eso se arregla! ♡ Inventemos algo para hacer en el stream.",
+            "buen stream": "Aaaah, gracias ♡ Me voy a poner toda orgullosa ahora.",
         }
         for text, expected in cases.items():
             with self.subTest(text=text):
