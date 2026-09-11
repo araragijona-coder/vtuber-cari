@@ -16,8 +16,14 @@ La respuesta del modelo se mantiene estructurada y separada de la representació
 - `app/brain/coordinator.py`: admisión/coordinación.
 - `app/brain/proactive.py`: intención proactiva.
 - `app/brain/state_policy.py`: política según estado.
-- `app/core/events/bus.py`: eventos desacoplados.
+- `app/brain/event_bus.py`: eventos internos desacoplados para observabilidad y futuros adaptadores.
 - `app/core/lifecycle.py`: ciclo de vida de subsistemas.
+
+### Eventos de runtime
+
+El pipeline puede emitir eventos como `message_received`, `message_filtered`, `message_gated`, `response_ready`, `llm_error`, `speech_started`, `speech_finished`, `memory_saved` y `response_dropped`.
+
+Los listeners son observadores: un fallo de telemetría nunca puede romper el camino principal de chat. Esto deja preparado un punto único para UI, diagnóstico, métricas, replay y futuros conectores sin hacer que el cerebro dependa de ellos.
 
 ## Chat y memoria
 
