@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
 
 const status = document.querySelector('#status');
 const modelInput = document.querySelector('#model');
+const animationInput = document.querySelector('#animation');
+const playAnimationButton = document.querySelector('#play-animation');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0.067, 0.075, 0.10);
@@ -17,9 +20,11 @@ const CAMERA_PRESETS = {
 let activeCameraPreset = 'full_body';
 camera.position.copy(CAMERA_PRESETS.full_body.position);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
 document.body.appendChild(renderer.domElement);
 
 const keyLight = new THREE.DirectionalLight(0xffffff, Math.PI * 1.2);
@@ -27,12 +32,19 @@ keyLight.position.set(1, 2, 3);
 scene.add(keyLight);
 scene.add(new THREE.AmbientLight(0xffffff, 0.8));
 
-const loader = new GLTFLoader();
-loader.crossOrigin = 'anonymous';
-loader.register((parser) => new VRMLoaderPlugin(parser));
+const vrmLoader = new GLTFLoader();
+vrmLoader.crossOrigin = 'anonymous';
+vrmLoader.register((parser) => new VRMLoaderPlugin(parser));
+
+const vrmaLoader = new GLTFLoader();
+vrmaLoader.crossOrigin = 'anonymous';
+vrmaLoader.register((parser) => new VRMAnimationLoaderPlugin(parser));
 
 let currentVrm = null;
-let currentUrl = null;
+let currentMixer = null;
+let currentAnimation = null;
+let currentModelUrl = null;
+let currentAnimationUrl = null;
 const clock = new THREE.Clock();
 const lookAtTarget = new THREE.Object3D();
 scene.add(lookAtTarget);
@@ -62,11 +74,20 @@ function disposeObject(root) {
   });
 }
 
+function stopAnimation() {
+  if (!currentMixer) return;
+  currentMixer.stopAllAction();
+  currentMixer.uncacheRoot(currentVrm?.scene);
+  currentMixer = null;
+}
+
 function removeCurrentModel() {
+  stopAnimation();
   if (!currentVrm) return;
   scene.remove(currentVrm.scene);
   disposeObject(currentVrm.scene);
   currentVrm = null;
+  playAnimationButton.disabled = true;
 }
 
 function setCameraPreset(name) {
@@ -109,7 +130,7 @@ async function loadVrm(url) {
   removeCurrentModel();
 
   try {
-    const gltf = await loader.loadAsync(url, (event) => {
+    const gltf = await vrmLoader.loadAsync(url, (event) => {
       if (event.total > 0) {
         setStatus(`Cargando VRM… ${Math.round((event.loaded / event.total) * 100)}%`);
       }
@@ -128,19 +149,55 @@ async function loadVrm(url) {
     vrm.lookAt.target = lookAtTarget;
     blinkTimer = 2.5;
     blinkPhase = null;
+    playAnimationButton.disabled = !currentAnimation;
     setStatus(`VRM cargado · ${activeCameraPreset} · ${Math.round(fps)} FPS`);
   } catch (error) {
     setStatus(`Error VRM: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
+async function loadVrma(url) {
+  setStatus('Cargando VRMA…');
+  try {
+    const gltf = await vrmaLoader.loadAsync(url);
+    const animations = gltf.userData.vrmAnimations;
+    if (!animations?.length) throw new Error('El archivo no contiene una animación VRMA reconocible.');
+    currentAnimation = animations[0];
+    playAnimationButton.disabled = !currentVrm;
+    setStatus(`VRMA cargada · ${Math.round(currentAnimation.duration ?? 0)}s`);
+  } catch (error) {
+    currentAnimation = null;
+    playAnimationButton.disabled = true;
+    setStatus(`Error VRMA: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function playVrma() {
+  if (!currentVrm || !currentAnimation) return;
+  stopAnimation();
+  const clip = createVRMAnimationClip(currentAnimation, currentVrm);
+  currentMixer = new THREE.AnimationMixer(currentVrm.scene);
+  currentMixer.clipAction(clip).reset().play();
+  setStatus(`VRMA reproduciendo · ${activeCameraPreset}`);
+}
+
 modelInput.addEventListener('change', () => {
   const file = modelInput.files?.[0];
   if (!file) return;
-  if (currentUrl) URL.revokeObjectURL(currentUrl);
-  currentUrl = URL.createObjectURL(file);
-  void loadVrm(currentUrl);
+  if (currentModelUrl) URL.revokeObjectURL(currentModelUrl);
+  currentModelUrl = URL.createObjectURL(file);
+  void loadVrm(currentModelUrl);
 });
+
+animationInput.addEventListener('change', () => {
+  const file = animationInput.files?.[0];
+  if (!file) return;
+  if (currentAnimationUrl) URL.revokeObjectURL(currentAnimationUrl);
+  currentAnimationUrl = URL.createObjectURL(file);
+  void loadVrma(currentAnimationUrl);
+});
+
+playAnimationButton.addEventListener('click', playVrma);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -171,6 +228,7 @@ function animate() {
     if (currentVrm) setStatus(`VRM cargado · ${activeCameraPreset} · ${Math.round(fps)} FPS`);
   }
 
+  if (currentMixer) currentMixer.update(delta);
   updateBlink(delta);
   if (currentVrm) currentVrm.update(delta);
   renderer.render(scene, camera);
