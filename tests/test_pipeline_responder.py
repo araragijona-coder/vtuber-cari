@@ -33,7 +33,7 @@ class PipelineResponderTests(unittest.TestCase):
         assert result is not None
         self.assertEqual(result.response_text, "Respuesta local de prueba.")
         self.assertEqual(responder.calls, [("viewer", "cuéntame algo que no sea una regla")])
-        self.assertFalse(result.avatar_command.speaking)
+        self.assertFalse(pipeline.avatar.current.speaking)
 
 
 if __name__ == "__main__":
