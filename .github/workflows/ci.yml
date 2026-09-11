@@ -17,10 +17,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - name: Install test dependencies
         run: python -m pip install -e .[twitch]
       - name: Compile production and experimental code
         run: python -m compileall -q app tests experimental
+      - name: Check experimental VRM web renderer syntax
+        run: node --check experimental/avatar/vrm-web/src/main.js
       - name: Verify Twitch optional bridge import
         run: python -c "from experimental.twitch.twitchio_bridge import CariTwitchBot; print('Twitch bridge import OK')"
       - name: Unit tests
