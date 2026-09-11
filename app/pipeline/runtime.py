@@ -58,7 +58,10 @@ class LocalPipeline:
         self.tts = SafeTTS(tts or NullTTS())
         if event_bus is not None and event_journal is not None:
             raise ValueError("provide event_bus or event_journal, not both")
-        self.event_bus = event_bus or EventBus(journal=event_journal or EventJournal())
+        if event_bus is not None:
+            self.event_bus = event_bus
+        else:
+            self.event_bus = EventBus(journal=event_journal if event_journal is not None else EventJournal())
         self.event_journal = self.event_bus.journal
         if persistent_memory is not None:
             for item in persistent_memory.load():
