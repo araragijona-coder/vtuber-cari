@@ -19,6 +19,10 @@ class TwitchLiveBot:
         self.pipeline = pipeline
         self._bot = None
 
+    @property
+    def connected(self) -> bool:
+        return self._bot is not None
+
     async def start(self) -> None:
         try:
             from twitchio import eventsub
