@@ -1,7 +1,7 @@
 import unittest
 
-from acting_mixer import ActingTransition
-from acting_state import AvatarActingState
+from experimental.avatar.acting_mixer import ActingTransition
+from experimental.avatar.acting_state import AvatarActingState
 
 
 class ActingTransitionTests(unittest.TestCase):
