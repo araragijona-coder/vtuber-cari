@@ -20,6 +20,15 @@ El repositorio `ToxSam/open-source-avatars` mantiene un registro de avatares VRM
 ### StreamAvatar
 `MRamiBalles/streamavatar` explora una arquitectura local para avatar VRM con tracking, spring bones y lip-sync. Se toma como referencia conceptual, no como dependencia.
 
+### three-vrm-lip-sync
+`vlapky/three-vrm-lip-sync` demuestra una estrategia especialmente útil para Cari: analizar el audio localmente y conducir los cinco visemas VRM (`aa/ih/ou/ee/oh`) sin reconocimiento de texto ni servidor. Esto encaja con el requisito de que TTS/lip-sync no dependan de una API de IA.
+
+### AITuber OnAir
+`shinshin86/aituber-onair` demuestra una separación modular donde VRM, animaciones idle, lip-sync, cámara y chat pueden convivir sin obligar al avatar a depender de un proveedor LLM concreto. Su ejemplo VRM es una referencia útil para la primera prueba de renderer.
+
+### r3f-vrm
+`r3f-vrm` es otra referencia interesante porque separa emociones, parpadeo, visemas, movimiento corporal, spring motion, cámara/gaze y carga del VRM. La idea que interesa a Cari es la separación de subsistemas y el suavizado/interpolación, no copiar la implementación.
+
 ## Dirección técnica propuesta
 
 ```text
@@ -32,9 +41,15 @@ Cari Studio
       -> Animation Controller
       -> Spring Bone / physics adapter
       -> Acting Controller
+      -> Performance Monitor
+      -> Error Recovery
 ```
 
 El `Avatar Engine` debe recibir un modelo VRM externo y exponer una interfaz estable al resto de la aplicación. Así el modelo visual de Cari puede cambiar sin rehacer escenas, audio, Twitch o IA.
+
+## Principio importante
+
+El renderer debe ser independiente de la inteligencia. Un saludo, parpadeo, idle, respiración, lip-sync, transición de cámara o animación no debe llamar a Ollama ni a una API. La inteligencia sólo decide cuando realmente aporta valor: intención, emoción compleja, actuación contextual, diálogo o decisiones del personaje.
 
 ## Criterio de selección del modelo base
 1. Licencia redistribuible compatible con el proyecto.
@@ -53,4 +68,5 @@ El `Avatar Engine` debe recibir un modelo VRM externo y exponer una interfaz est
 - Probar animaciones.
 - Probar lip-sync.
 - Medir FPS/CPU/RAM.
+- Probar errores de carga y fallback.
 - Sólo después considerar integración en `app/`.
