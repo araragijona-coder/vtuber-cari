@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from acting_state import AvatarActingState
+from experimental.avatar.acting_state import AvatarActingState
 
 
 def test_default_state_is_safe_and_renderer_independent() -> None:
