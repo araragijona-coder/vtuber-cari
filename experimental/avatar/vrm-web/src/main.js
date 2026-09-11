@@ -7,6 +7,8 @@ const status = document.querySelector('#status');
 const modelInput = document.querySelector('#model');
 const animationInput = document.querySelector('#animation');
 const playAnimationButton = document.querySelector('#play-animation');
+const emotionInput = document.querySelector('#emotion');
+const emotionSlots = [...document.querySelectorAll('[data-emotion]')];
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0.067, 0.075, 0.10);
@@ -45,6 +47,8 @@ let currentMixer = null;
 let currentAnimation = null;
 let currentModelUrl = null;
 let currentAnimationUrl = null;
+let currentEmotion = null;
+const emotionUrls = new Map();
 const clock = new THREE.Clock();
 const lookAtTarget = new THREE.Object3D();
 scene.add(lookAtTarget);
@@ -124,6 +128,36 @@ function updateBlink(delta) {
   }
   manager.setValue('blink', weight);
 }
+
+function setEmotionSlotImage(slot, file) {
+  const oldUrl = emotionUrls.get(slot);
+  if (oldUrl) URL.revokeObjectURL(oldUrl);
+  const url = URL.createObjectURL(file);
+  emotionUrls.set(slot, url);
+  slot.style.backgroundImage = `linear-gradient(rgba(0,0,0,.28), rgba(0,0,0,.72)), url("${url}")`;
+  slot.style.backgroundSize = 'cover';
+  slot.style.backgroundPosition = 'center';
+  slot.classList.add('loaded');
+  const label = slot.querySelector('strong');
+  const hint = slot.querySelector('small');
+  if (label) label.textContent = `📷 Cari ${slot.dataset.emotion}`;
+  if (hint) hint.textContent = 'IMAGEN CARGADA · clic para reemplazar';
+}
+
+emotionSlots.forEach((slot) => {
+  slot.addEventListener('click', () => {
+    currentEmotion = slot.dataset.emotion;
+    emotionInput.value = '';
+    emotionInput.click();
+  });
+});
+
+emotionInput.addEventListener('change', () => {
+  const file = emotionInput.files?.[0];
+  if (!file || !currentEmotion) return;
+  const slot = emotionSlots.find((item) => item.dataset.emotion === currentEmotion);
+  if (slot) setEmotionSlotImage(slot, file);
+});
 
 async function loadVrm(url) {
   setStatus('Cargando VRM…');
