@@ -23,6 +23,21 @@ Cari debe verse como una VTuber anime/chibi cuidada y consistente, no como un VR
 - Sin cabeza flotante, clipping grave, ojos atravesando párpados ni deformaciones visibles durante las actuaciones principales.
 - Sustitución del modelo sin modificar el resto del pipeline de Cari.
 
+## Salida para OBS
+
+OBS es un componente externo de producción y **no se implementará dentro de Cari**. Cari sólo debe proporcionar una salida visual estable que OBS pueda capturar.
+
+La validación final debe comprobar:
+
+- ventana/render de Cari estable a 1920x1080;
+- ausencia de bordes, escalado accidental o UI de depuración en la salida capturada;
+- transparencia o composición compatible con el método de captura elegido, cuando corresponda;
+- estabilidad durante captura continua, sin pérdida visible de frame rate;
+- posibilidad de cambiar cámara/actuación en Cari mientras OBS continúa capturando;
+- Cari no debe depender de que OBS esté abierto para renderizar su avatar.
+
+No se desarrollará un sustituto de OBS ni funciones propias de grabación/transmisión dentro de Cari.
+
 ## Rendimiento de aceptación
 
 La prueba final debe registrar FPS, frame time y errores del renderer. No se acepta como listo un avatar que cumpla la calidad visual pero degrade de forma evidente la interacción, la voz o la captura.
