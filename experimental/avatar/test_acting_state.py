@@ -1,66 +1,68 @@
-from __future__ import annotations
-
-import pytest
+import unittest
 
 from experimental.avatar.acting_state import AvatarActingState
 
 
-def test_default_state_is_safe_and_renderer_independent() -> None:
-    state = AvatarActingState()
+class AvatarActingStateTests(unittest.TestCase):
+    def test_default_state_is_safe_and_renderer_independent(self) -> None:
+        state = AvatarActingState()
 
-    assert state.emotion == "neutral"
-    assert state.gaze == "camera"
-    assert state.head_tilt == 0.0
-    assert state.body_animation == "idle"
-    assert state.lip_sync is None
+        self.assertEqual(state.emotion, "neutral")
+        self.assertEqual(state.gaze, "camera")
+        self.assertEqual(state.head_tilt, 0.0)
+        self.assertEqual(state.body_animation, "idle")
+        self.assertIsNone(state.lip_sync)
+
+    def test_state_updates_are_immutable(self) -> None:
+        original = AvatarActingState()
+        updated = original.with_updates(
+            emotion="thinking",
+            pose="thinking",
+            body_animation="think",
+            gaze="up",
+        )
+
+        self.assertEqual(original.emotion, "neutral")
+        self.assertEqual(updated.emotion, "thinking")
+        self.assertEqual(updated.pose, "thinking")
+        self.assertEqual(updated.body_animation, "think")
+        self.assertEqual(updated.gaze, "up")
+
+    def test_head_tilt_is_bounded(self) -> None:
+        AvatarActingState(head_tilt=-1.0)
+        AvatarActingState(head_tilt=1.0)
+
+        with self.assertRaisesRegex(ValueError, "head_tilt"):
+            AvatarActingState(head_tilt=1.01)
+
+    def test_unknown_update_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unknown acting fields"):
+            AvatarActingState().with_updates(magic_animation="wave")
+
+    def test_serialization_is_stable(self) -> None:
+        state = AvatarActingState(
+            emotion="happy",
+            gaze="camera",
+            head_tilt=0.25,
+            pose="greeting",
+            body_animation="wave",
+            facial_expression="smile",
+            lip_sync="AA",
+        )
+
+        self.assertEqual(
+            state.to_dict(),
+            {
+                "emotion": "happy",
+                "gaze": "camera",
+                "head_tilt": 0.25,
+                "pose": "greeting",
+                "body_animation": "wave",
+                "facial_expression": "smile",
+                "lip_sync": "AA",
+            },
+        )
 
 
-def test_state_updates_are_immutable() -> None:
-    original = AvatarActingState()
-    updated = original.with_updates(
-        emotion="thinking",
-        pose="thinking",
-        body_animation="think",
-        gaze="up",
-    )
-
-    assert original.emotion == "neutral"
-    assert updated.emotion == "thinking"
-    assert updated.pose == "thinking"
-    assert updated.body_animation == "think"
-    assert updated.gaze == "up"
-
-
-def test_head_tilt_is_bounded() -> None:
-    AvatarActingState(head_tilt=-1.0)
-    AvatarActingState(head_tilt=1.0)
-
-    with pytest.raises(ValueError, match="head_tilt"):
-        AvatarActingState(head_tilt=1.01)
-
-
-def test_unknown_update_is_rejected() -> None:
-    with pytest.raises(ValueError, match="unknown acting fields"):
-        AvatarActingState().with_updates(magic_animation="wave")
-
-
-def test_serialization_is_stable() -> None:
-    state = AvatarActingState(
-        emotion="happy",
-        gaze="camera",
-        head_tilt=0.25,
-        pose="greeting",
-        body_animation="wave",
-        facial_expression="smile",
-        lip_sync="AA",
-    )
-
-    assert state.to_dict() == {
-        "emotion": "happy",
-        "gaze": "camera",
-        "head_tilt": 0.25,
-        "pose": "greeting",
-        "body_animation": "wave",
-        "facial_expression": "smile",
-        "lip_sync": "AA",
-    }
+if __name__ == "__main__":
+    unittest.main()
