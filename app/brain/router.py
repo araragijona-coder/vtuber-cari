@@ -18,6 +18,9 @@ class RuleRouter:
             self._identity,
             self._thanks,
             self._goodbye,
+            self._stream_request,
+            self._bored,
+            self._compliment,
         ]
 
     def route(self, viewer: str, text: str) -> AIResponse | None:
@@ -79,5 +82,36 @@ class RuleRouter:
             return AIResponse(
                 text="¡Nos vemos! Gracias por pasar por el stream ♡",
                 emotion=Emotion.HAPPY, intensity=0.6, animation="wave",
+            )
+        return None
+
+    @classmethod
+    def _stream_request(cls, _viewer: str, text: str) -> AIResponse | None:
+        if cls._simple_form(text) in {
+            "alguien tiene un pedido", "alguien tiene pedido", "tienen algun pedido",
+            "tienen algún pedido", "que hacemos", "qué hacemos", "que hacemos ahora",
+            "qué hacemos ahora",
+        }:
+            return AIResponse(
+                text="¡A ver, a ver! ¿Qué hacemos ahora? Si tienen algún pedido, tírenlo al chat ♡",
+                emotion=Emotion.PLAYFUL, intensity=0.7, animation="thinking",
+            )
+        return None
+
+    @classmethod
+    def _bored(cls, _viewer: str, text: str) -> AIResponse | None:
+        if cls._simple_form(text) in {"estoy aburrido", "estoy aburrida", "me aburro", "que aburrimiento", "qué aburrimiento"}:
+            return AIResponse(
+                text="¡Eso se arregla! ♡ Inventemos algo para hacer en el stream.",
+                emotion=Emotion.PLAYFUL, intensity=0.7, animation="happy",
+            )
+        return None
+
+    @classmethod
+    def _compliment(cls, _viewer: str, text: str) -> AIResponse | None:
+        if cls._simple_form(text) in {"buen stream", "buen directo", "lindo stream", "linda cari", "cari eres genial", "cari sos genial"}:
+            return AIResponse(
+                text="Aaaah, gracias ♡ Me voy a poner toda orgullosa ahora.",
+                emotion=Emotion.AFFECTIONATE, intensity=0.8, animation="happy",
             )
         return None
