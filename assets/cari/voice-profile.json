@@ -1,0 +1,10 @@
+{
+  "name": "Cari Anime",
+  "language": "ja-JP",
+  "style": "bright, youthful, energetic anime-inspired",
+  "rate": 175,
+  "volume": 1.0,
+  "pitch": 1.05,
+  "provider": "external-or-local-config",
+  "notes": "Profile only. No voice model or cloned voice is bundled. Select a TTS provider/voice that permits the intended use."
+}
