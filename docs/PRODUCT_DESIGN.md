@@ -43,6 +43,8 @@ Los listeners son observadores: un fallo de telemetría nunca puede romper el ca
 - `app/voice/arbiter.py`: cola determinista con prioridad, límite de presión, coalescencia por clave y propiedad explícita del turno de voz.
 - `app/voice/safe.py`: frontera de fallos del TTS.
 
+Cuando el arbitraje concede el turno, el avatar pasa a `speaking=True` exactamente durante la ejecución del TTS y vuelve a `speaking=False` al terminar, incluso si el TTS falla. Si una respuesta no consigue entrar en la cola, el avatar tampoco queda marcado como hablando. Así, el estado visual no afirma que Cari está hablando cuando realmente no posee el turno de voz.
+
 La idea viene de un patrón habitual en VTubers en tiempo real: una sola salida de voz debe tener el "floor" y las respuestas compiten por prioridad en vez de hablar encima unas de otras. Proyectos abiertos como Lumi_Nox exponen un `speech_output_arbiter` y un `speaker_scheduler` como parte de su backbone de coordinación. El patrón se adopta aquí sin copiar implementación ni introducir dependencias externas.
 
 ## Avatar y escena
