@@ -21,9 +21,11 @@ La respuesta del modelo se mantiene estructurada y separada de la representació
 
 ### Eventos de runtime
 
-El pipeline puede emitir eventos como `message_received`, `message_filtered`, `message_gated`, `response_ready`, `llm_error`, `speech_started`, `speech_finished`, `memory_saved` y `response_dropped`.
+El pipeline puede emitir eventos como `message_received`, `message_filtered`, `message_gated`, `response_ready`, `llm_error`, `tts_error`, `speech_started`, `speech_finished`, `memory_saved` y `response_dropped`.
 
-`EventJournal` ofrece un historial **en memoria y acotado** de los últimos eventos. No se persiste automáticamente ni añade una base de datos: sirve para inspeccionar qué ocurrió durante una sesión, depurar fallos y preparar una futura consola de diagnóstico/replay.
+`LocalPipeline` crea por defecto un `EventJournal` acotado para que cada ejecución tenga telemetría de sesión sin configurar nada adicional. También puede recibir un `EventJournal` o un `EventBus` externo; no se permite pasar ambos a la vez para evitar dos fuentes ambiguas de verdad.
+
+`EventJournal` mantiene los últimos eventos **en memoria y de forma acotada**. No se persiste automáticamente ni añade una base de datos: sirve para inspeccionar qué ocurrió durante una sesión, depurar fallos y preparar una futura consola de diagnóstico/replay.
 
 Los listeners son observadores: un fallo de telemetría nunca puede romper el camino principal de chat. Esto deja preparado un punto único para UI, diagnóstico, métricas, replay y futuros conectores sin hacer que el cerebro dependa de ellos.
 
