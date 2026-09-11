@@ -7,6 +7,7 @@ from app.brain.router import RuleRouter
 from app.intelligence.comment_filter import CommentFilter
 from app.intelligence.comment_gate import CommentGate
 from app.intelligence.comment_intelligence import CommentIntelligence
+from app.memory.persistent import PersistentMemoryStore
 from app.memory.session import SessionMemory
 from app.twitch.models import ChatMessage
 from app.voice.director import VoiceDirector, VoiceRequest
@@ -21,9 +22,9 @@ class LocalPipelineResult:
 
 
 class LocalPipeline:
-    """First end-to-end path: chat -> gate -> local rules -> voice/avatar contracts."""
+    """Local-first path: chat -> gate -> rules -> voice/avatar, with optional persistence."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, persistent_memory: PersistentMemoryStore | None = None) -> None:
         self.filter = CommentFilter()
         self.gate = CommentGate()
         self.intelligence = CommentIntelligence()
@@ -31,6 +32,10 @@ class LocalPipeline:
         self.voice = VoiceDirector()
         self.avatar = AvatarController()
         self.memory = SessionMemory()
+        self.persistent_memory = persistent_memory
+        if persistent_memory is not None:
+            for item in persistent_memory.load():
+                self.memory.remember(item.key, item.value, source=item.source, timestamp=item.timestamp)
 
     def handle(self, message: ChatMessage) -> LocalPipelineResult | None:
         return self.handle_batch([message])
@@ -69,6 +74,8 @@ class LocalPipeline:
                 selected.normalized_text,
                 source="conversation",
             )
+            if self.persistent_memory is not None:
+                self.persistent_memory.save(self.memory.remembered())
         return LocalPipelineResult(
             response.text,
             voice_request,
