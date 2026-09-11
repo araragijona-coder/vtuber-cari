@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from app.avatar.controller import AvatarCommand, AvatarController
+from app.brain.contracts import AIResponse
 from app.brain.router import RuleRouter
 from app.intelligence.comment_filter import CommentFilter
 from app.intelligence.comment_gate import CommentGate
@@ -11,6 +13,11 @@ from app.memory.persistent import PersistentMemoryStore
 from app.memory.session import SessionMemory
 from app.twitch.models import ChatMessage
 from app.voice.director import VoiceDirector, VoiceRequest
+from app.voice.tts import NullTTS, TTSBackend
+
+
+class Responder(Protocol):
+    def respond(self, viewer: str, text: str, memory: dict[str, object] | None = None) -> AIResponse: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,9 +29,15 @@ class LocalPipelineResult:
 
 
 class LocalPipeline:
-    """Local-first path: chat -> gate -> rules -> voice/avatar, with optional persistence."""
+    """Local-first path with optional LLM/TTS adapters and persistent memory."""
 
-    def __init__(self, *, persistent_memory: PersistentMemoryStore | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        persistent_memory: PersistentMemoryStore | None = None,
+        responder: Responder | None = None,
+        tts: TTSBackend | None = None,
+    ) -> None:
         self.filter = CommentFilter()
         self.gate = CommentGate()
         self.intelligence = CommentIntelligence()
@@ -33,6 +46,8 @@ class LocalPipeline:
         self.avatar = AvatarController()
         self.memory = SessionMemory()
         self.persistent_memory = persistent_memory
+        self.responder = responder
+        self.tts = tts or NullTTS()
         if persistent_memory is not None:
             for item in persistent_memory.load():
                 self.memory.remember(item.key, item.value, source=item.source, timestamp=item.timestamp)
@@ -56,8 +71,15 @@ class LocalPipeline:
         selected = selection.selected
         message = selected.message
         response = self.router.route(message.viewer_name, selected.normalized_text)
+        if response is None and self.responder is not None:
+            response = self.responder.respond(
+                message.viewer_name,
+                selected.normalized_text,
+                self.memory.context(),
+            )
         if response is None:
             return None
+
         voice_request = self.voice.build(response)
         command = AvatarCommand(
             emotion=response.emotion,
@@ -66,6 +88,7 @@ class LocalPipeline:
             speaking=True,
         )
         self.avatar.apply(command)
+        self.tts.speak(voice_request)
         self.intelligence.mark_answered(message)
         self.memory.add_turn(message.viewer_name, selected.normalized_text, response.text)
         if response.remember:
