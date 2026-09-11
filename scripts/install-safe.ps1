@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$InstallOllama,
+    [switch]$InstallTwitch,
     [string]$OllamaModel = "llama3.2:1b"
 )
 
@@ -98,6 +99,15 @@ try {
 
     Write-Step "Leer y diagnosticar Ollama sin forzar su arranque" {
         Test-Ollama -Model $OllamaModel
+    }
+
+    if ($InstallTwitch) {
+        Write-Step "Instalar TwitchIO opcional" {
+            & $venvPython -m pip install -e "$root.[twitch]"
+        }
+        Write-Step "Verificar TwitchIO" {
+            & $venvPython -c "import twitchio; print('TwitchIO', twitchio.__version__)"
+        }
     }
 
     Write-Host ""
