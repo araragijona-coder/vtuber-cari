@@ -16,6 +16,8 @@ Dependency-light, local-first foundation for a modular AI VTuber.
 - Twitch OAuth authorization URL contract using TwitchIO 3's documented localhost callback.
 - Dependency-free animated fallback avatar rendered directly in Tkinter.
 - Desktop UI with chat, animated avatar, degraded diagnostics, and a live **CPU/provider usage strip** showing local, Ollama, API, failures and latency.
+- **Work-mode switch:** `🤖 Trabajar modo IA` enables the configured local-first intelligence path; `🛠 Trabajar manual` blocks Ollama/API and exposes application controls that do not require AI.
+- In manual mode, AI-dependent services are explicitly shown as `🔒` instead of being silently invoked.
 - Heavy synchronous pipeline/TTS work is moved off TwitchIO's asyncio event loop.
 - Python 3.11/3.12 compile + unit-test CI.
 - Safe Windows setup script that installs/verifies one step at a time, logs each step, and stops immediately on errors.
@@ -62,6 +64,24 @@ ollama run llama3.2:1b
 ```
 
 Llama 3.2 officially provides a 1B text model intended for local/edge use and multilingual dialogue, including Spanish. citeturn0search0turn0search1
+
+## Manual vs IA work mode
+
+The desktop UI now has an explicit switch:
+
+```text
+🤖 MODO IA
+  local rules -> Ollama -> API fallback
+  AI-dependent controls available
+
+🛠 MODO MANUAL
+  no Ollama
+  no cloud API
+  application/avatar controls remain available
+  AI-dependent services show 🔒
+```
+
+Changing to manual mode rebuilds the pipeline with no LLM responder. This is a real execution guard, not only a visual setting: the manual pipeline cannot call Ollama or the cloud API.
 
 ## Safe Windows setup
 
@@ -179,6 +199,7 @@ Twitch EventSub
 Memory: session -> explicit promotion -> persistent JSON
 Usage: CPU/process time + local/Ollama/API counters + latency
 Integrity: atomic write + fail-closed load
+Manual mode: responder=None -> rules/application controls only
 ```
 
 ## Validation
