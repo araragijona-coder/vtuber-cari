@@ -26,4 +26,4 @@ jobs:
       - name: Unit tests
         run: python -m unittest discover -s tests -q
       - name: Experimental avatar tests
-        run: python -m unittest discover -s experimental/avatar -p 'test_*.py' -q
+        run: python -m unittest discover -s experimental -p 'test_*.py' -q
