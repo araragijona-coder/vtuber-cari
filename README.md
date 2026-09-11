@@ -18,6 +18,8 @@ Dependency-light, local-first foundation for a modular AI VTuber.
 - Desktop UI with chat, animated avatar, degraded diagnostics, and a live **CPU/provider usage strip** showing local, Ollama, API, failures and latency.
 - Heavy synchronous pipeline/TTS work is moved off TwitchIO's asyncio event loop.
 - Python 3.11/3.12 compile + unit-test CI.
+- Safe Windows setup script that installs/verifies one step at a time, logs each step, and stops immediately on errors.
+- Startup guard that stops instead of continuing after a fatal initialization error and writes a copyable diagnostic file.
 
 The core intentionally stays dependency-free. Optional integrations are loaded only when enabled.
 
@@ -60,6 +62,47 @@ ollama run llama3.2:1b
 ```
 
 Llama 3.2 officially provides a 1B text model intended for local/edge use and multilingual dialogue, including Spanish. citeturn0search0turn0search1
+
+## Safe Windows setup
+
+Use `scripts/install-safe.ps1` when installing the project. It deliberately performs the work slowly and sequentially:
+
+1. verify Python;
+2. create/verify `.venv`;
+3. update pip;
+4. install declared dependencies;
+5. compile the application;
+6. run the tests;
+7. check Ollama without forcing it to start;
+8. optionally install Ollama through WinGet only when `-InstallOllama` is explicitly supplied.
+
+Every step is checked before the next one. On failure, the script stops, writes `data/last-install-error.txt`, preserves a transcript under `data/install-logs/`, and asks the user to copy the error message instead of continuing into an unknown state.
+
+Examples:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install-safe.ps1
+```
+
+Optional Ollama installation:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install-safe.ps1 -InstallOllama
+```
+
+The script does **not** automatically download an Ollama model. If Ollama is installed but the selected model is missing, that is reported and left for an explicit model installation/test.
+
+PowerShell's `Stop` error preference and transcription facilities are used so installation errors terminate the current step and leave a readable diagnostic trail. citeturn0search0turn0search3
+
+## Startup errors
+
+If Cari cannot start, the launcher deliberately stops instead of partially starting. It writes:
+
+```text
+data/last-startup-error.txt
+```
+
+and shows a Windows error dialog containing the exception and the file location. Copy that diagnostic to the developer before changing anything manually.
 
 ## Run locally
 
