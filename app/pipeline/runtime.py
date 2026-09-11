@@ -104,22 +104,7 @@ class LocalPipeline:
         voice_request = self.voice.build(response)
         command = AvatarCommand(emotion=response.emotion, intensity=response.intensity, animation=response.animation, speaking=True)
         self.avatar.apply(AvatarCommand(response.emotion, response.intensity, response.animation, speaking=False))
-        speech = VoiceItem(voice_request, priority=response.priority, key=f"viewer:{message.viewer_name}")
-        if self.voice_arbiter.enqueue(speech):
-            active = self.voice_arbiter.start_next()
-            if active is not None:
-                self.avatar.apply(AvatarCommand(response.emotion, response.intensity, response.animation, speaking=True))
-                self.event_bus.publish(RuntimeEvent("speech_started", {"viewer": message.viewer_name, "priority": response.priority}))
-                try:
-                    self.tts.speak(active.request)
-                finally:
-                    self.voice_arbiter.finish()
-                    self.avatar.apply(AvatarCommand(response.emotion, response.intensity, response.animation, speaking=False))
-                    self.event_bus.publish(RuntimeEvent("speech_finished", {"viewer": message.viewer_name}))
-        else:
-            self.event_bus.publish(RuntimeEvent("response_dropped", {"reason": "voice_queue_full", "viewer": message.viewer_name}))
-        if self.tts.last_error:
-            self.event_bus.publish(RuntimeEvent("tts_error", {"viewer": message.viewer_name, "error": self.tts.last_error}))
+        self._speak(voice_request, message.viewer_name, response)
         self.intelligence.mark_answered(message)
         self.memory.add_turn(message.viewer_name, selected.normalized_text, response.text)
         if response.remember:
@@ -128,3 +113,38 @@ class LocalPipeline:
                 self.persistent_memory.save(self.memory.remembered())
                 self.event_bus.publish(RuntimeEvent("memory_saved", {"viewer": message.viewer_name}))
         return LocalPipelineResult(response.text, voice_request, command, self.memory.context(), llm_error, self.tts.last_error)
+
+    def speak_manual(self, text: str, *, emotion: str = "neutral", intensity: float = 0.7) -> str | None:
+        """Speak a manually supplied line without invoking any LLM or API."""
+        request = VoiceRequest(text.strip(), "default", emotion, intensity)
+        if not request.text:
+            return "No hay texto para hablar."
+        response = AIResponse(text=request.text, emotion=self._emotion_from_name(emotion), intensity=intensity, animation="talk", voice="default", priority=1, remember=False)
+        self._speak(request, "manual", response)
+        return self.tts.last_error
+
+    @staticmethod
+    def _emotion_from_name(name: str):
+        from app.brain.contracts import Emotion
+        try:
+            return Emotion(name)
+        except ValueError:
+            return Emotion.NEUTRAL
+
+    def _speak(self, request: VoiceRequest, viewer: str, response: AIResponse) -> None:
+        speech = VoiceItem(request, priority=response.priority, key=f"viewer:{viewer}")
+        if self.voice_arbiter.enqueue(speech):
+            active = self.voice_arbiter.start_next()
+            if active is not None:
+                self.avatar.apply(AvatarCommand(response.emotion, response.intensity, response.animation, speaking=True))
+                self.event_bus.publish(RuntimeEvent("speech_started", {"viewer": viewer, "priority": response.priority}))
+                try:
+                    self.tts.speak(active.request)
+                finally:
+                    self.voice_arbiter.finish()
+                    self.avatar.apply(AvatarCommand(response.emotion, response.intensity, response.animation, speaking=False))
+                    self.event_bus.publish(RuntimeEvent("speech_finished", {"viewer": viewer}))
+        else:
+            self.event_bus.publish(RuntimeEvent("response_dropped", {"reason": "voice_queue_full", "viewer": viewer}))
+        if self.tts.last_error:
+            self.event_bus.publish(RuntimeEvent("tts_error", {"viewer": viewer, "error": self.tts.last_error}))
