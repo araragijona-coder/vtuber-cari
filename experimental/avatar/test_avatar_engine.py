@@ -10,6 +10,11 @@ class FailingRenderer(FakeRenderer):
         raise RuntimeError("renderer exploded")
 
 
+class LoadStateFailingRenderer(FakeRenderer):
+    def set_acting_state(self, state: AvatarActingState) -> None:
+        raise RuntimeError("acting state rejected")
+
+
 class AvatarEngineTests(unittest.TestCase):
     def test_load_applies_initial_state(self) -> None:
         renderer = FakeRenderer()
@@ -18,6 +23,14 @@ class AvatarEngineTests(unittest.TestCase):
         self.assertTrue(engine.load("cari-test.vrm"))
         self.assertTrue(engine.status().loaded)
         self.assertEqual(renderer.acting_state, AvatarActingState())
+
+    def test_load_contains_initial_state_failure(self) -> None:
+        engine = AvatarEngine(LoadStateFailingRenderer())
+
+        self.assertFalse(engine.load("cari-test.vrm"))
+        status = engine.status()
+        self.assertTrue(status.degraded)
+        self.assertEqual(status.last_error, "acting state rejected")
 
     def test_acting_state_is_forwarded(self) -> None:
         renderer = FakeRenderer()
