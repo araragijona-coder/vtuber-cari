@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vtuber-project-foundation"
+version = "0.1.0"
+description = "Dependency-light foundation for a modular AI VTuber"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+twitch = ["twitchio>=3.3,<4"]
+tts = ["pyttsx3>=2.90"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pyright]
+include = ["app", "tests"]
+pythonVersion = "3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
