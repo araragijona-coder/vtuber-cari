@@ -9,12 +9,19 @@
       html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #11131a; }
       canvas { display: block; width: 100%; height: 100%; }
       #status { position: fixed; left: 16px; top: 16px; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,.65); color: #fff; z-index: 2; }
-      #model { position: fixed; right: 16px; top: 16px; z-index: 2; }
+      #controls { position: fixed; right: 16px; top: 16px; z-index: 2; display: grid; gap: 8px; padding: 10px; border-radius: 10px; background: rgba(0,0,0,.65); }
+      #controls label { display: grid; gap: 4px; font-size: 12px; }
+      #controls input { max-width: 240px; }
+      #play-animation { cursor: pointer; }
     </style>
   </head>
   <body>
     <div id="status">Esperando modelo VRM…</div>
-    <input id="model" type="file" accept=".vrm,model/vrm">
+    <div id="controls">
+      <label>Modelo VRM <input id="model" type="file" accept=".vrm,model/vrm"></label>
+      <label>Animación VRMA <input id="animation" type="file" accept=".vrma,model/vrma"></label>
+      <button id="play-animation" type="button" disabled>Reproducir VRMA</button>
+    </div>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>
