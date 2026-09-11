@@ -68,7 +68,7 @@ class CariWindow:
             ("Pensar", Emotion.PLAYFUL, "thinking"),
         )):
             ttk.Button(controls, text=label, command=lambda e=emotion, a=animation: self._manual_avatar(e, a)).grid(row=1, column=column, padx=2, sticky="ew")
-        self.manual_speak = ttk.Button(controls, text="Hablar", command=self._manual_speak)
+        self.manual_speak = ttk.Button(controls, text="Hablar texto escrito", command=self._manual_speak)
         self.manual_speak.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(6, 0))
         for column in range(3):
             controls.columnconfigure(column, weight=1)
@@ -151,7 +151,15 @@ class CariWindow:
         self._write(f"[Manual] Avatar: {animation}")
 
     def _manual_speak(self) -> None:
-        self._write("[Manual] Voz: usa el TTS configurado; no requiere IA.")
+        text = self.entry.get().strip()
+        if not text:
+            self._write("[Manual] Escribe primero el texto que Cari debe decir.")
+            return
+        error = self.pipeline.speak_manual(text)
+        if error:
+            self._write(f"[TTS error] {error}")
+        else:
+            self._write(f"Cari (manual): {text}")
 
     def _write(self, text: str) -> None:
         self.chat.configure(state="normal")
