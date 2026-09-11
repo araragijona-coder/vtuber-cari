@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from acting_state import AvatarActingState
+from .acting_state import AvatarActingState
 
 
 class AvatarRenderer(Protocol):
