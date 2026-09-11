@@ -1,0 +1,77 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from app.avatar.controller import AvatarCommand, AvatarController
+from app.brain.router import RuleRouter
+from app.intelligence.comment_filter import CommentFilter
+from app.intelligence.comment_gate import CommentGate
+from app.intelligence.comment_intelligence import CommentIntelligence
+from app.memory.session import SessionMemory
+from app.twitch.models import ChatMessage
+from app.voice.director import VoiceDirector, VoiceRequest
+
+
+@dataclass(frozen=True, slots=True)
+class LocalPipelineResult:
+    response_text: str
+    voice_request: VoiceRequest
+    avatar_command: AvatarCommand
+    memory_context: dict[str, object] = field(default_factory=dict)
+
+
+class LocalPipeline:
+    """First end-to-end path: chat -> gate -> local rules -> voice/avatar contracts."""
+
+    def __init__(self) -> None:
+        self.filter = CommentFilter()
+        self.gate = CommentGate()
+        self.intelligence = CommentIntelligence()
+        self.router = RuleRouter()
+        self.voice = VoiceDirector()
+        self.avatar = AvatarController()
+        self.memory = SessionMemory()
+
+    def handle(self, message: ChatMessage) -> LocalPipelineResult | None:
+        return self.handle_batch([message])
+
+    def handle_batch(self, messages: list[ChatMessage]) -> LocalPipelineResult | None:
+        candidates: list[tuple[ChatMessage, str]] = []
+        for message in messages:
+            filtered = self.filter.check(message)
+            if not filtered.accepted:
+                continue
+            gated = self.gate.allow(message, filtered.normalized_text)
+            if gated.accepted:
+                candidates.append((message, filtered.normalized_text))
+
+        selection = self.intelligence.rank(candidates)
+        if selection.selected is None:
+            return None
+        selected = selection.selected
+        message = selected.message
+        response = self.router.route(message.viewer_name, selected.normalized_text)
+        if response is None:
+            return None
+        voice_request = self.voice.build(response)
+        command = AvatarCommand(
+            emotion=response.emotion,
+            intensity=response.intensity,
+            animation=response.animation,
+            speaking=True,
+        )
+        self.avatar.apply(command)
+        self.intelligence.mark_answered(message)
+        self.memory.add_turn(message.viewer_name, selected.normalized_text, response.text)
+        if response.remember:
+            self.memory.remember(
+                f"viewer:{message.viewer_name}",
+                selected.normalized_text,
+                source="conversation",
+            )
+        return LocalPipelineResult(
+            response.text,
+            voice_request,
+            command,
+            self.memory.context(),
+        )
