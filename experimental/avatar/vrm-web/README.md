@@ -9,7 +9,7 @@ Esta carpeta contiene la prueba de un renderer VRM real para Cari. Sigue aislada
 - `@pixiv/three-vrm-animation` `3.5.5`.
 - WebGL como primera ruta de compatibilidad.
 
-La documentación oficial de `@pixiv/three-vrm` utiliza `GLTFLoader` + `VRMLoaderPlugin`, `VRMUtils` para optimización y `vrm.update(deltaTime)` en el loop. Su ejemplo oficial de animación usa `THREE.AnimationMixer`; el renderer experimental de Cari sigue ese patrón y añade carga de VRMA mediante `VRMAnimationLoaderPlugin` + `createVRMAnimationClip`. citeturn0search0turn0search7
+El renderer sigue el patrón oficial de three-vrm para cargar y actualizar VRM y utiliza `THREE.AnimationMixer` para reproducir animaciones VRMA.
 
 ## Qué funciona en esta fase
 
@@ -23,7 +23,7 @@ La documentación oficial de `@pixiv/three-vrm` utiliza `GLTFLoader` + `VRMLoade
 8. Mostrar errores de carga sin tumbar la aplicación web experimental.
 9. Cargar un `.vrma` elegido por el usuario.
 10. Convertir la animación VRMA a un `AnimationClip` compatible con el VRM cargado.
-11. Reproducir la VRMA con `THREE.AnimationMixer` sin mezclarla con la lógica de cámara.
+11. Reproducir la VRMA con `THREE.AnimationMixer`.
 12. Mantener parpadeo procedural mientras el modelo está activo.
 13. Proporcionar cámaras `full_body`, `three_quarter` y `bust`.
 14. Mostrar FPS aproximados durante la ejecución.
