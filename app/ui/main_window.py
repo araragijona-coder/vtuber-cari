@@ -24,7 +24,12 @@ class CariWindow:
         memory = PersistentMemoryStore(Path("data") / "cari-memory.json")
         llm_config = LLMConfig.from_env()
         responder = OpenAICompatibleClient(llm_config) if llm_config is not None else None
-        tts_kind = os.getenv("CARI_TTS", "none")
+
+        # Windows builds prefer the local SAPI-backed adapter so the packaged
+        # application can speak immediately when pyttsx3 is bundled. Linux/CI
+        # remains silent unless a provider is explicitly configured.
+        default_tts = "pyttsx3" if os.name == "nt" else "none"
+        tts_kind = os.getenv("CARI_TTS", default_tts)
         try:
             tts = build_tts(tts_kind)
             tts_status = tts_kind
