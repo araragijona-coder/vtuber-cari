@@ -15,7 +15,7 @@ Cari puede funcionar sin una API de OpenAI/Gemini.
 - Usa Ollama en `http://127.0.0.1:11434/api/chat`.
 - No necesita API key.
 - El modelo se ejecuta localmente.
-- Si Ollama no está instalado/ejecutándose, Cari conserva el funcionamiento y muestra el error como estado degradado.
+- Si Ollama no está instalado/ejecutándose, Cari captura el fallo y degrada la respuesta sin cerrar el programa.
 
 `CARI_LLM_MODE=api`
 
@@ -53,11 +53,27 @@ No se debe instalar un modelo dentro del repositorio. Ollama administra los mode
 ## Windows
 
 1. Instalar Ollama.
-2. Descargar el modelo elegido, por ejemplo `ollama run qwen3:0.6b`.
+2. Descargar el modelo elegido, por ejemplo `ollama run qwen3:0.6b` o `ollama run llama3.2:1b`.
 3. Configurar `CARI_LLM_MODE=ollama` antes de iniciar Cari.
 4. Abrir `Cari.exe`.
 
 La instalación de Ollama y los modelos son opcionales: el ejecutable de Cari sigue siendo portable sin ellos.
+
+## Prueba experimental
+
+Antes de integrar cambios relacionados con Ollama, se puede comprobar el entorno sin tocar el runtime principal:
+
+```powershell
+.\experimental\ollama\smoke.ps1
+```
+
+El script comprueba que Ollama esté instalado, que `127.0.0.1:11434` responda, que el modelo exista y que una inferencia local devuelva contenido.
+
+## ¿Existe un truco para usar una API sin API key?
+
+No hay una "puerta trasera" legítima que convierta un servicio cloud que exige autenticación en uno sin autenticación. La solución real es cambiar el punto de inferencia: ejecutar un modelo localmente. Ollama expone ese modelo mediante HTTP en localhost, por lo que Cari puede usar el mismo patrón de cliente sin enviar el texto a un proveedor externo.
+
+Los proyectos open source de VTuber ya utilizan este enfoque: backend LLM intercambiable, Ollama/local inference y componentes locales de voz. Cari adopta el patrón sin copiar código de terceros.
 
 ## Regla de arquitectura
 
