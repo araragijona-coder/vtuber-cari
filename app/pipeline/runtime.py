@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -12,6 +13,7 @@ from app.intelligence.comment_gate import CommentGate
 from app.intelligence.comment_intelligence import CommentIntelligence
 from app.memory.persistent import PersistentMemoryStore
 from app.memory.session import SessionMemory
+from app.monitor.usage import UsageStats
 from app.twitch.models import ChatMessage
 from app.voice.arbiter import VoiceArbiter, VoiceItem
 from app.voice.director import VoiceDirector, VoiceRequest
@@ -36,15 +38,7 @@ class LocalPipelineResult:
 class LocalPipeline:
     """Local-first path with optional LLM/TTS adapters and persistent memory."""
 
-    def __init__(
-        self,
-        *,
-        persistent_memory: PersistentMemoryStore | None = None,
-        responder: Responder | None = None,
-        tts: TTSBackend | None = None,
-        event_bus: EventBus | None = None,
-        event_journal: EventJournal | None = None,
-    ) -> None:
+    def __init__(self, *, persistent_memory: PersistentMemoryStore | None = None, responder: Responder | None = None, tts: TTSBackend | None = None, event_bus: EventBus | None = None, event_journal: EventJournal | None = None, usage: UsageStats | None = None) -> None:
         self.filter = CommentFilter()
         self.gate = CommentGate()
         self.intelligence = CommentIntelligence()
@@ -56,12 +50,10 @@ class LocalPipeline:
         self.persistent_memory = persistent_memory
         self.responder = responder
         self.tts = SafeTTS(tts or NullTTS())
+        self.usage = usage or UsageStats()
         if event_bus is not None and event_journal is not None:
             raise ValueError("provide event_bus or event_journal, not both")
-        if event_bus is not None:
-            self.event_bus = event_bus
-        else:
-            self.event_bus = EventBus(journal=event_journal if event_journal is not None else EventJournal())
+        self.event_bus = event_bus or EventBus(journal=event_journal if event_journal is not None else EventJournal())
         self.event_journal = self.event_bus.journal
         if persistent_memory is not None:
             for item in persistent_memory.load():
@@ -91,11 +83,19 @@ class LocalPipeline:
         message = selected.message
         response = self.router.route(message.viewer_name, selected.normalized_text)
         llm_error: str | None = None
-        if response is None and self.responder is not None:
+        if response is not None:
+            self.usage.record("local")
+        elif self.responder is not None:
+            started = time.perf_counter()
+            provider = "ollama" if self.responder.__class__.__name__ == "OllamaClient" else "api"
             try:
                 response = self.responder.respond(message.viewer_name, selected.normalized_text, self.memory.context())
+                if self.responder.__class__.__name__ == "LocalFirstResponder":
+                    provider = "ollama" if getattr(self.responder, "ollama", None).available() else "api"
+                self.usage.record(provider, (time.perf_counter() - started) * 1000.0)
             except Exception as exc:  # noqa: BLE001 - provider failures degrade locally
                 llm_error = str(exc) or exc.__class__.__name__
+                self.usage.record(provider, (time.perf_counter() - started) * 1000.0, success=False)
                 self.event_bus.publish(RuntimeEvent("llm_error", {"viewer": message.viewer_name, "error": llm_error}))
         if response is None:
             self.event_bus.publish(RuntimeEvent("response_dropped", {"reason": "no_response", "viewer": message.viewer_name}))
@@ -103,12 +103,7 @@ class LocalPipeline:
         self.event_bus.publish(RuntimeEvent("response_ready", {"viewer": message.viewer_name, "priority": response.priority}))
         voice_request = self.voice.build(response)
         command = AvatarCommand(emotion=response.emotion, intensity=response.intensity, animation=response.animation, speaking=True)
-        # Keep the render state non-speaking until the voice arbiter actually grants the floor.
-        # This prevents the avatar from getting stuck talking when speech is dropped or rejected.
         self.avatar.apply(AvatarCommand(response.emotion, response.intensity, response.animation, speaking=False))
-
-        # Keep speech ownership explicit even while TTS is synchronous today. This gives
-        # the async Twitch runtime a deterministic hand-off point for queued/interruptible speech.
         speech = VoiceItem(voice_request, priority=response.priority, key=f"viewer:{message.viewer_name}")
         if self.voice_arbiter.enqueue(speech):
             active = self.voice_arbiter.start_next()
@@ -123,10 +118,8 @@ class LocalPipeline:
                     self.event_bus.publish(RuntimeEvent("speech_finished", {"viewer": message.viewer_name}))
         else:
             self.event_bus.publish(RuntimeEvent("response_dropped", {"reason": "voice_queue_full", "viewer": message.viewer_name}))
-
         if self.tts.last_error:
             self.event_bus.publish(RuntimeEvent("tts_error", {"viewer": message.viewer_name, "error": self.tts.last_error}))
-
         self.intelligence.mark_answered(message)
         self.memory.add_turn(message.viewer_name, selected.normalized_text, response.text)
         if response.remember:
