@@ -1,0 +1,75 @@
+name: Descargar Cari
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-download:
+    name: Crear Cari portable
+    runs-on: windows-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar empaquetador y TTS local
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller pyttsx3
+
+      - name: Construir Cari.exe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          pyinstaller --noconfirm --clean --onefile --windowed --name Cari --collect-submodules app --collect-all pyttsx3 main.py
+          if (-not (Test-Path "dist\Cari.exe")) {
+            throw "La compilación terminó sin generar dist\Cari.exe"
+          }
+
+      - name: Preparar paquete portable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path bundle\data | Out-Null
+          New-Item -ItemType Directory -Force -Path bundle\assets\cari | Out-Null
+          Copy-Item dist\Cari.exe bundle\Cari.exe
+          if (Test-Path "docs\BUILD_WINDOWS.md") {
+            Copy-Item docs\BUILD_WINDOWS.md bundle\BUILD_WINDOWS.md
+          }
+          @'
+          @echo off
+          start "" "%~dp0Cari.exe"
+          '@ | Set-Content -Encoding ASCII bundle\Abrir-Cari.bat
+          @'
+          CARI - VERSION PORTABLE
+
+          Ejecuta Cari.exe o Abrir-Cari.bat.
+          Ollama y los modelos NO vienen incluidos en este ZIP.
+          Las APIs son opcionales.
+          '@ | Set-Content -Encoding UTF8 bundle\LEEME.txt
+
+      - name: Crear ZIP descargable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Compress-Archive -Path bundle\* -DestinationPath Cari-Windows-Portable.zip -Force
+          if (-not (Test-Path "Cari-Windows-Portable.zip")) {
+            throw "No se generó Cari-Windows-Portable.zip"
+          }
+
+      - name: Publicar descarga
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cari-Windows-Portable
+          path: Cari-Windows-Portable.zip
+          if-no-files-found: error
+          retention-days: 30
