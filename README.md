@@ -6,18 +6,60 @@ Dependency-light, local-first foundation for a modular AI VTuber.
 
 - Local chat filtering, gating and deterministic comment ranking.
 - Local rule responses for common conversation.
-- Optional OpenAI-compatible LLM fallback; no network call unless configured.
+- **Local-first intelligence order: local rules -> Ollama -> cloud/API fallback.**
+- Ollama is probed before use, so it is not called for messages already handled locally and is not waited on when the service is absent.
+- Cloud/OpenAI-compatible API is secondary and only used when configured and Ollama is unavailable/fails.
 - Session memory plus fail-closed persistent memory.
 - Provider-neutral voice and avatar contracts.
 - Optional local `pyttsx3` TTS.
 - TwitchIO 3 production bridge with managed OAuth tokens and EventSub chat.
 - Twitch OAuth authorization URL contract using TwitchIO 3's documented localhost callback.
 - Dependency-free animated fallback avatar rendered directly in Tkinter.
-- Desktop UI now shows chat + animated avatar + degraded-mode diagnostics.
+- Desktop UI with chat, animated avatar, degraded diagnostics, and a live **CPU/provider usage strip** showing local, Ollama, API, failures and latency.
 - Heavy synchronous pipeline/TTS work is moved off TwitchIO's asyncio event loop.
 - Python 3.11/3.12 compile + unit-test CI.
 
 The core intentionally stays dependency-free. Optional integrations are loaded only when enabled.
+
+## Intelligence modes
+
+Default mode is `auto`:
+
+```text
+message
+  |
+  +--> local rule? ---- yes --> answer
+  |
+  no
+  |
+  +--> Ollama running? ---- yes --> local model
+  |                               |
+  |                               +--> failure --> cloud/API (if configured)
+  |
+  no
+  |
+  +--> cloud/API (if configured)
+  |
+  no provider --> local degraded response
+```
+
+Force a mode with `CARI_LLM_MODE`:
+
+```text
+local   = rules only; never calls a model/API
+ollama  = local Ollama only
+api     = configured OpenAI-compatible API only
+
+auto    = local rules -> Ollama -> API (default)
+```
+
+For the small local model requested for testing, use:
+
+```bash
+ollama run llama3.2:1b
+```
+
+Llama 3.2 officially provides a 1B text model intended for local/edge use and multilingual dialogue, including Spanish. citeturn0search0turn0search1
 
 ## Run locally
 
@@ -33,7 +75,7 @@ set CARI_TTS=pyttsx3
 python main.py
 ```
 
-For an OpenAI-compatible LLM (OpenAI, OpenRouter or another compatible endpoint):
+For a secondary OpenAI-compatible fallback:
 
 ```text
 CARI_LLM_API_KEY=...
@@ -41,7 +83,7 @@ CARI_LLM_MODEL=...
 CARI_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
 ```
 
-The LLM is a fallback: greetings/thanks/goodbyes are answered locally first. Without a key/model, Cari remains local-only.
+Without a key/model, Cari remains fully local when Ollama is available and otherwise degrades to rules-only behavior.
 
 ## Twitch
 
@@ -66,9 +108,7 @@ CARI_TWITCH_BOT_ID=...
 CARI_TWITCH_OWNER_ID=...
 ```
 
-TwitchIO 3's documented OAuth callback is `http://localhost:4343/oauth/callback`. The built-in web adapter handles authorization and managed token persistence. TwitchIO can refresh stored user tokens automatically, and the bot subscribes to `ChatMessageSubscription` over WebSocket EventSub. Cari never asks for a Twitch password. citeturn0search0turn0search6
-
-On a real machine, authorize the bot account through the Twitch OAuth page opened by TwitchIO. The bot then receives chat, sends each accepted message through Cari's local-first pipeline, optionally falls back to the configured LLM, speaks through the configured TTS backend, and responds to Twitch with the generated text.
+The bot receives chat, sends accepted messages through the local-first pipeline, optionally uses Ollama, only then falls back to the configured API, speaks through TTS, and responds to Twitch with the generated text.
 
 ## Architecture
 
@@ -79,19 +119,22 @@ Twitch EventSub
  filter -> gate -> rank
       |
       v
- local rules ---------> response
+ local rules ----------------------> response
       |
-      +---- no rule -> optional LLM
-                              |
-                              v
-                       AIResponse contract
-                         /             \
-                        v               v
-                     Voice             Avatar
-                      |                  |
-                     TTS          Tk fallback renderer
+      +---- no rule -> Ollama (if running)
+                           |
+                           +---- unavailable/failure -> API (if configured)
+                                           |
+                                           v
+                                    AIResponse contract
+                                      /             \
+                                     v               v
+                                  Voice             Avatar
+                                   |                  |
+                                  TTS          Tk fallback renderer
 
 Memory: session -> explicit promotion -> persistent JSON
+Usage: CPU/process time + local/Ollama/API counters + latency
 Integrity: atomic write + fail-closed load
 ```
 
@@ -104,16 +147,23 @@ python -m compileall -q app tests
 
 GitHub Actions runs the same checks on Python 3.11 and 3.12.
 
+## Experimental isolation
+
+Uncertain external programs, research patterns and benchmarks belong under `experimental/` until tested. They are not treated as production dependencies merely because an open-source project demonstrates the idea.
+
+The current Ollama benchmark scripts can compare small local models on the actual machine instead of guessing performance. Llama 3.2 1B has official quantized variants as small as roughly 771 MB for Q4_0. citeturn0search2turn0search6
+
 ## Closure status
 
-**Software foundation: GREEN.** The CI suite is the automated gate. The production Twitch bridge now follows the current TwitchIO 3 OAuth/EventSub model instead of the older token-constructor pattern. TwitchIO's current Bot API requires `client_id`, `client_secret`, `bot_id` and uses managed tokens; chat can be subscribed through WebSocket EventSub. citeturn1search0turn1search1
+**Software foundation: GREEN only after the latest GitHub Actions run is verified.** CI is the automated gate; local model performance still needs a real run on the target PC.
 
-The remaining items for a literal **100% stream-ready** state are external/operational:
+Remaining external/operational items for literal **100% stream-ready**:
 
-1. Put the real Cari artwork/model assets into the project (the current renderer is a functional animated fallback).
-2. Create/configure the Twitch Developer application and complete OAuth once.
-3. Choose/install the production TTS voice.
-4. Configure OBS/capture if the stream output is required.
-5. Perform one real Twitch end-to-end rehearsal: receive chat -> decide -> answer -> voice -> avatar -> capture.
+1. Real Cari artwork/model assets.
+2. Twitch Developer application + OAuth authorization.
+3. Production TTS voice.
+4. OBS/capture configuration.
+5. Real Twitch end-to-end rehearsal: chat -> decision -> answer -> voice -> avatar -> capture.
+6. Benchmark Ollama on the target PC and choose the best small model.
 
-These cannot honestly be marked green from GitHub CI alone because they require the user's local assets, Twitch account authorization and streaming environment.
+These cannot honestly be marked green from repository CI alone because they require the user's local assets, accounts and streaming environment.
