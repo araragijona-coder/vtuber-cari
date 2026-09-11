@@ -4,7 +4,7 @@ Este documento registra la arquitectura que ya está representada por código en
 
 ## Flujo principal
 
-`Twitch -> filtrado -> gate -> ranking -> reglas/responder -> AIResponse -> voz/avatar -> memoria`
+`Twitch -> filtrado -> gate -> ranking -> reglas/responder -> AIResponse -> arbitraje de voz -> avatar -> memoria`
 
 La respuesta del modelo se mantiene estructurada y separada de la representación visual.
 
@@ -27,6 +27,14 @@ La respuesta del modelo se mantiene estructurada y separada de la representació
 - `app/memory/session.py`: memoria de sesión acotada.
 - `app/memory/persistent.py`: memoria persistente versionada.
 
+## Voz y arbitraje
+
+- `app/voice/director.py`: convierte `AIResponse` en una solicitud de voz neutral al proveedor.
+- `app/voice/arbiter.py`: cola determinista con prioridad, límite de presión, coalescencia por clave y propiedad explícita del turno de voz.
+- `app/voice/safe.py`: frontera de fallos del TTS.
+
+La idea viene de un patrón habitual en VTubers en tiempo real: una sola salida de voz debe tener el "floor" y las respuestas compiten por prioridad en vez de hablar encima unas de otras. Proyectos abiertos como Lumi_Nox exponen un `speech_output_arbiter` y un `speaker_scheduler` como parte de su backbone de coordinación. El patrón se adopta aquí sin copiar implementación ni introducir dependencias externas.
+
 ## Avatar y escena
 
 - `app/avatar/controller.py`: contrato de control.
@@ -42,7 +50,6 @@ La respuesta del modelo se mantiene estructurada y separada de la representació
 
 ## Voz y Twitch
 
-- `app/voice/`: contrato TTS, director y protección de errores.
 - `app/twitch/`: modelos, OAuth, adapter y bridge TwitchIO.
 - `run_twitch.py`: entrada de producción para Twitch.
 
