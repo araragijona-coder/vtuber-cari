@@ -15,7 +15,7 @@ import os
 
 try:
     import twitchio
-    from twitchio import eventsub
+    from twitchio import Scopes, eventsub
     from twitchio.ext import commands
 except ImportError as exc:  # pragma: no cover - exercised only when optional extra is absent
     raise RuntimeError("Instala el extra Twitch con: python -m pip install -e .[twitch]") from exc
@@ -100,11 +100,7 @@ async def run_cari_twitch(pipeline: LocalPipeline) -> None:
     bot = CariTwitchBot(pipeline)
     try:
         auth = await bot.login_dcf(
-            scopes=twitchio.authentication.Scopes(
-                "user:read:chat",
-                "user:write:chat",
-                "user:bot",
-            )
+            scopes=Scopes(["user:read:chat", "user:write:chat", "user:bot"])
         )
         if auth is not None:
             LOGGER.info("Twitch authorization required. Open the displayed verification URL/code.")
