@@ -6,7 +6,7 @@ from pathlib import Path
 from tkinter import ttk
 
 from app.avatar.renderer import AvatarRenderer
-from app.intelligence.llm import LLMConfig, OpenAICompatibleClient
+from app.intelligence.llm import LLMConfig, OllamaClient, OpenAICompatibleClient
 from app.memory.persistent import PersistentMemoryStore
 from app.pipeline.runtime import LocalPipeline
 from app.twitch.models import ChatMessage
@@ -22,8 +22,7 @@ class CariWindow:
         self.root.protocol("WM_DELETE_WINDOW", self.close)
 
         memory = PersistentMemoryStore(Path("data") / "cari-memory.json")
-        llm_config = LLMConfig.from_env()
-        responder = OpenAICompatibleClient(llm_config) if llm_config is not None else None
+        responder, ai_status = self._build_responder()
 
         # Windows builds prefer the local SAPI-backed adapter so the packaged
         # application can speak immediately when pyttsx3 is bundled. Linux/CI
@@ -72,9 +71,32 @@ class CariWindow:
         ttk.Button(row, text="Enviar", command=self.send).grid(row=0, column=1, padx=(8, 0))
         self.entry.bind("<Return>", lambda _event: self.send())
 
-        llm_status = "configurado" if responder is not None else "local-only"
-        self._write(f"Cari está lista · LLM: {llm_status} · TTS: {tts_status}")
+        self._write(f"Cari está lista · IA: {ai_status} · TTS: {tts_status}")
         self.entry.focus_set()
+
+    @staticmethod
+    def _build_responder():
+        """Choose the intelligence path without making network calls by default.
+
+        local: rules only, no network/API
+        ollama: local Ollama on localhost, no cloud API key
+        api: configured OpenAI-compatible endpoint
+        auto: Ollama when explicitly configured, otherwise cloud API when configured
+        """
+        mode = os.getenv("CARI_LLM_MODE", "local").strip().casefold()
+        if mode == "local":
+            return None, "local-only"
+        if mode == "ollama":
+            return OllamaClient(), "ollama-local"
+        if mode == "api":
+            config = LLMConfig.from_env()
+            return (OpenAICompatibleClient(config), "api") if config is not None else (None, "local-only (API not configured)")
+        if mode == "auto":
+            if os.getenv("CARI_OLLAMA_MODEL", "").strip():
+                return OllamaClient(), "ollama-local (auto)"
+            config = LLMConfig.from_env()
+            return (OpenAICompatibleClient(config), "api (auto)") if config is not None else (None, "local-only (auto)")
+        return None, f"local-only (unknown mode: {mode})"
 
     def _write(self, text: str) -> None:
         self.chat.configure(state="normal")
@@ -95,7 +117,7 @@ class CariWindow:
         self.avatar.set_command(result.avatar_command)
         self._write(f"Cari: {result.response_text}")
         if result.llm_error:
-            self._write(f"[LLM degradado: {result.llm_error}]")
+            self._write(f"[IA degradada: {result.llm_error}]")
         if result.tts_error:
             self._write(f"[TTS degradado: {result.tts_error}]")
 
