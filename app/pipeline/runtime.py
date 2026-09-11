@@ -5,7 +5,7 @@ from typing import Protocol
 
 from app.avatar.controller import AvatarCommand, AvatarController
 from app.brain.contracts import AIResponse
-from app.brain.event_bus import EventBus, RuntimeEvent
+from app.brain.event_bus import EventBus, EventJournal, RuntimeEvent
 from app.brain.router import RuleRouter
 from app.intelligence.comment_filter import CommentFilter
 from app.intelligence.comment_gate import CommentGate
@@ -43,6 +43,7 @@ class LocalPipeline:
         responder: Responder | None = None,
         tts: TTSBackend | None = None,
         event_bus: EventBus | None = None,
+        event_journal: EventJournal | None = None,
     ) -> None:
         self.filter = CommentFilter()
         self.gate = CommentGate()
@@ -55,7 +56,10 @@ class LocalPipeline:
         self.persistent_memory = persistent_memory
         self.responder = responder
         self.tts = SafeTTS(tts or NullTTS())
-        self.event_bus = event_bus or EventBus()
+        if event_bus is not None and event_journal is not None:
+            raise ValueError("provide event_bus or event_journal, not both")
+        self.event_bus = event_bus or EventBus(journal=event_journal or EventJournal())
+        self.event_journal = self.event_bus.journal
         if persistent_memory is not None:
             for item in persistent_memory.load():
                 self.memory.remember(item.key, item.value, source=item.source, timestamp=item.timestamp)
@@ -110,6 +114,11 @@ class LocalPipeline:
                 finally:
                     self.voice_arbiter.finish()
                     self.event_bus.publish(RuntimeEvent("speech_finished", {"viewer": message.viewer_name}))
+        else:
+            self.event_bus.publish(RuntimeEvent("response_dropped", {"reason": "voice_queue_full", "viewer": message.viewer_name}))
+
+        if self.tts.last_error:
+            self.event_bus.publish(RuntimeEvent("tts_error", {"viewer": message.viewer_name, "error": self.tts.last_error}))
 
         self.intelligence.mark_answered(message)
         self.memory.add_turn(message.viewer_name, selected.normalized_text, response.text)
