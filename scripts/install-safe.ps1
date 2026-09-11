@@ -15,6 +15,7 @@ function Write-Step([string]$Name, [scriptblock]$Action) {
     Write-Host ""
     Write-Host "=== $Name ===" -ForegroundColor Cyan
     try {
+        $global:LASTEXITCODE = 0
         & $Action
         if ($LASTEXITCODE -ne 0) { throw "El programa devolvió código $LASTEXITCODE." }
         Write-Host "OK: $Name" -ForegroundColor Green
