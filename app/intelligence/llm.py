@@ -67,3 +67,75 @@ class OpenAICompatibleClient:
         except json.JSONDecodeError:
             data = {"text": content}
         return AIResponse.from_mapping(data)
+
+
+@dataclass(frozen=True, slots=True)
+class OllamaConfig:
+    """Optional local Ollama settings. No external API key is required."""
+
+    endpoint: str = "http://127.0.0.1:11434/api/chat"
+    model: str = "qwen3:0.6b"
+    timeout: float = 60.0
+
+    @classmethod
+    def from_env(cls) -> "OllamaConfig":
+        return cls(
+            endpoint=os.getenv("CARI_OLLAMA_ENDPOINT", cls.endpoint).strip() or cls.endpoint,
+            model=os.getenv("CARI_OLLAMA_MODEL", cls.model).strip() or cls.model,
+            timeout=float(os.getenv("CARI_OLLAMA_TIMEOUT", str(cls.timeout))),
+        )
+
+
+class OllamaClient:
+    """Local-only responder for Ollama's HTTP API.
+
+    Ollama serves the API on localhost by default, so this path does not need an
+    OpenAI/Gemini key and does not contact a remote provider unless the endpoint
+    is explicitly changed by the user.
+    """
+
+    def __init__(self, config: OllamaConfig | None = None) -> None:
+        self.config = config or OllamaConfig.from_env()
+
+    def respond(self, viewer: str, text: str, memory: dict[str, object] | None = None) -> AIResponse:
+        context = json.dumps(memory or {}, ensure_ascii=False)
+        payload = {
+            "model": self.config.model,
+            "stream": False,
+            "think": False,
+            "options": {"temperature": 0.7},
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres Cari, una VTuber amistosa y energética. Responde en español, de forma breve y natural. "
+                        "Devuelve SOLO JSON válido con las claves text, emotion, intensity, animation, voice, priority, remember. "
+                        "emotion debe ser una de neutral,happy,sad,angry,surprised,shy,affectionate,playful."
+                    ),
+                },
+                {"role": "user", "content": f"viewer={viewer}\nmessage={text}\ncontext={context}"},
+            ],
+        }
+        request = Request(
+            self.config.endpoint,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=self.config.timeout) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Ollama local request failed") from exc
+
+        try:
+            content = body["message"]["content"]
+        except (KeyError, TypeError) as exc:
+            raise RuntimeError("Ollama returned invalid content") from exc
+        if not isinstance(content, str):
+            raise RuntimeError("Ollama returned invalid content")
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            data = {"text": content}
+        return AIResponse.from_mapping(data)
