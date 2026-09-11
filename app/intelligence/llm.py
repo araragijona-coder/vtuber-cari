@@ -9,6 +9,29 @@ from urllib.request import Request, urlopen
 from app.brain.contracts import AIResponse
 
 
+def _parse_ai_content(content: str) -> AIResponse:
+    """Accept strict JSON plus common fenced/extra-text model output."""
+    raw = content.strip()
+    candidates = [raw]
+    if raw.startswith("```") and raw.endswith("```"):
+        lines = raw.splitlines()
+        candidates.append("\n".join(lines[1:-1]).strip())
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start >= 0 and end > start:
+        candidates.append(raw[start : end + 1])
+
+    for candidate in candidates:
+        try:
+            data = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict):
+            return AIResponse.from_mapping(data)
+
+    return AIResponse.from_mapping({"text": raw})
+
+
 @dataclass(frozen=True, slots=True)
 class LLMConfig:
     """OpenAI-compatible provider settings. Nothing is enabled unless configured."""
@@ -62,11 +85,7 @@ class OpenAICompatibleClient:
         content = body["choices"][0]["message"]["content"]
         if not isinstance(content, str):
             raise RuntimeError("LLM returned invalid content")
-        try:
-            data = json.loads(content)
-        except json.JSONDecodeError:
-            data = {"text": content}
-        return AIResponse.from_mapping(data)
+        return _parse_ai_content(content)
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,8 +156,4 @@ class OllamaClient:
             raise RuntimeError("Ollama returned invalid content") from exc
         if not isinstance(content, str):
             raise RuntimeError("Ollama returned invalid content")
-        try:
-            data = json.loads(content)
-        except json.JSONDecodeError:
-            data = {"text": content}
-        return AIResponse.from_mapping(data)
+        return _parse_ai_content(content)
