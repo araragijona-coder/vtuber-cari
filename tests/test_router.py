@@ -11,7 +11,10 @@ class RuleRouterTests(unittest.TestCase):
         cases = {
             "hola": "¡Holaaa! ♡ ¿Cómo están?",
             "buenas noches": "¡Holaaa! ♡ ¿Cómo están?",
+            "hola!!!": "¡Holaaa! ♡ ¿Cómo están?",
+            "hola cari": "¡Holaaa! ♡ ¿Cómo están?",
             "cómo estás?": "¡Estoy muy bien! ♡ Lista para charlar y acompañarlos.",
+            "qué tal!!!": "¡Estoy muy bien! ♡ Lista para charlar y acompañarlos.",
             "quién sos": "Soy Cari ♡ Tu compañera virtual.",
             "gracias cari": "¡De nada! ♡",
             "nos vemos": "¡Nos vemos! Gracias por pasar por el stream ♡",
