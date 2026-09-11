@@ -55,7 +55,8 @@ class LipSyncController:
         if not isinstance(frame, LipSyncFrame):
             raise TypeError("frame must be LipSyncFrame")
         self._frame = frame
-        self._silence_elapsed = 0.0 if frame.speaking else self._silence_elapsed
+        # Every incoming frame starts a fresh release window.
+        self._silence_elapsed = 0.0
         return self._frame
 
     def advance(self, delta_seconds: float) -> LipSyncFrame:
@@ -64,6 +65,7 @@ class LipSyncController:
         if self._frame.speaking:
             return self._frame
         self._silence_elapsed += delta_seconds
-        if self._silence_elapsed >= self.release_seconds:
+        # Tolerate floating-point accumulation at the exact release boundary.
+        if self._silence_elapsed + 1e-9 >= self.release_seconds:
             self._frame = LipSyncFrame.silence()
         return self._frame
