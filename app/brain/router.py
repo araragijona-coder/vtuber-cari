@@ -31,19 +31,23 @@ class RuleRouter:
         return None
 
     @staticmethod
-    def _greeting(_viewer: str, text: str) -> AIResponse | None:
-        if text.casefold() in {
-            "hola", "holaa", "holaaa", "buenas", "buenas tardes",
-            "buenas noches", "hello", "hi",
+    def _simple_form(text: str) -> str:
+        """Normalize harmless terminal punctuation for short local commands."""
+        return re.sub(r"[!?.,;:]+$", "", text.casefold()).strip()
+
+    @classmethod
+    def _greeting(cls, _viewer: str, text: str) -> AIResponse | None:
+        if cls._simple_form(text) in {
+            "hola", "holaa", "holaaa", "holi", "buenas", "buenas tardes",
+            "buenas noches", "hola cari", "buenas cari", "hello", "hi",
         }:
             return AIResponse(text="¡Holaaa! ♡ ¿Cómo están?", emotion=Emotion.HAPPY, intensity=0.7, animation="wave")
         return None
 
-    @staticmethod
-    def _how_are_you(_viewer: str, text: str) -> AIResponse | None:
-        if text.casefold() in {
-            "como estas", "cómo estás", "como estas?", "cómo estás?",
-            "que tal", "qué tal", "que tal?", "qué tal?",
+    @classmethod
+    def _how_are_you(cls, _viewer: str, text: str) -> AIResponse | None:
+        if cls._simple_form(text) in {
+            "como estas", "cómo estás", "que tal", "qué tal",
         }:
             return AIResponse(
                 text="¡Estoy muy bien! ♡ Lista para charlar y acompañarlos.",
@@ -51,9 +55,9 @@ class RuleRouter:
             )
         return None
 
-    @staticmethod
-    def _identity(_viewer: str, text: str) -> AIResponse | None:
-        if text.casefold() in {
+    @classmethod
+    def _identity(cls, _viewer: str, text: str) -> AIResponse | None:
+        if cls._simple_form(text) in {
             "quien eres", "quién eres", "quien sos", "quién sos",
             "como te llamas", "cómo te llamas",
         }:
@@ -63,15 +67,15 @@ class RuleRouter:
             )
         return None
 
-    @staticmethod
-    def _thanks(_viewer: str, text: str) -> AIResponse | None:
-        if text.casefold() in {"gracias", "muchas gracias", "gracias cari", "muchas gracias cari"}:
+    @classmethod
+    def _thanks(cls, _viewer: str, text: str) -> AIResponse | None:
+        if cls._simple_form(text) in {"gracias", "muchas gracias", "gracias cari", "muchas gracias cari"}:
             return AIResponse(text="¡De nada! ♡", emotion=Emotion.AFFECTIONATE, intensity=0.6, animation="happy")
         return None
 
-    @staticmethod
-    def _goodbye(_viewer: str, text: str) -> AIResponse | None:
-        if text.casefold() in {"chau", "adios", "adiós", "bye", "nos vemos"}:
+    @classmethod
+    def _goodbye(cls, _viewer: str, text: str) -> AIResponse | None:
+        if cls._simple_form(text) in {"chau", "adios", "adiós", "bye", "nos vemos"}:
             return AIResponse(
                 text="¡Nos vemos! Gracias por pasar por el stream ♡",
                 emotion=Emotion.HAPPY, intensity=0.6, animation="wave",
