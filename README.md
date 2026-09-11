@@ -10,10 +10,11 @@ Dependency-light, local-first foundation for a modular AI VTuber.
 - Session memory plus fail-closed persistent memory.
 - Provider-neutral voice and avatar contracts.
 - Optional local `pyttsx3` TTS.
-- Optional TwitchIO 3 adapter.
+- TwitchIO 3 production bridge with managed OAuth tokens and EventSub chat.
 - Twitch OAuth authorization URL contract using TwitchIO 3's documented localhost callback.
 - Dependency-free animated fallback avatar rendered directly in Tkinter.
 - Desktop UI now shows chat + animated avatar + degraded-mode diagnostics.
+- Heavy synchronous pipeline/TTS work is moved off TwitchIO's asyncio event loop.
 - Python 3.11/3.12 compile + unit-test CI.
 
 The core intentionally stays dependency-free. Optional integrations are loaded only when enabled.
@@ -50,22 +51,37 @@ Install the optional integration:
 pip install -e ".[twitch]"
 ```
 
-TwitchIO 3 requires Python 3.11+. Its documented OAuth callback is `http://localhost:4343/oauth/callback`. Cari exposes that callback and the standard authorization URL parameters through `TwitchOAuthConfig`; the actual client ID, secret and user authorization remain operator configuration. The application never asks for a Twitch password.
+The production entrypoint is:
 
-The current `TwitchAdapter` accepts a managed user token and feeds incoming chat into the same `ChatMessage` pipeline used by the desktop UI. TwitchIO 3 also provides built-in token refresh/storage and EventSub support for the production OAuth flow.
+```bash
+python run_twitch.py
+```
+
+Configure these environment variables:
+
+```text
+CARI_TWITCH_CLIENT_ID=...
+CARI_TWITCH_CLIENT_SECRET=...
+CARI_TWITCH_BOT_ID=...
+CARI_TWITCH_OWNER_ID=...
+```
+
+TwitchIO 3's documented OAuth callback is `http://localhost:4343/oauth/callback`. The built-in web adapter handles authorization and managed token persistence. TwitchIO can refresh stored user tokens automatically, and the bot subscribes to `ChatMessageSubscription` over WebSocket EventSub. Cari never asks for a Twitch password. citeturn0search0turn0search6
+
+On a real machine, authorize the bot account through the Twitch OAuth page opened by TwitchIO. The bot then receives chat, sends each accepted message through Cari's local-first pipeline, optionally falls back to the configured LLM, speaks through the configured TTS backend, and responds to Twitch with the generated text.
 
 ## Architecture
 
 ```text
-Twitch / desktop input
-        |
-        v
+Twitch EventSub
+      |
+      v
  filter -> gate -> rank
-        |
-        v
+      |
+      v
  local rules ---------> response
-        |
-        +---- no rule -> optional LLM
+      |
+      +---- no rule -> optional LLM
                               |
                               v
                        AIResponse contract
@@ -90,14 +106,14 @@ GitHub Actions runs the same checks on Python 3.11 and 3.12.
 
 ## Closure status
 
-**Foundation: GREEN.** The latest CI run completed successfully on both Python 3.11 and 3.12 after the avatar/OAuth additions.
+**Software foundation: GREEN.** The CI suite is the automated gate. The production Twitch bridge now follows the current TwitchIO 3 OAuth/EventSub model instead of the older token-constructor pattern. TwitchIO's current Bot API requires `client_id`, `client_secret`, `bot_id` and uses managed tokens; chat can be subscribed through WebSocket EventSub. citeturn1search0turn1search1
 
-The remaining blockers for a literal **100% stream-ready** state are external/operational rather than missing core architecture:
+The remaining items for a literal **100% stream-ready** state are external/operational:
 
 1. Put the real Cari artwork/model assets into the project (the current renderer is a functional animated fallback).
-2. Configure a Twitch Developer application and authorize the bot account.
+2. Create/configure the Twitch Developer application and complete OAuth once.
 3. Choose/install the production TTS voice.
-4. Wire the chosen capture/output target (OBS or another capture path).
+4. Configure OBS/capture if the stream output is required.
 5. Perform one real Twitch end-to-end rehearsal: receive chat -> decide -> answer -> voice -> avatar -> capture.
 
-Those steps require the user's actual assets, Twitch account/app credentials and local streaming environment, so they cannot honestly be marked green from CI alone.
+These cannot honestly be marked green from GitHub CI alone because they require the user's local assets, Twitch account authorization and streaming environment.
