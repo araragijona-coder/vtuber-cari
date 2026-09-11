@@ -6,8 +6,9 @@ from pathlib import Path
 from tkinter import ttk
 
 from app.avatar.renderer import AvatarRenderer
-from app.intelligence.llm import LLMConfig, OllamaClient, OpenAICompatibleClient
+from app.intelligence.llm import LLMConfig, LocalFirstResponder, OllamaClient, OpenAICompatibleClient
 from app.memory.persistent import PersistentMemoryStore
+from app.monitor.usage import UsageStats
 from app.pipeline.runtime import LocalPipeline
 from app.twitch.models import ChatMessage
 from app.voice.tts import build_tts
@@ -23,10 +24,6 @@ class CariWindow:
 
         memory = PersistentMemoryStore(Path("data") / "cari-memory.json")
         responder, ai_status = self._build_responder()
-
-        # Windows builds prefer the local SAPI-backed adapter so the packaged
-        # application can speak immediately when pyttsx3 is bundled. Linux/CI
-        # remains silent unless a provider is explicitly configured.
         default_tts = "pyttsx3" if os.name == "nt" else "none"
         tts_kind = os.getenv("CARI_TTS", default_tts)
         try:
@@ -36,11 +33,8 @@ class CariWindow:
             tts = build_tts("none")
             tts_status = f"none ({exc})"
 
-        self.pipeline = LocalPipeline(
-            persistent_memory=memory,
-            responder=responder,
-            tts=tts,
-        )
+        self.usage = UsageStats()
+        self.pipeline = LocalPipeline(persistent_memory=memory, responder=responder, tts=tts, usage=self.usage)
 
         main = ttk.Frame(root, padding=12)
         main.pack(fill="both", expand=True)
@@ -71,31 +65,34 @@ class CariWindow:
         ttk.Button(row, text="Enviar", command=self.send).grid(row=0, column=1, padx=(8, 0))
         self.entry.bind("<Return>", lambda _event: self.send())
 
+        self.usage_label = ttk.Label(panel, text="CPU: 0% · local: 0 · Ollama: 0 · API: 0 · errores: 0", anchor="w")
+        self.usage_label.grid(row=2, column=0, sticky="ew", pady=(8, 0))
         self._write(f"Cari está lista · IA: {ai_status} · TTS: {tts_status}")
         self.entry.focus_set()
+        self._refresh_usage()
 
     @staticmethod
     def _build_responder():
-        """Choose the intelligence path without making network calls by default.
+        """Local rules first; Ollama second; cloud API only as a fallback.
 
-        local: rules only, no network/API
-        ollama: local Ollama on localhost, no cloud API key
-        api: configured OpenAI-compatible endpoint
-        auto: Ollama when explicitly configured, otherwise cloud API when configured
+        local: rules only, no model/network
+        ollama: force local Ollama
+        api: force configured OpenAI-compatible API
+        auto: Ollama if running, API only if Ollama is unavailable/fails
         """
-        mode = os.getenv("CARI_LLM_MODE", "local").strip().casefold()
+        mode = os.getenv("CARI_LLM_MODE", "auto").strip().casefold()
         if mode == "local":
             return None, "local-only"
         if mode == "ollama":
             return OllamaClient(), "ollama-local"
         if mode == "api":
             config = LLMConfig.from_env()
-            return (OpenAICompatibleClient(config), "api") if config is not None else (None, "local-only (API not configured)")
+            return (OpenAICompatibleClient(config), "api-forced") if config is not None else (None, "local-only (API not configured)")
         if mode == "auto":
-            if os.getenv("CARI_OLLAMA_MODEL", "").strip():
-                return OllamaClient(), "ollama-local (auto)"
+            ollama = OllamaClient()
             config = LLMConfig.from_env()
-            return (OpenAICompatibleClient(config), "api (auto)") if config is not None else (None, "local-only (auto)")
+            api = OpenAICompatibleClient(config) if config is not None else None
+            return LocalFirstResponder(ollama, api), "auto: local → Ollama → API"
         return None, f"local-only (unknown mode: {mode})"
 
     def _write(self, text: str) -> None:
@@ -103,6 +100,15 @@ class CariWindow:
         self.chat.insert("end", text + "\n")
         self.chat.see("end")
         self.chat.configure(state="disabled")
+
+    def _refresh_usage(self) -> None:
+        data = self.usage.snapshot()
+        self.usage_label.configure(
+            text=(f"CPU proceso: {data['cpu_percent']:.1f}% · local: {data['local']} · "
+                  f"Ollama: {data['ollama']} · API: {data['api']} · "
+                  f"errores: {data['failures']} · último: {data['last']} ({data['latency_ms']:.0f} ms)")
+        )
+        self.root.after(1000, self._refresh_usage)
 
     def send(self) -> None:
         text = self.entry.get().strip()
