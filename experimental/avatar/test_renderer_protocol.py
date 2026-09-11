@@ -1,5 +1,5 @@
-from acting_state import AvatarActingState
-from renderer_protocol import AvatarRenderer
+from .acting_state import AvatarActingState
+from .renderer_protocol import AvatarRenderer
 
 
 class FakeRenderer:
