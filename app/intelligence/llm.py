@@ -10,7 +10,6 @@ from app.brain.contracts import AIResponse
 
 
 def _parse_ai_content(content: str) -> AIResponse:
-    """Accept strict JSON plus common fenced/extra-text model output."""
     raw = content.strip()
     candidates = [raw]
     if raw.startswith("```") and raw.endswith("```"):
@@ -33,7 +32,6 @@ def _parse_ai_content(content: str) -> AIResponse:
 @dataclass(frozen=True, slots=True)
 class LLMConfig:
     """OpenAI-compatible provider settings. Nothing is enabled unless configured."""
-
     endpoint: str
     api_key: str
     model: str
@@ -51,7 +49,6 @@ class LLMConfig:
 
 class OpenAICompatibleClient:
     """Cloud/API provider used only as a secondary fallback."""
-
     def __init__(self, config: LLMConfig) -> None:
         self.config = config
 
@@ -80,7 +77,6 @@ class OpenAICompatibleClient:
 @dataclass(frozen=True, slots=True)
 class OllamaConfig:
     """Optional local Ollama settings. No external API key is required."""
-
     endpoint: str = "http://127.0.0.1:11434/api/chat"
     model: str = "qwen3:0.6b"
     timeout: float = 60.0
@@ -100,7 +96,6 @@ class OllamaConfig:
 
 class OllamaClient:
     """Local-only responder for Ollama's localhost HTTP API."""
-
     def __init__(self, config: OllamaConfig | None = None) -> None:
         self.config = config or OllamaConfig.from_env()
 
@@ -142,18 +137,24 @@ class OllamaClient:
 
 class LocalFirstResponder:
     """Ollama first; cloud/API only when local is unavailable or fails."""
-
     def __init__(self, ollama: OllamaClient, api: OpenAICompatibleClient | None = None) -> None:
         self.ollama = ollama
         self.api = api
+        self.last_provider = "none"
 
     def respond(self, viewer: str, text: str, memory: dict[str, object] | None = None) -> AIResponse:
         if self.ollama.available():
             try:
-                return self.ollama.respond(viewer, text, memory)
+                result = self.ollama.respond(viewer, text, memory)
+                self.last_provider = "ollama"
+                return result
             except RuntimeError:
                 if self.api is None:
+                    self.last_provider = "ollama"
                     raise
         if self.api is not None:
-            return self.api.respond(viewer, text, memory)
+            result = self.api.respond(viewer, text, memory)
+            self.last_provider = "api"
+            return result
+        self.last_provider = "none"
         raise RuntimeError("No local Ollama or cloud API provider available")
