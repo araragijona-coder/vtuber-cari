@@ -79,10 +79,13 @@ class OllamaConfig:
 
     @classmethod
     def from_env(cls) -> "OllamaConfig":
+        default_endpoint = "http://127.0.0.1:11434/api/chat"
+        default_model = "qwen3:0.6b"
+        default_timeout = 60.0
         return cls(
-            endpoint=os.getenv("CARI_OLLAMA_ENDPOINT", cls.endpoint).strip() or cls.endpoint,
-            model=os.getenv("CARI_OLLAMA_MODEL", cls.model).strip() or cls.model,
-            timeout=float(os.getenv("CARI_OLLAMA_TIMEOUT", str(cls.timeout))),
+            endpoint=os.getenv("CARI_OLLAMA_ENDPOINT", default_endpoint).strip() or default_endpoint,
+            model=os.getenv("CARI_OLLAMA_MODEL", default_model).strip() or default_model,
+            timeout=float(os.getenv("CARI_OLLAMA_TIMEOUT", str(default_timeout))),
         )
 
 
