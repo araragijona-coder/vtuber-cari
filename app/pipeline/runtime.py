@@ -12,6 +12,7 @@ from app.intelligence.comment_intelligence import CommentIntelligence
 from app.memory.persistent import PersistentMemoryStore
 from app.memory.session import SessionMemory
 from app.twitch.models import ChatMessage
+from app.voice.arbiter import VoiceArbiter, VoiceItem
 from app.voice.director import VoiceDirector, VoiceRequest
 from app.voice.safe import SafeTTS
 from app.voice.tts import NullTTS, TTSBackend
@@ -40,6 +41,7 @@ class LocalPipeline:
         self.intelligence = CommentIntelligence()
         self.router = RuleRouter()
         self.voice = VoiceDirector()
+        self.voice_arbiter = VoiceArbiter()
         self.avatar = AvatarController()
         self.memory = SessionMemory()
         self.persistent_memory = persistent_memory
@@ -78,7 +80,18 @@ class LocalPipeline:
         voice_request = self.voice.build(response)
         command = AvatarCommand(emotion=response.emotion, intensity=response.intensity, animation=response.animation, speaking=True)
         self.avatar.apply(command)
-        self.tts.speak(voice_request)
+
+        # Keep speech ownership explicit even while TTS is synchronous today. This gives
+        # the async Twitch runtime a deterministic hand-off point for queued/interruptible speech.
+        speech = VoiceItem(voice_request, priority=response.priority, key=f"viewer:{message.viewer_name}")
+        if self.voice_arbiter.enqueue(speech):
+            active = self.voice_arbiter.start_next()
+            if active is not None:
+                try:
+                    self.tts.speak(active.request)
+                finally:
+                    self.voice_arbiter.finish()
+
         self.intelligence.mark_answered(message)
         self.memory.add_turn(message.viewer_name, selected.normalized_text, response.text)
         if response.remember:
