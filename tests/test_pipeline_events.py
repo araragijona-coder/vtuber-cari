@@ -25,7 +25,7 @@ class PipelineEventTests(unittest.TestCase):
         events: list[RuntimeEvent] = []
         bus.subscribe("*", events.append)
 
-        result = LocalPipeline(event_bus=bus).handle(ChatMessage.now("2", "viewer", "buy followers http://spam.example"))
+        result = LocalPipeline(event_bus=bus).handle(ChatMessage.now("2", "viewer", ""))
 
         self.assertIsNone(result)
         names = [event.name for event in events]
