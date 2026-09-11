@@ -44,3 +44,5 @@ jobs:
           name: Cari-Windows-Portable
           path: Cari-Windows-Portable.zip
           if-no-files-found: error
+
+# Keep a fresh portable artifact for every main commit so the executable follows the source of truth.
