@@ -13,6 +13,7 @@ from app.memory.persistent import PersistentMemoryStore
 from app.memory.session import SessionMemory
 from app.twitch.models import ChatMessage
 from app.voice.director import VoiceDirector, VoiceRequest
+from app.voice.safe import SafeTTS
 from app.voice.tts import NullTTS, TTSBackend
 
 
@@ -26,18 +27,14 @@ class LocalPipelineResult:
     voice_request: VoiceRequest
     avatar_command: AvatarCommand
     memory_context: dict[str, object] = field(default_factory=dict)
+    llm_error: str | None = None
+    tts_error: str | None = None
 
 
 class LocalPipeline:
     """Local-first path with optional LLM/TTS adapters and persistent memory."""
 
-    def __init__(
-        self,
-        *,
-        persistent_memory: PersistentMemoryStore | None = None,
-        responder: Responder | None = None,
-        tts: TTSBackend | None = None,
-    ) -> None:
+    def __init__(self, *, persistent_memory: PersistentMemoryStore | None = None, responder: Responder | None = None, tts: TTSBackend | None = None) -> None:
         self.filter = CommentFilter()
         self.gate = CommentGate()
         self.intelligence = CommentIntelligence()
@@ -47,7 +44,7 @@ class LocalPipeline:
         self.memory = SessionMemory()
         self.persistent_memory = persistent_memory
         self.responder = responder
-        self.tts = tts or NullTTS()
+        self.tts = SafeTTS(tts or NullTTS())
         if persistent_memory is not None:
             for item in persistent_memory.load():
                 self.memory.remember(item.key, item.value, source=item.source, timestamp=item.timestamp)
@@ -64,44 +61,28 @@ class LocalPipeline:
             gated = self.gate.allow(message, filtered.normalized_text)
             if gated.accepted:
                 candidates.append((message, filtered.normalized_text))
-
         selection = self.intelligence.rank(candidates)
         if selection.selected is None:
             return None
         selected = selection.selected
         message = selected.message
         response = self.router.route(message.viewer_name, selected.normalized_text)
+        llm_error: str | None = None
         if response is None and self.responder is not None:
-            response = self.responder.respond(
-                message.viewer_name,
-                selected.normalized_text,
-                self.memory.context(),
-            )
+            try:
+                response = self.responder.respond(message.viewer_name, selected.normalized_text, self.memory.context())
+            except Exception as exc:  # noqa: BLE001 - provider failures degrade locally
+                llm_error = str(exc) or exc.__class__.__name__
         if response is None:
             return None
-
         voice_request = self.voice.build(response)
-        command = AvatarCommand(
-            emotion=response.emotion,
-            intensity=response.intensity,
-            animation=response.animation,
-            speaking=True,
-        )
+        command = AvatarCommand(emotion=response.emotion, intensity=response.intensity, animation=response.animation, speaking=True)
         self.avatar.apply(command)
         self.tts.speak(voice_request)
         self.intelligence.mark_answered(message)
         self.memory.add_turn(message.viewer_name, selected.normalized_text, response.text)
         if response.remember:
-            self.memory.remember(
-                f"viewer:{message.viewer_name}",
-                selected.normalized_text,
-                source="conversation",
-            )
+            self.memory.remember(f"viewer:{message.viewer_name}", selected.normalized_text, source="conversation")
             if self.persistent_memory is not None:
                 self.persistent_memory.save(self.memory.remembered())
-        return LocalPipelineResult(
-            response.text,
-            voice_request,
-            command,
-            self.memory.context(),
-        )
+        return LocalPipelineResult(response.text, voice_request, command, self.memory.context(), llm_error, self.tts.last_error)
