@@ -103,7 +103,7 @@ try {
 
     if ($InstallTwitch) {
         Write-Step "Instalar TwitchIO opcional" {
-            & $venvPython -m pip install -e "$root.[twitch]"
+            & $venvPython -m pip install -e "$root[twitch]"
         }
         Write-Step "Verificar TwitchIO" {
             & $venvPython -c "import twitchio; print('TwitchIO', twitchio.__version__)"
