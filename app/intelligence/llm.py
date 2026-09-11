@@ -78,14 +78,14 @@ class OpenAICompatibleClient:
 class OllamaConfig:
     """Optional local Ollama settings. No external API key is required."""
     endpoint: str = "http://127.0.0.1:11434/api/chat"
-    model: str = "qwen3:0.6b"
+    model: str = "llama3.2:1b"
     timeout: float = 60.0
     probe_timeout: float = 0.35
 
     @classmethod
     def from_env(cls) -> "OllamaConfig":
         default_endpoint = "http://127.0.0.1:11434/api/chat"
-        default_model = "qwen3:0.6b"
+        default_model = "llama3.2:1b"
         return cls(
             endpoint=os.getenv("CARI_OLLAMA_ENDPOINT", default_endpoint).strip() or default_endpoint,
             model=os.getenv("CARI_OLLAMA_MODEL", default_model).strip() or default_model,
@@ -100,13 +100,19 @@ class OllamaClient:
         self.config = config or OllamaConfig.from_env()
 
     def available(self) -> bool:
-        """Probe Ollama quickly without generating or downloading a model."""
+        """Probe the local server and selected model without generating or downloading."""
         tags_url = self.config.endpoint.rsplit("/api/chat", 1)[0] + "/api/tags"
         try:
             with urlopen(tags_url, timeout=self.config.probe_timeout) as response:
-                return 200 <= getattr(response, "status", 200) < 300
-        except (HTTPError, URLError, TimeoutError, OSError):
+                if not 200 <= getattr(response, "status", 200) < 300:
+                    return False
+                payload = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError):
             return False
+        models = payload.get("models", []) if isinstance(payload, dict) else []
+        if not isinstance(models, list):
+            return False
+        return any(isinstance(item, dict) and item.get("name") == self.config.model for item in models)
 
     def respond(self, viewer: str, text: str, memory: dict[str, object] | None = None) -> AIResponse:
         context = json.dumps(memory or {}, ensure_ascii=False)
