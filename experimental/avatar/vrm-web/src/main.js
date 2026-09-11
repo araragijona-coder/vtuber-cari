@@ -35,10 +35,25 @@ function setStatus(message) {
   status.textContent = message;
 }
 
+function disposeObject(root) {
+  root.traverse((object) => {
+    if (!object.isMesh) return;
+    object.geometry?.dispose();
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    for (const material of materials) {
+      if (!material) continue;
+      for (const value of Object.values(material)) {
+        if (value?.isTexture) value.dispose();
+      }
+      material.dispose();
+    }
+  });
+}
+
 function removeCurrentModel() {
   if (!currentVrm) return;
   scene.remove(currentVrm.scene);
-  VRMUtils.deepDispose(currentVrm.scene);
+  disposeObject(currentVrm.scene);
   currentVrm = null;
 }
 
