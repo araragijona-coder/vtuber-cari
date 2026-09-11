@@ -13,10 +13,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install packager
-        run: python -m pip install --upgrade pip pyinstaller
+      - name: Install packager and local TTS
+        run: python -m pip install --upgrade pip pyinstaller pyttsx3
       - name: Build Cari.exe
-        run: pyinstaller --noconfirm --clean --onefile --windowed --name Cari --collect-submodules app main.py
+        run: pyinstaller --noconfirm --clean --onefile --windowed --name Cari --collect-submodules app --collect-all pyttsx3 main.py
       - name: Assemble portable bundle
         shell: pwsh
         run: |
@@ -32,7 +32,8 @@ jobs:
           Cari portable build
           Double-click Abrir-Cari.bat or Cari.exe to start the application.
           The current build includes the dependency-light animated fallback avatar.
-          Final PNG/Live2D art and a dedicated anime TTS voice are separate assets/configuration.
+          On Windows the packaged build enables the local SAPI-backed TTS adapter by default.
+          Final PNG/Live2D art and a dedicated anime TTS voice remain separate assets/configuration.
           '@ | Set-Content -Encoding UTF8 bundle\LEEME.txt
       - name: Zip portable bundle
         shell: pwsh
