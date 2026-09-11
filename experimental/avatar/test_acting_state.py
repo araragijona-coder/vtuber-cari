@@ -35,6 +35,23 @@ class AvatarActingStateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "head_tilt"):
             AvatarActingState(head_tilt=1.01)
 
+    def test_runtime_enums_are_rejected(self) -> None:
+        for field in (
+            "emotion", "gaze", "pose", "body_animation", "facial_expression"
+        ):
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(ValueError, f"invalid {field}"):
+                    AvatarActingState(**{field: "not-a-valid-value"})
+
+    def test_numeric_and_lip_sync_types_are_checked(self) -> None:
+        with self.assertRaisesRegex(TypeError, "head_tilt"):
+            AvatarActingState(head_tilt="0.5")  # type: ignore[arg-type]
+
+        with self.assertRaisesRegex(TypeError, "lip_sync"):
+            AvatarActingState(lip_sync=123)  # type: ignore[arg-type]
+
+        self.assertIsNone(AvatarActingState(lip_sync="   ").lip_sync)
+
     def test_unknown_update_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "unknown acting fields"):
             AvatarActingState().with_updates(magic_animation="wave")
