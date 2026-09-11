@@ -17,7 +17,7 @@ class AvatarEngineTests(unittest.TestCase):
 
         self.assertTrue(engine.load("cari-test.vrm"))
         self.assertTrue(engine.status().loaded)
-        self.assertEqual(renderer.last_state, AvatarActingState())
+        self.assertEqual(renderer.acting_state, AvatarActingState())
 
     def test_acting_state_is_forwarded(self) -> None:
         renderer = FakeRenderer()
@@ -26,7 +26,7 @@ class AvatarEngineTests(unittest.TestCase):
         state = AvatarActingState(emotion="happy", gaze="left", head_tilt=0.4)
 
         self.assertTrue(engine.set_acting_state(state))
-        self.assertEqual(renderer.last_state, state)
+        self.assertEqual(renderer.acting_state, state)
 
     def test_renderer_failure_enters_degraded_mode_without_crashing(self) -> None:
         engine = AvatarEngine(FailingRenderer())
