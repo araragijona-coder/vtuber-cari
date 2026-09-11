@@ -29,6 +29,11 @@ class OllamaClientTests(unittest.TestCase):
         self.assertEqual(config.endpoint, "http://127.0.0.1:11434/api/chat")
         self.assertEqual(config.model, "qwen3:0.6b")
 
+    def test_from_env_accepts_llama_3_2_one_b(self) -> None:
+        with patch.dict("os.environ", {"CARI_OLLAMA_MODEL": "llama3.2:1b"}, clear=True):
+            config = OllamaConfig.from_env()
+        self.assertEqual(config.model, "llama3.2:1b")
+
     def test_respond_parses_structured_cari_response(self) -> None:
         payload = {
             "message": {
@@ -52,6 +57,18 @@ class OllamaClientTests(unittest.TestCase):
         self.assertEqual(result.text, "¡Hola!")
         self.assertEqual(result.emotion, Emotion.HAPPY)
         self.assertEqual(mocked.call_args.kwargs["timeout"], 60.0)
+
+    def test_respond_accepts_markdown_fenced_json(self) -> None:
+        payload = {
+            "message": {
+                "content": "```json\n{\"text\":\"Hola local\",\"emotion\":\"playful\"}\n```"
+            }
+        }
+        client = OllamaClient(OllamaConfig(model="llama3.2:1b"))
+        with patch("app.intelligence.llm.urlopen", return_value=_Response(payload)):
+            result = client.respond("viewer", "hola")
+        self.assertEqual(result.text, "Hola local")
+        self.assertEqual(result.emotion, Emotion.PLAYFUL)
 
     def test_respond_degrades_with_local_service_error(self) -> None:
         client = OllamaClient(OllamaConfig())
