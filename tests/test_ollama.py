@@ -9,8 +9,9 @@ from app.intelligence.llm import OllamaClient, OllamaConfig
 
 
 class _Response:
-    def __init__(self, payload: dict[str, object]) -> None:
+    def __init__(self, payload: dict[str, object], status: int = 200) -> None:
         self.payload = payload
+        self.status = status
 
     def __enter__(self) -> "_Response":
         return self
@@ -23,16 +24,25 @@ class _Response:
 
 
 class OllamaClientTests(unittest.TestCase):
-    def test_from_env_defaults_to_local_qwen(self) -> None:
+    def test_from_env_defaults_to_local_llama_3_2_one_b(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             config = OllamaConfig.from_env()
         self.assertEqual(config.endpoint, "http://127.0.0.1:11434/api/chat")
+        self.assertEqual(config.model, "llama3.2:1b")
+
+    def test_from_env_accepts_custom_model(self) -> None:
+        with patch.dict("os.environ", {"CARI_OLLAMA_MODEL": "qwen3:0.6b"}, clear=True):
+            config = OllamaConfig.from_env()
         self.assertEqual(config.model, "qwen3:0.6b")
 
-    def test_from_env_accepts_llama_3_2_one_b(self) -> None:
-        with patch.dict("os.environ", {"CARI_OLLAMA_MODEL": "llama3.2:1b"}, clear=True):
-            config = OllamaConfig.from_env()
-        self.assertEqual(config.model, "llama3.2:1b")
+    def test_available_requires_selected_model_to_be_installed(self) -> None:
+        tags = {"models": [{"name": "llama3.2:1b"}, {"name": "other:latest"}]}
+        client = OllamaClient(OllamaConfig(model="llama3.2:1b"))
+        with patch("app.intelligence.llm.urlopen", return_value=_Response(tags)):
+            self.assertTrue(client.available())
+        client = OllamaClient(OllamaConfig(model="missing:latest"))
+        with patch("app.intelligence.llm.urlopen", return_value=_Response(tags)):
+            self.assertFalse(client.available())
 
     def test_respond_parses_structured_cari_response(self) -> None:
         payload = {
@@ -51,7 +61,7 @@ class OllamaClientTests(unittest.TestCase):
                 )
             }
         }
-        client = OllamaClient(OllamaConfig(model="qwen3:0.6b"))
+        client = OllamaClient(OllamaConfig(model="llama3.2:1b"))
         with patch("app.intelligence.llm.urlopen", return_value=_Response(payload)) as mocked:
             result = client.respond("viewer", "hola")
         self.assertEqual(result.text, "¡Hola!")
