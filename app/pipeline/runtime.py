@@ -87,13 +87,13 @@ class LocalPipeline:
             self.usage.record("local")
         elif self.responder is not None:
             started = time.perf_counter()
-            provider = "ollama" if self.responder.__class__.__name__ == "OllamaClient" else "api"
+            provider = getattr(self.responder, "last_provider", "api")
             try:
                 response = self.responder.respond(message.viewer_name, selected.normalized_text, self.memory.context())
-                if self.responder.__class__.__name__ == "LocalFirstResponder":
-                    provider = "ollama" if getattr(self.responder, "ollama", None).available() else "api"
+                provider = getattr(self.responder, "last_provider", provider)
                 self.usage.record(provider, (time.perf_counter() - started) * 1000.0)
             except Exception as exc:  # noqa: BLE001 - provider failures degrade locally
+                provider = getattr(self.responder, "last_provider", provider)
                 llm_error = str(exc) or exc.__class__.__name__
                 self.usage.record(provider, (time.perf_counter() - started) * 1000.0, success=False)
                 self.event_bus.publish(RuntimeEvent("llm_error", {"viewer": message.viewer_name, "error": llm_error}))
