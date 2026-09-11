@@ -33,18 +33,22 @@ class AvatarEngine:
     def state(self) -> AvatarActingState:
         return self._state
 
+    @staticmethod
+    def _error_message(exc: Exception) -> str:
+        return str(exc) or exc.__class__.__name__
+
     def load(self, model_path: str) -> bool:
         try:
             self._renderer.load(model_path)
             if not self._renderer.is_loaded():
                 raise RuntimeError("renderer reported an unloaded avatar after load")
+            self._renderer.set_acting_state(self._state)
         except Exception as exc:  # renderer boundary must not crash Cari
-            self._last_error = str(exc) or exc.__class__.__name__
+            self._last_error = self._error_message(exc)
             self._degraded = True
             return False
         self._last_error = None
         self._degraded = False
-        self._renderer.set_acting_state(self._state)
         return True
 
     def unload(self) -> None:
@@ -58,7 +62,7 @@ class AvatarEngine:
         try:
             self._renderer.set_acting_state(state)
         except Exception as exc:
-            self._last_error = str(exc) or exc.__class__.__name__
+            self._last_error = self._error_message(exc)
             self._degraded = True
             return False
         self._last_error = None
@@ -68,7 +72,7 @@ class AvatarEngine:
         try:
             self._renderer.set_camera_preset(name)
         except Exception as exc:
-            self._last_error = str(exc) or exc.__class__.__name__
+            self._last_error = self._error_message(exc)
             self._degraded = True
             return False
         self._last_error = None
@@ -80,7 +84,7 @@ class AvatarEngine:
         try:
             self._renderer.update(delta_seconds)
         except Exception as exc:
-            self._last_error = str(exc) or exc.__class__.__name__
+            self._last_error = self._error_message(exc)
             self._degraded = True
             return False
         return True
@@ -100,6 +104,6 @@ class AvatarEngine:
         try:
             return dict(self._renderer.get_metrics())
         except Exception as exc:
-            self._last_error = str(exc) or exc.__class__.__name__
+            self._last_error = self._error_message(exc)
             self._degraded = True
             return {"loaded": False, "last_error": self._last_error}
