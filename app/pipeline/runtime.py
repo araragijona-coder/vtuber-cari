@@ -103,7 +103,9 @@ class LocalPipeline:
         self.event_bus.publish(RuntimeEvent("response_ready", {"viewer": message.viewer_name, "priority": response.priority}))
         voice_request = self.voice.build(response)
         command = AvatarCommand(emotion=response.emotion, intensity=response.intensity, animation=response.animation, speaking=True)
-        self.avatar.apply(command)
+        # Keep the render state non-speaking until the voice arbiter actually grants the floor.
+        # This prevents the avatar from getting stuck talking when speech is dropped or rejected.
+        self.avatar.apply(AvatarCommand(response.emotion, response.intensity, response.animation, speaking=False))
 
         # Keep speech ownership explicit even while TTS is synchronous today. This gives
         # the async Twitch runtime a deterministic hand-off point for queued/interruptible speech.
@@ -111,11 +113,13 @@ class LocalPipeline:
         if self.voice_arbiter.enqueue(speech):
             active = self.voice_arbiter.start_next()
             if active is not None:
+                self.avatar.apply(AvatarCommand(response.emotion, response.intensity, response.animation, speaking=True))
                 self.event_bus.publish(RuntimeEvent("speech_started", {"viewer": message.viewer_name, "priority": response.priority}))
                 try:
                     self.tts.speak(active.request)
                 finally:
                     self.voice_arbiter.finish()
+                    self.avatar.apply(AvatarCommand(response.emotion, response.intensity, response.animation, speaking=False))
                     self.event_bus.publish(RuntimeEvent("speech_finished", {"viewer": message.viewer_name}))
         else:
             self.event_bus.publish(RuntimeEvent("response_dropped", {"reason": "voice_queue_full", "viewer": message.viewer_name}))
