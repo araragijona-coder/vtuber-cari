@@ -1,21 +1,14 @@
+#include "audio_probe.h"
+
 #include <windows.h>
-#include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 #include <wrl/client.h>
 
-#include <string>
 #include <utility>
-#include <vector>
 
 using Microsoft::WRL::ComPtr;
 
 namespace cari::native {
-
-struct AudioEndpointInfo {
-    std::wstring id;
-    std::wstring name;
-    EDataFlow flow;
-};
 
 namespace {
 
