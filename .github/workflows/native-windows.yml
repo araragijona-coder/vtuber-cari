@@ -1,0 +1,30 @@
+name: Native Windows Prototype
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'experimental/studio/native-windows/**'
+      - '.github/workflows/native-windows.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'experimental/studio/native-windows/**'
+      - '.github/workflows/native-windows.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: experimental/studio/native-windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -S . -B build -A x64
+
+      - name: Build native prototype
+        run: cmake --build build --config Release --parallel
