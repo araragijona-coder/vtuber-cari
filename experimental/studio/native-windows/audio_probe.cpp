@@ -69,10 +69,15 @@ std::vector<AudioEndpointInfo> enumerate_audio_endpoints() {
         }
         PropVariantClear(&value);
 
-        // The native prototype intentionally keeps endpoint discovery small.
-        // Stream creation/mixing will be added only after device enumeration
-        // and lifecycle/error recovery are validated on real Windows hardware.
-        result.push_back({std::move(id), std::move(name), eRender});
+        EDataFlow flow = eAll;
+        if (FAILED(device->Activate(
+                __uuidof(IAudioClient), CLSCTX_ALL, nullptr, nullptr))) {
+            // Discovery remains useful even when an endpoint cannot currently
+            // expose an audio client. Keep the endpoint rather than failing the
+            // entire enumeration.
+        }
+
+        result.push_back({std::move(id), std::move(name), flow});
     }
 
     return result;
