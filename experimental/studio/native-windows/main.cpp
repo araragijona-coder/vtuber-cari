@@ -2,6 +2,8 @@
 #include <winrt/Windows.Graphics.Capture.h>
 #include <winrt/base.h>
 
+#include "audio_probe.h"
+
 #include <string>
 
 namespace {
@@ -11,7 +13,8 @@ constexpr wchar_t kWindowTitle[] = L"Cari Studio — Windows Native Prototype";
 
 std::wstring CaptureStatus() {
     try {
-        const bool supported = winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported();
+        const bool supported =
+            winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported();
         return supported
             ? L"Screen/window capture: available"
             : L"Screen/window capture: unsupported on this Windows device";
@@ -19,6 +22,23 @@ std::wstring CaptureStatus() {
         return L"Screen/window capture: unavailable (HRESULT " +
                std::to_wstring(static_cast<long>(error.code().value)) + L")";
     }
+}
+
+std::wstring AudioStatus() {
+    const auto endpoints = cari::native::enumerate_audio_endpoints();
+    std::size_t inputs = 0;
+    std::size_t outputs = 0;
+
+    for (const auto& endpoint : endpoints) {
+        if (endpoint.flow == eCapture) {
+            ++inputs;
+        } else if (endpoint.flow == eRender) {
+            ++outputs;
+        }
+    }
+
+    return L"Audio endpoints: " + std::to_wstring(inputs) + L" input(s), " +
+           std::to_wstring(outputs) + L" output(s)";
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
@@ -30,7 +50,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         const std::wstring text =
             L"Cari Studio\n\n"
             L"Native Windows foundation — no AI, API or internet required.\n\n" +
-            CaptureStatus();
+            CaptureStatus() + L"\n" + AudioStatus();
 
         RECT client{};
         GetClientRect(hwnd, &client);
