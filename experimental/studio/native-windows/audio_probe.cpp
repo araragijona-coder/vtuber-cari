@@ -1,6 +1,5 @@
 #include <windows.h>
 #include <mmdeviceapi.h>
-#include <audioclient.h>
 #include <functiondiscoverykeys_devpkey.h>
 #include <wrl/client.h>
 
@@ -18,27 +17,21 @@ struct AudioEndpointInfo {
     EDataFlow flow;
 };
 
-std::vector<AudioEndpointInfo> enumerate_audio_endpoints() {
-    std::vector<AudioEndpointInfo> result;
+namespace {
 
-    ComPtr<IMMDeviceEnumerator> enumerator;
-    HRESULT hr = CoCreateInstance(
-        __uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
-        IID_PPV_ARGS(&enumerator));
-    if (FAILED(hr)) {
-        return result;
-    }
-
+void append_endpoints(
+    IMMDeviceEnumerator* enumerator,
+    EDataFlow flow,
+    std::vector<AudioEndpointInfo>& result) {
     ComPtr<IMMDeviceCollection> devices;
-    hr = enumerator->EnumAudioEndpoints(
-        eAll, DEVICE_STATE_ACTIVE, &devices);
-    if (FAILED(hr)) {
-        return result;
+    if (FAILED(enumerator->EnumAudioEndpoints(
+            flow, DEVICE_STATE_ACTIVE, &devices))) {
+        return;
     }
 
     UINT count = 0;
     if (FAILED(devices->GetCount(&count))) {
-        return result;
+        return;
     }
 
     for (UINT index = 0; index < count; ++index) {
@@ -51,7 +44,6 @@ std::vector<AudioEndpointInfo> enumerate_audio_endpoints() {
         if (FAILED(device->GetId(&raw_id))) {
             continue;
         }
-
         std::wstring id(raw_id);
         CoTaskMemFree(raw_id);
 
@@ -69,17 +61,25 @@ std::vector<AudioEndpointInfo> enumerate_audio_endpoints() {
         }
         PropVariantClear(&value);
 
-        EDataFlow flow = eAll;
-        if (FAILED(device->Activate(
-                __uuidof(IAudioClient), CLSCTX_ALL, nullptr, nullptr))) {
-            // Discovery remains useful even when an endpoint cannot currently
-            // expose an audio client. Keep the endpoint rather than failing the
-            // entire enumeration.
-        }
-
         result.push_back({std::move(id), std::move(name), flow});
     }
+}
 
+} // namespace
+
+std::vector<AudioEndpointInfo> enumerate_audio_endpoints() {
+    std::vector<AudioEndpointInfo> result;
+
+    ComPtr<IMMDeviceEnumerator> enumerator;
+    const HRESULT hr = CoCreateInstance(
+        __uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+        IID_PPV_ARGS(&enumerator));
+    if (FAILED(hr)) {
+        return result;
+    }
+
+    append_endpoints(enumerator.Get(), eRender, result);
+    append_endpoints(enumerator.Get(), eCapture, result);
     return result;
 }
 
