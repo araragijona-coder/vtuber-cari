@@ -8,7 +8,10 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(cari-studio-native WIN32 main.cpp)
+add_executable(cari-studio-native WIN32
+    main.cpp
+    audio_probe.cpp
+)
 
 target_compile_definitions(cari-studio-native PRIVATE
     UNICODE
