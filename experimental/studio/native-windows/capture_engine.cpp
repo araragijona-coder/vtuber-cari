@@ -233,7 +233,8 @@ bool CaptureEngine::start_window(HWND target_window) {
 
                     ComPtr<IDXGISurface> dxgi_surface;
                     auto surface = frame.Surface();
-                    auto access = surface.as<IDirect3DDxgiInterfaceAccess>();
+                    auto access = surface.as<
+                        ::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
                     winrt::check_hresult(access->GetInterface(
                         winrt::guid_of<IDXGISurface>(),
                         reinterpret_cast<void**>(dxgi_surface.GetAddressOf())));
