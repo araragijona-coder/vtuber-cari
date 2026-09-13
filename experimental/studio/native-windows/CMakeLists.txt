@@ -24,6 +24,8 @@ target_link_libraries(cari-studio-native PRIVATE
     user32
     gdi32
     ole32
+    d3d11
+    dxgi
     windowsapp
 )
 
