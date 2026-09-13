@@ -12,6 +12,7 @@ add_executable(cari-studio-native WIN32
     main.cpp
     audio_probe.cpp
     capture_engine.cpp
+    wasapi_capture.cpp
 )
 
 target_include_directories(cari-studio-native PRIVATE
