@@ -29,6 +29,7 @@ struct CaptureEngine::Impl {
     winrt::event_token frame_token{};
 
     std::atomic<std::uint64_t> frames{0};
+    std::atomic<std::uint64_t> delivered{0};
     std::atomic<std::uint64_t> errors{0};
     std::atomic<double> fps{0.0};
     std::atomic<std::int32_t> width{0};
@@ -36,6 +37,10 @@ struct CaptureEngine::Impl {
 
     mutable std::mutex error_mutex;
     std::wstring last_error;
+
+    mutable std::mutex callback_mutex;
+    FrameCallback callback;
+
     std::chrono::steady_clock::time_point sample_start = std::chrono::steady_clock::now();
     std::uint64_t sample_frames = 0;
 
@@ -123,6 +128,22 @@ CaptureEngine::~CaptureEngine() {
     stop();
 }
 
+void CaptureEngine::set_frame_callback(FrameCallback callback) {
+    if (!impl_) {
+        impl_ = std::make_shared<Impl>();
+    }
+    std::lock_guard lock(impl_->callback_mutex);
+    impl_->callback = std::move(callback);
+}
+
+void CaptureEngine::clear_frame_callback() {
+    if (!impl_) {
+        return;
+    }
+    std::lock_guard lock(impl_->callback_mutex);
+    impl_->callback = nullptr;
+}
+
 bool CaptureEngine::start_window(HWND target_window) {
     stop();
     last_start_error_.clear();
@@ -153,6 +174,7 @@ bool CaptureEngine::start_window(HWND target_window) {
         const auto size = item.Size();
         if (size.Width <= 0 || size.Height <= 0) {
             impl->set_error(L"Capture target returned an invalid size");
+            std::lock_guard lock(impl->error_mutex);
             last_start_error_ = impl->last_error;
             impl_ = impl;
             return false;
@@ -197,6 +219,37 @@ bool CaptureEngine::start_window(HWND target_window) {
                         state->fps.store(measured, std::memory_order_relaxed);
                         state->sample_frames = frame_count;
                         state->sample_start = now;
+                    }
+
+                    ComPtr<IDXGISurface> dxgi_surface;
+                    auto surface = frame.Surface();
+                    auto access = surface.as<IDirect3DDxgiInterfaceAccess>();
+                    winrt::check_hresult(access->GetInterface(
+                        winrt::guid_of<IDXGISurface>(),
+                        reinterpret_cast<void**>(dxgi_surface.GetAddressOf())));
+
+                    FrameCallback callback;
+                    {
+                        std::lock_guard lock(state->callback_mutex);
+                        callback = state->callback;
+                    }
+
+                    if (callback) {
+                        CapturedFrame captured{
+                            frame_count,
+                            frame.SystemRelativeTime().count(),
+                            content.Width,
+                            content.Height,
+                            dxgi_surface};
+                        try {
+                            callback(captured);
+                            state->delivered.fetch_add(1, std::memory_order_relaxed);
+                        } catch (const std::exception& error) {
+                            state->set_error(
+                                L"Capture frame callback failed: " + narrow_error(error.what()));
+                        } catch (...) {
+                            state->set_error(L"Capture frame callback failed with unknown exception");
+                        }
                     }
                 } catch (const winrt::hresult_error& error) {
                     state->set_error(
@@ -261,6 +314,7 @@ CaptureStats CaptureEngine::stats() const noexcept {
         return result;
     }
     result.frames = impl_->frames.load(std::memory_order_relaxed);
+    result.delivered = impl_->delivered.load(std::memory_order_relaxed);
     result.errors = impl_->errors.load(std::memory_order_relaxed);
     result.fps = impl_->fps.load(std::memory_order_relaxed);
     result.width = impl_->width.load(std::memory_order_relaxed);
