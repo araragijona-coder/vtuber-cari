@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <exception>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -76,9 +77,9 @@ bool create_d3d_device(CaptureEngine::Impl& impl) {
         return false;
     }
 
-    ComPtr<IInspectable> inspectable;
+    winrt::com_ptr<IInspectable> inspectable;
     const HRESULT interop_hr = CreateDirect3D11DeviceFromDXGIDevice(
-        dxgi_device.Get(), &inspectable);
+        dxgi_device.Get(), inspectable.put());
     if (FAILED(interop_hr)) {
         impl.set_error(L"CreateDirect3D11DeviceFromDXGIDevice failed: HRESULT " +
                        std::to_wstring(static_cast<unsigned long>(interop_hr)));
@@ -125,28 +126,34 @@ bool CaptureEngine::start_window(HWND target_window) {
     stop();
     last_start_error_.clear();
 
+    auto impl = std::make_shared<Impl>();
+
     if (!target_window || !IsWindow(target_window)) {
         last_start_error_ = L"Capture target HWND is invalid";
+        impl_ = impl;
         return false;
     }
 
     try {
-        auto impl = std::make_shared<Impl>();
         if (!winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported()) {
             last_start_error_ = L"Windows Graphics Capture is not supported on this system";
+            impl_ = impl;
             return false;
         }
 
         if (!create_d3d_device(*impl)) {
             std::lock_guard lock(impl->error_mutex);
             last_start_error_ = impl->last_error;
+            impl_ = impl;
             return false;
         }
 
         auto item = create_item_for_window(target_window);
         const auto size = item.Size();
         if (size.Width <= 0 || size.Height <= 0) {
-            last_start_error_ = L"Capture target returned an invalid size";
+            impl->set_error(L"Capture target returned an invalid size");
+            last_start_error_ = impl->last_error;
+            impl_ = impl;
             return false;
         }
 
@@ -207,15 +214,21 @@ bool CaptureEngine::start_window(HWND target_window) {
         running_ = true;
         return true;
     } catch (const winrt::hresult_error& error) {
-        last_start_error_ =
+        impl->set_error(
             L"Capture startup failed: HRESULT " +
-            std::to_wstring(static_cast<unsigned long>(error.code().value));
+            std::to_wstring(static_cast<unsigned long>(error.code().value)));
+        last_start_error_ = impl->last_error;
+        impl_ = impl;
         return false;
     } catch (const std::exception& error) {
-        last_start_error_ = L"Capture startup failed: " + narrow_error(error.what());
+        impl->set_error(L"Capture startup failed: " + narrow_error(error.what()));
+        last_start_error_ = impl->last_error;
+        impl_ = impl;
         return false;
     } catch (...) {
-        last_start_error_ = L"Capture startup failed with an unknown native exception";
+        impl->set_error(L"Capture startup failed with an unknown native exception");
+        last_start_error_ = impl->last_error;
+        impl_ = impl;
         return false;
     }
 }
@@ -231,14 +244,13 @@ void CaptureEngine::stop() {
         if (state->frame_pool) {
             state->frame_pool.FrameArrived(state->frame_token);
         }
-        if (state->session) {
-            state->session.Close();
-        }
-        if (state->frame_pool) {
-            state->frame_pool.Close();
-        }
+        state->session = nullptr;
+        state->frame_pool = nullptr;
+        state->winrt_device = nullptr;
+        state->d3d_context.Reset();
+        state->d3d_device.Reset();
     } catch (...) {
-        // Shutdown remains non-throwing.
+        // Shutdown must remain non-throwing.
     }
 }
 
