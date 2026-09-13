@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(cari-studio-native WIN32
     main.cpp
     audio_probe.cpp
+    capture_engine.cpp
 )
 
 target_compile_definitions(cari-studio-native PRIVATE
@@ -29,5 +30,5 @@ target_link_libraries(cari-studio-native PRIVATE
     windowsapp
 )
 
-# This target is intentionally isolated from the Python application until the
-# native capture/audio paths pass real Windows hardware tests.
+# This target stays isolated from the Python application until the native
+# capture/audio paths pass real Windows hardware and CI tests.
