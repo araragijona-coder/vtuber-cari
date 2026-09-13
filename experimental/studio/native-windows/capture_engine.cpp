@@ -103,6 +103,18 @@ winrt::Windows::Graphics::Capture::GraphicsCaptureItem create_item_for_window(HW
     return item;
 }
 
+std::wstring narrow_error(const char* text) {
+    std::wstring result;
+    if (!text) {
+        return result;
+    }
+    while (*text) {
+        result.push_back(static_cast<unsigned char>(*text));
+        ++text;
+    }
+    return result;
+}
+
 } // namespace
 
 CaptureEngine::~CaptureEngine() {
@@ -180,8 +192,7 @@ bool CaptureEngine::start_window(HWND target_window) {
                         std::to_wstring(static_cast<unsigned long>(error.code().value)));
                 } catch (const std::exception& error) {
                     state->set_error(
-                        L"Capture frame processing failed: " +
-                        std::wstring(error.what(), error.what() + std::strlen(error.what())));
+                        L"Capture frame processing failed: " + narrow_error(error.what()));
                 }
             });
 
@@ -192,27 +203,18 @@ bool CaptureEngine::start_window(HWND target_window) {
         running_ = true;
         return true;
     } catch (const winrt::hresult_error& error) {
-        if (impl_) {
-            impl_->set_error(
-                L"Capture startup failed: HRESULT " +
-                std::to_wstring(static_cast<unsigned long>(error.code().value)));
-        }
-        stop();
         return false;
     } catch (...) {
-        stop();
         return false;
     }
 }
 
 void CaptureEngine::stop() {
-    if (!impl_) {
-        running_ = false;
-        return;
-    }
-
     auto state = std::move(impl_);
     running_ = false;
+    if (!state) {
+        return;
+    }
 
     try {
         if (state->frame_pool) {
@@ -225,7 +227,7 @@ void CaptureEngine::stop() {
             state->frame_pool.Close();
         }
     } catch (...) {
-        // Destruction remains non-throwing even when Windows rejects a late close.
+        // Shutdown remains non-throwing.
     }
 }
 
