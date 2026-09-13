@@ -11,7 +11,8 @@
 #include <atomic>
 #include <chrono>
 #include <mutex>
-#include <new>
+#include <string>
+#include <utility>
 
 using Microsoft::WRL::ComPtr;
 
@@ -97,8 +98,8 @@ winrt::Windows::Graphics::Capture::GraphicsCaptureItem create_item_for_window(HW
     winrt::Windows::Graphics::Capture::GraphicsCaptureItem item{nullptr};
     winrt::check_hresult(factory->CreateForWindow(
         target,
-        winrt::guid_of<ABI::Windows::Graphics::Capture::IGraphicsCaptureItem>(),
-        reinterpret_cast<void**>(winrt::put_abi(item))));
+        winrt::guid_of<winrt::Windows::Graphics::Capture::GraphicsCaptureItem>(),
+        winrt::put_abi(item)));
     return item;
 }
 
@@ -116,15 +117,13 @@ bool CaptureEngine::start_window(HWND target_window) {
     }
 
     try {
-        auto impl = std::make_unique<Impl>();
+        auto impl = std::make_shared<Impl>();
         if (!winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported()) {
             impl->set_error(L"Windows Graphics Capture is not supported on this system");
-            delete impl.release();
             return false;
         }
 
         if (!create_d3d_device(*impl)) {
-            delete impl.release();
             return false;
         }
 
@@ -132,7 +131,6 @@ bool CaptureEngine::start_window(HWND target_window) {
         const auto size = item.Size();
         if (size.Width <= 0 || size.Height <= 0) {
             impl->set_error(L"Capture target returned an invalid size");
-            delete impl.release();
             return false;
         }
 
@@ -147,9 +145,13 @@ bool CaptureEngine::start_window(HWND target_window) {
                 3,
                 size);
 
-        auto weak_impl = impl.get();
+        std::weak_ptr<Impl> weak_impl = impl;
         impl->frame_token = impl->frame_pool.FrameArrived(
             [weak_impl](auto const& sender, auto const&) {
+                auto state = weak_impl.lock();
+                if (!state) {
+                    return;
+                }
                 try {
                     auto frame = sender.TryGetNextFrame();
                     if (!frame) {
@@ -157,35 +159,36 @@ bool CaptureEngine::start_window(HWND target_window) {
                     }
 
                     const auto content = frame.ContentSize();
-                    weak_impl->width.store(content.Width, std::memory_order_relaxed);
-                    weak_impl->height.store(content.Height, std::memory_order_relaxed);
+                    state->width.store(content.Width, std::memory_order_relaxed);
+                    state->height.store(content.Height, std::memory_order_relaxed);
                     const auto frame_count =
-                        weak_impl->frames.fetch_add(1, std::memory_order_relaxed) + 1;
+                        state->frames.fetch_add(1, std::memory_order_relaxed) + 1;
 
                     const auto now = std::chrono::steady_clock::now();
                     const auto elapsed = std::chrono::duration<double>(
-                        now - weak_impl->sample_start).count();
+                        now - state->sample_start).count();
                     if (elapsed >= 0.5) {
                         const double measured =
-                            static_cast<double>(frame_count - weak_impl->sample_frames) / elapsed;
-                        weak_impl->fps.store(measured, std::memory_order_relaxed);
-                        weak_impl->sample_frames = frame_count;
-                        weak_impl->sample_start = now;
+                            static_cast<double>(frame_count - state->sample_frames) / elapsed;
+                        state->fps.store(measured, std::memory_order_relaxed);
+                        state->sample_frames = frame_count;
+                        state->sample_start = now;
                     }
                 } catch (const winrt::hresult_error& error) {
-                    weak_impl->set_error(
+                    state->set_error(
                         L"Capture frame processing failed: HRESULT " +
                         std::to_wstring(static_cast<unsigned long>(error.code().value)));
                 } catch (const std::exception& error) {
-                    weak_impl->set_error(
-                        winrt::to_hstring(error.what()).c_str());
+                    state->set_error(
+                        L"Capture frame processing failed: " +
+                        std::wstring(error.what(), error.what() + std::strlen(error.what())));
                 }
             });
 
         impl->session = impl->frame_pool.CreateCaptureSession(item);
         impl->session.StartCapture();
 
-        impl_ = impl.release();
+        impl_ = std::move(impl);
         running_ = true;
         return true;
     } catch (const winrt::hresult_error& error) {
@@ -208,23 +211,22 @@ void CaptureEngine::stop() {
         return;
     }
 
+    auto state = std::move(impl_);
+    running_ = false;
+
     try {
-        if (impl_->frame_pool) {
-            impl_->frame_pool.FrameArrived(impl_->frame_token);
+        if (state->frame_pool) {
+            state->frame_pool.FrameArrived(state->frame_token);
         }
-        if (impl_->session) {
-            impl_->session.Close();
+        if (state->session) {
+            state->session.Close();
         }
-        if (impl_->frame_pool) {
-            impl_->frame_pool.Close();
+        if (state->frame_pool) {
+            state->frame_pool.Close();
         }
     } catch (...) {
-        // Shutdown must be non-throwing; release native resources regardless.
+        // Destruction remains non-throwing even when Windows rejects a late close.
     }
-
-    delete impl_;
-    impl_ = nullptr;
-    running_ = false;
 }
 
 CaptureStats CaptureEngine::stats() const noexcept {
