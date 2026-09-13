@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - 'experimental/studio/native-windows/**'
+      - 'experimental/studio/core/**'
       - '.github/workflows/native-windows.yml'
   push:
     branches: [main]
     paths:
       - 'experimental/studio/native-windows/**'
+      - 'experimental/studio/core/**'
       - '.github/workflows/native-windows.yml'
 
 jobs:
@@ -26,10 +28,13 @@ jobs:
       - name: Configure CMake
         run: cmake -S . -B build -A x64
 
-      - name: Build native prototype
+      - name: Build native targets
         run: cmake --build build --config Release --parallel
 
-      - name: Verify executable exists
+      - name: Run Cari Core smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-core-smoke
+
+      - name: Verify native executable exists
         shell: pwsh
         run: |
           $exe = Join-Path $PWD 'build/Release/cari-studio-native.exe'
