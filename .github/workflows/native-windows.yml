@@ -28,3 +28,12 @@ jobs:
 
       - name: Build native prototype
         run: cmake --build build --config Release --parallel
+
+      - name: Verify executable exists
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'build/Release/cari-studio-native.exe'
+          if (-not (Test-Path $exe)) {
+            throw "Native executable was not produced: $exe"
+          }
+          Get-Item $exe | Select-Object FullName, Length
