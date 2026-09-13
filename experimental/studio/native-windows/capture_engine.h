@@ -54,6 +54,8 @@ public:
 private:
     std::shared_ptr<Impl> impl_;
     std::wstring last_start_error_;
+    mutable std::mutex callback_mutex_;
+    FrameCallback callback_;
     bool running_ = false;
 };
 
