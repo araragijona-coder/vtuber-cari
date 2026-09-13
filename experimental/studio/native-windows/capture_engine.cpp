@@ -123,26 +123,30 @@ CaptureEngine::~CaptureEngine() {
 
 bool CaptureEngine::start_window(HWND target_window) {
     stop();
+    last_start_error_.clear();
 
     if (!target_window || !IsWindow(target_window)) {
+        last_start_error_ = L"Capture target HWND is invalid";
         return false;
     }
 
     try {
         auto impl = std::make_shared<Impl>();
         if (!winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported()) {
-            impl->set_error(L"Windows Graphics Capture is not supported on this system");
+            last_start_error_ = L"Windows Graphics Capture is not supported on this system";
             return false;
         }
 
         if (!create_d3d_device(*impl)) {
+            std::lock_guard lock(impl->error_mutex);
+            last_start_error_ = impl->last_error;
             return false;
         }
 
         auto item = create_item_for_window(target_window);
         const auto size = item.Size();
         if (size.Width <= 0 || size.Height <= 0) {
-            impl->set_error(L"Capture target returned an invalid size");
+            last_start_error_ = L"Capture target returned an invalid size";
             return false;
         }
 
@@ -203,8 +207,15 @@ bool CaptureEngine::start_window(HWND target_window) {
         running_ = true;
         return true;
     } catch (const winrt::hresult_error& error) {
+        last_start_error_ =
+            L"Capture startup failed: HRESULT " +
+            std::to_wstring(static_cast<unsigned long>(error.code().value));
+        return false;
+    } catch (const std::exception& error) {
+        last_start_error_ = L"Capture startup failed: " + narrow_error(error.what());
         return false;
     } catch (...) {
+        last_start_error_ = L"Capture startup failed with an unknown native exception";
         return false;
     }
 }
@@ -246,10 +257,10 @@ CaptureStats CaptureEngine::stats() const noexcept {
 
 std::wstring CaptureEngine::last_error() const {
     if (!impl_) {
-        return {};
+        return last_start_error_;
     }
     std::lock_guard lock(impl_->error_mutex);
-    return impl_->last_error;
+    return impl_->last_error.empty() ? last_start_error_ : impl_->last_error;
 }
 
 } // namespace cari::native
