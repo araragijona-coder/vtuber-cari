@@ -6,9 +6,8 @@
 #include "types.h"
 
 #include <cstddef>
-#include <functional>
 #include <memory>
-#include <string>
+#include <mutex>
 #include <utility>
 
 namespace cari::studio::core {
@@ -35,17 +34,26 @@ public:
         if (!active_) {
             return false;
         }
+        std::lock_guard lock(mutex_);
         ++metrics_.frames;
         metrics_.encoded = metrics_.frames;
         last_pts_ = frame.pts;
         return true;
     }
 
-    OutputMetrics metrics() const noexcept override { return metrics_; }
-    [[nodiscard]] Timestamp last_pts() const noexcept { return last_pts_; }
+    OutputMetrics metrics() const noexcept override {
+        std::lock_guard lock(mutex_);
+        return metrics_;
+    }
+
+    [[nodiscard]] Timestamp last_pts() const noexcept {
+        std::lock_guard lock(mutex_);
+        return last_pts_;
+    }
 
 private:
     bool active_ = false;
+    mutable std::mutex mutex_;
     Timestamp last_pts_ = 0;
     OutputMetrics metrics_{};
 };
@@ -57,7 +65,7 @@ public:
         : frames_(frame_capacity), audio_(audio_capacity) {}
 
     bool set_output(std::shared_ptr<IOutput> output) {
-        if (!output) {
+        if (!output || running_) {
             return false;
         }
         output_ = std::move(output);
@@ -65,7 +73,12 @@ public:
     }
 
     bool start() {
-        if (!output_ || !output_->start()) {
+        if (running_ || !output_) {
+            return false;
+        }
+        frames_.reset();
+        audio_.reset();
+        if (!output_->start()) {
             return false;
         }
         running_ = true;
@@ -73,6 +86,9 @@ public:
     }
 
     void stop() noexcept {
+        if (!running_ && frames_.closed() && audio_.closed()) {
+            return;
+        }
         running_ = false;
         frames_.close();
         audio_.close();
