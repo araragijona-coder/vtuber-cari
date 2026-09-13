@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include <windows.h>
@@ -17,6 +18,8 @@ struct CaptureStats {
 
 class CaptureEngine final {
 public:
+    struct Impl;
+
     CaptureEngine() = default;
     ~CaptureEngine();
 
@@ -31,8 +34,7 @@ public:
     std::wstring last_error() const;
 
 private:
-    struct Impl;
-    Impl* impl_ = nullptr;
+    std::shared_ptr<Impl> impl_;
     bool running_ = false;
 };
 
