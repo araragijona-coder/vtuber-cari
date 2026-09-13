@@ -1,10 +1,15 @@
 #include <windows.h>
+#include <d3d11.h>
+#include <dxgi1_2.h>
 #include <winrt/Windows.Graphics.Capture.h>
 #include <winrt/base.h>
 
 #include "audio_probe.h"
 
 #include <string>
+#include <wrl/client.h>
+
+using Microsoft::WRL::ComPtr;
 
 namespace {
 
@@ -15,9 +20,35 @@ std::wstring CaptureStatus() {
     try {
         const bool supported =
             winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported();
-        return supported
-            ? L"Screen/window capture: available"
-            : L"Screen/window capture: unsupported on this Windows device";
+        if (!supported) {
+            return L"Screen/window capture: unsupported";
+        }
+
+        // Create the D3D11 device that will back the future
+        // Direct3D11CaptureFramePool. No capture session is started yet.
+        ComPtr<ID3D11Device> device;
+        ComPtr<ID3D11DeviceContext> context;
+        constexpr D3D_FEATURE_LEVEL levels[] = {
+            D3D_FEATURE_LEVEL_11_1,
+            D3D_FEATURE_LEVEL_11_0,
+        };
+        D3D_FEATURE_LEVEL selected{};
+        const HRESULT hr = D3D11CreateDevice(
+            nullptr,
+            D3D_DRIVER_TYPE_HARDWARE,
+            nullptr,
+            D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+            levels,
+            ARRAYSIZE(levels),
+            D3D11_SDK_VERSION,
+            &device,
+            &selected,
+            &context);
+        if (FAILED(hr)) {
+            return L"Capture: Windows API available, D3D11 device unavailable";
+        }
+
+        return L"Capture: Windows API + D3D11 device ready";
     } catch (const winrt::hresult_error& error) {
         return L"Screen/window capture: unavailable (HRESULT " +
                std::to_wstring(static_cast<long>(error.code().value)) + L")";
@@ -83,19 +114,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     }
 
     HWND hwnd = CreateWindowExW(
-        0,
-        kClassName,
-        kWindowTitle,
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        760,
-        420,
-        nullptr,
-        nullptr,
-        instance,
-        nullptr);
-
+        0, kClassName, kWindowTitle, WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT, 760, 420,
+        nullptr, nullptr, instance, nullptr);
     if (!hwnd) {
         return 2;
     }
@@ -108,6 +129,5 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
         TranslateMessage(&message);
         DispatchMessageW(&message);
     }
-
     return static_cast<int>(message.wParam);
 }
