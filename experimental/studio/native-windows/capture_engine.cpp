@@ -129,19 +129,25 @@ CaptureEngine::~CaptureEngine() {
 }
 
 void CaptureEngine::set_frame_callback(FrameCallback callback) {
-    if (!impl_) {
-        impl_ = std::make_shared<Impl>();
+    {
+        std::lock_guard lock(callback_mutex_);
+        callback_ = std::move(callback);
     }
-    std::lock_guard lock(impl_->callback_mutex);
-    impl_->callback = std::move(callback);
+    if (impl_) {
+        std::lock_guard lock(impl_->callback_mutex);
+        impl_->callback = callback_;
+    }
 }
 
 void CaptureEngine::clear_frame_callback() {
-    if (!impl_) {
-        return;
+    {
+        std::lock_guard lock(callback_mutex_);
+        callback_ = nullptr;
     }
-    std::lock_guard lock(impl_->callback_mutex);
-    impl_->callback = nullptr;
+    if (impl_) {
+        std::lock_guard lock(impl_->callback_mutex);
+        impl_->callback = nullptr;
+    }
 }
 
 bool CaptureEngine::start_window(HWND target_window) {
@@ -149,6 +155,10 @@ bool CaptureEngine::start_window(HWND target_window) {
     last_start_error_.clear();
 
     auto impl = std::make_shared<Impl>();
+    {
+        std::lock_guard lock(callback_mutex_);
+        impl->callback = callback_;
+    }
 
     if (!target_window || !IsWindow(target_window)) {
         last_start_error_ = L"Capture target HWND is invalid";
