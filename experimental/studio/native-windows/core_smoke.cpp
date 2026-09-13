@@ -1,3 +1,5 @@
+#include "../core/audio_mixer.h"
+#include "../core/monitoring.h"
 #include "../core/pipeline.h"
 
 #include <cassert>
@@ -42,6 +44,22 @@ int main() {
     assert(scene.add_layer({"test", 0, true, 1.0f}));
     assert(!scene.add_layer({"test", 1, true, 1.0f}));
     assert(scene.set_visible("test", false));
+
+    AudioMixer mixer;
+    assert(mixer.add_track("mic"));
+    assert(mixer.add_track("game"));
+    assert(mixer.set_volume("game", 0.5f));
+    assert(mixer.set_samples("mic", {0.25f, 0.5f, 1.0f}));
+    assert(mixer.set_samples("game", {0.5f, 0.5f, 0.5f}));
+    const auto mixed = mixer.mix(3);
+    assert(mixed.size() == 3);
+    assert(mixed[0] == 0.5f);
+    assert(mixed[1] == 0.75f);
+    assert(mixer.peak(mixed) <= 1.0f);
+
+    assert(classify_load(40.0) == HealthLevel::excellent);
+    assert(classify_load(90.0) == HealthLevel::high);
+    assert(classify_fps(30.0, 60.0) == HealthLevel::high);
 
     StudioPipeline pipeline(2, 2);
     auto output = std::make_shared<NullOutput>();
