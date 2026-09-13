@@ -1,6 +1,8 @@
 #include "../core/audio_mixer.h"
+#include "../core/fanout_output.h"
 #include "../core/monitoring.h"
 #include "../core/pipeline.h"
+#include "../core/software_compositor.h"
 
 #include <cassert>
 #include <iostream>
@@ -28,6 +30,24 @@ public:
 private:
     bool active_ = false;
 };
+
+cari::studio::core::RgbaImage solid(
+    std::uint32_t width,
+    std::uint32_t height,
+    std::uint8_t r,
+    std::uint8_t g,
+    std::uint8_t b,
+    std::uint8_t a = 255) {
+    cari::studio::core::RgbaImage image{width, height, {}};
+    image.pixels.resize(static_cast<std::size_t>(width) * height * 4u);
+    for (std::size_t i = 0; i < image.pixels.size(); i += 4) {
+        image.pixels[i] = r;
+        image.pixels[i + 1] = g;
+        image.pixels[i + 2] = b;
+        image.pixels[i + 3] = a;
+    }
+    return image;
+}
 
 } // namespace
 
@@ -61,6 +81,18 @@ int main() {
     assert(classify_load(90.0) == HealthLevel::high);
     assert(classify_fps(30.0, 60.0) == HealthLevel::high);
 
+    SoftwareCompositor compositor(2, 2);
+    const auto background = solid(2, 2, 20, 40, 60);
+    const auto overlay = solid(1, 1, 220, 10, 30, 128);
+    assert(compositor.compose({
+        {"background", background, 0, 0, true, 1.0f},
+        {"overlay", overlay, 1, 1, true, 1.0f},
+    }));
+    const auto& composed = compositor.output();
+    assert(composed.valid());
+    assert(composed.pixels[(1u * 2u + 1u) * 4u + 3] == 255);
+    assert(composed.pixels[(0u * 2u + 0u) * 4u] == 20);
+
     StudioPipeline pipeline(2, 2);
     auto output = std::make_shared<NullOutput>();
     assert(pipeline.set_output(output));
@@ -76,6 +108,21 @@ int main() {
 
     pipeline.stop();
     assert(!pipeline.running());
+    assert(pipeline.start());
+    assert(pipeline.submit_frame(Frame{400, 1280, 720, 5120, 1, 4}));
+    assert(pipeline.pump_once() == 1);
+    pipeline.stop();
+
+    auto first = std::make_shared<NullOutput>();
+    auto second = std::make_shared<NullOutput>();
+    FanoutOutput fanout;
+    assert(fanout.add_output(first));
+    assert(fanout.add_output(second));
+    assert(fanout.output_count() == 2);
+    assert(fanout.start());
+    assert(fanout.submit(Frame{500, 1280, 720, 5120, 1, 5}));
+    assert(fanout.metrics().frames == 2);
+    fanout.stop();
 
     std::cout << "Cari Core smoke: PASS\n";
     return 0;
