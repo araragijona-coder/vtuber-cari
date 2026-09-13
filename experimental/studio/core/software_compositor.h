@@ -34,7 +34,11 @@ struct SoftwareLayer {
 class SoftwareCompositor final {
 public:
     explicit SoftwareCompositor(std::uint32_t width, std::uint32_t height)
-        : width_(width), height_(height), output_(width, height, 0) {}
+        : width_(width), height_(height) {
+        output_.width = width;
+        output_.height = height;
+        output_.pixels.resize(static_cast<std::size_t>(width) * height * 4u, 0);
+    }
 
     [[nodiscard]] const RgbaImage& output() const noexcept { return output_; }
 
