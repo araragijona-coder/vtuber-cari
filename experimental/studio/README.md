@@ -21,6 +21,28 @@ Cari Studio is the product direction for the application: a local-first creator/
 8. **Camera** — framing/preset control without requiring OBS.
 9. **Monitoring** — CPU/GPU/RAM/FPS/bitrate/audio/capture health expressed as simple percentages/statuses.
 
+## Core architecture
+
+The native side is now organized around a reusable `experimental/studio/core` layer:
+
+```text
+source adapters
+     ↓
+SourceRegistry
+     ↓
+timestamped frame/audio contracts
+     ↓
+bounded queues
+     ↓
+scene + audio mixer
+     ↓
+encoder/output boundaries
+     ↓
+recording / streaming adapters
+```
+
+The core boundaries are intentionally independent of Windows APIs so that Windows Graphics Capture, WASAPI, camera, game capture and future multimedia libraries can be attached as adapters instead of forcing a rewrite of the engine.
+
 ## Design rule
 
 The application must remain useful in **manual/offline mode**. Network integrations are adapters around the local engine, not the engine itself. AI is an optional future provider and must never be required for startup or normal capture/streaming workflows.
@@ -28,3 +50,5 @@ The application must remain useful in **manual/offline mode**. Network integrati
 ## Experimental boundary
 
 This directory is deliberately experimental until the target Windows PC has been benchmarked. Hardware-specific capture and encoder choices must be validated before promotion into production.
+
+The native Windows prototype now has a real Windows Graphics Capture/D3D11 path plus a native Cari Core smoke test. The smoke test validates source registration, scene management, audio mixing, bounded frame queues, monitoring classification and the output boundary; it does not yet prove real hardware capture/render/encoding.
