@@ -14,6 +14,10 @@ add_executable(cari-studio-native WIN32
     capture_engine.cpp
 )
 
+target_include_directories(cari-studio-native PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
 target_compile_definitions(cari-studio-native PRIVATE
     UNICODE
     _UNICODE
@@ -30,5 +34,16 @@ target_link_libraries(cari-studio-native PRIVATE
     windowsapp
 )
 
-# This target stays isolated from the Python application until the native
-# capture/audio paths pass real Windows hardware and CI tests.
+add_executable(cari-core-smoke
+    core_smoke.cpp
+)
+
+target_include_directories(cari-core-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
+enable_testing()
+add_test(NAME cari-core-smoke COMMAND cari-core-smoke)
+
+# Native capture/audio stays isolated from the Python application until the
+# Windows hardware paths pass CI and real-machine validation.
