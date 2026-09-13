@@ -5,6 +5,7 @@
 #include <deque>
 #include <mutex>
 #include <optional>
+#include <utility>
 
 namespace cari::studio::core {
 
@@ -55,6 +56,18 @@ public:
         std::lock_guard lock(mutex_);
         closed_ = true;
         not_empty_.notify_all();
+    }
+
+    void reset() {
+        std::lock_guard lock(mutex_);
+        items_.clear();
+        dropped_ = 0;
+        closed_ = false;
+    }
+
+    [[nodiscard]] bool closed() const {
+        std::lock_guard lock(mutex_);
+        return closed_;
     }
 
     [[nodiscard]] std::size_t size() const {
