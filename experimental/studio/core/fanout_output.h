@@ -59,12 +59,25 @@ public:
         return any_success;
     }
 
+    bool submit_audio(const AudioPacket& packet) override {
+        std::lock_guard lock(mutex_);
+        if (!active_) {
+            return false;
+        }
+        bool any_success = false;
+        for (auto& output : outputs_) {
+            any_success = output->submit_audio(packet) || any_success;
+        }
+        return any_success;
+    }
+
     OutputMetrics metrics() const noexcept override {
         std::lock_guard lock(mutex_);
         OutputMetrics combined{};
         for (const auto& output : outputs_) {
             const auto current = output->metrics();
             combined.frames += current.frames;
+            combined.audio_frames += current.audio_frames;
             combined.dropped += current.dropped;
             combined.encoded += current.encoded;
             combined.bitrate_mbps += current.bitrate_mbps;
