@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace cari::studio::core {
@@ -22,6 +23,41 @@ struct OutputProfile {
     std::string video_codec = "h264";
     std::string audio_codec = "aac";
 };
+
+struct OutputProfileValidation {
+    bool valid = false;
+    std::string error;
+};
+
+inline OutputProfileValidation validate_output_profile(const OutputProfile& profile) {
+    if (profile.id.empty()) {
+        return {false, "output profile id is required"};
+    }
+    if (profile.target.empty()) {
+        return {false, "output target is required"};
+    }
+    if (profile.width == 0 || profile.height == 0) {
+        return {false, "output dimensions must be non-zero"};
+    }
+    if (profile.fps == 0 || profile.fps > 240) {
+        return {false, "output fps must be between 1 and 240"};
+    }
+    if (profile.bitrate_kbps == 0) {
+        return {false, "output bitrate must be non-zero"};
+    }
+    if (profile.video_codec.empty()) {
+        return {false, "video codec is required"};
+    }
+    if (profile.audio_codec.empty()) {
+        return {false, "audio codec is required"};
+    }
+    if (profile.kind == OutputKind::rtmp &&
+        profile.target.rfind("rtmp://", 0) != 0 &&
+        profile.target.rfind("rtmps://", 0) != 0) {
+        return {false, "RTMP output target must use rtmp:// or rtmps://"};
+    }
+    return {true, {}};
+}
 
 struct EncoderCommand {
     std::string executable;
