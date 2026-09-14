@@ -1,4 +1,5 @@
 #include "../core/audio_mixer.h"
+#include "../core/bounded_queue.h"
 #include "../core/fanout_output.h"
 #include "../core/monitoring.h"
 #include "../core/output_profile.h"
@@ -33,6 +34,21 @@ cari::studio::core::RgbaImage solid(
 
 int main() {
     using namespace cari::studio::core;
+
+    BoundedQueue<int> queue(2);
+    assert(queue.push(1));
+    assert(queue.push(2));
+    assert(queue.push(3));
+    assert(queue.dropped() == 1);
+    assert(queue.try_pop().value() == 2);
+    assert(queue.try_pop().value() == 3);
+    assert(!queue.try_pop().has_value());
+    queue.close();
+    assert(!queue.push(4));
+    assert(!queue.wait_pop().has_value());
+    queue.reset();
+    assert(!queue.closed());
+    assert(queue.dropped() == 0);
 
     AudioMixer mixer;
     assert(mixer.add_track("mic"));
@@ -82,10 +98,18 @@ int main() {
     assert(pipeline.submit_frame(Frame{100, 1280, 720, 5120, 1, 1}));
     assert(pipeline.submit_frame(Frame{200, 1280, 720, 5120, 1, 2}));
     assert(pipeline.submit_frame(Frame{300, 1280, 720, 5120, 1, 3}));
+    assert(pipeline.submit_audio(AudioPacket{150, 48000, 2, 1, {0.1f, 0.2f, 0.3f, 0.4f}}));
     assert(pipeline.dropped_video() == 1);
     assert(pipeline.pump_once() == 2);
     assert(pipeline.output_metrics().frames == 2);
+    assert(pipeline.output_metrics().audio_frames == 2);
     assert(output->last_pts() == 300);
+    pipeline.stop();
+
+    assert(pipeline.start());
+    assert(pipeline.submit_frame(Frame{400, 1280, 720, 5120, 1, 4}));
+    assert(pipeline.pump_once() == 1);
+    assert(pipeline.output_metrics().frames == 1);
     pipeline.stop();
 
     auto first = std::make_shared<NullOutput>();
@@ -96,7 +120,9 @@ int main() {
     assert(fanout.output_count() == 2);
     assert(fanout.start());
     assert(fanout.submit(Frame{500, 1280, 720, 5120, 1, 5}));
+    assert(fanout.submit_audio(AudioPacket{550, 48000, 2, 6, {0.1f, 0.2f, 0.3f, 0.4f}}));
     assert(fanout.metrics().frames == 2);
+    assert(fanout.metrics().audio_frames == 4);
     fanout.stop();
 
     std::cout << "Cari Core smoke: PASS\n";
