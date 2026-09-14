@@ -18,26 +18,44 @@ public:
     virtual bool start() = 0;
     virtual void stop() noexcept = 0;
     virtual bool submit(const Frame& frame) = 0;
+    virtual bool submit_audio(const AudioPacket& packet) = 0;
     virtual OutputMetrics metrics() const noexcept = 0;
 };
 
 class NullOutput final : public IOutput {
 public:
     bool start() override {
+        std::lock_guard lock(mutex_);
         active_ = true;
+        metrics_ = {};
+        last_pts_ = 0;
         return true;
     }
 
-    void stop() noexcept override { active_ = false; }
+    void stop() noexcept override {
+        std::lock_guard lock(mutex_);
+        active_ = false;
+    }
 
     bool submit(const Frame& frame) override {
+        std::lock_guard lock(mutex_);
         if (!active_) {
             return false;
         }
-        std::lock_guard lock(mutex_);
         ++metrics_.frames;
         metrics_.encoded = metrics_.frames;
         last_pts_ = frame.pts;
+        return true;
+    }
+
+    bool submit_audio(const AudioPacket& packet) override {
+        std::lock_guard lock(mutex_);
+        if (!active_) {
+            return false;
+        }
+        metrics_.audio_frames += packet.samples.empty()
+            ? 0
+            : packet.samples.size() / static_cast<std::size_t>(packet.channels == 0 ? 1 : packet.channels);
         return true;
     }
 
@@ -52,8 +70,8 @@ public:
     }
 
 private:
-    bool active_ = false;
     mutable std::mutex mutex_;
+    bool active_ = false;
     Timestamp last_pts_ = 0;
     OutputMetrics metrics_{};
 };
@@ -120,6 +138,9 @@ public:
             if (output_->submit(*frame)) {
                 ++submitted;
             }
+        }
+        while (const auto packet = audio_.try_pop()) {
+            output_->submit_audio(*packet);
         }
         return submitted;
     }
