@@ -14,6 +14,7 @@ add_executable(cari-studio-native WIN32
     capture_engine.cpp
     wasapi_capture.cpp
     window_sources.cpp
+    camera_sources.cpp
 )
 
 target_include_directories(cari-studio-native PRIVATE
@@ -34,6 +35,9 @@ target_link_libraries(cari-studio-native PRIVATE
     avrt
     d3d11
     dxgi
+    mfplat
+    mfreadwrite
+    mfuuid
     windowsapp
 )
 
