@@ -13,6 +13,7 @@ add_executable(cari-studio-native WIN32
     audio_probe.cpp
     capture_engine.cpp
     wasapi_capture.cpp
+    window_sources.cpp
 )
 
 target_include_directories(cari-studio-native PRIVATE
@@ -30,6 +31,7 @@ target_link_libraries(cari-studio-native PRIVATE
     user32
     gdi32
     ole32
+    avrt
     d3d11
     dxgi
     windowsapp
