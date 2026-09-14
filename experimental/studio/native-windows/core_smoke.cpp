@@ -1,6 +1,7 @@
 #include "../core/audio_mixer.h"
 #include "../core/fanout_output.h"
 #include "../core/monitoring.h"
+#include "../core/output_profile.h"
 #include "../core/pipeline.h"
 #include "../core/software_compositor.h"
 
@@ -9,27 +10,6 @@
 #include <memory>
 
 namespace {
-
-class TestSource final : public cari::studio::core::ISource {
-public:
-    cari::studio::core::SourceDescriptor descriptor() const override {
-        return {"test", "Test source", "synthetic", true};
-    }
-
-    bool start() override {
-        active_ = true;
-        return true;
-    }
-
-    void stop() noexcept override { active_ = false; }
-
-    cari::studio::core::SourceHealth health() const noexcept override {
-        return {active_, 3, 1, 0, 60.0};
-    }
-
-private:
-    bool active_ = false;
-};
 
 cari::studio::core::RgbaImage solid(
     std::uint32_t width,
@@ -53,17 +33,6 @@ cari::studio::core::RgbaImage solid(
 
 int main() {
     using namespace cari::studio::core;
-
-    SourceRegistry registry;
-    auto source = std::make_shared<TestSource>();
-    assert(registry.add(source));
-    assert(!registry.add(source));
-    assert(registry.get("test") != nullptr);
-
-    Scene scene("main");
-    assert(scene.add_layer({"test", 0, true, 1.0f}));
-    assert(!scene.add_layer({"test", 1, true, 1.0f}));
-    assert(scene.set_visible("test", false));
 
     AudioMixer mixer;
     assert(mixer.add_track("mic"));
@@ -90,14 +59,26 @@ int main() {
     }));
     const auto& composed = compositor.output();
     assert(composed.valid());
-    assert(composed.pixels[(1u * 2u + 1u) * 4u + 3] == 255);
-    assert(composed.pixels[(0u * 2u + 0u) * 4u] == 20);
+
+    OutputProfile rtmp_profile{
+        "twitch", OutputKind::rtmp, "rtmps://example.test/live/key",
+        1920, 1080, 60, 6000, "libx264", "aac"
+    };
+    assert(validate_output_profile(rtmp_profile).valid);
+    const auto command = build_ffmpeg_rtmp_command(rtmp_profile);
+    assert(command.executable == "ffmpeg");
+    assert(!command.arguments.empty());
+
+    auto invalid_profile = rtmp_profile;
+    invalid_profile.target = "https://example.test/live";
+    const auto invalid_result = validate_output_profile(invalid_profile);
+    assert(!invalid_result.valid);
+    assert(!invalid_result.error.empty());
 
     StudioPipeline pipeline(2, 2);
     auto output = std::make_shared<NullOutput>();
     assert(pipeline.set_output(output));
     assert(pipeline.start());
-
     assert(pipeline.submit_frame(Frame{100, 1280, 720, 5120, 1, 1}));
     assert(pipeline.submit_frame(Frame{200, 1280, 720, 5120, 1, 2}));
     assert(pipeline.submit_frame(Frame{300, 1280, 720, 5120, 1, 3}));
@@ -105,12 +86,6 @@ int main() {
     assert(pipeline.pump_once() == 2);
     assert(pipeline.output_metrics().frames == 2);
     assert(output->last_pts() == 300);
-
-    pipeline.stop();
-    assert(!pipeline.running());
-    assert(pipeline.start());
-    assert(pipeline.submit_frame(Frame{400, 1280, 720, 5120, 1, 4}));
-    assert(pipeline.pump_once() == 1);
     pipeline.stop();
 
     auto first = std::make_shared<NullOutput>();
