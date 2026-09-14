@@ -3,7 +3,9 @@
 #include <winrt/base.h>
 
 #include "audio_probe.h"
+#include "camera_sources.h"
 #include "capture_engine.h"
+#include "window_sources.h"
 
 #include <string>
 
@@ -16,6 +18,7 @@ constexpr UINT_PTR kStatusTimerId = 1;
 cari::native::CaptureEngine g_capture;
 std::wstring g_audio_status;
 std::wstring g_capture_support_status;
+std::wstring g_source_status;
 
 std::wstring BuildAudioStatus() {
     const auto endpoints = cari::native::enumerate_audio_endpoints();
@@ -34,6 +37,13 @@ std::wstring BuildAudioStatus() {
            std::to_wstring(outputs) + L" output(s)";
 }
 
+std::wstring BuildSourceStatus() {
+    const auto windows = cari::native::enumerate_capturable_windows();
+    const auto cameras = cari::native::enumerate_cameras();
+    return L"Sources: " + std::to_wstring(windows.size()) + L" window(s), " +
+           std::to_wstring(cameras.size()) + L" camera(s)";
+}
+
 std::wstring BuildCaptureStatus() {
     if (!g_capture.is_running()) {
         if (!g_capture.last_error().empty()) {
@@ -50,13 +60,14 @@ std::wstring BuildCaptureStatus() {
 }
 
 void RefreshStatus(HWND hwnd) {
+    g_source_status = BuildSourceStatus();
     InvalidateRect(hwnd, nullptr, FALSE);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
     switch (message) {
     case WM_CREATE:
-        SetTimer(hwnd, kStatusTimerId, 500, nullptr);
+        SetTimer(hwnd, kStatusTimerId, 1000, nullptr);
         return 0;
 
     case WM_TIMER:
@@ -70,8 +81,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             if (g_capture.is_running()) {
                 g_capture.stop();
             } else if (!g_capture.start_window(hwnd)) {
-                // The error is retained by the engine only after a successful start,
-                // so an unsuccessful startup is reported as stopped in the UI.
+                // The error is retained by the engine and surfaced in the status view.
             }
             RefreshStatus(hwnd);
             return 0;
@@ -85,8 +95,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         const std::wstring text =
             L"Cari Studio\n\n"
             L"Windows-native foundation — no AI, API or internet required.\n\n" +
-            g_capture_support_status + L"\n" + g_audio_status + L"\n\n" +
-            BuildCaptureStatus() + L"\n\n" +
+            g_capture_support_status + L"\n" + g_audio_status + L"\n" +
+            g_source_status + L"\n\n" + BuildCaptureStatus() + L"\n\n" +
             L"SPACE: start/stop native capture test for this window";
 
         RECT client{};
@@ -119,6 +129,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
         ? L"Windows Graphics Capture: supported"
         : L"Windows Graphics Capture: unsupported";
     g_audio_status = BuildAudioStatus();
+    g_source_status = BuildSourceStatus();
 
     WNDCLASSW window_class{};
     window_class.lpfnWndProc = WindowProc;
