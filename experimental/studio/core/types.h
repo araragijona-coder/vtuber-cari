@@ -35,6 +35,7 @@ struct SourceHealth {
 
 struct OutputMetrics {
     std::uint64_t frames = 0;
+    std::uint64_t audio_frames = 0;
     std::uint64_t dropped = 0;
     std::uint64_t encoded = 0;
     double fps = 0.0;
