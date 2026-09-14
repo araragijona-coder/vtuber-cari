@@ -35,6 +35,7 @@ target_link_libraries(cari-studio-native PRIVATE
     avrt
     d3d11
     dxgi
+    mf
     mfplat
     mfreadwrite
     mfuuid
