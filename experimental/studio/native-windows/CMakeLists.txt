@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 project(CariStudioNative LANGUAGES CXX)
 
 if(NOT WIN32)
-    message(FATAL_ERROR "Cari Studio native prototype requires Windows")
+    message(FATAL_ERROR "Cari Studio native runtime requires Windows")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
@@ -12,6 +12,7 @@ add_executable(cari-studio-native WIN32
     main.cpp
     audio_probe.cpp
     capture_engine.cpp
+    process_runner.cpp
     wasapi_capture.cpp
     window_sources.cpp
     camera_sources.cpp
@@ -53,5 +54,5 @@ target_include_directories(cari-core-smoke PRIVATE
 enable_testing()
 add_test(NAME cari-core-smoke COMMAND cari-core-smoke)
 
-# Native capture/audio stays isolated from the Python application until the
-# Windows hardware paths pass CI and real-machine validation.
+# Native capture/audio/output infrastructure is isolated behind stable
+# interfaces so hardware-dependent validation can happen on the target PC.
