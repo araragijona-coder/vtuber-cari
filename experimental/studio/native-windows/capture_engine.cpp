@@ -31,6 +31,7 @@ struct CaptureEngine::Impl {
     std::atomic<std::uint64_t> frames{0};
     std::atomic<std::uint64_t> delivered{0};
     std::atomic<std::uint64_t> errors{0};
+    std::atomic<std::uint64_t> recreates{0};
     std::atomic<double> fps{0.0};
     std::atomic<std::int32_t> width{0};
     std::atomic<std::int32_t> height{0};
@@ -215,8 +216,25 @@ bool CaptureEngine::start_window(HWND target_window) {
                     }
 
                     const auto content = frame.ContentSize();
-                    state->width.store(content.Width, std::memory_order_relaxed);
-                    state->height.store(content.Height, std::memory_order_relaxed);
+                    const auto previous_width = state->width.exchange(content.Width, std::memory_order_relaxed);
+                    const auto previous_height = state->height.exchange(content.Height, std::memory_order_relaxed);
+
+                    if (content.Width <= 0 || content.Height <= 0) {
+                        state->set_error(L"Capture frame reported an invalid size");
+                        return;
+                    }
+
+                    // Microsoft recommends recreating the frame pool when the captured
+                    // size changes so queued surfaces are not reused at the old size.
+                    if (previous_width != content.Width || previous_height != content.Height) {
+                        state->frame_pool.Recreate(
+                            state->winrt_device,
+                            winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized,
+                            3,
+                            content);
+                        state->recreates.fetch_add(1, std::memory_order_relaxed);
+                    }
+
                     const auto frame_count =
                         state->frames.fetch_add(1, std::memory_order_relaxed) + 1;
 
