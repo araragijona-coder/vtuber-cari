@@ -29,10 +29,11 @@ class StudioActionTests(unittest.TestCase):
         self.assertEqual(consumed, [StudioAction("chat", "hola")])
         self.assertNotIn("studio_chat_requested", [event.name for event in events])
 
-    def test_invalid_event_is_audited(self) -> None:
+    def test_invalid_event_is_audited_by_router(self) -> None:
         bus = EventBus()
         events: list[RuntimeEvent] = []
         bus.subscribe("*", events.append)
+        StudioActionRouter(bus)
         bus.publish(RuntimeEvent("studio_action", {"kind": "unknown", "value": "x"}))
         self.assertIn("studio_action_invalid", [event.name for event in events])
 
