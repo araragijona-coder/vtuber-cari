@@ -5,9 +5,12 @@
 #include "audio_probe.h"
 #include "camera_sources.h"
 #include "capture_engine.h"
+#include "frame_bridge.h"
 #include "window_sources.h"
 
 #include <algorithm>
+#include <atomic>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -16,6 +19,7 @@ namespace {
 constexpr wchar_t kClassName[] = L"CariStudioNative";
 constexpr wchar_t kWindowTitle[] = L"Cari Studio — Windows x64";
 constexpr UINT_PTR kStatusTimerId = 1;
+constexpr std::uint64_t kBridgeSampleEvery = 30;
 
 cari::native::CaptureEngine g_capture;
 std::wstring g_audio_status;
@@ -24,6 +28,11 @@ std::wstring g_source_status;
 std::vector<cari::native::WindowSourceInfo> g_windows;
 HWND g_selected_window = nullptr;
 std::size_t g_selected_window_index = 0;
+std::atomic<std::uint64_t> g_bridge_attempts{0};
+std::atomic<std::uint64_t> g_bridge_successes{0};
+std::atomic<std::uint64_t> g_bridge_failures{0};
+std::atomic<std::uint64_t> g_bridge_bytes{0};
+std::atomic<std::uint64_t> g_last_bridge_sequence{0};
 
 std::wstring BuildAudioStatus() {
     const auto endpoints = cari::native::enumerate_audio_endpoints();
@@ -81,12 +90,23 @@ std::wstring BuildCaptureStatus() {
             ? g_windows[g_selected_window_index].title
             : std::wstring(L"unknown source");
 
+    const auto bridge_attempts = g_bridge_attempts.load(std::memory_order_relaxed);
+    const auto bridge_successes = g_bridge_successes.load(std::memory_order_relaxed);
+    const auto bridge_failures = g_bridge_failures.load(std::memory_order_relaxed);
+    const auto bridge_bytes = g_bridge_bytes.load(std::memory_order_relaxed);
+    const auto bridge_sequence = g_last_bridge_sequence.load(std::memory_order_relaxed);
+
     return L"Capture: running — " + selected_title + L" — " +
            std::to_wstring(stats.width) + L"x" + std::to_wstring(stats.height) +
            L", " + std::to_wstring(stats.frames) + L" frame(s), " +
            std::to_wstring(stats.fps) + L" FPS, " +
            std::to_wstring(stats.errors) + L" error(s), " +
-           std::to_wstring(stats.recreates) + L" recreate(s)";
+           std::to_wstring(stats.recreates) + L" recreate(s)\n" +
+           L"Frame bridge: " + std::to_wstring(bridge_successes) + L" success / " +
+           std::to_wstring(bridge_failures) + L" failed / " +
+           std::to_wstring(bridge_attempts) + L" sample(s), " +
+           std::to_wstring(bridge_bytes) + L" byte(s), last sequence " +
+           std::to_wstring(bridge_sequence);
 }
 
 void RefreshStatus(HWND hwnd) {
@@ -182,6 +202,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
+
+    g_capture.set_frame_callback([](const cari::native::CapturedFrame& captured) {
+        // The CPU bridge is deliberately sampled rather than run on every frame:
+        // it proves the capture->core contract without turning the diagnostic
+        // build into an always-on full-frame memcpy workload.
+        if ((captured.sequence % kBridgeSampleEvery) != 0) {
+            return;
+        }
+
+        g_bridge_attempts.fetch_add(1, std::memory_order_relaxed);
+
+        cari::native::BridgedFrame bridged;
+        std::wstring error;
+        if (!cari::native::FrameBridge::copy_to_cpu(captured, bridged, error)) {
+            g_bridge_failures.fetch_add(1, std::memory_order_relaxed);
+            return;
+        }
+
+        g_bridge_successes.fetch_add(1, std::memory_order_relaxed);
+        g_bridge_bytes.fetch_add(
+            bridged.pixels ? static_cast<std::uint64_t>(bridged.pixels->size()) : 0,
+            std::memory_order_relaxed);
+        g_last_bridge_sequence.store(bridged.frame.sequence, std::memory_order_relaxed);
+    });
 
     const bool capture_supported =
         winrt::Windows::Graphics::Capture::GraphicsCaptureSession::IsSupported();
