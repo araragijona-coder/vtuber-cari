@@ -12,6 +12,7 @@ __all__ = [
     "TwitchAdapter",
     "TwitchCommandEngine",
     "TwitchConfig",
+    "TwitchEvent",
     "TwitchLiveBot",
 ]
 
@@ -30,6 +31,10 @@ def __getattr__(name: str):
         from .live import TwitchLiveBot
 
         return TwitchLiveBot
+    if name == "TwitchEvent":
+        from .events import TwitchEvent
+
+        return TwitchEvent
     if name in {"CommandContext", "CommandDefinition", "CommandResult", "TwitchCommandEngine"}:
         from .commands import CommandContext, CommandDefinition, CommandResult, TwitchCommandEngine
 
