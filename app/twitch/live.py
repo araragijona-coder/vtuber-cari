@@ -12,7 +12,6 @@ from app.twitch.cari_actions import LocalCariActionHandler
 from app.twitch.chat_voice import ChatVoiceRouter
 from app.twitch.commands import CommandContext, TwitchCommandEngine, default_commands
 from app.twitch.events import normalize_twitch_event
-from app.twitch.models import ChatMessage
 from app.twitch.rate_limit import TwitchChatRateLimiter
 
 
@@ -56,8 +55,8 @@ class TwitchLiveBot:
         for action in self.automation.dispatch(event):
             await self._dispatch_action(action)
 
-    async def _dispatch_chat_read(self, viewer: str, text: str) -> None:
-        event = AutomationEvent("chat_read", {"user": viewer, "text": text})
+    async def _dispatch_chat_event(self, kind: str, viewer: str, text: str) -> None:
+        event = AutomationEvent(kind, {"user": viewer, "text": text})
         for action in self.automation.dispatch(event):
             await self._dispatch_action(action)
 
@@ -125,7 +124,6 @@ class TwitchLiveBot:
                     return
                 author = getattr(message, "author", None)
                 viewer = str(getattr(author, "name", None) or "viewer")
-                message_id = str(getattr(message, "id", None) or f"{viewer}:{id(message)}")
                 text = str(message.content)
 
                 public_voice = parent.chat_voice.parse(viewer, text)
@@ -142,7 +140,7 @@ class TwitchLiveBot:
                             {"viewer": public_voice.viewer, "text": public_voice.text},
                         )
                     )
-                    await parent._dispatch_chat_read(public_voice.viewer, public_voice.text)
+                    await parent._dispatch_chat_event("chat_read", public_voice.viewer, public_voice.text)
                     return
 
                 command_context = CommandContext(
@@ -158,13 +156,11 @@ class TwitchLiveBot:
                         await parent._send_chat(message, command_result.response)
                     return
 
-                chat_message = ChatMessage.now(message_id, viewer, text)
-                result = await asyncio.to_thread(pipeline.handle, chat_message)
-                if result is None:
-                    return
-                response = result.response_text.strip()[:500]
-                if response:
-                    await parent._send_chat(message, response)
+                # Normal chat is intentionally passive: Cari does not auto-answer it.
+                pipeline.event_bus.publish(
+                    RuntimeEvent("twitch_chat_received", {"viewer": viewer, "text": text})
+                )
+                await parent._dispatch_chat_event("chat_message", viewer, text)
 
             async def event_follow(self, payload) -> None:
                 await parent._dispatch_event("follow", payload)
