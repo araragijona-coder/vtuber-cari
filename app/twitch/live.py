@@ -5,8 +5,9 @@ import inspect
 import os
 from collections.abc import Awaitable, Callable
 
+from app.brain.event_bus import RuntimeEvent
 from app.pipeline.runtime import LocalPipeline
-from app.twitch.automation import AutomationAction, AutomationEngine
+from app.twitch.automation import AutomationAction, AutomationEngine, AutomationEvent
 from app.twitch.cari_actions import LocalCariActionHandler
 from app.twitch.chat_voice import ChatVoiceRouter
 from app.twitch.commands import CommandContext, TwitchCommandEngine, default_commands
@@ -43,16 +44,22 @@ class TwitchLiveBot:
     def connected(self) -> bool:
         return self._bot is not None
 
+    async def _dispatch_action(self, action: AutomationAction) -> None:
+        if self.action_handler is None:
+            return
+        result = await asyncio.to_thread(self.action_handler, action)
+        if inspect.isawaitable(result):
+            await result
+
     async def _dispatch_event(self, kind: str, payload) -> None:
         event = normalize_twitch_event(kind, payload).automation_event()
         for action in self.automation.dispatch(event):
-            if self.action_handler is None:
-                continue
-            result = self.action_handler(action)
-            if inspect.isawaitable(result):
-                await result
-            else:
-                await asyncio.to_thread(lambda: result)
+            await self._dispatch_action(action)
+
+    async def _dispatch_chat_read(self, viewer: str, text: str) -> None:
+        event = AutomationEvent("chat_read", {"user": viewer, "text": text})
+        for action in self.automation.dispatch(event):
+            await self._dispatch_action(action)
 
     async def _send_chat(self, message, text: str) -> None:
         text = text.strip()[:500]
@@ -129,7 +136,7 @@ class TwitchLiveBot:
                         emotion="neutral",
                         intensity=0.7,
                     )
-                    parent.pipeline.event_bus.publish(
+                    pipeline.event_bus.publish(
                         RuntimeEvent(
                             "chat_read_aloud",
                             {"viewer": public_voice.viewer, "text": public_voice.text},
@@ -194,15 +201,6 @@ class TwitchLiveBot:
 
         self._bot = CariBot()
         await self._bot.start()
-
-    async def _dispatch_chat_read(self, viewer: str, text: str) -> None:
-        event = normalize_twitch_event("chat_read", type("ChatPayload", (), {"user": type("User", (), {"name": viewer})(), "message": text})()).automation_event()
-        for action in self.automation.dispatch(event):
-            if self.action_handler is None:
-                continue
-            result = self.action_handler(action)
-            if inspect.isawaitable(result):
-                await result
 
     async def close(self) -> None:
         if self._bot is not None:
