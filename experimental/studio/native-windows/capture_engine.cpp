@@ -32,6 +32,7 @@ struct CaptureEngine::Impl {
     std::atomic<std::uint64_t> delivered{0};
     std::atomic<std::uint64_t> errors{0};
     std::atomic<std::uint64_t> recreates{0};
+    std::atomic<std::uint64_t> device_recoveries{0};
     std::atomic<double> fps{0.0};
     std::atomic<std::int32_t> width{0};
     std::atomic<std::int32_t> height{0};
@@ -53,6 +54,10 @@ struct CaptureEngine::Impl {
 };
 
 namespace {
+
+constexpr auto kPixelFormat =
+    winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized;
+constexpr int kBufferCount = 3;
 
 bool create_d3d_device(CaptureEngine::Impl& impl) {
     constexpr D3D_FEATURE_LEVEL levels[] = {
@@ -98,6 +103,42 @@ bool create_d3d_device(CaptureEngine::Impl& impl) {
     return true;
 }
 
+bool recover_device_and_pool(CaptureEngine::Impl& impl) {
+    const auto width = impl.width.load(std::memory_order_relaxed);
+    const auto height = impl.height.load(std::memory_order_relaxed);
+    if (width <= 0 || height <= 0 || !impl.frame_pool) {
+        impl.set_error(L"Cannot recover capture device without a valid frame pool size");
+        return false;
+    }
+
+    try {
+        impl.d3d_context.Reset();
+        impl.d3d_device.Reset();
+        impl.winrt_device = nullptr;
+
+        if (!create_d3d_device(impl)) {
+            return false;
+        }
+
+        impl.frame_pool.Recreate(
+            impl.winrt_device,
+            kPixelFormat,
+            kBufferCount,
+            {width, height});
+        impl.recreates.fetch_add(1, std::memory_order_relaxed);
+        impl.device_recoveries.fetch_add(1, std::memory_order_relaxed);
+        return true;
+    } catch (const winrt::hresult_error& error) {
+        impl.set_error(
+            L"Device recovery failed: HRESULT " +
+            std::to_wstring(static_cast<unsigned long>(error.code().value)));
+        return false;
+    } catch (const std::exception& error) {
+        impl.set_error(L"Device recovery failed: " + narrow_error(error.what()));
+        return false;
+    }
+}
+
 winrt::Windows::Graphics::Capture::GraphicsCaptureItem create_item_for_window(HWND target) {
     auto factory = winrt::get_activation_factory<
         winrt::Windows::Graphics::Capture::GraphicsCaptureItem,
@@ -121,6 +162,12 @@ std::wstring narrow_error(const char* text) {
         ++text;
     }
     return result;
+}
+
+bool is_device_loss(const HRESULT hr) {
+    return hr == DXGI_ERROR_DEVICE_REMOVED ||
+           hr == DXGI_ERROR_DEVICE_RESET ||
+           hr == DXGI_ERROR_DEVICE_HUNG;
 }
 
 } // namespace
@@ -198,8 +245,8 @@ bool CaptureEngine::start_window(HWND target_window) {
         impl->frame_pool =
             winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool::CreateFreeThreaded(
                 impl->winrt_device,
-                winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized,
-                3,
+                kPixelFormat,
+                kBufferCount,
                 size);
 
         std::weak_ptr<Impl> weak_impl = impl;
@@ -229,8 +276,8 @@ bool CaptureEngine::start_window(HWND target_window) {
                         // recommended by Microsoft for resize/device changes.
                         state->frame_pool.Recreate(
                             state->winrt_device,
-                            winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized,
-                            3,
+                            kPixelFormat,
+                            kBufferCount,
                             content);
                         state->recreates.fetch_add(1, std::memory_order_relaxed);
                     }
@@ -281,9 +328,14 @@ bool CaptureEngine::start_window(HWND target_window) {
                         }
                     }
                 } catch (const winrt::hresult_error& error) {
-                    state->set_error(
-                        L"Capture frame processing failed: HRESULT " +
-                        std::to_wstring(static_cast<unsigned long>(error.code().value)));
+                    const HRESULT hr = error.code();
+                    if (is_device_loss(hr)) {
+                        recover_device_and_pool(*state);
+                    } else {
+                        state->set_error(
+                            L"Capture frame processing failed: HRESULT " +
+                            std::to_wstring(static_cast<unsigned long>(hr)));
+                    }
                 } catch (const std::exception& error) {
                     state->set_error(
                         L"Capture frame processing failed: " + narrow_error(error.what()));
@@ -346,6 +398,7 @@ CaptureStats CaptureEngine::stats() const noexcept {
     result.delivered = impl_->delivered.load(std::memory_order_relaxed);
     result.errors = impl_->errors.load(std::memory_order_relaxed);
     result.recreates = impl_->recreates.load(std::memory_order_relaxed);
+    result.device_recoveries = impl_->device_recoveries.load(std::memory_order_relaxed);
     result.fps = impl_->fps.load(std::memory_order_relaxed);
     result.width = impl_->width.load(std::memory_order_relaxed);
     result.height = impl_->height.load(std::memory_order_relaxed);
