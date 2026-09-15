@@ -45,10 +45,22 @@ target_link_libraries(cari-studio-native PRIVATE
 
 add_executable(cari-core-smoke
     core_smoke.cpp
+    process_runner.cpp
 )
 
 target_include_directories(cari-core-smoke PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
+target_compile_definitions(cari-core-smoke PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+target_link_libraries(cari-core-smoke PRIVATE
+    user32
 )
 
 enable_testing()
