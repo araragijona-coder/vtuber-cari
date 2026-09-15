@@ -101,7 +101,8 @@ std::wstring BuildCaptureStatus() {
            L", " + std::to_wstring(stats.frames) + L" frame(s), " +
            std::to_wstring(stats.fps) + L" FPS, " +
            std::to_wstring(stats.errors) + L" error(s), " +
-           std::to_wstring(stats.recreates) + L" recreate(s)\n" +
+           std::to_wstring(stats.recreates) + L" recreate(s), " +
+           std::to_wstring(stats.device_recoveries) + L" device recovery(ies)\n" +
            L"Frame bridge: " + std::to_wstring(bridge_successes) + L" success / " +
            std::to_wstring(bridge_failures) + L" failed / " +
            std::to_wstring(bridge_attempts) + L" sample(s), " +
