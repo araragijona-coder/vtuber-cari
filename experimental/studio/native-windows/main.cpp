@@ -11,8 +11,8 @@
 
 namespace {
 
-constexpr wchar_t kClassName[] = L"CariStudioNativePrototype";
-constexpr wchar_t kWindowTitle[] = L"Cari Studio — Windows Native Prototype";
+constexpr wchar_t kClassName[] = L"CariStudioNative";
+constexpr wchar_t kWindowTitle[] = L"Cari Studio — Windows x64";
 constexpr UINT_PTR kStatusTimerId = 1;
 
 cari::native::CaptureEngine g_capture;
@@ -47,13 +47,13 @@ std::wstring BuildSourceStatus() {
 std::wstring BuildCaptureStatus() {
     if (!g_capture.is_running()) {
         if (!g_capture.last_error().empty()) {
-            return L"Capture test: stopped — " + g_capture.last_error();
+            return L"Capture: stopped — " + g_capture.last_error();
         }
-        return L"Capture test: stopped";
+        return L"Capture: stopped";
     }
 
     const auto stats = g_capture.stats();
-    return L"Capture test: running — " + std::to_wstring(stats.width) + L"x" +
+    return L"Capture: running — " + std::to_wstring(stats.width) + L"x" +
            std::to_wstring(stats.height) + L", " + std::to_wstring(stats.frames) +
            L" frame(s), " + std::to_wstring(stats.fps) + L" FPS, " +
            std::to_wstring(stats.errors) + L" error(s)";
@@ -81,7 +81,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             if (g_capture.is_running()) {
                 g_capture.stop();
             } else if (!g_capture.start_window(hwnd)) {
-                // The error is retained by the engine and surfaced in the status view.
+                // The engine keeps the concrete error for the status view.
             }
             RefreshStatus(hwnd);
             return 0;
@@ -94,10 +94,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 
         const std::wstring text =
             L"Cari Studio\n\n"
-            L"Windows-native foundation — no AI, API or internet required.\n\n" +
+            L"Windows-native runtime — no AI, API or internet required.\n\n" +
             g_capture_support_status + L"\n" + g_audio_status + L"\n" +
             g_source_status + L"\n\n" + BuildCaptureStatus() + L"\n\n" +
-            L"SPACE: start/stop native capture test for this window";
+            L"SPACE: start/stop native window capture";
 
         RECT client{};
         GetClientRect(hwnd, &client);
