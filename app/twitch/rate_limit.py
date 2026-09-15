@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections import deque
 from time import monotonic
 
@@ -25,6 +26,14 @@ class TwitchChatRateLimiter:
         if len(self._sent) >= self.burst_limit:
             delay = max(delay, self.burst_window_seconds - (current - self._sent[0]))
         return max(0.0, delay)
+
+    async def wait(self) -> None:
+        while True:
+            delay = self.next_delay()
+            if delay <= 0:
+                self.record()
+                return
+            await asyncio.sleep(delay)
 
     def record(self, *, now: float | None = None) -> None:
         current = monotonic() if now is None else now
