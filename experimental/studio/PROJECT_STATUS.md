@@ -55,7 +55,9 @@
 - [x] Guardia local de salida del chat contra ráfagas.
 - [x] EventSub follow, subscribe, gifted sub, resub message, cheer, raid, channel points, polls y predictions conectado al AutomationEngine.
 - [x] Despachador local de acciones de avatar/voz sin IA.
-- [ ] Chat de salida, sonidos y cambios de escena desde reglas de automatización.
+- [x] Acciones `chat/sound/scene/overlay/music` no se pierden silenciosamente: se publican como `studio_action` para el runtime.
+- [x] Acciones desconocidas generan `automation_action_unhandled` para auditoría.
+- [ ] Consumir `studio_action` desde el compositor/audio/escena nativos.
 - [ ] Multi-stream real con límites y reconexión.
 
 ## Distribución
