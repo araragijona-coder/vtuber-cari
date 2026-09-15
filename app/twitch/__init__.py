@@ -1,6 +1,10 @@
 from .models import ChatMessage
 
 __all__ = [
+    "AutomationAction",
+    "AutomationEngine",
+    "AutomationEvent",
+    "AutomationRule",
     "ChatMessage",
     "CommandContext",
     "CommandDefinition",
@@ -34,5 +38,14 @@ def __getattr__(name: str):
             "CommandDefinition": CommandDefinition,
             "CommandResult": CommandResult,
             "TwitchCommandEngine": TwitchCommandEngine,
+        }[name]
+    if name in {"AutomationAction", "AutomationEngine", "AutomationEvent", "AutomationRule"}:
+        from .automation import AutomationAction, AutomationEngine, AutomationEvent, AutomationRule
+
+        return {
+            "AutomationAction": AutomationAction,
+            "AutomationEngine": AutomationEngine,
+            "AutomationEvent": AutomationEvent,
+            "AutomationRule": AutomationRule,
         }[name]
     raise AttributeError(name)
