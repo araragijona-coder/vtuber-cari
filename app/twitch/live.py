@@ -1,26 +1,50 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import os
+from collections.abc import Awaitable, Callable
 
 from app.pipeline.runtime import LocalPipeline
+from app.twitch.automation import AutomationAction, AutomationEngine
 from app.twitch.commands import CommandContext, TwitchCommandEngine, default_commands
+from app.twitch.events import normalize_twitch_event
 from app.twitch.models import ChatMessage
 
 
-class TwitchLiveBot:
-    """TwitchIO 3 runtime with local command handling before the AI pipeline."""
+ActionHandler = Callable[[AutomationAction], Awaitable[None] | None]
 
-    def __init__(self, pipeline: LocalPipeline) -> None:
+
+class TwitchLiveBot:
+    """TwitchIO runtime with commands and EventSub-driven Cari automation."""
+
+    def __init__(
+        self,
+        pipeline: LocalPipeline,
+        *,
+        automation: AutomationEngine | None = None,
+        action_handler: ActionHandler | None = None,
+    ) -> None:
         self.pipeline = pipeline
         self._bot = None
         self.commands = TwitchCommandEngine()
+        self.automation = automation or AutomationEngine()
+        self.action_handler = action_handler
         for command in default_commands():
             self.commands.register(command)
 
     @property
     def connected(self) -> bool:
         return self._bot is not None
+
+    async def _dispatch_event(self, kind: str, payload) -> None:
+        event = normalize_twitch_event(kind, payload).automation_event()
+        for action in self.automation.dispatch(event):
+            if self.action_handler is None:
+                continue
+            result = self.action_handler(action)
+            if inspect.isawaitable(result):
+                await result
 
     async def start(self) -> None:
         try:
@@ -41,6 +65,7 @@ class TwitchLiveBot:
 
         pipeline = self.pipeline
         command_engine = self.commands
+        parent = self
 
         class CariBot(commands.Bot):
             def __init__(self) -> None:
@@ -53,11 +78,22 @@ class TwitchLiveBot:
                 )
 
             async def setup_hook(self) -> None:
-                subscription = eventsub.ChatMessageSubscription(
-                    broadcaster_user_id=owner_id,
-                    user_id=bot_id,
+                subscriptions = (
+                    eventsub.ChatMessageSubscription(
+                        broadcaster_user_id=owner_id,
+                        user_id=bot_id,
+                    ),
+                    eventsub.ChannelFollowSubscription(broadcaster_user_id=owner_id),
+                    eventsub.ChannelSubscribeSubscription(broadcaster_user_id=owner_id),
+                    eventsub.ChannelCheerSubscription(broadcaster_user_id=owner_id),
+                    eventsub.ChannelRaidSubscription(to_broadcaster_user_id=owner_id),
+                    eventsub.ChannelPollBeginSubscription(broadcaster_user_id=owner_id),
+                    eventsub.ChannelPollEndSubscription(broadcaster_user_id=owner_id),
+                    eventsub.ChannelPredictionBeginSubscription(broadcaster_user_id=owner_id),
+                    eventsub.ChannelPredictionEndSubscription(broadcaster_user_id=owner_id),
                 )
-                await self.subscribe_websocket(payload=subscription)
+                for subscription in subscriptions:
+                    await self.subscribe_websocket(payload=subscription)
 
             async def event_message(self, message) -> None:
                 if getattr(message, "echo", False):
@@ -87,6 +123,30 @@ class TwitchLiveBot:
                 response = result.response_text.strip()[:500]
                 if response:
                     await message.respond(response)
+
+            async def event_follow(self, payload) -> None:
+                await parent._dispatch_event("follow", payload)
+
+            async def event_subscription(self, payload) -> None:
+                await parent._dispatch_event("subscribe", payload)
+
+            async def event_cheer(self, payload) -> None:
+                await parent._dispatch_event("cheer", payload)
+
+            async def event_raid(self, payload) -> None:
+                await parent._dispatch_event("raid", payload)
+
+            async def event_poll_begin(self, payload) -> None:
+                await parent._dispatch_event("poll_begin", payload)
+
+            async def event_poll_end(self, payload) -> None:
+                await parent._dispatch_event("poll_end", payload)
+
+            async def event_prediction_begin(self, payload) -> None:
+                await parent._dispatch_event("prediction_begin", payload)
+
+            async def event_prediction_end(self, payload) -> None:
+                await parent._dispatch_event("prediction_end", payload)
 
         self._bot = CariBot()
         await self._bot.start()
