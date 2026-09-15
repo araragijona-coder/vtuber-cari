@@ -19,7 +19,7 @@ ActionHandler = Callable[[AutomationAction], Awaitable[None] | None]
 
 
 class TwitchLiveBot:
-    """TwitchIO runtime with commands, public chat voice and EventSub automation."""
+    """TwitchIO runtime with commands, opt-in public chat voice and EventSub automation."""
 
     def __init__(
         self,
@@ -84,7 +84,6 @@ class TwitchLiveBot:
                 "CARI_TWITCH_BOT_ID and CARI_TWITCH_OWNER_ID are required"
             )
 
-        pipeline = self.pipeline
         command_engine = self.commands
         parent = self
 
@@ -129,12 +128,12 @@ class TwitchLiveBot:
                 public_voice = parent.chat_voice.parse(viewer, text)
                 if public_voice is not None:
                     await asyncio.to_thread(
-                        pipeline.speak_manual,
+                        parent.pipeline.speak_manual,
                         public_voice.text,
                         emotion="neutral",
                         intensity=0.7,
                     )
-                    pipeline.event_bus.publish(
+                    parent.pipeline.event_bus.publish(
                         RuntimeEvent(
                             "chat_read_aloud",
                             {"viewer": public_voice.viewer, "text": public_voice.text},
@@ -157,7 +156,7 @@ class TwitchLiveBot:
                     return
 
                 # Normal chat is intentionally passive: Cari does not auto-answer it.
-                pipeline.event_bus.publish(
+                parent.pipeline.event_bus.publish(
                     RuntimeEvent("twitch_chat_received", {"viewer": viewer, "text": text})
                 )
                 await parent._dispatch_chat_event("chat_message", viewer, text)
