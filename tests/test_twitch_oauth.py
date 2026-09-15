@@ -14,11 +14,15 @@ class TwitchOAuthTests(unittest.TestCase):
         self.assertIn("force_verify=true", url)
 
     def test_default_scopes_cover_cari_eventsub_features(self) -> None:
-        self.assertIn("moderator:read:followers", DEFAULT_SCOPES)
-        self.assertIn("channel:read:subscriptions", DEFAULT_SCOPES)
-        self.assertIn("channel:read:redemptions", DEFAULT_SCOPES)
-        self.assertIn("channel:read:polls", DEFAULT_SCOPES)
-        self.assertIn("channel:read:predictions", DEFAULT_SCOPES)
+        required = {
+            "moderator:read:followers",
+            "channel:read:subscriptions",
+            "channel:read:redemptions",
+            "channel:read:polls",
+            "channel:read:predictions",
+            "bits:read",
+        }
+        self.assertTrue(required.issubset(DEFAULT_SCOPES))
 
     def test_default_callback_matches_twitchio_v3_setup(self) -> None:
         self.assertEqual(DEFAULT_REDIRECT_URI, "http://localhost:4343/oauth/callback")
