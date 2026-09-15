@@ -16,6 +16,7 @@ DEFAULT_SCOPES = (
     "channel:read:redemptions",
     "channel:read:polls",
     "channel:read:predictions",
+    "bits:read",
 )
 
 
