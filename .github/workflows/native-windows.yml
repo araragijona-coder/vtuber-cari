@@ -1,4 +1,4 @@
-name: Native Windows Prototype
+name: Native Windows Build
 
 on:
   pull_request:
@@ -42,3 +42,27 @@ jobs:
             throw "Native executable was not produced: $exe"
           }
           Get-Item $exe | Select-Object FullName, Length
+
+      - name: Package portable Windows build
+        shell: pwsh
+        run: |
+          $package = Join-Path $PWD 'build/CariStudio-Windows-x64'
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+          Copy-Item (Join-Path $PWD 'build/Release/cari-studio-native.exe') (Join-Path $package 'CariStudio.exe') -Force
+          @'
+          Cari Studio — Windows x64 test build
+
+          This package is intended for the first real Windows hardware test.
+          It does not include proprietary assets, Twitch credentials, or FFmpeg binaries.
+          The executable reports native Windows capture/audio capabilities and exposes
+          the current diagnostic capture path. Hardware-dependent validation remains
+          required on the target PC.
+          '@ | Set-Content -Path (Join-Path $package 'README.txt') -Encoding UTF8
+          Compress-Archive -Path (Join-Path $package '*') -DestinationPath (Join-Path $PWD 'build/CariStudio-Windows-x64.zip') -Force
+
+      - name: Upload portable Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: CariStudio-Windows-x64
+          path: experimental/studio/native-windows/build/CariStudio-Windows-x64.zip
+          if-no-files-found: error
