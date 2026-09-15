@@ -57,7 +57,8 @@
 - [x] Despachador local de acciones de avatar/voz sin IA.
 - [x] Acciones `chat/sound/scene/overlay/music` no se pierden silenciosamente: se publican como `studio_action` para el runtime.
 - [x] Acciones desconocidas generan `automation_action_unhandled` para auditoría.
-- [ ] Consumir `studio_action` desde el compositor/audio/escena nativos.
+- [x] `studio_action` se consume en el runtime Python y se traduce a eventos estables para adaptadores de estudio.
+- [ ] Consumo real desde compositor/audio/escena nativos de Windows.
 - [ ] Multi-stream real con límites y reconexión.
 
 ## Distribución
