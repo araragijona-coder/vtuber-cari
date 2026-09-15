@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable
 
 from app.pipeline.runtime import LocalPipeline
 from app.twitch.automation import AutomationAction, AutomationEngine
+from app.twitch.cari_actions import LocalCariActionHandler
 from app.twitch.commands import CommandContext, TwitchCommandEngine, default_commands
 from app.twitch.events import normalize_twitch_event
 from app.twitch.models import ChatMessage
@@ -29,7 +30,7 @@ class TwitchLiveBot:
         self._bot = None
         self.commands = TwitchCommandEngine()
         self.automation = automation or AutomationEngine()
-        self.action_handler = action_handler
+        self.action_handler = action_handler or LocalCariActionHandler(pipeline)
         for command in default_commands():
             self.commands.register(command)
 
