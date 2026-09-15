@@ -34,17 +34,17 @@ Referencias externas consultadas:
 - Esta copia es deliberadamente una ruta de validación de contrato; no se considera todavía el camino de producción de máximo rendimiento.
 - La captura sigue siendo una prueba de fuente real, no todavía un compositor final.
 
-### Riesgo pendiente de dispositivo
+### Recuperación del dispositivo D3D11
 
-La ruta actual todavía no reconstruye explícitamente el dispositivo D3D11 cuando el propio device es removido o queda inválido. Microsoft contempla `Recreate` también para cambios o pérdida de dispositivo. El código debe pasar una validación de hardware real antes de marcar esta parte como cerrada. citeturn659808search5turn659808search0
+Se añadió una ruta explícita de recuperación para errores `DXGI_ERROR_DEVICE_REMOVED`, `DXGI_ERROR_DEVICE_RESET` y `DXGI_ERROR_DEVICE_HUNG` detectados durante el procesamiento del frame:
 
-Gate pendiente:
+- se liberan los objetos D3D11 afectados;
+- se crea un nuevo `ID3D11Device` y su `IDirect3DDevice` WinRT;
+- se recrea el `Direct3D11CaptureFramePool` con el nuevo dispositivo;
+- se contabiliza cada recuperación por separado de los `recreates` de resize;
+- la UI diagnóstica expone el contador de recuperaciones.
 
-- detectar `DXGI_ERROR_DEVICE_REMOVED`, `DXGI_ERROR_DEVICE_RESET` y equivalentes relevantes;
-- reconstruir `ID3D11Device`/`IDirect3DDevice`;
-- recrear el frame pool con el nuevo dispositivo;
-- medir recuperaciones y errores;
-- comprobar que la captura continúa sin reiniciar toda la aplicación.
+Esto está respaldado por la documentación de Microsoft que indica usar `Recreate` también ante cambios o pérdida del dispositivo. La implementación todavía requiere validación en hardware Windows real para confirmar que la captura continúa después de una pérdida efectiva del dispositivo. citeturn659808search5turn659808search0
 
 ### Fuentes / escenas
 
@@ -95,13 +95,13 @@ El proyecto tiene:
 - CI separado para el runtime de personajes;
 - CI nativo Windows para CMake, smoke test y empaquetado x64.
 
-Los commits que añaden el bridge y su integración todavía requieren una nueva ejecución del workflow Windows para tener evidencia de compilación en el entorno objetivo. Mientras esa ejecución no aparezca, el estado se mantiene como `pendiente de CI`, no como verde.
+Los commits recientes que añaden el bridge y la recuperación todavía no presentan una ejecución de workflow visible a través de la API consultada. Por tanto, el estado correcto sigue siendo `pendiente de CI`; no se marca como verde por inferencia.
 
 ## Próximos gates técnicos
 
-1. Compositor real que consuma la fuente seleccionada y permita al menos una escena con varias capas.
-2. Sustituir el bridge CPU de referencia por una ruta GPU/directa cuando el compositor real la necesite.
-3. Implementar recuperación explícita ante pérdida de dispositivo D3D11.
+1. CI Windows del bridge + recuperación.
+2. Compositor real que consuma la fuente seleccionada y permita al menos una escena con varias capas.
+3. Sustituir el bridge CPU de referencia por una ruta GPU/directa cuando el compositor real la necesite.
 4. Audio WASAPI → `AudioPacket` → `AudioMixer` real.
 5. Encoder real → proceso FFmpeg supervisado.
 6. Output RTMP real con métricas, stderr y reconexión.
@@ -118,5 +118,7 @@ Los commits que añaden el bridge y su integración todavía requieren una nueva
 `selección de ventana` != `game capture dedicado`.
 
 `bridge CPU funcionando` != `compositor de producción`.
+
+`recuperación implementada` != `recuperación validada en hardware`.
 
 `comando FFmpeg válido` != `stream RTMP funcional`.
