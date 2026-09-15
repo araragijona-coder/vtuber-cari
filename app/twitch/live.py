@@ -4,20 +4,19 @@ import asyncio
 import os
 
 from app.pipeline.runtime import LocalPipeline
+from app.twitch.commands import CommandContext, TwitchCommandEngine, default_commands
 from app.twitch.models import ChatMessage
 
 
 class TwitchLiveBot:
-    """TwitchIO 3 production bridge using managed OAuth tokens.
-
-    TwitchIO owns OAuth/token refresh and EventSub; Cari only owns the
-    message -> pipeline -> response decision. Heavy synchronous pipeline work
-    is moved off TwitchIO's asyncio loop.
-    """
+    """TwitchIO 3 runtime with local command handling before the AI pipeline."""
 
     def __init__(self, pipeline: LocalPipeline) -> None:
         self.pipeline = pipeline
         self._bot = None
+        self.commands = TwitchCommandEngine()
+        for command in default_commands():
+            self.commands.register(command)
 
     @property
     def connected(self) -> bool:
@@ -41,6 +40,7 @@ class TwitchLiveBot:
             )
 
         pipeline = self.pipeline
+        command_engine = self.commands
 
         class CariBot(commands.Bot):
             def __init__(self) -> None:
@@ -65,7 +65,22 @@ class TwitchLiveBot:
                 author = getattr(message, "author", None)
                 viewer = str(getattr(author, "name", None) or "viewer")
                 message_id = str(getattr(message, "id", None) or f"{viewer}:{id(message)}")
-                chat_message = ChatMessage.now(message_id, viewer, str(message.content))
+                text = str(message.content)
+
+                command_context = CommandContext(
+                    viewer=viewer,
+                    is_subscriber=bool(getattr(message, "subscriber", False)),
+                    is_vip=bool(getattr(message, "vip", False)),
+                    is_moderator=bool(getattr(message, "moderator", False)),
+                    is_broadcaster=bool(getattr(message, "broadcaster", False)),
+                )
+                command_result = command_engine.execute(text, command_context)
+                if command_result.handled:
+                    if command_result.response:
+                        await message.respond(command_result.response)
+                    return
+
+                chat_message = ChatMessage.now(message_id, viewer, text)
                 result = await asyncio.to_thread(pipeline.handle, chat_message)
                 if result is None:
                     return
