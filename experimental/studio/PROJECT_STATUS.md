@@ -72,6 +72,7 @@
 - [x] Modelo de apariencia intercambiable sin tocar el estado de actuación.
 - [x] Puntos de anclaje para accesorios.
 - [x] Randomización de accesorios con semilla reproducible.
+- [x] Persistencia de presets JSON con validación de versión y nombres seguros.
 - [ ] Editor visual de escritorio.
 - [ ] Catálogo real de assets aprobado por el usuario.
 - [ ] Previsualización VRM integrada.
