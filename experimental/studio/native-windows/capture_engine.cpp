@@ -59,6 +59,18 @@ constexpr auto kPixelFormat =
     winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized;
 constexpr int kBufferCount = 3;
 
+std::wstring narrow_error(const char* text) {
+    std::wstring result;
+    if (!text) {
+        return result;
+    }
+    while (*text) {
+        result.push_back(static_cast<unsigned char>(*text));
+        ++text;
+    }
+    return result;
+}
+
 bool create_d3d_device(CaptureEngine::Impl& impl) {
     constexpr D3D_FEATURE_LEVEL levels[] = {
         D3D_FEATURE_LEVEL_11_1,
@@ -150,18 +162,6 @@ winrt::Windows::Graphics::Capture::GraphicsCaptureItem create_item_for_window(HW
         winrt::guid_of<winrt::Windows::Graphics::Capture::GraphicsCaptureItem>(),
         winrt::put_abi(item)));
     return item;
-}
-
-std::wstring narrow_error(const char* text) {
-    std::wstring result;
-    if (!text) {
-        return result;
-    }
-    while (*text) {
-        result.push_back(static_cast<unsigned char>(*text));
-        ++text;
-    }
-    return result;
 }
 
 bool is_device_loss(const HRESULT hr) {
