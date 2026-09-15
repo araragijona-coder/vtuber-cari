@@ -62,8 +62,9 @@
 - [x] Acciones `chat/sound/scene/overlay/music` no se pierden silenciosamente: se publican como `studio_action` para el runtime.
 - [x] `StudioActionRouter` valida y traduce `studio_action` a eventos internos tipados.
 - [x] `StudioActionRouter` queda conectado al `LocalPipeline`.
+- [x] `StudioRuntimeBindings` permite registrar backends locales con métricas y aislamiento de errores.
 - [x] Acciones desconocidas generan `automation_action_unhandled` para auditoría.
-- [ ] Consumir `studio_chat_requested` desde chat, `studio_sound_requested` desde audio, `studio_scene_requested` desde escenas y equivalentes desde el runtime nativo.
+- [ ] Ejecutar realmente `studio_chat_requested`, `studio_sound_requested`, `studio_scene_requested` y equivalentes con los backends nativos.
 - [ ] Multi-stream real con límites y reconexión.
 
 ## Avatar Studio
