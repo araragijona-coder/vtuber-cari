@@ -85,8 +85,11 @@ class TwitchLiveBot:
                     ),
                     eventsub.ChannelFollowSubscription(broadcaster_user_id=owner_id),
                     eventsub.ChannelSubscribeSubscription(broadcaster_user_id=owner_id),
+                    eventsub.ChannelSubscriptionGiftSubscription(broadcaster_user_id=owner_id),
+                    eventsub.ChannelSubscribeMessageSubscription(broadcaster_user_id=owner_id),
                     eventsub.ChannelCheerSubscription(broadcaster_user_id=owner_id),
                     eventsub.ChannelRaidSubscription(to_broadcaster_user_id=owner_id),
+                    eventsub.ChannelPointsRedeemAddSubscription(broadcaster_user_id=owner_id),
                     eventsub.ChannelPollBeginSubscription(broadcaster_user_id=owner_id),
                     eventsub.ChannelPollEndSubscription(broadcaster_user_id=owner_id),
                     eventsub.ChannelPredictionBeginSubscription(broadcaster_user_id=owner_id),
@@ -130,11 +133,20 @@ class TwitchLiveBot:
             async def event_subscription(self, payload) -> None:
                 await parent._dispatch_event("subscribe", payload)
 
+            async def event_subscription_gift(self, payload) -> None:
+                await parent._dispatch_event("subscription_gift", payload)
+
+            async def event_subscription_message(self, payload) -> None:
+                await parent._dispatch_event("subscription_message", payload)
+
             async def event_cheer(self, payload) -> None:
                 await parent._dispatch_event("cheer", payload)
 
             async def event_raid(self, payload) -> None:
                 await parent._dispatch_event("raid", payload)
+
+            async def event_custom_redemption_add(self, payload) -> None:
+                await parent._dispatch_event("channel_points", payload)
 
             async def event_poll_begin(self, payload) -> None:
                 await parent._dispatch_event("poll_begin", payload)
