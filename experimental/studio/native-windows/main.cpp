@@ -7,7 +7,9 @@
 #include "capture_engine.h"
 #include "window_sources.h"
 
+#include <algorithm>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -19,6 +21,9 @@ cari::native::CaptureEngine g_capture;
 std::wstring g_audio_status;
 std::wstring g_capture_support_status;
 std::wstring g_source_status;
+std::vector<cari::native::WindowSourceInfo> g_windows;
+HWND g_selected_window = nullptr;
+std::size_t g_selected_window_index = 0;
 
 std::wstring BuildAudioStatus() {
     const auto endpoints = cari::native::enumerate_audio_endpoints();
@@ -38,10 +43,28 @@ std::wstring BuildAudioStatus() {
 }
 
 std::wstring BuildSourceStatus() {
-    const auto windows = cari::native::enumerate_capturable_windows();
+    g_windows = cari::native::enumerate_capturable_windows();
     const auto cameras = cari::native::enumerate_cameras();
-    return L"Sources: " + std::to_wstring(windows.size()) + L" window(s), " +
-           std::to_wstring(cameras.size()) + L" camera(s)";
+
+    std::wstring result =
+        L"Sources: " + std::to_wstring(g_windows.size()) + L" window(s), " +
+        std::to_wstring(cameras.size()) + L" camera(s)\n";
+
+    const std::size_t visible_count = std::min<std::size_t>(g_windows.size(), 9);
+    for (std::size_t index = 0; index < visible_count; ++index) {
+        const bool selected = index == g_selected_window_index;
+        result += std::to_wstring(index + 1) + L") ";
+        result += selected ? L"[selected] " : L"";
+        result += g_windows[index].title;
+        result += L"\n";
+    }
+
+    if (g_windows.size() > visible_count) {
+        result += L"... " + std::to_wstring(g_windows.size() - visible_count) +
+                  L" more window(s)\n";
+    }
+
+    return result;
 }
 
 std::wstring BuildCaptureStatus() {
@@ -53,15 +76,45 @@ std::wstring BuildCaptureStatus() {
     }
 
     const auto stats = g_capture.stats();
-    return L"Capture: running — " + std::to_wstring(stats.width) + L"x" +
-           std::to_wstring(stats.height) + L", " + std::to_wstring(stats.frames) +
-           L" frame(s), " + std::to_wstring(stats.fps) + L" FPS, " +
-           std::to_wstring(stats.errors) + L" error(s)";
+    const std::wstring selected_title =
+        (g_selected_window_index < g_windows.size())
+            ? g_windows[g_selected_window_index].title
+            : std::wstring(L"unknown source");
+
+    return L"Capture: running — " + selected_title + L" — " +
+           std::to_wstring(stats.width) + L"x" + std::to_wstring(stats.height) +
+           L", " + std::to_wstring(stats.frames) + L" frame(s), " +
+           std::to_wstring(stats.fps) + L" FPS, " +
+           std::to_wstring(stats.errors) + L" error(s), " +
+           std::to_wstring(stats.recreates) + L" recreate(s)";
 }
 
 void RefreshStatus(HWND hwnd) {
     g_source_status = BuildSourceStatus();
     InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+void SelectWindow(HWND hwnd, std::size_t index) {
+    RefreshStatus(hwnd);
+    if (index >= g_windows.size()) {
+        return;
+    }
+
+    const HWND target = g_windows[index].hwnd;
+    if (!IsWindow(target)) {
+        RefreshStatus(hwnd);
+        return;
+    }
+
+    g_selected_window_index = index;
+    g_selected_window = target;
+
+    if (g_capture.is_running()) {
+        g_capture.stop();
+        g_capture.start_window(g_selected_window);
+    }
+
+    RefreshStatus(hwnd);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
@@ -77,9 +130,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         return 0;
 
     case WM_KEYDOWN:
+        if (wparam >= '1' && wparam <= '9') {
+            SelectWindow(hwnd, static_cast<std::size_t>(wparam - '1'));
+            return 0;
+        }
         if (wparam == VK_SPACE) {
             if (g_capture.is_running()) {
                 g_capture.stop();
+            } else if (g_selected_window && IsWindow(g_selected_window)) {
+                g_capture.start_window(g_selected_window);
             } else if (!g_capture.start_window(hwnd)) {
                 // The engine keeps the concrete error for the status view.
             }
@@ -96,8 +155,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             L"Cari Studio\n\n"
             L"Windows-native runtime — no AI, API or internet required.\n\n" +
             g_capture_support_status + L"\n" + g_audio_status + L"\n" +
-            g_source_status + L"\n\n" + BuildCaptureStatus() + L"\n\n" +
-            L"SPACE: start/stop native window capture";
+            g_source_status + L"\n" + BuildCaptureStatus() + L"\n\n" +
+            L"1-9: select a window\n"
+            L"SPACE: start/stop capture";
 
         RECT client{};
         GetClientRect(hwnd, &client);
@@ -129,7 +189,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
         ? L"Windows Graphics Capture: supported"
         : L"Windows Graphics Capture: unsupported";
     g_audio_status = BuildAudioStatus();
-    g_source_status = BuildSourceStatus();
 
     WNDCLASSW window_class{};
     window_class.lpfnWndProc = WindowProc;
@@ -148,14 +207,20 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        760,
-        420,
+        900,
+        650,
         nullptr,
         nullptr,
         instance,
         nullptr);
     if (!hwnd) {
         return 2;
+    }
+
+    g_source_status = BuildSourceStatus();
+    if (!g_windows.empty()) {
+        g_selected_window_index = 0;
+        g_selected_window = g_windows.front().hwnd;
     }
 
     ShowWindow(hwnd, show_command);
