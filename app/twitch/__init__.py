@@ -1,6 +1,15 @@
 from .models import ChatMessage
 
-__all__ = ["ChatMessage", "TwitchAdapter", "TwitchConfig", "TwitchLiveBot"]
+__all__ = [
+    "ChatMessage",
+    "CommandContext",
+    "CommandDefinition",
+    "CommandResult",
+    "TwitchAdapter",
+    "TwitchCommandEngine",
+    "TwitchConfig",
+    "TwitchLiveBot",
+]
 
 
 def __getattr__(name: str):
@@ -17,4 +26,13 @@ def __getattr__(name: str):
         from .live import TwitchLiveBot
 
         return TwitchLiveBot
+    if name in {"CommandContext", "CommandDefinition", "CommandResult", "TwitchCommandEngine"}:
+        from .commands import CommandContext, CommandDefinition, CommandResult, TwitchCommandEngine
+
+        return {
+            "CommandContext": CommandContext,
+            "CommandDefinition": CommandDefinition,
+            "CommandResult": CommandResult,
+            "TwitchCommandEngine": TwitchCommandEngine,
+        }[name]
     raise AttributeError(name)
