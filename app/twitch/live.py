@@ -8,16 +8,18 @@ from collections.abc import Awaitable, Callable
 from app.pipeline.runtime import LocalPipeline
 from app.twitch.automation import AutomationAction, AutomationEngine
 from app.twitch.cari_actions import LocalCariActionHandler
+from app.twitch.chat_voice import ChatVoiceRouter
 from app.twitch.commands import CommandContext, TwitchCommandEngine, default_commands
 from app.twitch.events import normalize_twitch_event
 from app.twitch.models import ChatMessage
+from app.twitch.rate_limit import TwitchChatRateLimiter
 
 
 ActionHandler = Callable[[AutomationAction], Awaitable[None] | None]
 
 
 class TwitchLiveBot:
-    """TwitchIO runtime with commands and EventSub-driven Cari automation."""
+    """TwitchIO runtime with commands, public chat voice and EventSub automation."""
 
     def __init__(
         self,
@@ -25,12 +27,15 @@ class TwitchLiveBot:
         *,
         automation: AutomationEngine | None = None,
         action_handler: ActionHandler | None = None,
+        chat_voice: ChatVoiceRouter | None = None,
     ) -> None:
         self.pipeline = pipeline
         self._bot = None
         self.commands = TwitchCommandEngine()
         self.automation = automation or AutomationEngine()
         self.action_handler = action_handler or LocalCariActionHandler(pipeline)
+        self.chat_voice = chat_voice or ChatVoiceRouter()
+        self.chat_rate_limiter = TwitchChatRateLimiter()
         for command in default_commands():
             self.commands.register(command)
 
@@ -46,6 +51,15 @@ class TwitchLiveBot:
             result = self.action_handler(action)
             if inspect.isawaitable(result):
                 await result
+            else:
+                await asyncio.to_thread(lambda: result)
+
+    async def _send_chat(self, message, text: str) -> None:
+        text = text.strip()[:500]
+        if not text:
+            return
+        await self.chat_rate_limiter.wait()
+        await message.respond(text)
 
     async def start(self) -> None:
         try:
@@ -107,6 +121,23 @@ class TwitchLiveBot:
                 message_id = str(getattr(message, "id", None) or f"{viewer}:{id(message)}")
                 text = str(message.content)
 
+                public_voice = parent.chat_voice.parse(viewer, text)
+                if public_voice is not None:
+                    await asyncio.to_thread(
+                        pipeline.speak_manual,
+                        public_voice.text,
+                        emotion="neutral",
+                        intensity=0.7,
+                    )
+                    parent.pipeline.event_bus.publish(
+                        RuntimeEvent(
+                            "chat_read_aloud",
+                            {"viewer": public_voice.viewer, "text": public_voice.text},
+                        )
+                    )
+                    await parent._dispatch_chat_read(public_voice.viewer, public_voice.text)
+                    return
+
                 command_context = CommandContext(
                     viewer=viewer,
                     is_subscriber=bool(getattr(message, "subscriber", False)),
@@ -117,7 +148,7 @@ class TwitchLiveBot:
                 command_result = command_engine.execute(text, command_context)
                 if command_result.handled:
                     if command_result.response:
-                        await message.respond(command_result.response)
+                        await parent._send_chat(message, command_result.response)
                     return
 
                 chat_message = ChatMessage.now(message_id, viewer, text)
@@ -126,7 +157,7 @@ class TwitchLiveBot:
                     return
                 response = result.response_text.strip()[:500]
                 if response:
-                    await message.respond(response)
+                    await parent._send_chat(message, response)
 
             async def event_follow(self, payload) -> None:
                 await parent._dispatch_event("follow", payload)
@@ -163,6 +194,15 @@ class TwitchLiveBot:
 
         self._bot = CariBot()
         await self._bot.start()
+
+    async def _dispatch_chat_read(self, viewer: str, text: str) -> None:
+        event = normalize_twitch_event("chat_read", type("ChatPayload", (), {"user": type("User", (), {"name": viewer})(), "message": text})()).automation_event()
+        for action in self.automation.dispatch(event):
+            if self.action_handler is None:
+                continue
+            result = self.action_handler(action)
+            if inspect.isawaitable(result):
+                await result
 
     async def close(self) -> None:
         if self._bot is not None:
