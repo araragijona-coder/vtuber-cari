@@ -36,6 +36,10 @@
 ## VTuber / cámara / voz
 
 - [x] Contratos de avatar y actuación existentes.
+- [x] Estado de actuación independiente de apariencia.
+- [x] Perfil de apariencia modular con cabello, outfit y accesorios.
+- [x] Accesorios con ancla, posición, escala, rotación y color.
+- [x] Selección aleatoria reproducible de accesorios.
 - [x] Renderer VRM experimental web existente.
 - [ ] Render VRM integrado al compositor nativo.
 - [ ] Lip-sync alimentado por audio real.
@@ -56,10 +60,22 @@
 - [x] EventSub follow, subscribe, gifted sub, resub message, cheer, raid, channel points, polls y predictions conectado al AutomationEngine.
 - [x] Despachador local de acciones de avatar/voz sin IA.
 - [x] Acciones `chat/sound/scene/overlay/music` no se pierden silenciosamente: se publican como `studio_action` para el runtime.
+- [x] `StudioActionRouter` valida y traduce `studio_action` a eventos internos tipados.
+- [x] `StudioActionRouter` queda conectado al `LocalPipeline`.
 - [x] Acciones desconocidas generan `automation_action_unhandled` para auditoría.
-- [x] `studio_action` se consume en el runtime Python y se traduce a eventos estables para adaptadores de estudio.
-- [ ] Consumo real desde compositor/audio/escena nativos de Windows.
+- [ ] Consumir `studio_chat_requested` desde chat, `studio_sound_requested` desde audio, `studio_scene_requested` desde escenas y equivalentes desde el runtime nativo.
 - [ ] Multi-stream real con límites y reconexión.
+
+## Avatar Studio
+
+- [x] Base de configuración separada del stream en directo.
+- [x] Modelo de apariencia intercambiable sin tocar el estado de actuación.
+- [x] Puntos de anclaje para accesorios.
+- [x] Randomización de accesorios con semilla reproducible.
+- [ ] Editor visual de escritorio.
+- [ ] Catálogo real de assets aprobado por el usuario.
+- [ ] Previsualización VRM integrada.
+- [ ] Guardado/carga de presets desde UI.
 
 ## Distribución
 
