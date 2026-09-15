@@ -20,6 +20,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 | Captura ejemplo | MicrosoftDocs/SimpleRecorder | Patrón oficial de captura Windows.Graphics.Capture hacia vídeo. |
 | Windows samples | microsoft/WindowsAppSDK-Samples | Patrones de aplicación Windows nativa y distribución. |
 | OBS reference implementation | obsproject/obs-studio | Comparación de arquitectura y comportamiento, sin copiar implementación incompatible. |
+| Character design | Writers.com — character development | Separación de rasgos, valores, defectos, objetivos y arco para mantener coherencia de personaje. |
 
 ## Gates
 
@@ -87,6 +88,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Accessory anchors and transforms.
 - [x] Seeded randomization.
 - [x] JSON presets.
+- [x] Canonical Cari personality bible with explicit invariants and data classification.
+- [ ] Character behavior engine consuming personality/value/state layers.
 - [ ] Native VRM renderer.
 - [ ] Audio-driven lip-sync.
 - [ ] Final tracking.
@@ -112,12 +115,21 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Diagnostics/log folder policy.
 - [ ] Release smoke test on target PC.
 
+## Character-behavior audit rule
+
+The new `CARI_CHARACTER_BIBLE.md` is the canonical personality source for runtime design. New acts, reactions, comments, missions, voice lines and automatic behaviors must declare whether they are `CANON_CONFIRMED`, `CANON_DEVELOPING`, `RUNTIME_BEHAVIOR`, `SUGGESTED` or `UNKNOWN`.
+
+`UNKNOWN` data must not be silently converted into canon. In particular, Cami is confirmed as Cari's sister, while detailed sibling dynamics remain undefined until explicitly established.
+
+Expressions are not personality. Emotional state, acting, appearance and personality remain separate layers so that a blush, angry face or comedic reaction cannot silently redefine who Cari is.
+
 ## Evidencia actual
 
 - CI Python 3.11/3.12 y Native Windows alcanzaron estado verde en `8d9d4af`.
 - El workflow nativo construye Release x64, ejecuta `cari-core-smoke`, verifica el ejecutable y prepara `CariStudio-Windows-x64.zip`.
 - TwitchIO 3.x documenta `subscribe_websocket()` como gestor de suscripciones WebSocket y su changelog registra correcciones específicas de reconexión. Esto evita implementar un segundo transporte dentro de Cari; queda pendiente una prueba de integración propia.
 - El código de captura se mantiene deliberadamente separado del hardware final; la primera prueba física sigue siendo necesaria para validar cámara, GPU, juegos, audio y rendimiento.
+- La bibliografía de diseño de personajes usada para esta capa destaca que rasgos recurrentes, valores, objetivos, defectos y filosofía deben formar patrones coherentes de decisión y evolución. citeturn300063search4turn300063search7
 
 ## Regla de cierre
 
@@ -126,5 +138,7 @@ No convertir **"compila"** en **"funciona"**.
 No convertir **"funciona en CI"** en **"funciona en tu PC"**.
 
 No convertir **"la API existe"** en **"la integración está completa"**.
+
+No convertir **"una frase funciona"** en **"la personalidad está definida"**.
 
 Cada pendiente debe indicar qué evidencia falta antes de pasar a `[x]`.
