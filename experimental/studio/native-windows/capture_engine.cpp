@@ -224,9 +224,9 @@ bool CaptureEngine::start_window(HWND target_window) {
                         return;
                     }
 
-                    // Microsoft recommends recreating the frame pool when the captured
-                    // size changes so queued surfaces are not reused at the old size.
                     if (previous_width != content.Width || previous_height != content.Height) {
+                        // Recreate discards queued frames from the old surface size, as
+                        // recommended by Microsoft for resize/device changes.
                         state->frame_pool.Recreate(
                             state->winrt_device,
                             winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized,
@@ -345,6 +345,7 @@ CaptureStats CaptureEngine::stats() const noexcept {
     result.frames = impl_->frames.load(std::memory_order_relaxed);
     result.delivered = impl_->delivered.load(std::memory_order_relaxed);
     result.errors = impl_->errors.load(std::memory_order_relaxed);
+    result.recreates = impl_->recreates.load(std::memory_order_relaxed);
     result.fps = impl_->fps.load(std::memory_order_relaxed);
     result.width = impl_->width.load(std::memory_order_relaxed);
     result.height = impl_->height.load(std::memory_order_relaxed);
