@@ -48,7 +48,11 @@
 - [ ] Adaptador Twitch RTMP probado en máquina real.
 - [ ] Adaptador YouTube RTMP probado en máquina real.
 - [ ] Adaptadores adicionales.
-- [ ] Chat/eventos plataforma.
+- [x] Twitch chat con un único EventSub WebSocket compartido.
+- [x] Comandos locales antes del pipeline de IA opcional.
+- [x] EventSub follow, subscribe, gifted sub, resub message, cheer, raid, channel points, polls y predictions conectado al AutomationEngine.
+- [x] Despachador local de acciones de avatar/voz sin IA.
+- [ ] Chat de salida, sonidos y cambios de escena desde reglas de automatización.
 - [ ] Multi-stream real con límites y reconexión.
 
 ## Distribución
