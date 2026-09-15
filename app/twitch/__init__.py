@@ -6,10 +6,13 @@ __all__ = [
     "AutomationEvent",
     "AutomationRule",
     "ChatMessage",
+    "ChatVoiceRequest",
+    "ChatVoiceRouter",
     "CommandContext",
     "CommandDefinition",
     "CommandResult",
     "TwitchAdapter",
+    "TwitchChatRateLimiter",
     "TwitchCommandEngine",
     "TwitchConfig",
     "TwitchEvent",
@@ -35,6 +38,14 @@ def __getattr__(name: str):
         from .events import TwitchEvent
 
         return TwitchEvent
+    if name in {"ChatVoiceRequest", "ChatVoiceRouter"}:
+        from .chat_voice import ChatVoiceRequest, ChatVoiceRouter
+
+        return {"ChatVoiceRequest": ChatVoiceRequest, "ChatVoiceRouter": ChatVoiceRouter}[name]
+    if name == "TwitchChatRateLimiter":
+        from .rate_limit import TwitchChatRateLimiter
+
+        return TwitchChatRateLimiter
     if name in {"CommandContext", "CommandDefinition", "CommandResult", "TwitchCommandEngine"}:
         from .commands import CommandContext, CommandDefinition, CommandResult, TwitchCommandEngine
 
