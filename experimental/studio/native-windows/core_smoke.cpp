@@ -5,6 +5,7 @@
 #include "../core/output_profile.h"
 #include "../core/pipeline.h"
 #include "../core/software_compositor.h"
+#include "process_runner.h"
 
 #include <cassert>
 #include <iostream>
@@ -124,6 +125,13 @@ int main() {
     assert(fanout.metrics().frames == 2);
     assert(fanout.metrics().audio_frames == 4);
     fanout.stop();
+
+    cari::native::ProcessRunner runner;
+    assert(runner.start(L"cmd.exe", {L"/C", L"exit", L"0"}));
+    const auto process_result = runner.wait(5000);
+    assert(process_result.started);
+    assert(process_result.exited);
+    assert(process_result.exit_code == 0);
 
     std::cout << "Cari Core smoke: PASS\n";
     return 0;
