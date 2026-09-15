@@ -50,6 +50,9 @@
 - [ ] Adaptadores adicionales.
 - [x] Twitch chat con un único EventSub WebSocket compartido.
 - [x] Comandos locales antes del pipeline de IA opcional.
+- [x] Chat normal pasivo por defecto: no invoca IA/Responder.
+- [x] Chat público `1+` con TTS local y evento `chat_read`.
+- [x] Guardia local de salida del chat contra ráfagas.
 - [x] EventSub follow, subscribe, gifted sub, resub message, cheer, raid, channel points, polls y predictions conectado al AutomationEngine.
 - [x] Despachador local de acciones de avatar/voz sin IA.
 - [ ] Chat de salida, sonidos y cambios de escena desde reglas de automatización.
