@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable
 
 from app.brain.event_bus import EventBus, RuntimeEvent
@@ -19,14 +19,7 @@ class StudioRuntimeMetrics:
 
 
 class StudioRuntimeBindings:
-    """Bind Studio actions to real local subsystems without platform coupling.
-
-    A backend can register handlers for chat, sound, scene, overlay and music.
-    Missing handlers remain observable as ``studio_*_requested`` events instead
-    of being silently discarded.
-    """
-
-    _KINDS = ("chat", "sound", "scene", "overlay", "music")
+    """Bind Studio actions to local subsystems without platform coupling."""
 
     def __init__(self, event_bus: EventBus, *, metrics: StudioRuntimeMetrics | None = None) -> None:
         self.event_bus = event_bus
@@ -58,8 +51,7 @@ class StudioRuntimeBindings:
                 return
             self.metrics.handled += 1
             self.event_bus.publish(
-                "studio_action_handled",
-                {"kind": normalized, "value": action.value},
+                RuntimeEvent("studio_action_handled", {"kind": normalized, "value": action.value})
             )
 
         return consume
