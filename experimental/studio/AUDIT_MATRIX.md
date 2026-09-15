@@ -15,6 +15,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 | Captura Windows | Microsoft Learn — Windows.Graphics.Capture | Frame pool, D3D11, resize y recreate ante cambios de dispositivo/tamaño. |
 | EventSub | Twitch Developers — WebSocket handling | Welcome, keepalive, reconnect sin perder suscripciones. |
 | OAuth | Twitch Developers — scopes/authentication | Verificación de permisos mínimos y separación broadcaster/bot. |
+| Twitch runtime | TwitchIO 3.x documentation/changelog | Gestión de WebSocket y correcciones de reconexión; evitar duplicar transporte en Cari. |
 | Streaming architecture | OBS Studio docs | Separación de sources, scenes, encoders, outputs y services. |
 | Captura ejemplo | MicrosoftDocs/SimpleRecorder | Patrón oficial de captura Windows.Graphics.Capture hacia vídeo. |
 | Windows samples | microsoft/WindowsAppSDK-Samples | Patrones de aplicación Windows nativa y distribución. |
@@ -45,6 +46,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Window enumeration.
 - [x] WASAPI foundation.
 - [x] Camera enumeration.
+- [x] Frame-pool recreate ante cambios de tamaño.
 - [ ] Media Foundation camera streaming.
 - [ ] Dedicated game capture.
 - [ ] Exhaustive device-loss/reconnect path.
@@ -72,6 +74,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Local command engine.
 - [x] `1+` public TTS gate.
 - [x] Local chat output rate guard.
+- [x] TwitchIO owns WebSocket connection management and subscription delegation.
 - [ ] Explicit reconnection/re-subscription integration test.
 - [ ] Token refresh lifecycle test.
 - [ ] Live broadcaster/bot validation.
@@ -113,6 +116,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 - CI Python 3.11/3.12 y Native Windows alcanzaron estado verde en `8d9d4af`.
 - El workflow nativo construye Release x64, ejecuta `cari-core-smoke`, verifica el ejecutable y prepara `CariStudio-Windows-x64.zip`.
+- TwitchIO 3.x documenta `subscribe_websocket()` como gestor de suscripciones WebSocket y su changelog registra correcciones específicas de reconexión. Esto evita implementar un segundo transporte dentro de Cari; queda pendiente una prueba de integración propia.
 - El código de captura se mantiene deliberadamente separado del hardware final; la primera prueba física sigue siendo necesaria para validar cámara, GPU, juegos, audio y rendimiento.
 
 ## Regla de cierre
