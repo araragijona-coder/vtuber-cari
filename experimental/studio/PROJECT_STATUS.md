@@ -19,9 +19,10 @@
 - [x] Frame callback con superficie DXGI.
 - [x] Enumeración de ventanas capturables.
 - [x] WASAPI microphone/loopback foundation.
+- [x] Recreación del frame pool ante cambios de tamaño.
 - [ ] Captura de cámara real mediante Media Foundation.
 - [ ] Game Capture dedicada con backend específico.
-- [ ] Device-loss/reconnect exhaustive handling.
+- [ ] Device-loss/reconnect exhaustivo del dispositivo D3D11.
 
 ## Multimedia
 
@@ -31,7 +32,7 @@
 - [ ] Compositor GPU D3D11 de producción.
 - [ ] Encoder hardware/software real conectado al pipeline.
 - [ ] Muxer/recorder de producción.
-- [ ] Proceso FFmpeg administrado por Cari.
+- [ ] Proceso FFmpeg administrado por Cari y conectado a las salidas.
 
 ## VTuber / cámara / voz
 
@@ -66,6 +67,7 @@
 - [x] Acciones desconocidas generan `automation_action_unhandled` para auditoría.
 - [ ] Ejecutar realmente `studio_chat_requested`, `studio_sound_requested`, `studio_scene_requested` y equivalentes con los backends nativos.
 - [ ] Multi-stream real con límites y reconexión.
+- [ ] Reconexión EventSub explícita auditada contra el ciclo welcome/keepalive/reconnect de Twitch.
 
 ## Avatar Studio
 
@@ -81,8 +83,9 @@
 
 ## Distribución
 
-- [ ] Perfil reproducible Release x64.
-- [ ] Bundle de assets.
+- [x] Workflow reproducible de compilación Release x64 en Windows CI.
+- [x] Paquete portable x64 generado por CI como artifact.
+- [ ] Bundle de assets de producción.
 - [ ] FFmpeg/codec legalmente redistribuible elegido.
 - [ ] Instalador Windows.
 - [ ] Diagnóstico/rollback y logs de usuario.
