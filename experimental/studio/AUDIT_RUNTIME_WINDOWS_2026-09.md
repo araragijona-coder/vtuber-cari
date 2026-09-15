@@ -28,11 +28,15 @@ Referencias externas consultadas:
 - Se mide `frames`, `delivered`, `errors`, `fps`, resolución y número de `recreates`.
 - Cuando `ContentSize()` cambia, el frame pool se recrea con el mismo dispositivo D3D11.
 - La aplicación enumera ventanas visibles y permite seleccionar una de las primeras nueve mediante las teclas `1` a `9`.
+- La captura ya tiene un puente de referencia `CapturedFrame → core::Frame` mediante `frame_bridge.cpp`.
+- El puente obtiene el `ID3D11Texture2D`, crea un staging texture CPU-readable y copia el frame a un payload BGRA8 administrado por `shared_ptr`.
+- El ejecutable de diagnóstico prueba ese bridge cada 30 frames y expone éxitos, fallos, bytes transferidos y última secuencia procesada.
+- Esta copia es deliberadamente una ruta de validación de contrato; no se considera todavía el camino de producción de máximo rendimiento.
 - La captura sigue siendo una prueba de fuente real, no todavía un compositor final.
 
 ### Riesgo pendiente de dispositivo
 
-La ruta actual todavía no reconstruye explícitamente el dispositivo D3D11 cuando el propio device es removido o queda inválido. Microsoft contempla `Recreate` también para cambios o pérdida de dispositivo. El código debe pasar una validación de hardware real antes de marcar esta parte como cerrada.
+La ruta actual todavía no reconstruye explícitamente el dispositivo D3D11 cuando el propio device es removido o queda inválido. Microsoft contempla `Recreate` también para cambios o pérdida de dispositivo. El código debe pasar una validación de hardware real antes de marcar esta parte como cerrada. citeturn659808search5turn659808search0
 
 Gate pendiente:
 
@@ -44,7 +48,7 @@ Gate pendiente:
 
 ### Fuentes / escenas
 
-La arquitectura mantiene separadas las fuentes, escenas y la salida. Esto coincide conceptualmente con el modelo documentado por OBS, que trata Sources/Scenes como la composición del contenido y separa Outputs/Encoders/Services del escenario.
+La arquitectura mantiene separadas las fuentes, escenas y la salida. Esto coincide conceptualmente con el modelo documentado por OBS, que trata Sources/Scenes como la composición del contenido y separa Outputs/Encoders/Services del escenario. citeturn659808search1turn659808search6turn659808search3
 
 Todavía falta convertir la selección de fuente en un compositor visual real.
 
@@ -91,16 +95,17 @@ El proyecto tiene:
 - CI separado para el runtime de personajes;
 - CI nativo Windows para CMake, smoke test y empaquetado x64.
 
-El último SHA trabajado en esta rama todavía no presenta una ejecución de workflow visible a través de la API consultada. Por tanto, no se marca como verde hasta obtener evidencia.
+Los commits que añaden el bridge y su integración todavía requieren una nueva ejecución del workflow Windows para tener evidencia de compilación en el entorno objetivo. Mientras esa ejecución no aparezca, el estado se mantiene como `pendiente de CI`, no como verde.
 
 ## Próximos gates técnicos
 
 1. Compositor real que consuma la fuente seleccionada y permita al menos una escena con varias capas.
-2. Puente de la captura nativa hacia `Frame` del core sin copiar innecesariamente más de lo requerido.
-3. Audio WASAPI → `AudioPacket` → `AudioMixer` real.
-4. Encoder real → proceso FFmpeg supervisado.
-5. Output RTMP real con métricas, stderr y reconexión.
-6. Prueba de hardware Windows con juego, micrófono, audio del sistema y caída/reanudación de captura.
+2. Sustituir el bridge CPU de referencia por una ruta GPU/directa cuando el compositor real la necesite.
+3. Implementar recuperación explícita ante pérdida de dispositivo D3D11.
+4. Audio WASAPI → `AudioPacket` → `AudioMixer` real.
+5. Encoder real → proceso FFmpeg supervisado.
+6. Output RTMP real con métricas, stderr y reconexión.
+7. Prueba de hardware Windows con juego, micrófono, audio del sistema y caída/reanudación de captura.
 
 ## Regla de cierre
 
@@ -111,5 +116,7 @@ El último SHA trabajado en esta rama todavía no presenta una ejecución de wor
 `API/documentación disponible` != `integración completa`.
 
 `selección de ventana` != `game capture dedicado`.
+
+`bridge CPU funcionando` != `compositor de producción`.
 
 `comando FFmpeg válido` != `stream RTMP funcional`.
