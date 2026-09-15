@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -16,6 +17,7 @@ struct CaptureStats {
     std::uint64_t frames = 0;
     std::uint64_t delivered = 0;
     std::uint64_t errors = 0;
+    std::uint64_t recreates = 0;
     double fps = 0.0;
     std::int32_t width = 0;
     std::int32_t height = 0;
