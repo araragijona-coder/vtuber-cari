@@ -12,6 +12,7 @@ add_executable(cari-studio-native WIN32
     main.cpp
     audio_probe.cpp
     capture_engine.cpp
+    frame_bridge.cpp
     process_runner.cpp
     wasapi_capture.cpp
     window_sources.cpp
