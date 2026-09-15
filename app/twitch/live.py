@@ -103,7 +103,10 @@ class TwitchLiveBot:
                         broadcaster_user_id=owner_id,
                         user_id=bot_id,
                     ),
-                    eventsub.ChannelFollowSubscription(broadcaster_user_id=owner_id),
+                    eventsub.ChannelFollowSubscription(
+                        broadcaster_user_id=owner_id,
+                        moderator_user_id=owner_id,
+                    ),
                     eventsub.ChannelSubscribeSubscription(broadcaster_user_id=owner_id),
                     eventsub.ChannelSubscriptionGiftSubscription(broadcaster_user_id=owner_id),
                     eventsub.ChannelSubscribeMessageSubscription(broadcaster_user_id=owner_id),
