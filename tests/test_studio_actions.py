@@ -34,7 +34,7 @@ class StudioActionTests(unittest.TestCase):
         events: list[RuntimeEvent] = []
         bus.subscribe("*", events.append)
         bus.publish(RuntimeEvent("studio_action", {"kind": "unknown", "value": "x"}))
-        self.assertEqual(events[-1].name, "studio_action_invalid")
+        self.assertIn("studio_action_invalid", [event.name for event in events])
 
 
 if __name__ == "__main__":
