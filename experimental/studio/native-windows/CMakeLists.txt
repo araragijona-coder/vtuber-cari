@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(cari-studio-native WIN32
     main.cpp
     audio_probe.cpp
+    audio_core_bridge.cpp
     camera_sources.cpp
     capture_engine.cpp
     compositor_bridge.cpp
