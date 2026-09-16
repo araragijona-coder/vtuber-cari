@@ -182,6 +182,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             SelectWindow(hwnd, static_cast<std::size_t>(wparam - '1'));
             return 0;
         }
+        if (wparam == 'A') {
+            if (g_audio_bridge.stats().packets > 0 || !g_audio_bridge.last_error().empty()) {
+                g_audio_bridge.stop();
+            } else {
+                g_audio_bridge.start();
+            }
+            RefreshStatus(hwnd);
+            return 0;
+        }
         if (wparam == VK_SPACE) {
             if (g_capture.is_running()) {
                 g_capture.stop();
@@ -205,7 +214,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             g_capture_support_status + L"\n" + g_audio_status + L"\n" +
             g_source_status + L"\n" + BuildCaptureStatus() + L"\n\n" +
             L"1-9: select a window\n"
-            L"SPACE: start/stop capture";
+            L"SPACE: start/stop capture\n"
+            L"A: start/stop microphone + system audio";
 
         RECT client{};
         GetClientRect(hwnd, &client);
@@ -308,12 +318,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     if (!g_windows.empty()) {
         g_selected_window_index = 0;
         g_selected_window = g_windows.front().hwnd;
-    }
-
-    if (!g_audio_bridge.start()) {
-        g_audio_status = BuildAudioStatus();
-    } else {
-        g_audio_status = BuildAudioStatus();
     }
 
     ShowWindow(hwnd, show_command);
