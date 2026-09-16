@@ -1,4 +1,5 @@
 #include "../core/audio_mixer.h"
+#include "../core/av_sync.h"
 #include "../core/bounded_queue.h"
 #include "../core/fanout_output.h"
 #include "../core/monitoring.h"
@@ -50,6 +51,30 @@ int main() {
     queue.reset();
     assert(!queue.closed());
     assert(queue.dropped() == 0);
+
+    AvSyncController sync(AvSyncConfig{.video_lead_tolerance = 10,
+                                       .video_lag_tolerance = 20,
+                                       .max_video_queue = 3,
+                                       .max_audio_queue = 3});
+    sync.push_video(Frame{100, 1280, 720, 5120, 1, 1});
+    sync.push_video(Frame{110, 1280, 720, 5120, 1, 2});
+    sync.push_audio(AudioPacket{105, 48000, 2, 1, {0.1f, 0.2f}});
+    auto first_event = sync.next();
+    assert(first_event.has_value());
+    assert(first_event->kind == AvSyncController::Event::Kind::video);
+    assert(first_event->frame->pts == 100);
+    auto second_event = sync.next();
+    assert(second_event.has_value());
+    assert(second_event->kind == AvSyncController::Event::Kind::audio);
+    assert(second_event->audio->pts == 105);
+    assert(sync.stats().audio_clock_ready);
+    assert(sync.stats().emitted_video == 1);
+    assert(sync.stats().emitted_audio == 1);
+
+    sync.push_audio(AudioPacket{1'000, 48000, 2, 2, {0.1f, 0.2f}});
+    sync.push_video(Frame{900, 1280, 720, 5120, 3, 3});
+    assert(!sync.next().has_value());
+    assert(sync.stats().video_dropped_late == 1);
 
     AudioMixer mixer;
     assert(mixer.add_track("mic"));
@@ -117,6 +142,7 @@ int main() {
     assert(pipeline.output_metrics().frames == 2);
     assert(pipeline.output_metrics().audio_frames == 2);
     assert(output->last_pts() == 300);
+    assert(pipeline.av_sync_stats().audio_clock_ready);
     pipeline.stop();
 
     assert(pipeline.start());
