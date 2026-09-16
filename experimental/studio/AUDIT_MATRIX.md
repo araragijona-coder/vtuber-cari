@@ -78,13 +78,14 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Output stderr classification / structured diagnostics.
 - [ ] Automatic output reconnect/backoff policy.
 
-### Raw media transport — nueva etapa
+### Raw media transport
 
 - [x] Windows named pipe con modo byte.
 - [x] I/O `OVERLAPPED` persistente para conexión y escritura.
 - [x] Cola acotada en memoria con métrica de descarte.
 - [x] Cancelación de I/O pendiente durante cierre.
-- [ ] Smoke CI del nuevo transporte en run actual.
+- [x] Smoke CI del transporte en Native Windows Build #147.
+- [x] Cliente Windows de smoke conecta y comprueba payload + métricas.
 - [ ] Integración video BGRA → RawPipe.
 - [ ] Integración audio PCM float → RawPipe.
 - [ ] Segundo canal/entrada FFmpeg para audio.
@@ -142,13 +143,19 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Evidencia actual
 
-- `Native Windows Build` está ejecutándose ahora sobre el head **229f03ba0ac644b67f6aa730b365ea0fc8851846**, que incluye el nuevo `RawPipe` y los tres smoke tests separados.
-- El workflow ahora ejecuta explícitamente `cari-core-smoke`, `cari-ffmpeg-supervisor-smoke` y `cari-raw-pipe-smoke`; el último es un cliente Windows real que conecta a la named pipe y verifica payload + métricas.
+- `Native Windows Build` run **147** terminó en `success` sobre el head **229f03ba0ac644b67f6aa730b365ea0fc8851846**.
+- Run 147 configuró CMake, compiló todos los targets, ejecutó `cari-core-smoke`, `cari-ffmpeg-supervisor-smoke` y `cari-raw-pipe-smoke`, verificó el ejecutable y generó/subió el ZIP portable.
 - `RawPipe` implementa `CreateNamedPipeW` con `FILE_FLAG_OVERLAPPED`, mantiene vivas las estructuras `OVERLAPPED`, limita la cola en memoria y permite cancelar I/O pendiente al cerrar.
 - `FfmpegSupervisor` sigue siendo únicamente frontera de proceso: todavía no recibe los bytes multimedia reales y, por tanto, no se considera streaming A/V completo.
 - El perfil FFmpeg actual sigue construyendo una entrada de vídeo raw por `stdin`; el audio todavía no está mapeado al proceso, así que los gates de audio/output real permanecen abiertos.
 - `StudioPipeline` ya incorpora `AvSyncController`; el smoke existente cubre orden temporal, tolerancia y late-drop, pero no corrección de drift/resampling de producción.
 - La validación final de cámara, GPU, juegos, audio, rendimiento y reconexión continúa requiriendo una máquina Windows objetivo; CI no sustituye esa prueba.
+
+## Estimación de avance
+
+**Estimación global de ingeniería: ~50%.**
+
+Este porcentaje es una medida de madurez funcional estimada, no una suma de archivos ni una promesa de funcionamiento final. La base nativa, contratos core, captura Windows, audio foundation, escenas, automatización Twitch y la infraestructura de CI ya tienen bastante trabajo implementado; el mayor bloque pendiente sigue siendo el camino multimedia de producción (compositor GPU, encoder/muxer real, A/V real hacia FFmpeg, RTMP/reconexión) y la validación en hardware.
 
 ## Regla de cierre
 
