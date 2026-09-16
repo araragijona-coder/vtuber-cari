@@ -37,6 +37,7 @@ AudioCoreBridge::~AudioCoreBridge() {
 
 bool AudioCoreBridge::start() {
     stop();
+    running_.store(false, std::memory_order_relaxed);
     callbacks_.store(0);
     packets_.store(0);
     samples_.store(0);
@@ -70,11 +71,15 @@ bool AudioCoreBridge::start() {
     if (!any_started) {
         microphone_.stop();
         system_loopback_.stop();
+        return false;
     }
-    return any_started;
+
+    running_.store(true, std::memory_order_relaxed);
+    return true;
 }
 
 void AudioCoreBridge::stop() noexcept {
+    running_.store(false, std::memory_order_relaxed);
     microphone_.stop();
     system_loopback_.stop();
 }
