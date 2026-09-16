@@ -6,13 +6,18 @@ Fecha: 2026-09-16
 
 - Microsoft Learn — `Direct3D11CaptureFramePool`: `CreateFreeThreaded`, `TryGetNextFrame`, `Recreate` y ciclo de captura.
 - Microsoft Learn — Screen capture: `Recreate` es el mecanismo recomendado cuando cambia el tamaño de buffers o se proporciona un nuevo dispositivo por pérdida/cambio del anterior; los frames existentes se descartan al recrear.
+- Microsoft Learn — WASAPI loopback: `AUDCLNT_STREAMFLAGS_LOOPBACK` captura el audio que reproduce un endpoint de render y requiere shared mode; Windows 10 1703+ soporta loopback con event-driven buffering sin el workaround antiguo.
+- Microsoft Learn — Application loopback sample (2026): Windows también puede restringir la captura de audio a un proceso concreto y sus hijos, lo que queda como candidato para separar audio del juego de otras aplicaciones.
 - OBS Studio documentation: separación conceptual entre Sources/Scenes y Outputs/Encoders/Services.
-- FFmpeg documentation: reconexión de protocolos, `tee` muxer para reutilizar una codificación en varios destinos y FIFO para aislar velocidad/latencia de outputs.
+- FFmpeg documentation: entradas por pipes, `rawvideo`, reconexión de protocolos, `tee` muxer para reutilizar una codificación en varios destinos y FIFO para aislar velocidad/latencia de outputs.
 - FFmpeg hardware acceleration: D3D11VA/QSV y codificación por Media Foundation como rutas candidatas que deben medirse en el hardware objetivo.
 
 Referencias externas consultadas:
 
 - https://learn.microsoft.com/en-us/uwp/audio-video-camera/screen-capture
+- https://learn.microsoft.com/en-us/windows/win32/coreaudio/loopback-recording
+- https://learn.microsoft.com/en-us/windows/win32/coreaudio/audclnt-streamflags-xxx-constants
+- https://learn.microsoft.com/en-us/samples/microsoft/windows-classic-samples/applicationloopbackaudio-sample/
 - https://docs.obsproject.com/frontends
 - https://docs.obsproject.com/reference-outputs
 - https://docs.obsproject.com/reference-encoders
@@ -73,7 +78,7 @@ Esto demuestra una escena mínima de una capa. Todavía no demuestra un composit
 
 ### Audio WASAPI → core
 
-El runtime ya dispone de captura WASAPI separada para micrófono y loopback del sistema.
+El runtime ya dispone de captura WASAPI separada para micrófono y loopback del sistema. El loopback usado por esta implementación corresponde al mecanismo documentado por Microsoft: endpoint de render, `AUDCLNT_STREAMFLAGS_LOOPBACK` y shared mode. Windows 10 1703+ admite este flujo en modo event-driven. citeturn431180search1turn431180search0
 
 Se añadió `audio_core_bridge.cpp/.h` para completar el siguiente contrato:
 
@@ -97,13 +102,18 @@ Características actuales:
 - conserva sample rate, canales, timestamp y secuencia en el `core::AudioPacket` puenteado;
 - actualiza tracks independientes `microphone` y `system` del `AudioMixer`;
 - contabiliza callbacks, paquetes, muestras, errores y pico observado;
-- expone el pico del mix al diagnóstico nativo.
+- expone el pico del mix al diagnóstico nativo;
+- la tecla `A` permite iniciar/detener la captura de audio en el ejecutable diagnóstico.
 
 Esto cierra el **bridge de contrato** de audio, pero todavía no significa que el audio ya sea consumido por un encoder/salidas reales ni que la sincronización A/V esté terminada.
 
+#### Candidato futuro: audio por proceso
+
+La muestra oficial de Microsoft publicada en febrero de 2026 demuestra que Windows puede restringir el loopback a un proceso concreto y sus hijos, o excluirlos del capture. Esto es especialmente relevante para Cari Studio porque permitiría, en una fase posterior, separar el audio del juego de otras aplicaciones del sistema sin depender únicamente de mezclar todo el endpoint. No se considera implementado todavía. citeturn431180search4
+
 ### Fuentes / escenas
 
-La separación conceptual de Cari Studio sigue el patrón documentado por OBS: Sources alimentan Scenes y la composición queda separada de Outputs/Encoders/Services.
+La separación conceptual de Cari Studio sigue el patrón documentado por OBS: Sources alimentan Scenes y la composición queda separada de Outputs/Encoders/Services. Las escenas de OBS además mantienen fuentes reutilizables y transformaciones por item, un patrón que Cari Studio podrá reducir a sus necesidades sin copiar libobs. citeturn431180search5turn431180search6
 
 La arquitectura de Cari Studio no copia OBS internamente; usa esos contratos como referencia de comportamiento.
 
@@ -111,13 +121,13 @@ La arquitectura de Cari Studio no copia OBS internamente; usa esos contratos com
 
 Existe un contrato de `OutputProfile` y construcción de comando FFmpeg RTMP. Todavía no es un pipeline de salida real.
 
-FFmpeg documenta que el `tee` muxer puede enviar los mismos paquetes codificados a varios destinos sin repetir la codificación, y que `fifo` puede aislar diferencias de velocidad/latencia y permitir recuperación de outputs. También documenta opciones de reconexión para determinadas clases de protocolos.
+FFmpeg documenta entradas mediante pipes y formatos raw, de modo que el diseño `core → proceso FFmpeg` es técnicamente viable sin exigir una API externa. También documenta el `tee` muxer para enviar los mismos paquetes codificados a varios destinos sin repetir la codificación y `fifo` para aislar diferencias de velocidad/latencia entre outputs. citeturn144746search0turn144746search2
 
 Gates pendientes:
 
 - descubrimiento controlado del binario FFmpeg;
 - proceso supervisado con captura de stderr;
-- alimentación real de vídeo y audio al proceso;
+- alimentación real de vídeo y audio;
 - sincronización A/V basada en timestamps;
 - detección de caída del proceso;
 - política de reconexión propia de Cari Studio;
@@ -127,9 +137,7 @@ Gates pendientes:
 
 ### Encoder / hardware acceleration
 
-La investigación actual mantiene abiertas varias rutas de implementación: FFmpeg con `d3d11va`/QSV, codificación Media Foundation y otros encoders disponibles en Windows. FFmpeg documenta uso de dispositivos D3D11 y QSV, mientras que Media Foundation expone encoders mediante MFT y Windows mantiene soporte nativo de H.264 y hardware multimedia.
-
-No se selecciona todavía una ruta definitiva porque la decisión debe basarse en pruebas del PC objetivo: consumo de GPU/CPU, latencia, estabilidad, compatibilidad del encoder y coste de copiar frames entre GPU y RAM.
+La investigación actual mantiene abiertas varias rutas de implementación: FFmpeg con D3D11/QSV, codificación Media Foundation y otros encoders disponibles en Windows. La elección definitiva debe basarse en pruebas del PC objetivo: consumo de GPU/CPU, latencia, estabilidad, compatibilidad del encoder y coste de copiar frames entre GPU y RAM.
 
 ### CI
 
@@ -139,7 +147,7 @@ El proyecto tiene:
 - CI separado para el runtime de personajes;
 - CI nativo Windows para CMake, smoke test y empaquetado x64.
 
-Los commits recientes que añaden el bridge de audio, el compositor y la recuperación todavía no presentan una ejecución de workflow visible mediante la API consultada. Por tanto, el estado correcto sigue siendo `pendiente de CI`; no se marca como verde por inferencia.
+La ejecución correspondiente a los últimos commits del bridge de audio y la instrumentación diagnóstica todavía no presenta una ejecución de workflow visible mediante la API consultada. Por tanto, el estado correcto sigue siendo `pendiente de CI`; no se marca como verde por inferencia.
 
 ### Gates técnicos siguientes
 
@@ -150,7 +158,8 @@ Los commits recientes que añaden el bridge de audio, el compositor y la recuper
 5. Implementar encoder/FFmpeg supervisado con stderr y estado de proceso.
 6. Implementar RTMP real con métricas, sincronización A/V y reconexión.
 7. Evaluar encoder de hardware en el PC objetivo.
-8. Validar en hardware: juego, micrófono, audio del sistema y recuperación ante pérdida de dispositivo.
+8. Evaluar captura de audio por proceso para juegos/aplicaciones concretas.
+9. Validar en hardware: juego, micrófono, audio del sistema y recuperación ante pérdida de dispositivo.
 
 ## Regla de cierre
 
