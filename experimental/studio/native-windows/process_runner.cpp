@@ -57,22 +57,86 @@ ProcessRunner::~ProcessRunner() {
 bool ProcessRunner::start(const std::wstring& executable,
                           const std::vector<std::wstring>& arguments,
                           const std::wstring& working_directory) {
+    return start_internal(executable, arguments, working_directory, false);
+}
+
+bool ProcessRunner::start_with_stderr_capture(
+    const std::wstring& executable,
+    const std::vector<std::wstring>& arguments,
+    const std::wstring& working_directory) {
+    return start_internal(executable, arguments, working_directory, true);
+}
+
+bool ProcessRunner::start_internal(const std::wstring& executable,
+                                   const std::vector<std::wstring>& arguments,
+                                   const std::wstring& working_directory,
+                                   bool capture_stderr) {
     terminate();
     close_handles();
+
+    SECURITY_ATTRIBUTES security_attributes{};
+    security_attributes.nLength = sizeof(security_attributes);
+    security_attributes.bInheritHandle = TRUE;
+
+    HANDLE stderr_read = nullptr;
+    HANDLE stderr_write = nullptr;
+    HANDLE null_output = nullptr;
+
+    if (capture_stderr) {
+        if (!CreatePipe(&stderr_read, &stderr_write, &security_attributes, 0)) {
+            return false;
+        }
+        if (!SetHandleInformation(stderr_read, HANDLE_FLAG_INHERIT, 0)) {
+            CloseHandle(stderr_read);
+            CloseHandle(stderr_write);
+            return false;
+        }
+        null_output = CreateFileW(
+            L"NUL", GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+            &security_attributes, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (null_output == INVALID_HANDLE_VALUE) {
+            CloseHandle(stderr_read);
+            CloseHandle(stderr_write);
+            return false;
+        }
+    }
+
     std::wstring command_line = build_command_line(executable, arguments);
     STARTUPINFOW startup{};
     startup.cb = sizeof(startup);
     PROCESS_INFORMATION process{};
+
+    if (capture_stderr) {
+        startup.dwFlags |= STARTF_USESTDHANDLES;
+        startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+        startup.hStdOutput = null_output;
+        startup.hStdError = stderr_write;
+    }
+
     std::wstring mutable_working_directory = working_directory;
+    const DWORD creation_flags = capture_stderr
+        ? CREATE_NO_WINDOW
+        : CREATE_NO_WINDOW;
     const BOOL created = CreateProcessW(
         executable.c_str(),
         command_line.data(),
-        nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr,
+        nullptr, nullptr, capture_stderr ? TRUE : FALSE, creation_flags, nullptr,
         working_directory.empty() ? nullptr : mutable_working_directory.data(),
         &startup, &process);
-    if (!created) return false;
+
+    if (capture_stderr) {
+        CloseHandle(stderr_write);
+        CloseHandle(null_output);
+    }
+
+    if (!created) {
+        if (stderr_read != nullptr) CloseHandle(stderr_read);
+        return false;
+    }
+
     process_handle_ = process.hProcess;
     thread_handle_ = process.hThread;
+    stderr_read_handle_ = stderr_read;
     return true;
 }
 
@@ -95,11 +159,35 @@ ProcessResult ProcessRunner::wait(unsigned long timeout_ms) noexcept {
     result.exited = true;
     DWORD exit_code = 0;
     if (GetExitCodeProcess(process, &exit_code)) result.exit_code = exit_code;
-    close_handles();
+    close_process_handles();
     return result;
 }
 
-void ProcessRunner::close_handles() noexcept {
+bool ProcessRunner::drain_stderr(std::string& output) noexcept {
+    output.clear();
+    if (stderr_read_handle_ == nullptr) return false;
+
+    const auto pipe = static_cast<HANDLE>(stderr_read_handle_);
+    for (;;) {
+        DWORD available = 0;
+        if (!PeekNamedPipe(pipe, nullptr, 0, nullptr, &available, nullptr)) {
+            return false;
+        }
+        if (available == 0) return true;
+
+        constexpr DWORD kChunkSize = 4096;
+        const DWORD bytes_to_read = available < kChunkSize ? available : kChunkSize;
+        char buffer[kChunkSize]{};
+        DWORD bytes_read = 0;
+        if (!ReadFile(pipe, buffer, bytes_to_read, &bytes_read, nullptr)) {
+            return false;
+        }
+        if (bytes_read == 0) return true;
+        output.append(buffer, buffer + bytes_read);
+    }
+}
+
+void ProcessRunner::close_process_handles() noexcept {
     if (thread_handle_ != nullptr) {
         CloseHandle(static_cast<HANDLE>(thread_handle_));
         thread_handle_ = nullptr;
@@ -107,6 +195,14 @@ void ProcessRunner::close_handles() noexcept {
     if (process_handle_ != nullptr) {
         CloseHandle(static_cast<HANDLE>(process_handle_));
         process_handle_ = nullptr;
+    }
+}
+
+void ProcessRunner::close_handles() noexcept {
+    close_process_handles();
+    if (stderr_read_handle_ != nullptr) {
+        CloseHandle(static_cast<HANDLE>(stderr_read_handle_));
+        stderr_read_handle_ = nullptr;
     }
 }
 
