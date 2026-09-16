@@ -7,9 +7,7 @@
 #include <wrl/client.h>
 
 #include <algorithm>
-#include <chrono>
 #include <cstring>
-#include <stdexcept>
 #include <utility>
 
 using Microsoft::WRL::ComPtr;
@@ -32,6 +30,25 @@ float pcm32_to_float(const std::uint8_t* data) {
     std::int32_t value = 0;
     std::memcpy(&value, data, sizeof(value));
     return static_cast<float>(value) / 2147483648.0f;
+}
+
+std::int64_t qpc_to_100ns(std::int64_t qpc) {
+    LARGE_INTEGER frequency{};
+    if (!QueryPerformanceFrequency(&frequency) || frequency.QuadPart <= 0) {
+        return 0;
+    }
+    const long double scaled =
+        (static_cast<long double>(qpc) * 10000000.0L) /
+        static_cast<long double>(frequency.QuadPart);
+    return static_cast<std::int64_t>(scaled);
+}
+
+std::int64_t current_qpc_100ns() {
+    LARGE_INTEGER qpc{};
+    if (!QueryPerformanceCounter(&qpc)) {
+        return 0;
+    }
+    return qpc_to_100ns(qpc.QuadPart);
 }
 
 } // namespace
@@ -110,9 +127,7 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
 
     ComPtr<IMMDeviceEnumerator> enumerator;
     hr = CoCreateInstance(
-        __uuidof(MMDeviceEnumerator),
-        nullptr,
-        CLSCTX_ALL,
+        __uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
         IID_PPV_ARGS(&enumerator));
     if (FAILED(hr)) {
         set_error(hresult_message(L"CoCreateInstance(MMDeviceEnumerator)", hr));
@@ -121,7 +136,7 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
         return;
     }
 
-    EDataFlow flow = mode == WasapiMode::microphone ? eCapture : eRender;
+    const EDataFlow flow = mode == WasapiMode::microphone ? eCapture : eRender;
     ComPtr<IMMDevice> device;
     hr = enumerator->GetDefaultAudioEndpoint(flow, eConsole, &device);
     if (FAILED(hr)) {
@@ -153,12 +168,14 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
         mix_format->wFormatTag == WAVE_FORMAT_IEEE_FLOAT ||
         (mix_format->wFormatTag == WAVE_FORMAT_EXTENSIBLE &&
          mix_format->cbSize >= sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX) &&
-         reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(mix_format)->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT);
+         reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(mix_format)->SubFormat ==
+             KSDATAFORMAT_SUBTYPE_IEEE_FLOAT);
     const bool is_pcm =
         mix_format->wFormatTag == WAVE_FORMAT_PCM ||
         (mix_format->wFormatTag == WAVE_FORMAT_EXTENSIBLE &&
          mix_format->cbSize >= sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX) &&
-         reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(mix_format)->SubFormat == KSDATAFORMAT_SUBTYPE_PCM);
+         reinterpret_cast<const WAVEFORMATEXTENSIBLE*>(mix_format)->SubFormat ==
+             KSDATAFORMAT_SUBTYPE_PCM);
 
     if (!is_float && !is_pcm) {
         CoTaskMemFree(mix_format);
@@ -171,7 +188,6 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
     const std::uint32_t channels = mix_format->nChannels;
     const std::uint32_t sample_rate = mix_format->nSamplesPerSec;
     const std::uint32_t bits_per_sample = mix_format->wBitsPerSample;
-    const std::uint32_t block_align = mix_format->nBlockAlign;
     sample_rate_.store(sample_rate, std::memory_order_relaxed);
     channels_.store(static_cast<std::uint16_t>(channels), std::memory_order_relaxed);
 
@@ -182,12 +198,7 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
     }
 
     hr = client->Initialize(
-        AUDCLNT_SHAREMODE_SHARED,
-        flags,
-        buffer_duration,
-        0,
-        mix_format,
-        nullptr);
+        AUDCLNT_SHAREMODE_SHARED, flags, buffer_duration, 0, mix_format, nullptr);
     if (FAILED(hr)) {
         CoTaskMemFree(mix_format);
         set_error(hresult_message(L"IAudioClient::Initialize", hr));
@@ -238,9 +249,7 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
 
     while (running_.load(std::memory_order_relaxed)) {
         const DWORD wait = WaitForSingleObject(event, 200);
-        if (wait == WAIT_TIMEOUT) {
-            continue;
-        }
+        if (wait == WAIT_TIMEOUT) continue;
         if (wait != WAIT_OBJECT_0) {
             set_error(L"WaitForSingleObject failed for WASAPI event");
             break;
@@ -257,7 +266,11 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
             BYTE* data = nullptr;
             UINT32 frames_available = 0;
             DWORD packet_flags = 0;
-            hr = capture->GetBuffer(&data, &frames_available, &packet_flags, nullptr, nullptr);
+            UINT64 device_position = 0;
+            UINT64 qpc_position = 0;
+            hr = capture->GetBuffer(
+                &data, &frames_available, &packet_flags,
+                &device_position, &qpc_position);
             if (FAILED(hr)) {
                 set_error(hresult_message(L"IAudioCaptureClient::GetBuffer", hr));
                 break;
@@ -266,9 +279,11 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
             AudioCapturePacket packet;
             packet.sample_rate = sample_rate;
             packet.channels = static_cast<std::uint16_t>(channels);
-            packet.timestamp = static_cast<std::int64_t>(
-                std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::steady_clock::now().time_since_epoch()).count());
+            packet.timestamp =
+                (qpc_position != 0 &&
+                 (packet_flags & AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR) == 0)
+                    ? static_cast<std::int64_t>(qpc_position)
+                    : current_qpc_100ns();
             packet.samples.resize(static_cast<std::size_t>(frames_available) * channels);
 
             if (packet_flags & AUDCLNT_BUFFERFLAGS_SILENT) {
@@ -294,9 +309,7 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
                         static_cast<std::int32_t>(data[offset]) |
                         (static_cast<std::int32_t>(data[offset + 1]) << 8) |
                         (static_cast<std::int32_t>(data[offset + 2]) << 16);
-                    if (value & 0x00800000) {
-                        value |= 0xFF000000;
-                    }
+                    if (value & 0x00800000) value |= 0xFF000000;
                     packet.samples[i] = static_cast<float>(value) / 8388608.0f;
                 }
             } else {
