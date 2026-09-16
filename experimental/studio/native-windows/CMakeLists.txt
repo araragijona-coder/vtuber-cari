@@ -68,8 +68,30 @@ target_link_libraries(cari-core-smoke PRIVATE
     user32
 )
 
+add_executable(cari-ffmpeg-supervisor-smoke
+    ffmpeg_supervisor_smoke.cpp
+    process_runner.cpp
+    ffmpeg_supervisor.cpp
+)
+
+target_include_directories(cari-ffmpeg-supervisor-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
+target_compile_definitions(cari-ffmpeg-supervisor-smoke PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+target_link_libraries(cari-ffmpeg-supervisor-smoke PRIVATE
+    user32
+)
+
 enable_testing()
 add_test(NAME cari-core-smoke COMMAND cari-core-smoke)
+add_test(NAME cari-ffmpeg-supervisor-smoke COMMAND cari-ffmpeg-supervisor-smoke)
 
 # Native capture/audio/output infrastructure is isolated behind stable
 # interfaces so hardware-dependent validation can happen on the target PC.
