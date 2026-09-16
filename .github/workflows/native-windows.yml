@@ -34,6 +34,12 @@ jobs:
       - name: Run Cari Core smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-core-smoke
 
+      - name: Run FFmpeg supervisor smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-supervisor-smoke
+
+      - name: Run raw pipe smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-raw-pipe-smoke
+
       - name: Verify native executable exists
         shell: pwsh
         run: |
