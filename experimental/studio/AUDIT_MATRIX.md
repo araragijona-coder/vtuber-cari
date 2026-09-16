@@ -14,11 +14,11 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 |---|---|---|
 | Captura Windows | Microsoft Learn — Windows.Graphics.Capture | Frame pool, D3D11, resize y recreate ante cambios de dispositivo/tamaño. |
 | Audio timing | Microsoft Learn — IAudioCaptureClient / WASAPI | QPCPosition como base temporal de los paquetes de audio. |
-| Pipes Windows | Microsoft Learn — CreatePipe / PeekNamedPipe / ReadFile | Captura de stderr y futuros canales de proceso sin bloquear el hilo principal. |
+| Pipes Windows | Microsoft Learn — named pipes / overlapped I/O | Transporte asíncrono para no bloquear productores y mantener backpressure explícito. |
 | EventSub | Twitch Developers — WebSocket handling | Welcome, keepalive, reconnect sin perder suscripciones. |
 | OAuth | Twitch Developers — scopes/authentication | Verificación de permisos mínimos y separación broadcaster/bot. |
 | Twitch runtime | TwitchIO 3.x documentation/changelog | Gestión de WebSocket y correcciones de reconexión; evitar duplicar transporte en Cari. |
-| Streaming architecture | OBS Studio docs | Separación de sources, scenes, encoders, outputs y services; buffers temporales y PTS monotónicos. |
+| Streaming architecture | OBS Studio docs | Separación de sources, scenes, encoders, outputs y services; comparación arquitectónica. |
 | Captura ejemplo | MicrosoftDocs/SimpleRecorder | Patrón oficial de captura Windows.Graphics.Capture hacia vídeo. |
 | Windows samples | microsoft/WindowsAppSDK-Samples | Patrones de aplicación Windows nativa y distribución. |
 | OBS reference implementation | obsproject/obs-studio | Comparación de arquitectura y comportamiento, sin copiar implementación incompatible. |
@@ -70,13 +70,26 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Native smoke test for process execution.
 - [x] Process stderr capture and draining.
 - [x] Supervised FFmpeg process boundary: validation, launch, poll, stderr and exit state.
-- [x] CI smoke for FFmpeg supervisor failure/validation path (run 135).
+- [x] CI smoke for FFmpeg supervisor failure/validation path.
 - [ ] FFmpeg binary discovery policy.
 - [ ] FFmpeg legal redistribution decision.
 - [ ] Raw video pipe connected to FFmpeg.
 - [ ] Raw audio pipe connected to FFmpeg.
 - [ ] Output stderr classification / structured diagnostics.
 - [ ] Automatic output reconnect/backoff policy.
+
+### Raw media transport — nueva etapa
+
+- [x] Windows named pipe con modo byte.
+- [x] I/O `OVERLAPPED` persistente para conexión y escritura.
+- [x] Cola acotada en memoria con métrica de descarte.
+- [x] Cancelación de I/O pendiente durante cierre.
+- [ ] Smoke CI del nuevo transporte en run actual.
+- [ ] Integración video BGRA → RawPipe.
+- [ ] Integración audio PCM float → RawPipe.
+- [ ] Segundo canal/entrada FFmpeg para audio.
+- [ ] Mapeo A/V y política de timestamps en FFmpeg.
+- [ ] Prueba local con FFmpeg real y archivo de salida.
 
 ### Twitch
 
@@ -129,12 +142,13 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Evidencia actual
 
-- `Native Windows Build` run **135** terminó en `success` sobre el commit de código que incorporó `FfmpegSupervisor`; configuró CMake x64, compiló los targets, ejecutó `cari-core-smoke`, verificó el `.exe` y generó/subió el ZIP portable.
-- `CI` run **349** y `Character Runtime Tests` run **20** también quedaron en `success` para ese head de código.
-- `FfmpegSupervisor` no contacta RTMP durante CI: el smoke valida deliberadamente la frontera de proceso, la validación de perfil y el fallo determinista de ejecutable ausente.
-- `StudioPipeline` ya incorpora `AvSyncController`; el smoke cubre orden temporal, tolerancia y late-drop.
-- `main` sigue apuntando al SHA base del PR y la rama de trabajo contiene la implementación experimental.
-- El código de captura se mantiene deliberadamente separado del hardware final; la prueba física sigue siendo necesaria para validar cámara, GPU, juegos, audio y rendimiento.
+- `Native Windows Build` está ejecutándose ahora sobre el head **229f03ba0ac644b67f6aa730b365ea0fc8851846**, que incluye el nuevo `RawPipe` y los tres smoke tests separados.
+- El workflow ahora ejecuta explícitamente `cari-core-smoke`, `cari-ffmpeg-supervisor-smoke` y `cari-raw-pipe-smoke`; el último es un cliente Windows real que conecta a la named pipe y verifica payload + métricas.
+- `RawPipe` implementa `CreateNamedPipeW` con `FILE_FLAG_OVERLAPPED`, mantiene vivas las estructuras `OVERLAPPED`, limita la cola en memoria y permite cancelar I/O pendiente al cerrar.
+- `FfmpegSupervisor` sigue siendo únicamente frontera de proceso: todavía no recibe los bytes multimedia reales y, por tanto, no se considera streaming A/V completo.
+- El perfil FFmpeg actual sigue construyendo una entrada de vídeo raw por `stdin`; el audio todavía no está mapeado al proceso, así que los gates de audio/output real permanecen abiertos.
+- `StudioPipeline` ya incorpora `AvSyncController`; el smoke existente cubre orden temporal, tolerancia y late-drop, pero no corrección de drift/resampling de producción.
+- La validación final de cámara, GPU, juegos, audio, rendimiento y reconexión continúa requiriendo una máquina Windows objetivo; CI no sustituye esa prueba.
 
 ## Regla de cierre
 
