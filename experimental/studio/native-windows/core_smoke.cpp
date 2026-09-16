@@ -11,6 +11,7 @@
 #include <cassert>
 #include <iostream>
 #include <memory>
+#include <string>
 
 namespace {
 
@@ -174,6 +175,17 @@ int main() {
     assert(process_result.started);
     assert(process_result.exited);
     assert(process_result.exit_code == 0);
+
+    cari::native::ProcessRunner supervised;
+    assert(supervised.start_with_stderr_capture(
+        L"cmd.exe", {L"/C", L"echo CariSupervisorTest 1>&2"}));
+    const auto supervised_result = supervised.wait(5000);
+    assert(supervised_result.started);
+    assert(supervised_result.exited);
+    assert(supervised_result.exit_code == 0);
+    std::string stderr_output;
+    assert(supervised.drain_stderr(stderr_output));
+    assert(stderr_output.find("CariSupervisorTest") != std::string::npos);
 
     std::cout << "Cari Core smoke: PASS\n";
     return 0;
