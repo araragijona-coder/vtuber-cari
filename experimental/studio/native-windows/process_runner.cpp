@@ -114,13 +114,10 @@ bool ProcessRunner::start_internal(const std::wstring& executable,
     }
 
     std::wstring mutable_working_directory = working_directory;
-    const DWORD creation_flags = capture_stderr
-        ? CREATE_NO_WINDOW
-        : CREATE_NO_WINDOW;
     const BOOL created = CreateProcessW(
         executable.c_str(),
         command_line.data(),
-        nullptr, nullptr, capture_stderr ? TRUE : FALSE, creation_flags, nullptr,
+        nullptr, nullptr, capture_stderr ? TRUE : FALSE, CREATE_NO_WINDOW, nullptr,
         working_directory.empty() ? nullptr : mutable_working_directory.data(),
         &startup, &process);
 
@@ -171,7 +168,7 @@ bool ProcessRunner::drain_stderr(std::string& output) noexcept {
     for (;;) {
         DWORD available = 0;
         if (!PeekNamedPipe(pipe, nullptr, 0, nullptr, &available, nullptr)) {
-            return false;
+            return GetLastError() == ERROR_BROKEN_PIPE;
         }
         if (available == 0) return true;
 
@@ -180,7 +177,7 @@ bool ProcessRunner::drain_stderr(std::string& output) noexcept {
         char buffer[kChunkSize]{};
         DWORD bytes_read = 0;
         if (!ReadFile(pipe, buffer, bytes_to_read, &bytes_read, nullptr)) {
-            return false;
+            return GetLastError() == ERROR_BROKEN_PIPE;
         }
         if (bytes_read == 0) return true;
         output.append(buffer, buffer + bytes_read);
