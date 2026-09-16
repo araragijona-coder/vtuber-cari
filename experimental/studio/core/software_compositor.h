@@ -59,6 +59,33 @@ public:
         return true;
     }
 
+    bool compose_scene(
+        const Scene& scene,
+        const std::vector<SoftwareLayer>& available_layers) {
+        std::vector<SoftwareLayer> transformed;
+        transformed.reserve(scene.layers().size());
+
+        for (const auto& scene_layer : scene.layers()) {
+            const auto it = std::find_if(
+                available_layers.begin(), available_layers.end(),
+                [&](const SoftwareLayer& layer) {
+                    return layer.source_id == scene_layer.source_id;
+                });
+            if (it == available_layers.end()) return false;
+
+            auto layer = *it;
+            layer.x = scene_layer.x;
+            layer.y = scene_layer.y;
+            layer.visible = scene_layer.visible;
+            layer.opacity = scene_layer.opacity;
+            layer.scale_x = scene_layer.scale_x;
+            layer.scale_y = scene_layer.scale_y;
+            transformed.push_back(std::move(layer));
+        }
+
+        return compose(transformed);
+    }
+
 private:
     void blit(const SoftwareLayer& layer) {
         const float opacity = std::clamp(layer.opacity, 0.0f, 1.0f);
