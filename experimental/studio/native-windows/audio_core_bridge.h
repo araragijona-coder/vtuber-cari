@@ -31,6 +31,7 @@ public:
     bool start();
     void stop() noexcept;
 
+    [[nodiscard]] bool running() const noexcept { return running_.load(std::memory_order_relaxed); }
     [[nodiscard]] AudioCoreBridgeStats stats() const noexcept;
     [[nodiscard]] float mix_peak() const;
     [[nodiscard]] std::vector<float> mixed_samples(std::size_t sample_count) const;
@@ -48,6 +49,7 @@ private:
     mutable std::mutex error_mutex_;
     std::wstring last_error_;
 
+    std::atomic<bool> running_{false};
     std::atomic<std::uint64_t> callbacks_{0};
     std::atomic<std::uint64_t> packets_{0};
     std::atomic<std::uint64_t> samples_{0};
