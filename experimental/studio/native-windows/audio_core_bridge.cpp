@@ -1,7 +1,5 @@
 #include "audio_core_bridge.h"
 
-#include <algorithm>
-#include <string_view>
 #include <utility>
 
 namespace cari::native {
@@ -39,24 +37,31 @@ bool AudioCoreBridge::start() {
         last_error_.clear();
     }
 
+    bool any_started = false;
+
     const bool microphone_started = microphone_.start(
         WasapiMode::microphone,
         [this](const AudioCapturePacket& packet) { on_packet("microphone", packet); });
     if (!microphone_started) {
         set_error(L"WASAPI microphone capture could not start: " + microphone_.last_error());
-        return false;
+    } else {
+        any_started = true;
     }
 
     const bool system_started = system_loopback_.start(
         WasapiMode::system_loopback,
         [this](const AudioCapturePacket& packet) { on_packet("system", packet); });
     if (!system_started) {
-        microphone_.stop();
         set_error(L"WASAPI system loopback capture could not start: " + system_loopback_.last_error());
-        return false;
+    } else {
+        any_started = true;
     }
 
-    return true;
+    if (!any_started) {
+        microphone_.stop();
+        system_loopback_.stop();
+    }
+    return any_started;
 }
 
 void AudioCoreBridge::stop() noexcept {
