@@ -13,13 +13,15 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 | Área | Fuente | Uso en Cari |
 |---|---|---|
 | Captura Windows | Microsoft Learn — Windows.Graphics.Capture | Frame pool, D3D11, resize y recreate ante cambios de dispositivo/tamaño. |
+| Audio timing | Microsoft Learn — IAudioCaptureClient / WASAPI | QPCPosition como base temporal de los paquetes de audio. |
 | EventSub | Twitch Developers — WebSocket handling | Welcome, keepalive, reconnect sin perder suscripciones. |
 | OAuth | Twitch Developers — scopes/authentication | Verificación de permisos mínimos y separación broadcaster/bot. |
 | Twitch runtime | TwitchIO 3.x documentation/changelog | Gestión de WebSocket y correcciones de reconexión; evitar duplicar transporte en Cari. |
-| Streaming architecture | OBS Studio docs | Separación de sources, scenes, encoders, outputs y services. |
+| Streaming architecture | OBS Studio docs | Separación de sources, scenes, encoders, outputs y services; buffers temporales y PTS monotónicos. |
 | Captura ejemplo | MicrosoftDocs/SimpleRecorder | Patrón oficial de captura Windows.Graphics.Capture hacia vídeo. |
 | Windows samples | microsoft/WindowsAppSDK-Samples | Patrones de aplicación Windows nativa y distribución. |
 | OBS reference implementation | obsproject/obs-studio | Comparación de arquitectura y comportamiento, sin copiar implementación incompatible. |
+| A/V timestamps | FFmpeg documentation | Modos de sincronización de vídeo y tratamiento explícito de timestamps. |
 | Character design | Writers.com — character development | Separación de rasgos, valores, defectos, objetivos y arco para mantener coherencia de personaje. |
 
 ## Gates
@@ -34,6 +36,9 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Fan-out output.
 - [x] Output profile validation.
 - [x] Encoder boundary.
+- [x] Interleave temporal A/V con reloj maestro lógico de audio.
+- [x] Smoke tests de orden, tolerancia y late-drop.
+- [ ] Drift correction / resampling de producción.
 - [ ] Encoder real conectado.
 - [ ] Mux/record real.
 - [ ] RTMP real desde el pipeline.
@@ -50,6 +55,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Frame-pool recreate ante cambios de tamaño.
 - [ ] Media Foundation camera streaming.
 - [ ] Dedicated game capture.
+- [x] Device-loss recovery para removed/reset/hung.
 - [ ] Exhaustive device-loss/reconnect path.
 - [ ] Real-machine hardware validation.
 
@@ -125,11 +131,14 @@ Expressions are not personality. Emotional state, acting, appearance and persona
 
 ## Evidencia actual
 
-- CI Python 3.11/3.12 y Native Windows alcanzaron estado verde en `8d9d4af`.
+- `main` fue devuelta a la SHA base del PR para eliminar la contaminación experimental detectada; el PR vuelve a ser la única línea de implementación.
+- El nuevo `AvSyncController` ya está integrado en `StudioPipeline` y cubierto por smoke tests del nativo.
+- La sincronización temporal actual utiliza timestamps de audio y ventanas de tolerancia; todavía no hace drift correction ni resampling.
+- CI Python/Native había alcanzado estado verde en un commit anterior; el head actual debe volver a observar un run exitoso antes de ser marcado como verificado.
 - El workflow nativo construye Release x64, ejecuta `cari-core-smoke`, verifica el ejecutable y prepara `CariStudio-Windows-x64.zip`.
 - TwitchIO 3.x documenta `subscribe_websocket()` como gestor de suscripciones WebSocket y su changelog registra correcciones específicas de reconexión. Esto evita implementar un segundo transporte dentro de Cari; queda pendiente una prueba de integración propia.
 - El código de captura se mantiene deliberadamente separado del hardware final; la primera prueba física sigue siendo necesaria para validar cámara, GPU, juegos, audio y rendimiento.
-- La bibliografía de diseño de personajes usada para esta capa destaca que rasgos recurrentes, valores, objetivos, defectos y filosofía deben formar patrones coherentes de decisión y evolución. citeturn300063search4turn300063search7
+- La bibliografía de diseño de personajes usada para esta capa destaca que rasgos recurrentes, valores, objetivos, defectos y filosofía deben formar patrones coherentes de decisión y evolución.
 
 ## Regla de cierre
 
