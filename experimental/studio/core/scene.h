@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace cari::studio::core {
@@ -13,6 +14,10 @@ struct SceneLayer {
     int z_order = 0;
     bool visible = true;
     float opacity = 1.0f;
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+    float scale_x = 1.0f;
+    float scale_y = 1.0f;
 };
 
 class Scene final {
@@ -23,7 +28,7 @@ public:
     void set_id(std::string id) { id_ = std::move(id); }
 
     bool add_layer(SceneLayer layer) {
-        if (layer.source_id.empty()) {
+        if (layer.source_id.empty() || layer.scale_x <= 0.0f || layer.scale_y <= 0.0f) {
             return false;
         }
         if (std::any_of(layers_.begin(), layers_.end(), [&](const SceneLayer& item) {
