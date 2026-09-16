@@ -1,5 +1,8 @@
 #pragma once
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -46,6 +49,8 @@ private:
 
     void* pipe_handle_ = nullptr;
     void* event_handle_ = nullptr;
+    OVERLAPPED connect_overlapped_{};
+    OVERLAPPED write_overlapped_{};
     bool connected_ = false;
     bool connect_pending_ = false;
     bool write_pending_ = false;
