@@ -1,5 +1,6 @@
 #pragma once
 
+#include "av_sync.h"
 #include "bounded_queue.h"
 #include "scene.h"
 #include "source.h"
@@ -39,9 +40,7 @@ public:
 
     bool submit(const Frame& frame) override {
         std::lock_guard lock(mutex_);
-        if (!active_) {
-            return false;
-        }
+        if (!active_) return false;
         ++metrics_.frames;
         metrics_.encoded = metrics_.frames;
         last_pts_ = frame.pts;
@@ -50,9 +49,7 @@ public:
 
     bool submit_audio(const AudioPacket& packet) override {
         std::lock_guard lock(mutex_);
-        if (!active_) {
-            return false;
-        }
+        if (!active_) return false;
         metrics_.audio_frames += packet.samples.empty()
             ? 0
             : packet.samples.size() / static_cast<std::size_t>(packet.channels == 0 ? 1 : packet.channels);
@@ -79,77 +76,73 @@ private:
 class StudioPipeline final {
 public:
     explicit StudioPipeline(std::size_t frame_capacity = 4,
-                            std::size_t audio_capacity = 8)
-        : frames_(frame_capacity), audio_(audio_capacity) {}
+                            std::size_t audio_capacity = 8,
+                            AvSyncConfig sync_config = {})
+        : frames_(frame_capacity), audio_(audio_capacity), sync_(sync_config) {}
 
     bool set_output(std::shared_ptr<IOutput> output) {
-        if (!output || running_) {
-            return false;
-        }
+        if (!output || running_) return false;
         output_ = std::move(output);
         return true;
     }
 
     bool start() {
-        if (running_ || !output_) {
-            return false;
-        }
+        if (running_ || !output_) return false;
         frames_.reset();
         audio_.reset();
-        if (!output_->start()) {
-            return false;
-        }
+        sync_.reset();
+        if (!output_->start()) return false;
         running_ = true;
         return true;
     }
 
     void stop() noexcept {
-        if (!running_ && frames_.closed() && audio_.closed()) {
-            return;
-        }
+        if (!running_ && frames_.closed() && audio_.closed()) return;
         running_ = false;
         frames_.close();
         audio_.close();
-        if (output_) {
-            output_->stop();
-        }
+        sync_.reset();
+        if (output_) output_->stop();
     }
 
     bool submit_frame(Frame frame) {
-        if (!running_) {
-            return false;
-        }
+        if (!running_) return false;
         return frames_.push(std::move(frame));
     }
 
     bool submit_audio(AudioPacket packet) {
-        if (!running_) {
-            return false;
-        }
+        if (!running_) return false;
         return audio_.push(std::move(packet));
     }
 
     std::size_t pump_once() {
-        if (!running_ || !output_) {
-            return 0;
-        }
-        std::size_t submitted = 0;
-        while (const auto frame = frames_.try_pop()) {
-            if (output_->submit(*frame)) {
-                ++submitted;
+        if (!running_ || !output_) return 0;
+
+        while (const auto frame = frames_.try_pop()) sync_.push_video(*frame);
+        while (const auto packet = audio_.try_pop()) sync_.push_audio(*packet);
+
+        std::size_t submitted_video = 0;
+        while (const auto event = sync_.next()) {
+            if (event->kind == AvSyncController::Event::Kind::video) {
+                if (event->frame && output_->submit(*event->frame)) ++submitted_video;
+            } else if (event->audio) {
+                output_->submit_audio(*event->audio);
             }
         }
-        while (const auto packet = audio_.try_pop()) {
-            output_->submit_audio(*packet);
-        }
-        return submitted;
+        return submitted_video;
     }
 
     [[nodiscard]] bool running() const noexcept { return running_; }
-    [[nodiscard]] std::size_t pending_video() const { return frames_.size(); }
-    [[nodiscard]] std::size_t pending_audio() const { return audio_.size(); }
-    [[nodiscard]] std::size_t dropped_video() const { return frames_.dropped(); }
-    [[nodiscard]] std::size_t dropped_audio() const { return audio_.dropped(); }
+    [[nodiscard]] std::size_t pending_video() const { return frames_.size() + sync_.pending_video(); }
+    [[nodiscard]] std::size_t pending_audio() const { return audio_.size() + sync_.pending_audio(); }
+    [[nodiscard]] std::size_t dropped_video() const {
+        return frames_.dropped() + sync_.stats().video_dropped_overflow + sync_.stats().video_dropped_late;
+    }
+    [[nodiscard]] std::size_t dropped_audio() const {
+        return audio_.dropped() + sync_.stats().audio_dropped_overflow;
+    }
+
+    [[nodiscard]] const AvSyncStats& av_sync_stats() const noexcept { return sync_.stats(); }
 
     [[nodiscard]] OutputMetrics output_metrics() const noexcept {
         return output_ ? output_->metrics() : OutputMetrics{};
@@ -158,6 +151,7 @@ public:
 private:
     BoundedQueue<Frame> frames_;
     BoundedQueue<AudioPacket> audio_;
+    AvSyncController sync_;
     std::shared_ptr<IOutput> output_;
     bool running_ = false;
 };
