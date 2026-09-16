@@ -8,9 +8,19 @@ namespace {
 std::wstring widen_ascii(const char* text) {
     std::wstring result;
     if (!text) return result;
-    while (*text) {
-        result.push_back(static_cast<wchar_t>(*text++));
-    }
+    while (*text) result.push_back(static_cast<wchar_t>(*text++));
+    return result;
+}
+
+cari::studio::core::AudioPacket to_core_packet(
+    const AudioCapturePacket& packet,
+    std::uint64_t sequence) {
+    cari::studio::core::AudioPacket result;
+    result.pts = packet.timestamp;
+    result.sample_rate = packet.sample_rate;
+    result.channels = packet.channels;
+    result.sequence = sequence;
+    result.samples = packet.samples;
     return result;
 }
 
@@ -77,17 +87,21 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
         return;
     }
 
-    const auto sample_count = packet.samples.size();
-    const float packet_peak = mixer_.peak(packet.samples);
+    const auto sequence = packets_.load(std::memory_order_relaxed) + 1;
+    const auto core_packet = to_core_packet(packet, sequence);
+    const float packet_peak = mixer_.peak(core_packet.samples);
+
     float observed = peak_.load(std::memory_order_relaxed);
     while (packet_peak > observed &&
            !peak_.compare_exchange_weak(
-               observed, packet_peak, std::memory_order_relaxed, std::memory_order_relaxed)) {
+               observed, packet_peak,
+               std::memory_order_relaxed,
+               std::memory_order_relaxed)) {
     }
 
     try {
         std::lock_guard lock(mixer_mutex_);
-        if (!mixer_.set_samples(track_id, packet.samples)) {
+        if (!mixer_.set_samples(track_id, core_packet.samples)) {
             set_error(L"AudioMixer track is missing: " + widen_ascii(track_id));
             return;
         }
@@ -97,7 +111,7 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
     }
 
     packets_.fetch_add(1, std::memory_order_relaxed);
-    samples_.fetch_add(sample_count, std::memory_order_relaxed);
+    samples_.fetch_add(core_packet.samples.size(), std::memory_order_relaxed);
 }
 
 void AudioCoreBridge::set_error(std::wstring error) {
