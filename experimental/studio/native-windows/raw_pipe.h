@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace cari::native {
 
@@ -16,7 +15,7 @@ struct RawPipeMetrics {
 };
 
 // Windows-only byte transport for feeding a local media process without
-// blocking the capture/audio producer threads. The server owns the pipe and
+// blocking capture/audio producer threads. The server owns the pipe and
 // exposes a client endpoint name for the child process to open.
 class RawPipe final {
 public:
@@ -45,10 +44,12 @@ private:
     void* pipe_handle_ = nullptr;
     void* event_handle_ = nullptr;
     bool connected_ = false;
+    bool connect_pending_ = false;
     bool write_pending_ = false;
     std::size_t max_pending_bytes_ = 0;
     std::size_t pending_bytes_ = 0;
     std::wstring name_;
+    std::string pending_buffer_;
     std::string last_error_;
     RawPipeMetrics metrics_{};
 };
