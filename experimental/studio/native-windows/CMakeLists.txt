@@ -17,6 +17,7 @@ add_executable(cari-studio-native WIN32
     compositor_bridge.cpp
     frame_bridge.cpp
     process_runner.cpp
+    ffmpeg_supervisor.cpp
     wasapi_capture.cpp
     window_sources.cpp
 )
@@ -49,6 +50,7 @@ target_link_libraries(cari-studio-native PRIVATE
 add_executable(cari-core-smoke
     core_smoke.cpp
     process_runner.cpp
+    ffmpeg_supervisor.cpp
 )
 
 target_include_directories(cari-core-smoke PRIVATE
