@@ -4,7 +4,9 @@ Fecha: 2026-09-16
 
 ## Estado de esta iteración
 
-La rama de trabajo es `fix/native-windows-foundation`. `main` fue restaurada a la SHA base declarada por el PR (`ac7147d2696fd6c06015f7e61ac6f957bc9498db`). La última ronda de CI totalmente verde corresponde al head de código `f48b00811c57e0e8fa86a9c43459490a3a3dca32`; desde entonces se añadió supervisión de procesos/stderr y esa nueva capa todavía debe pasar CI.
+La rama de trabajo es `fix/native-windows-foundation`. `main` fue restaurada a la SHA base declarada por el PR (`ac7147d2696fd6c06015f7e61ac6f957bc9498db`).
+
+La ronda CI anterior sobre `f48b00811c57e0e8fa86a9c43459490a3a3dca32` quedó completamente verde. Después se añadió una frontera supervisada específica para FFmpeg y esta nueva iteración requiere su propia ronda de CI.
 
 ## Evidencia externa revisada
 
@@ -13,9 +15,10 @@ La rama de trabajo es `fix/native-windows-foundation`. `main` fue restaurada a l
 - Microsoft Learn — WASAPI loopback: `AUDCLNT_STREAMFLAGS_LOOPBACK` captura el audio que reproduce un endpoint de render y requiere shared mode.
 - Microsoft Learn — `IAudioCaptureClient::GetBuffer` entrega posición del dispositivo y `QPCPosition` asociado al primer frame del paquete.
 - Microsoft Learn — Application loopback sample (2026): Windows puede restringir la captura a un proceso concreto y sus hijos.
-- OBS Studio documentation: separación conceptual entre Sources/Scenes y Outputs/Encoders/Services; el backend conserva audio temporalmente respecto del timestamp del hilo de audio y los outputs codificados esperan timestamps monotónicos.
-- FFmpeg documentation: timestamps, modos de sincronización de vídeo (`passthrough/cfr/vfr`), pipes/raw inputs, `tee`, FIFO y reconexión.
-- FFmpeg licensing documentation: la base es LGPL 2.1+; determinados componentes opcionales pueden activar GPL u otras condiciones, por lo que la redistribución de un binario concreto debe auditarse junto con su configuración de build. citeturn101164search0turn101164search1
+- Microsoft Learn — anonymous/named pipes: `CreatePipe`, `PeekNamedPipe`, `ReadFile` y modos overlapped establecen los límites de un canal de proceso que no bloquee el hilo principal. citeturn539768search0turn539768search2turn539768search3
+- OBS Studio documentation: separación conceptual entre Sources/Scenes y Outputs/Encoders/Services; los outputs pueden consumir datos raw o encoded y los paquetes llevan PTS/DTS explícitos. citeturn539768search9turn539768search10turn539768search13
+- FFmpeg documentation: `tee` permite codificar una vez para varias salidas y `fifo` separa encoding/muxing y permite recuperación configurable cuando una salida falla. citeturn539768search7turn539768search1
+- FFmpeg licensing documentation: la base es LGPL 2.1+; determinados componentes opcionales pueden activar GPL u otras condiciones, por lo que la redistribución de un binario concreto debe auditarse junto con su configuración de build.
 
 ## Estado verificado
 
@@ -36,13 +39,7 @@ La captura atraviesa:
 WGC → D3D11 → FrameBridge → core::Frame → BGRA8/RGBA8 → SoftwareCompositor
 ```
 
-El core dispone de transforms básicos por `SceneLayer`:
-
-- posición `x/y`;
-- escala `scale_x/scale_y`;
-- visibilidad;
-- opacidad;
-- `z_order`.
+El core dispone de transforms básicos por `SceneLayer`: posición, escala, visibilidad, opacidad y `z_order`.
 
 `SoftwareCompositor::compose_scene()` resuelve los `source_id` de una `Scene` y aplica esos transforms. El smoke test cubre escena multicapa + escalado.
 
@@ -76,40 +73,50 @@ El smoke cubre audio como reloj maestro lógico, tolerancias, PTS fuera de orden
 
 Esto sigue siendo el primer nivel de sincronización temporal: faltan reloj monotónico de salida, medición de drift sostenido, resampling/time-stretch y validación en hardware real.
 
-### Supervisión de procesos — nueva etapa
+### Supervisión de procesos / FFmpeg — nueva etapa
 
-`ProcessRunner` ahora tiene dos modos:
+`ProcessRunner` dispone de un modo de ejecución con captura de `stderr` mediante pipe local y sondeo sin bloqueo.
 
-1. ejecución normal;
-2. ejecución con captura de `stderr` mediante pipe no bloqueante para sondeo.
+Se añadió además `FfmpegSupervisor`, que encapsula:
 
-La API conserva el ciclo local `start → wait/terminate`, y la lectura de stderr queda explícita para que una futura instancia de FFmpeg pueda reportar errores reales sin acoplar la UI a texto de consola.
+- validación del `OutputProfile` antes de iniciar;
+- construcción de argumentos FFmpeg desde el contrato de salida;
+- arranque controlado del proceso;
+- polling del estado del proceso;
+- acumulación de `stderr` para diagnóstico;
+- código de salida;
+- parada controlada.
 
-El smoke nativo incluye un proceso `cmd.exe` que escribe en stderr y verifica que el texto se puede drenar tras su terminación. El EOF limpio de la tubería se trata como fin normal del stream.
+También existe un smoke dedicado que no contacta ningún servicio remoto: comprueba la frontera de validación y el fallo determinista de ejecutable ausente.
 
-Todavía pendiente:
+**Todavía no se marca como verificado por CI** hasta observar el nuevo workflow Windows.
 
-- supervisión específica de FFmpeg;
-- clasificación de líneas `info/warn/error`;
-- política de reinicio/backoff;
+La supervisión tampoco equivale todavía a streaming real. Faltan:
+
+- descubrimiento/política del binario FFmpeg;
+- pipe raw de vídeo conectado al proceso;
+- ruta de audio separada y sincronizada;
+- muxer/encoder real probado;
+- clasificación estructurada de logs;
+- backoff/restart;
 - health state de output;
 - reconexión RTMP.
 
-### CI de referencia
+## CI de referencia
 
-El head de código `f48b00811c57e0e8fa86a9c43459490a3a3dca32` pasó:
+Head anterior `f48b00811c57e0e8fa86a9c43459490a3a3dca32`:
 
 - `CI` run 338 — success.
 - `Character Runtime Tests` run 9 — success.
 - `Native Windows Build` run 124 — success, incluyendo build, `cari-core-smoke`, exe y ZIP.
 
-La nueva capa de `stderr` está en commits posteriores y por eso vuelve a requerir una ronda de CI propia.
+La nueva capa `FfmpegSupervisor` está en commits posteriores y requiere su propia ronda de CI.
 
 ## Gates siguientes
 
-1. CI Windows de `ProcessRunner` + stderr capture.
-2. supervisor FFmpeg con stderr/logs y estado de proceso.
-3. pipe raw A/V real y timestamps de salida.
+1. CI Windows del supervisor FFmpeg + smoke dedicado.
+2. pipe raw A/V real y timestamps de salida.
+3. encoder/muxer real.
 4. RTMP real + reconexión.
 5. Scene runtime con múltiples fuentes reales.
 6. evaluación de encoder hardware en el PC objetivo.
@@ -130,4 +137,4 @@ La nueva capa de `stderr` está en commits posteriores y por eso vuelve a requer
 
 `stderr capture` != `FFmpeg supervisor completo`.
 
-`comando FFmpeg válido` != `stream RTMP funcional`.
+`FFmpeg supervisor` != `stream RTMP funcional`.
