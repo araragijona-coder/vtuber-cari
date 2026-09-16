@@ -1,8 +1,5 @@
 #include "raw_pipe.h"
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
 #include <algorithm>
 #include <limits>
 
@@ -18,10 +15,6 @@ void* as_ptr(HANDLE value) noexcept {
     return static_cast<void*>(value);
 }
 
-std::string win_error(const char* prefix) {
-    return prefix;
-}
-
 } // namespace
 
 RawPipe::~RawPipe() {
@@ -34,6 +27,8 @@ bool RawPipe::create(const std::wstring& name, std::size_t max_pending_bytes) {
     metrics_ = {};
     pending_queue_.clear();
     pending_bytes_ = 0;
+    connect_overlapped_ = {};
+    write_overlapped_ = {};
 
     if (name.empty() || max_pending_bytes == 0 ||
         max_pending_bytes > static_cast<std::size_t>(std::numeric_limits<DWORD>::max())) {
@@ -41,13 +36,16 @@ bool RawPipe::create(const std::wstring& name, std::size_t max_pending_bytes) {
         return false;
     }
 
+    const auto buffer_size = static_cast<DWORD>(
+        std::min<std::size_t>(max_pending_bytes, 1u << 20));
+
     pipe_handle_ = as_ptr(CreateNamedPipeW(
         name.c_str(),
         PIPE_ACCESS_OUTBOUND | FILE_FLAG_OVERLAPPED,
         PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
         1,
-        static_cast<DWORD>(std::min<std::size_t>(max_pending_bytes, 1u << 20)),
-        static_cast<DWORD>(std::min<std::size_t>(max_pending_bytes, 1u << 20)),
+        buffer_size,
+        buffer_size,
         0,
         nullptr));
     if (!pipe_handle_) {
@@ -77,11 +75,14 @@ bool RawPipe::wait_for_client(unsigned long timeout_ms) noexcept {
     }
 
     if (!connect_pending_) {
-        OVERLAPPED overlapped{};
-        overlapped.hEvent = as_handle(event_handle_);
-        ResetEvent(overlapped.hEvent);
-        const BOOL connected = ConnectNamedPipe(as_handle(pipe_handle_), &overlapped);
-        if (connected != FALSE) {
+        connect_overlapped_ = {};
+        connect_overlapped_.hEvent = as_handle(event_handle_);
+        ResetEvent(connect_overlapped_.hEvent);
+
+        const BOOL result = ConnectNamedPipe(
+            as_handle(pipe_handle_),
+            &connect_overlapped_);
+        if (result != FALSE) {
             connected_ = true;
             return true;
         }
@@ -99,7 +100,9 @@ bool RawPipe::wait_for_client(unsigned long timeout_ms) noexcept {
     }
 
     if (timeout_ms != 0) {
-        const DWORD wait_result = WaitForSingleObject(as_handle(event_handle_), timeout_ms);
+        const DWORD wait_result = WaitForSingleObject(
+            as_handle(event_handle_),
+            timeout_ms);
         if (wait_result == WAIT_TIMEOUT) {
             return false;
         }
@@ -147,8 +150,10 @@ bool RawPipe::poll() noexcept {
         return true;
     }
 
-    if (connect_pending_ && !check_connect_completion()) {
-        return last_error_.empty();
+    if (connect_pending_) {
+        if (!check_connect_completion()) {
+            return last_error_.empty();
+        }
     }
     if (write_pending_ && !check_write_completion()) {
         return false;
@@ -165,21 +170,21 @@ bool RawPipe::begin_write() noexcept {
     }
 
     ResetEvent(as_handle(event_handle_));
+    write_overlapped_ = {};
+    write_overlapped_.hEvent = as_handle(event_handle_);
     auto& buffer = pending_queue_.front();
     if (buffer.size() > std::numeric_limits<DWORD>::max()) {
         fail("pending raw pipe buffer exceeds Windows DWORD size");
         return false;
     }
 
-    OVERLAPPED overlapped{};
-    overlapped.hEvent = as_handle(event_handle_);
     DWORD written = 0;
     const BOOL result = WriteFile(
         as_handle(pipe_handle_),
         buffer.data(),
         static_cast<DWORD>(buffer.size()),
         &written,
-        &overlapped);
+        &write_overlapped_);
 
     if (result != FALSE) {
         if (written != buffer.size()) {
@@ -214,9 +219,11 @@ bool RawPipe::check_connect_completion() noexcept {
     }
 
     DWORD transferred = 0;
-    OVERLAPPED overlapped{};
-    overlapped.hEvent = as_handle(event_handle_);
-    if (GetOverlappedResult(as_handle(pipe_handle_), &overlapped, &transferred, FALSE) == FALSE) {
+    if (GetOverlappedResult(
+            as_handle(pipe_handle_),
+            &connect_overlapped_,
+            &transferred,
+            FALSE) == FALSE) {
         const DWORD error = GetLastError();
         if (error == ERROR_IO_INCOMPLETE) {
             return true;
@@ -241,9 +248,11 @@ bool RawPipe::check_write_completion() noexcept {
     }
 
     DWORD transferred = 0;
-    OVERLAPPED overlapped{};
-    overlapped.hEvent = as_handle(event_handle_);
-    if (GetOverlappedResult(as_handle(pipe_handle_), &overlapped, &transferred, FALSE) == FALSE) {
+    if (GetOverlappedResult(
+            as_handle(pipe_handle_),
+            &write_overlapped_,
+            &transferred,
+            FALSE) == FALSE) {
         const DWORD error = GetLastError();
         if (error == ERROR_IO_INCOMPLETE) {
             return true;
@@ -253,6 +262,11 @@ bool RawPipe::check_write_completion() noexcept {
             return false;
         }
         fail("GetOverlappedResult(write) failed");
+        return false;
+    }
+
+    if (pending_queue_.empty()) {
+        fail("raw pipe completed write with empty queue");
         return false;
     }
 
@@ -271,10 +285,7 @@ bool RawPipe::check_write_completion() noexcept {
 }
 
 void RawPipe::close() noexcept {
-    if (pipe_handle_ && connect_pending_) {
-        CancelIoEx(as_handle(pipe_handle_), nullptr);
-    }
-    if (pipe_handle_ && write_pending_) {
+    if (pipe_handle_ && (connect_pending_ || write_pending_)) {
         CancelIoEx(as_handle(pipe_handle_), nullptr);
     }
 
@@ -295,6 +306,8 @@ void RawPipe::close() noexcept {
     pending_queue_.clear();
     max_pending_bytes_ = 0;
     name_.clear();
+    connect_overlapped_ = {};
+    write_overlapped_ = {};
 }
 
 void RawPipe::fail(const char* message) noexcept {
