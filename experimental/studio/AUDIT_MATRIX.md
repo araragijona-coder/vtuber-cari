@@ -121,24 +121,13 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Diagnostics/log folder policy.
 - [ ] Release smoke test on target PC.
 
-## Character-behavior audit rule
-
-The new `CARI_CHARACTER_BIBLE.md` is the canonical personality source for runtime design. New acts, reactions, comments, missions, voice lines and automatic behaviors must declare whether they are `CANON_CONFIRMED`, `CANON_DEVELOPING`, `RUNTIME_BEHAVIOR`, `SUGGESTED` or `UNKNOWN`.
-
-`UNKNOWN` data must not be silently converted into canon. In particular, Cami is confirmed as Cari's sister, while detailed sibling dynamics remain undefined until explicitly established.
-
-Expressions are not personality. Emotional state, acting, appearance and personality remain separate layers so that a blush, angry face or comedic reaction cannot silently redefine who Cari is.
-
 ## Evidencia actual
 
-- `main` fue devuelta a la SHA base del PR para eliminar la contaminación experimental detectada; el PR vuelve a ser la única línea de implementación.
-- El nuevo `AvSyncController` ya está integrado en `StudioPipeline` y cubierto por smoke tests del nativo.
-- La sincronización temporal actual utiliza timestamps de audio y ventanas de tolerancia; todavía no hace drift correction ni resampling.
-- CI Python/Native había alcanzado estado verde en un commit anterior; el head actual debe volver a observar un run exitoso antes de ser marcado como verificado.
-- El workflow nativo construye Release x64, ejecuta `cari-core-smoke`, verifica el ejecutable y prepara `CariStudio-Windows-x64.zip`.
-- TwitchIO 3.x documenta `subscribe_websocket()` como gestor de suscripciones WebSocket y su changelog registra correcciones específicas de reconexión. Esto evita implementar un segundo transporte dentro de Cari; queda pendiente una prueba de integración propia.
-- El código de captura se mantiene deliberadamente separado del hardware final; la primera prueba física sigue siendo necesaria para validar cámara, GPU, juegos, audio y rendimiento.
-- La bibliografía de diseño de personajes usada para esta capa destaca que rasgos recurrentes, valores, objetivos, defectos y filosofía deben formar patrones coherentes de decisión y evolución.
+- El head `f48b00811c57e0e8fa86a9c43459490a3a3dca32` pasó `CI` run 338, `Character Runtime Tests` run 9 y `Native Windows Build` run 124.
+- El Native Windows workflow pasó configuración CMake x64, compilación de ambos targets, `cari-core-smoke`, existencia de `cari-studio-native.exe`, empaquetado y upload del ZIP portable.
+- `StudioPipeline` ya incorpora `AvSyncController`; el smoke cubre orden temporal, tolerancia y late-drop.
+- `main` sigue apuntando al SHA base del PR y la rama de trabajo contiene la implementación experimental.
+- El código de captura se mantiene deliberadamente separado del hardware final; la prueba física sigue siendo necesaria para validar cámara, GPU, juegos, audio y rendimiento.
 
 ## Regla de cierre
 
