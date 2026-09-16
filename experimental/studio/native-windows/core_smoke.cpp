@@ -67,8 +67,12 @@ int main() {
     assert(second_event.has_value());
     assert(second_event->kind == AvSyncController::Event::Kind::audio);
     assert(second_event->audio->pts == 105);
+    auto third_event = sync.next();
+    assert(third_event.has_value());
+    assert(third_event->kind == AvSyncController::Event::Kind::video);
+    assert(third_event->frame->pts == 110);
     assert(sync.stats().audio_clock_ready);
-    assert(sync.stats().emitted_video == 1);
+    assert(sync.stats().emitted_video == 2);
     assert(sync.stats().emitted_audio == 1);
 
     sync.push_audio(AudioPacket{1'000, 48000, 2, 2, {0.1f, 0.2f}});
