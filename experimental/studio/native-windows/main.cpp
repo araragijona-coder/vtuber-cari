@@ -5,7 +5,7 @@
 #include "audio_probe.h"
 #include "camera_sources.h"
 #include "capture_engine.h"
-#include "frame_bridge.h"
+#include "compositor_bridge.h"
 #include "window_sources.h"
 
 #include <algorithm>
@@ -33,6 +33,10 @@ std::atomic<std::uint64_t> g_bridge_successes{0};
 std::atomic<std::uint64_t> g_bridge_failures{0};
 std::atomic<std::uint64_t> g_bridge_bytes{0};
 std::atomic<std::uint64_t> g_last_bridge_sequence{0};
+std::atomic<std::uint64_t> g_compositor_successes{0};
+std::atomic<std::uint64_t> g_compositor_failures{0};
+std::atomic<std::uint64_t> g_compositor_bytes{0};
+std::atomic<std::uint64_t> g_last_composited_sequence{0};
 
 std::wstring BuildAudioStatus() {
     const auto endpoints = cari::native::enumerate_audio_endpoints();
@@ -95,6 +99,10 @@ std::wstring BuildCaptureStatus() {
     const auto bridge_failures = g_bridge_failures.load(std::memory_order_relaxed);
     const auto bridge_bytes = g_bridge_bytes.load(std::memory_order_relaxed);
     const auto bridge_sequence = g_last_bridge_sequence.load(std::memory_order_relaxed);
+    const auto compositor_successes = g_compositor_successes.load(std::memory_order_relaxed);
+    const auto compositor_failures = g_compositor_failures.load(std::memory_order_relaxed);
+    const auto compositor_bytes = g_compositor_bytes.load(std::memory_order_relaxed);
+    const auto composited_sequence = g_last_composited_sequence.load(std::memory_order_relaxed);
 
     return L"Capture: running — " + selected_title + L" — " +
            std::to_wstring(stats.width) + L"x" + std::to_wstring(stats.height) +
@@ -107,7 +115,12 @@ std::wstring BuildCaptureStatus() {
            std::to_wstring(bridge_failures) + L" failed / " +
            std::to_wstring(bridge_attempts) + L" sample(s), " +
            std::to_wstring(bridge_bytes) + L" byte(s), last sequence " +
-           std::to_wstring(bridge_sequence);
+           std::to_wstring(bridge_sequence) + L"\n" +
+           L"Reference compositor: " + std::to_wstring(compositor_successes) +
+           L" success / " + std::to_wstring(compositor_failures) +
+           L" failed, " + std::to_wstring(compositor_bytes) +
+           L" output byte(s), last sequence " +
+           std::to_wstring(composited_sequence);
 }
 
 void RefreshStatus(HWND hwnd) {
@@ -205,9 +218,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
 
     g_capture.set_frame_callback([](const cari::native::CapturedFrame& captured) {
-        // The CPU bridge is deliberately sampled rather than run on every frame:
-        // it proves the capture->core contract without turning the diagnostic
-        // build into an always-on full-frame memcpy workload.
         if ((captured.sequence % kBridgeSampleEvery) != 0) {
             return;
         }
@@ -226,6 +236,23 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
             bridged.pixels ? static_cast<std::uint64_t>(bridged.pixels->size()) : 0,
             std::memory_order_relaxed);
         g_last_bridge_sequence.store(bridged.frame.sequence, std::memory_order_relaxed);
+
+        cari::studio::core::SoftwareCompositor compositor(
+            static_cast<std::uint32_t>(captured.width),
+            static_cast<std::uint32_t>(captured.height));
+        cari::studio::core::RgbaImage composited;
+        if (!cari::native::CompositorBridge::compose_reference(
+                bridged, compositor, composited, error)) {
+            g_compositor_failures.fetch_add(1, std::memory_order_relaxed);
+            return;
+        }
+
+        g_compositor_successes.fetch_add(1, std::memory_order_relaxed);
+        g_compositor_bytes.fetch_add(
+            static_cast<std::uint64_t>(composited.pixels.size()),
+            std::memory_order_relaxed);
+        g_last_composited_sequence.store(
+            bridged.frame.sequence, std::memory_order_relaxed);
     });
 
     const bool capture_supported =
