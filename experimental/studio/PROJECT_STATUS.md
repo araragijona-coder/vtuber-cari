@@ -9,7 +9,9 @@
 - [x] Mixer de audio lógico.
 - [x] Frontera de encoder y salida.
 - [x] Monitoring y clasificación de salud.
-- [x] Smoke test nativo y CI Windows.
+- [x] Cola temporal A/V con reloj maestro lógico de audio.
+- [x] Smoke test nativo para contratos core.
+- [ ] CI Windows verde sobre el head actual (run todavía por observar).
 
 ## Windows
 
@@ -22,17 +24,20 @@
 - [x] Recreación del frame pool ante cambios de tamaño.
 - [ ] Captura de cámara real mediante Media Foundation.
 - [ ] Game Capture dedicada con backend específico.
-- [ ] Device-loss/reconnect exhaustivo del dispositivo D3D11.
+- [x] Recuperación explícita de device removed/reset/hung.
+- [ ] Validación exhaustiva de device-loss/reconnect en hardware real.
 
 ## Multimedia
 
 - [x] Compositor RGBA de referencia para validar escenas.
 - [x] Fan-out conceptual de múltiples salidas.
 - [x] Perfil de salida y boundary de FFmpeg/RTMP.
+- [x] Interleave temporal A/V en `StudioPipeline`.
 - [ ] Compositor GPU D3D11 de producción.
 - [ ] Encoder hardware/software real conectado al pipeline.
 - [ ] Muxer/recorder de producción.
 - [ ] Proceso FFmpeg administrado por Cari y conectado a las salidas.
+- [ ] Drift correction / resampling de producción.
 
 ## VTuber / cámara / voz
 
