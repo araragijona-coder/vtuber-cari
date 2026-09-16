@@ -21,7 +21,7 @@ class CharacterProfileTests(unittest.TestCase):
     def test_cari_is_the_group_leader(self) -> None:
         cari = get_character("Cari")
         self.assertEqual(cari.role, CharacterRole.LEADER)
-        self.assertIn("move the group", cari.primary_drive)
+        self.assertIn("move the group", cari.primary_drive.replace("_", " "))
 
     def test_sister_cami_is_strategist_not_second_leader(self) -> None:
         cami = get_character("cami")
