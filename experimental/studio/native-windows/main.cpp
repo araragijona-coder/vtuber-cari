@@ -183,7 +183,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             return 0;
         }
         if (wparam == 'A') {
-            if (g_audio_bridge.stats().packets > 0 || !g_audio_bridge.last_error().empty()) {
+            if (g_audio_bridge.running()) {
                 g_audio_bridge.stop();
             } else {
                 g_audio_bridge.start();
