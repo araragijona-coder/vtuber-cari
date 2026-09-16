@@ -6,9 +6,10 @@ Fecha: 2026-09-16
 
 - Microsoft Learn — `Direct3D11CaptureFramePool`: `CreateFreeThreaded`, `TryGetNextFrame`, `Recreate` y ciclo de captura.
 - Microsoft Learn — Screen capture: `Recreate` es el mecanismo recomendado cuando cambia el tamaño de buffers o se proporciona un nuevo dispositivo por pérdida/cambio del anterior; los frames existentes se descartan al recrear.
-- Microsoft Learn — WASAPI loopback: `AUDCLNT_STREAMFLAGS_LOOPBACK` captura el audio que reproduce un endpoint de render y requiere shared mode; Windows 10 1703+ soporta loopback con event-driven buffering sin el workaround antiguo.
+- Microsoft Learn — WASAPI loopback: `AUDCLNT_STREAMFLAGS_LOOPBACK` captura el audio que reproduce un endpoint de render y requiere shared mode; Windows 10 1703+ soporta loopback con event-driven buffering.
+- Microsoft Learn — `IAudioCaptureClient::GetBuffer` entrega la posición del dispositivo y un `QPCPosition` asociado al primer frame del paquete; ese timestamp puede usarse para sincronización temporal de la captura.
 - Microsoft Learn — Application loopback sample (2026): Windows también puede restringir la captura de audio a un proceso concreto y sus hijos, lo que queda como candidato para separar audio del juego de otras aplicaciones.
-- OBS Studio documentation: separación conceptual entre Sources/Scenes y Outputs/Encoders/Services.
+- OBS Studio documentation: separación conceptual entre Sources/Scenes y Outputs/Encoders/Services; las scene items poseen posición, escala, visibilidad y otras transformaciones.
 - FFmpeg documentation: entradas por pipes, `rawvideo`, reconexión de protocolos, `tee` muxer para reutilizar una codificación en varios destinos y FIFO para aislar velocidad/latencia de outputs.
 - FFmpeg hardware acceleration: D3D11VA/QSV y codificación por Media Foundation como rutas candidatas que deben medirse en el hardware objetivo.
 
@@ -16,9 +17,11 @@ Referencias externas consultadas:
 
 - https://learn.microsoft.com/en-us/uwp/audio-video-camera/screen-capture
 - https://learn.microsoft.com/en-us/windows/win32/coreaudio/loopback-recording
-- https://learn.microsoft.com/en-us/windows/win32/coreaudio/audclnt-streamflags-xxx-constants
+- https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-iaudiocaptureclient-getbuffer
+- https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-iaudioclock-getposition
 - https://learn.microsoft.com/en-us/samples/microsoft/windows-classic-samples/applicationloopbackaudio-sample/
 - https://docs.obsproject.com/frontends
+- https://docs.obsproject.com/reference-scenes
 - https://docs.obsproject.com/reference-outputs
 - https://docs.obsproject.com/reference-encoders
 - https://ffmpeg.org/ffmpeg-protocols.html
@@ -52,7 +55,7 @@ Se añadió una ruta explícita de recuperación para errores `DXGI_ERROR_DEVICE
 
 La documentación de Microsoft confirma que `Recreate` debe usarse para cambios de tamaño y para proporcionar un nuevo dispositivo tras pérdida/cambio del anterior. La implementación todavía requiere validación en hardware Windows real para confirmar la recuperación de extremo a extremo.
 
-### Bridge hacia el compositor
+### Bridge y compositor
 
 Se añadió `compositor_bridge.cpp/.h` para cruzar el límite entre la captura nativa y el compositor del core:
 
@@ -74,11 +77,21 @@ core::RgbaImage
 
 El ejecutable de diagnóstico ya ejecuta este camino sobre las muestras del bridge y contabiliza éxitos, fallos, bytes producidos y secuencia procesada.
 
-Esto demuestra una escena mínima de una capa. Todavía no demuestra un compositor de producción ni una escena multi-capa completa con transformaciones y fuentes simultáneas.
+El core ahora también modela transforms básicos de escena por layer:
+
+- `x`, `y`;
+- `scale_x`, `scale_y`;
+- `visible`;
+- `opacity`;
+- `z_order`.
+
+`SoftwareCompositor::compose_scene()` toma una `Scene`, resuelve sus `source_id` contra las capas disponibles y aplica esos transforms antes de componer. El smoke test cubre la ruta de escena multicapa y escalado.
+
+Esto ya demuestra una **escena multicapa de referencia**, pero no demuestra todavía un compositor de producción ni una ruta GPU/directa sin readback a CPU.
 
 ### Audio WASAPI → core
 
-El runtime ya dispone de captura WASAPI separada para micrófono y loopback del sistema. El loopback usado por esta implementación corresponde al mecanismo documentado por Microsoft: endpoint de render, `AUDCLNT_STREAMFLAGS_LOOPBACK` y shared mode. Windows 10 1703+ admite este flujo en modo event-driven. citeturn431180search1turn431180search0
+El runtime dispone de captura WASAPI separada para micrófono y loopback del sistema. El loopback usado por esta implementación corresponde al mecanismo documentado por Microsoft: endpoint de render, `AUDCLNT_STREAMFLAGS_LOOPBACK` y shared mode. Windows 10 1703+ admite este flujo en modo event-driven.
 
 Se añadió `audio_core_bridge.cpp/.h` para completar el siguiente contrato:
 
@@ -99,36 +112,37 @@ Características actuales:
 - captura de micrófono y audio del sistema en paralelo;
 - tolera que uno de los dos dispositivos no pueda arrancar sin impedir el otro;
 - normaliza muestras PCM/float ya convertidas por WASAPI a `float`;
-- conserva sample rate, canales, timestamp y secuencia en el `core::AudioPacket` puenteado;
 - actualiza tracks independientes `microphone` y `system` del `AudioMixer`;
 - contabiliza callbacks, paquetes, muestras, errores y pico observado;
 - expone el pico del mix al diagnóstico nativo;
 - la tecla `A` permite iniciar/detener la captura de audio en el ejecutable diagnóstico.
 
-Esto cierra el **bridge de contrato** de audio, pero todavía no significa que el audio ya sea consumido por un encoder/salidas reales ni que la sincronización A/V esté terminada.
+### Timestamps de audio y base temporal A/V
 
-#### Candidato futuro: audio por proceso
+Se corrigió la fuente de timestamps del bridge WASAPI. En lugar de usar el reloj del hilo de captura como timestamp primario, `IAudioCaptureClient::GetBuffer` solicita `pu64QPCPosition` para el primer frame del paquete. WASAPI entrega ese contador convertido a unidades de 100 ns; si el timestamp está marcado como inválido mediante `AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR`, se usa como fallback una lectura actual de `QueryPerformanceCounter` convertida a la misma unidad.
 
-La muestra oficial de Microsoft publicada en febrero de 2026 demuestra que Windows puede restringir el loopback a un proceso concreto y sus hijos, o excluirlos del capture. Esto es especialmente relevante para Cari Studio porque permitiría, en una fase posterior, separar el audio del juego de otras aplicaciones del sistema sin depender únicamente de mezclar todo el endpoint. No se considera implementado todavía. citeturn431180search4
+Esto pone los paquetes de audio en una base temporal compatible con una futura sincronización A/V centralizada. No significa que la sincronización A/V final esté terminada: todavía falta una política de clock master, colas temporales y adaptación ante drift/dropped frames.
+
+### Candidato futuro: audio por proceso
+
+La muestra oficial de Microsoft publicada en febrero de 2026 demuestra que Windows puede restringir el loopback a un proceso concreto y sus hijos, o excluirlos del capture. Esto es especialmente relevante para Cari Studio porque permitiría, en una fase posterior, separar el audio del juego de otras aplicaciones del sistema sin depender únicamente de mezclar todo el endpoint. No se considera implementado todavía.
 
 ### Fuentes / escenas
 
-La separación conceptual de Cari Studio sigue el patrón documentado por OBS: Sources alimentan Scenes y la composición queda separada de Outputs/Encoders/Services. Las escenas de OBS además mantienen fuentes reutilizables y transformaciones por item, un patrón que Cari Studio podrá reducir a sus necesidades sin copiar libobs. citeturn431180search5turn431180search6
-
-La arquitectura de Cari Studio no copia OBS internamente; usa esos contratos como referencia de comportamiento.
+La separación conceptual de Cari Studio sigue el patrón documentado por OBS: Sources alimentan Scenes y la composición queda separada de Outputs/Encoders/Services. Las scene items de OBS exponen transformaciones como posición y escala; Cari Studio implementa sólo el subconjunto necesario para su compositor de referencia, sin copiar libobs.
 
 ### Salida / streaming
 
 Existe un contrato de `OutputProfile` y construcción de comando FFmpeg RTMP. Todavía no es un pipeline de salida real.
 
-FFmpeg documenta entradas mediante pipes y formatos raw, de modo que el diseño `core → proceso FFmpeg` es técnicamente viable sin exigir una API externa. También documenta el `tee` muxer para enviar los mismos paquetes codificados a varios destinos sin repetir la codificación y `fifo` para aislar diferencias de velocidad/latencia entre outputs. citeturn144746search0turn144746search2
+FFmpeg documenta entradas mediante pipes y formatos raw, de modo que el diseño `core → proceso FFmpeg` es técnicamente viable sin exigir una API externa. También documenta el `tee` muxer para enviar los mismos paquetes codificados a varios destinos sin repetir la codificación y `fifo` para aislar diferencias de velocidad/latencia entre outputs.
 
 Gates pendientes:
 
 - descubrimiento controlado del binario FFmpeg;
 - proceso supervisado con captura de stderr;
 - alimentación real de vídeo y audio;
-- sincronización A/V basada en timestamps;
+- clock master y sincronización A/V basada en timestamps;
 - detección de caída del proceso;
 - política de reconexión propia de Cari Studio;
 - prueba RTMP real en máquina Windows;
@@ -147,14 +161,14 @@ El proyecto tiene:
 - CI separado para el runtime de personajes;
 - CI nativo Windows para CMake, smoke test y empaquetado x64.
 
-La ejecución correspondiente a los últimos commits del bridge de audio y la instrumentación diagnóstica todavía no presenta una ejecución de workflow visible mediante la API consultada. Por tanto, el estado correcto sigue siendo `pendiente de CI`; no se marca como verde por inferencia.
+Los últimos cambios de escena, compositor y timestamps de audio requieren una nueva ejecución del workflow Windows. Mediante la API consultada todavía no hay evidencia suficiente para marcar el nuevo estado como verde.
 
 ### Gates técnicos siguientes
 
-1. Obtener ejecución CI Windows del bridge de audio + compositor + recuperación.
-2. Expandir el compositor desde una capa a una escena con varias capas reales.
-3. Integrar posición, escala, visibilidad y opacidad desde `Scene` hacia el compositor.
-4. Conectar el mix de `AudioMixer` a una cola/pipeline de salida con timestamps.
+1. Obtener ejecución CI Windows del compositor + timestamps WASAPI + recuperación.
+2. Conectar `Scene` real con múltiples fuentes del runtime, no sólo con el smoke test.
+3. Sustituir progresivamente el readback CPU por una ruta GPU/directa cuando el compositor real lo necesite.
+4. Conectar el mix de `AudioMixer` a una cola/pipeline de salida con timestamps y clock master.
 5. Implementar encoder/FFmpeg supervisado con stderr y estado de proceso.
 6. Implementar RTMP real con métricas, sincronización A/V y reconexión.
 7. Evaluar encoder de hardware en el PC objetivo.
@@ -173,9 +187,9 @@ La ejecución correspondiente a los últimos commits del bridge de audio y la in
 
 `bridge CPU funcionando` != `compositor de producción`.
 
-`una capa compuesta` != `escena multi-capa terminada`.
+`escena multicapa en smoke test` != `escena multicapa integrada al runtime`.
 
-`bridge AudioMixer funcionando` != `pipeline A/V sincronizado`.
+`timestamp WASAPI correcto` != `pipeline A/V sincronizado`.
 
 `recuperación implementada` != `recuperación validada en hardware`.
 
