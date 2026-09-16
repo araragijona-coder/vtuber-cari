@@ -2,6 +2,7 @@
 #include <winrt/Windows.Graphics.Capture.h>
 #include <winrt/base.h>
 
+#include "audio_core_bridge.h"
 #include "audio_probe.h"
 #include "camera_sources.h"
 #include "capture_engine.h"
@@ -22,6 +23,7 @@ constexpr UINT_PTR kStatusTimerId = 1;
 constexpr std::uint64_t kBridgeSampleEvery = 30;
 
 cari::native::CaptureEngine g_capture;
+cari::native::AudioCoreBridge g_audio_bridge;
 std::wstring g_audio_status;
 std::wstring g_capture_support_status;
 std::wstring g_source_status;
@@ -51,8 +53,19 @@ std::wstring BuildAudioStatus() {
         }
     }
 
-    return L"Audio endpoints: " + std::to_wstring(inputs) + L" input(s), " +
-           std::to_wstring(outputs) + L" output(s)";
+    const auto stats = g_audio_bridge.stats();
+    std::wstring result =
+        L"Audio endpoints: " + std::to_wstring(inputs) + L" input(s), " +
+        std::to_wstring(outputs) + L" output(s)\n" +
+        L"Audio core bridge: " + std::to_wstring(stats.packets) +
+        L" packet(s), " + std::to_wstring(stats.samples) +
+        L" sample(s), peak " + std::to_wstring(stats.peak) +
+        L", mixer peak " + std::to_wstring(g_audio_bridge.mix_peak());
+
+    if (!g_audio_bridge.last_error().empty()) {
+        result += L"\nAudio bridge error: " + g_audio_bridge.last_error();
+    }
+    return result;
 }
 
 std::wstring BuildSourceStatus() {
@@ -125,6 +138,7 @@ std::wstring BuildCaptureStatus() {
 
 void RefreshStatus(HWND hwnd) {
     g_source_status = BuildSourceStatus();
+    g_audio_status = BuildAudioStatus();
     InvalidateRect(hwnd, nullptr, FALSE);
 }
 
@@ -204,6 +218,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
     case WM_DESTROY:
         KillTimer(hwnd, kStatusTimerId);
         g_capture.stop();
+        g_audio_bridge.stop();
         PostQuitMessage(0);
         return 0;
 
@@ -293,6 +308,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     if (!g_windows.empty()) {
         g_selected_window_index = 0;
         g_selected_window = g_windows.front().hwnd;
+    }
+
+    if (!g_audio_bridge.start()) {
+        g_audio_status = BuildAudioStatus();
+    } else {
+        g_audio_status = BuildAudioStatus();
     }
 
     ShowWindow(hwnd, show_command);
