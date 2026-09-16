@@ -11,12 +11,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(cari-studio-native WIN32
     main.cpp
     audio_probe.cpp
+    camera_sources.cpp
     capture_engine.cpp
+    compositor_bridge.cpp
     frame_bridge.cpp
     process_runner.cpp
     wasapi_capture.cpp
     window_sources.cpp
-    camera_sources.cpp
 )
 
 target_include_directories(cari-studio-native PRIVATE
