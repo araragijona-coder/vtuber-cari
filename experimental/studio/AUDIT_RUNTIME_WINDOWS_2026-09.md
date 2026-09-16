@@ -4,7 +4,7 @@ Fecha: 2026-09-16
 
 ## Estado de esta iteración
 
-La rama de trabajo es `fix/native-windows-foundation`. `main` fue restaurada a la SHA base declarada por el PR (`ac7147d2696fd6c06015f7e61ac6f957bc9498db`) y la comparación vuelve a ser lineal: la rama de trabajo está 242 commits por delante y 0 por detrás.
+La rama de trabajo es `fix/native-windows-foundation`. `main` fue restaurada a la SHA base declarada por el PR (`ac7147d2696fd6c06015f7e61ac6f957bc9498db`) y la comparación vuelve a ser lineal: la rama de trabajo está por delante y 0 por detrás.
 
 ## Evidencia externa revisada
 
@@ -82,6 +82,24 @@ Características verificadas por smoke:
 
 Esto cierra el primer nivel de cola temporal A/V, pero **no** equivale todavía a sincronización final de producción: faltan reloj monotónico de salida, medición de drift sostenido, resampling/time-stretch cuando corresponda y validación con hardware real.
 
+### CI del head actual
+
+El commit `f48b00811c57e0e8fa86a9c43459490a3a3dca32` pasó los tres workflows relevantes:
+
+- `CI` run **338** — `success`.
+- `Character Runtime Tests` run **9** — `success`.
+- `Native Windows Build` run **124** — `success`.
+
+El workflow nativo verificó además que:
+
+- CMake x64 configura correctamente;
+- compilan `cari-studio-native` y `cari-core-smoke`;
+- `cari-core-smoke` pasa;
+- existe `cari-studio-native.exe`;
+- se genera y sube `CariStudio-Windows-x64.zip`.
+
+Esto valida el árbol y los contratos cubiertos por CI, **no** el hardware físico del PC objetivo.
+
 ### Salida
 
 Continúa pendiente:
@@ -93,19 +111,15 @@ Continúa pendiente:
 - encoder hardware/software real conectado al pipeline;
 - elección de distribución legal de FFmpeg/codecs.
 
-### CI
-
-El workflow Windows existe y ejecuta CMake x64, `cari-core-smoke`, verificación del `.exe` y empaquetado portable. Tras los nuevos commits la ejecución del workflow debe quedar comprobada sobre el nuevo head; hasta observar un run exitoso no se marca como verde.
-
 ## Gates siguientes
 
-1. CI Windows del nuevo A/V synchronizer + escena/timestamps/recuperación.
-2. Scene runtime con múltiples fuentes reales.
-3. supervisor FFmpeg + captura de stderr + monitor de proceso.
-4. pipe raw A/V real y timestamps de salida.
-5. RTMP real + reconexión.
-6. evaluación de encoder hardware en el PC objetivo.
-7. prueba Windows real con juego + micrófono + audio sistema.
+1. Scene runtime con múltiples fuentes reales.
+2. supervisor FFmpeg + captura de stderr + monitor de proceso.
+3. pipe raw A/V real y timestamps de salida.
+4. RTMP real + reconexión.
+5. evaluación de encoder hardware en el PC objetivo.
+6. prueba Windows real con juego + micrófono + audio sistema.
+7. corrección de drift/resampling de producción cuando exista telemetría real.
 
 ## Reglas de cierre
 
