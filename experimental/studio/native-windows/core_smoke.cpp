@@ -67,15 +67,27 @@ int main() {
     assert(classify_load(90.0) == HealthLevel::high);
     assert(classify_fps(30.0, 60.0) == HealthLevel::high);
 
-    SoftwareCompositor compositor(2, 2);
+    SoftwareCompositor compositor(3, 3);
     const auto background = solid(2, 2, 20, 40, 60);
-    const auto overlay = solid(1, 1, 220, 10, 30, 128);
+    const auto overlay = solid(1, 1, 220, 10, 30, 255);
     assert(compositor.compose({
         {"background", background, 0, 0, true, 1.0f},
         {"overlay", overlay, 1, 1, true, 1.0f},
     }));
-    const auto& composed = compositor.output();
-    assert(composed.valid());
+    assert(compositor.output().valid());
+
+    Scene scene("test-scene");
+    assert(scene.add_layer(SceneLayer{"background", 0, true, 1.0f, 0, 0, 1.0f, 1.0f}));
+    assert(scene.add_layer(SceneLayer{"overlay", 1, true, 1.0f, 1, 1, 2.0f, 2.0f}));
+    SoftwareCompositor transformed_compositor(4, 4);
+    assert(transformed_compositor.compose_scene(
+        scene,
+        {
+            {"background", background, 0, 0, true, 1.0f},
+            {"overlay", overlay, 0, 0, true, 1.0f},
+        }));
+    assert(transformed_compositor.output().valid());
+    assert(transformed_compositor.output().pixels.size() == 4u * 4u * 4u);
 
     OutputProfile rtmp_profile{
         "twitch", OutputKind::rtmp, "rtmps://example.test/live/key",
