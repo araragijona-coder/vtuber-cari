@@ -37,6 +37,18 @@ jobs:
       - name: Run FFmpeg supervisor smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-supervisor-smoke
 
+      - name: Run FFmpeg A/V output smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-av-output-smoke
+
+      - name: Run raw media adapter smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-raw-media-adapter-smoke
+
+      - name: Run native media output bridge smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-native-media-output-bridge-smoke
+
+      - name: Run audio timeline mixer smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-audio-timeline-mixer-smoke
+
       - name: Run raw pipe smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-raw-pipe-smoke
 
