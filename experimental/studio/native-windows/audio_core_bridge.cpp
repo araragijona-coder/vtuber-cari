@@ -94,7 +94,7 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
         return;
     }
 
-    const auto sequence = packets_.load(std::memory_order_relaxed) + 1;
+    const auto sequence = packets_.load(std::memory_order_relaxed) + callbacks_.load(std::memory_order_relaxed);
     const auto core_packet = to_core_packet(packet, sequence);
     float packet_peak = 0.0f;
     for (const auto sample : core_packet.samples) packet_peak = std::max(packet_peak, std::fabs(sample));
@@ -114,7 +114,7 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
             return;
         }
     } catch (...) {
-        set_error(L"WASAPI to AudioPacket/AudioMixer bridge failed");
+        set_error(L"WASAPI to AudioTimelineMixer bridge failed");
         return;
     }
 
