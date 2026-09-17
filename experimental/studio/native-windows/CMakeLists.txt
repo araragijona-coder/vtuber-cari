@@ -160,6 +160,27 @@ target_link_libraries(cari-native-media-output-bridge-smoke PRIVATE
     user32
 )
 
+add_executable(cari-frame-bridge-smoke
+    frame_bridge_smoke.cpp
+    frame_bridge.cpp
+)
+
+target_include_directories(cari-frame-bridge-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
+target_compile_definitions(cari-frame-bridge-smoke PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+target_link_libraries(cari-frame-bridge-smoke PRIVATE
+    d3d11
+    dxgi
+)
+
 add_executable(cari-audio-timeline-mixer-smoke
     audio_timeline_mixer_smoke.cpp
     audio_timeline_mixer.cpp
@@ -198,6 +219,7 @@ add_test(NAME cari-ffmpeg-supervisor-smoke COMMAND cari-ffmpeg-supervisor-smoke)
 add_test(NAME cari-ffmpeg-av-output-smoke COMMAND cari-ffmpeg-av-output-smoke)
 add_test(NAME cari-raw-media-adapter-smoke COMMAND cari-raw-media-adapter-smoke)
 add_test(NAME cari-native-media-output-bridge-smoke COMMAND cari-native-media-output-bridge-smoke)
+add_test(NAME cari-frame-bridge-smoke COMMAND cari-frame-bridge-smoke)
 add_test(NAME cari-audio-timeline-mixer-smoke COMMAND cari-audio-timeline-mixer-smoke)
 add_test(NAME cari-raw-pipe-smoke COMMAND cari-raw-pipe-smoke)
 
