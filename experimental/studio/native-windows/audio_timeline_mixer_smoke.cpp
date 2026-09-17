@@ -54,7 +54,7 @@ int main() {
     if (!require(std::fabs(mixed.samples.front() - 0.75f) < 0.0001f,
                   "microphone and system samples are summed")) return 1;
 
-    const auto resampled = make_packet(400'000, 44100, 2, 0.10f, 3);
+    const auto resampled = make_packet(200'000, 44100, 2, 0.10f, 3);
     if (!require(mixer.push("tts", resampled), "different-rate TTS packet accepted")) return 1;
     const auto stats = mixer.stats();
     if (!require(stats.packets_resampled == 1, "different sample rate is resampled")) return 1;
