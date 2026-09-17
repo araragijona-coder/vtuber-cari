@@ -282,7 +282,7 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
             packet.timestamp =
                 (qpc_position != 0 &&
                  (packet_flags & AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR) == 0)
-                    ? static_cast<std::int64_t>(qpc_position)
+                    ? qpc_to_100ns(static_cast<std::int64_t>(qpc_position))
                     : current_qpc_100ns();
             packet.samples.resize(static_cast<std::size_t>(frames_available) * channels);
 
