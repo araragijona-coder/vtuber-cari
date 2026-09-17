@@ -17,6 +17,10 @@ std::wstring widen_ascii(const std::string& value) {
     return std::wstring(value.begin(), value.end());
 }
 
+std::string narrow_ascii(const std::wstring& value) {
+    return std::string(value.begin(), value.end());
+}
+
 std::wstring make_pipe_name(const wchar_t* stream_name) {
     static std::atomic<unsigned long> sequence{0};
     const auto id = sequence.fetch_add(1, std::memory_order_relaxed) + 1;
@@ -65,8 +69,8 @@ bool FfmpegAvOutput::start(
     }
 
     const cari::studio::core::RawMediaInputs inputs{
-        .video_input = widen_ascii(std::string(video_pipe_name().begin(), video_pipe_name().end())),
-        .audio_input = widen_ascii(std::string(audio_pipe_name().begin(), audio_pipe_name().end())),
+        .video_input = narrow_ascii(video_pipe_name()),
+        .audio_input = narrow_ascii(audio_pipe_name()),
         .audio_sample_rate = audio_sample_rate,
         .audio_channels = audio_channels,
     };
