@@ -120,13 +120,37 @@ int main() {
     assert(transformed_compositor.output().pixels.size() == 4u * 4u * 4u);
 
     OutputProfile rtmp_profile{
-        "twitch", OutputKind::rtmp, "rtmps://example.test/live/key",
-        1920, 1080, 60, 6000, "libx264", "aac"
+        .id = "twitch",
+        .kind = OutputKind::rtmp,
+        .target = "rtmps://example.test/live/key",
+        .width = 1920,
+        .height = 1080,
+        .fps = 60,
+        .bitrate_kbps = 6000,
+        .audio_bitrate_kbps = 160,
+        .video_codec = "libx264",
+        .audio_codec = "aac",
     };
     assert(validate_output_profile(rtmp_profile).valid);
     const auto command = build_ffmpeg_rtmp_command(rtmp_profile);
     assert(command.executable == "ffmpeg");
     assert(!command.arguments.empty());
+
+    RawMediaInputs raw_inputs{
+        .video_input = "\\\\.\\pipe\\cari-video-test",
+        .audio_input = "\\\\.\\pipe\\cari-audio-test",
+        .audio_sample_rate = 48000,
+        .audio_channels = 2,
+    };
+    const auto av_command = build_ffmpeg_rtmp_command(rtmp_profile, raw_inputs);
+    assert(av_command.executable == "ffmpeg");
+    assert(av_command.arguments.size() > command.arguments.size());
+    assert(std::find(av_command.arguments.begin(), av_command.arguments.end(), "-map") !=
+           av_command.arguments.end());
+    assert(std::find(av_command.arguments.begin(), av_command.arguments.end(), "0:v:0") !=
+           av_command.arguments.end());
+    assert(std::find(av_command.arguments.begin(), av_command.arguments.end(), "1:a:0") !=
+           av_command.arguments.end());
 
     auto invalid_profile = rtmp_profile;
     invalid_profile.target = "https://example.test/live";
