@@ -52,6 +52,9 @@ jobs:
       - name: Run audio timeline mixer smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-audio-timeline-mixer-smoke
 
+      - name: Run native audio core bridge smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-audio-core-bridge-smoke
+
       - name: Run raw pipe smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-raw-pipe-smoke
 
