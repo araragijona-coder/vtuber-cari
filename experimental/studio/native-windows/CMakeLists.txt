@@ -12,6 +12,7 @@ add_executable(cari-studio-native WIN32
     main.cpp
     audio_probe.cpp
     audio_core_bridge.cpp
+    audio_timeline_mixer.cpp
     camera_sources.cpp
     capture_engine.cpp
     compositor_bridge.cpp
@@ -131,6 +132,10 @@ target_compile_definitions(cari-raw-media-adapter-smoke PRIVATE
     WIN32_LEAN_AND_MEAN
 )
 
+target_link_libraries(cari-raw-media-adapter-smoke PRIVATE
+    user32
+)
+
 add_executable(cari-native-media-output-bridge-smoke
     native_media_output_bridge_smoke.cpp
     native_media_output_bridge.cpp
@@ -155,6 +160,26 @@ target_link_libraries(cari-native-media-output-bridge-smoke PRIVATE
     user32
 )
 
+add_executable(cari-audio-timeline-mixer-smoke
+    audio_timeline_mixer_smoke.cpp
+    audio_timeline_mixer.cpp
+)
+
+target_include_directories(cari-audio-timeline-mixer-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
+target_compile_definitions(cari-audio-timeline-mixer-smoke PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+target_link_libraries(cari-audio-timeline-mixer-smoke PRIVATE
+    user32
+)
+
 add_executable(cari-raw-pipe-smoke
     raw_pipe_smoke.cpp
     raw_pipe.cpp
@@ -173,6 +198,7 @@ add_test(NAME cari-ffmpeg-supervisor-smoke COMMAND cari-ffmpeg-supervisor-smoke)
 add_test(NAME cari-ffmpeg-av-output-smoke COMMAND cari-ffmpeg-av-output-smoke)
 add_test(NAME cari-raw-media-adapter-smoke COMMAND cari-raw-media-adapter-smoke)
 add_test(NAME cari-native-media-output-bridge-smoke COMMAND cari-native-media-output-bridge-smoke)
+add_test(NAME cari-audio-timeline-mixer-smoke COMMAND cari-audio-timeline-mixer-smoke)
 add_test(NAME cari-raw-pipe-smoke COMMAND cari-raw-pipe-smoke)
 
 # Native capture/audio/output infrastructure is isolated behind stable
