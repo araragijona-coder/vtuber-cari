@@ -10,8 +10,16 @@ int main() {
     using cari::native::FfmpegSupervisor;
 
     OutputProfile invalid{
-        "twitch", OutputKind::rtmp, "https://example.test/live/key",
-        1280, 720, 60, 4500, "libx264", "aac"
+        .id = "twitch",
+        .kind = OutputKind::rtmp,
+        .target = "https://example.test/live/key",
+        .width = 1280,
+        .height = 720,
+        .fps = 60,
+        .bitrate_kbps = 4500,
+        .audio_bitrate_kbps = 160,
+        .video_codec = "libx264",
+        .audio_codec = "aac",
     };
 
     FfmpegSupervisor supervisor;
@@ -20,8 +28,16 @@ int main() {
     assert(!supervisor.last_error().empty());
 
     OutputProfile valid{
-        "twitch", OutputKind::rtmp, "rtmps://example.test/live/key",
-        1280, 720, 60, 4500, "libx264", "aac"
+        .id = "twitch",
+        .kind = OutputKind::rtmp,
+        .target = "rtmps://example.test/live/key",
+        .width = 1280,
+        .height = 720,
+        .fps = 60,
+        .bitrate_kbps = 4500,
+        .audio_bitrate_kbps = 160,
+        .video_codec = "libx264",
+        .audio_codec = "aac",
     };
     supervisor.stop();
     assert(supervisor.state() == FfmpegState::stopped);
