@@ -13,7 +13,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 | Área | Fuente | Uso en Cari |
 |---|---|---|
 | Captura Windows | Microsoft Learn — Windows.Graphics.Capture | Frame pool, D3D11, resize y recreate ante cambios de dispositivo/tamaño. |
-| Audio timing | Microsoft Learn — IAudioCaptureClient / WASAPI | QPCPosition como base temporal de los paquetes de audio. |
+| Audio timing | Microsoft Learn — IAudioCaptureClient / WASAPI | QPCPosition como base temporal de los paquetes de audio. Microsoft documenta que GetBuffer convierte QPC a unidades de 100 ns y lo entrega como timestamp del primer frame. citeturn0search0 |
+| Audio clock | Microsoft Learn — IAudioClock::GetPosition | Referencia para reloj de captura/render y futura corrección de drift. citeturn0search2 |
 | Pipes Windows | Microsoft Learn — named pipes / overlapped I/O | Transporte asíncrono para no bloquear productores y mantener backpressure explícito. |
 | EventSub | Twitch Developers — WebSocket handling | Welcome, keepalive, reconnect sin perder suscripciones. |
 | OAuth | Twitch Developers — scopes/authentication | Verificación de permisos mínimos y separación broadcaster/bot. |
@@ -22,7 +23,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 | Captura ejemplo | MicrosoftDocs/SimpleRecorder | Patrón oficial de captura Windows.Graphics.Capture hacia vídeo. |
 | Windows samples | microsoft/WindowsAppSDK-Samples | Patrones de aplicación Windows nativa y distribución. |
 | OBS reference implementation | obsproject/obs-studio | Comparación de arquitectura y comportamiento, sin copiar implementación incompatible. |
-| A/V timestamps | FFmpeg documentation | Modos de sincronización de vídeo y tratamiento explícito de timestamps. |
+| A/V timestamps | FFmpeg documentation | Tratamiento explícito de timestamps y formatos raw. |
+| FFmpeg raw audio/video | FFmpeg documentation | Los muxers raw no llevan timestamps/metadata; la metadata temporal debe existir antes de la frontera de salida. citeturn0search8 |
 | FFmpeg outputs | FFmpeg formats documentation | `tee`/`fifo` para múltiples destinos y tolerancia a distinta latencia/fallo. |
 | Character design | Writers.com — character development | Separación de rasgos, valores, defectos, objetivos y arco para mantener coherencia de personaje. |
 
@@ -40,7 +42,9 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Encoder boundary.
 - [x] Interleave temporal A/V con reloj maestro lógico de audio.
 - [x] Smoke tests de orden, tolerancia y late-drop.
-- [ ] Drift correction / resampling de producción.
+- [x] Mezclador temporal de audio para micrófono + sistema + futuras pistas como TTS.
+- [x] Normalización inicial de canales y sample rate en el mezclador.
+- [ ] Drift correction / resampling de producción basado en relojes de dispositivos.
 - [ ] Encoder real conectado.
 - [ ] Mux/record real.
 - [ ] RTMP real desde el pipeline.
@@ -76,7 +80,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] FFmpeg binary discovery policy.
 - [ ] FFmpeg legal redistribution decision.
 - [ ] Raw video producer connected to FFmpeg A/V output.
-- [ ] Raw audio producer connected to FFmpeg A/V output.
+- [ ] Mixed raw audio producer connected to FFmpeg A/V output.
+- [x] Temporal audio mixer implemented before the single FFmpeg audio pipe.
 - [ ] Output stderr classification / structured diagnostics.
 - [ ] Automatic output reconnect/backoff policy.
 
@@ -91,7 +96,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Contrato de dos canales: vídeo BGRA8 y audio PCM float32 LE.
 - [x] Generación de nombres únicos de pipe por proceso/secuencia.
 - [ ] Integración de captura BGRA → canal de vídeo.
-- [ ] Integración de AudioPacket → canal PCM float.
+- [ ] Integración de AudioTimelineMixer → canal PCM float.
 - [ ] Alimentación sostenida de ambos canales durante ejecución real.
 - [ ] Prueba local con FFmpeg real y archivo de salida.
 - [ ] Verificación de sincronización A/V sostenida y drift/resampling.
@@ -147,20 +152,21 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Evidencia actual
 
-- El head de trabajo actual es **a946d56721a9687b487affb9bf68eb5df368007b** en `fix/native-windows-foundation`.
-- El PR #2 mantiene `main` como base y el head está siendo validado por CI; las ejecuciones asociadas al head están en progreso.
-- `RawPipe` implementa `CreateNamedPipeW` con `FILE_FLAG_OVERLAPPED`, mantiene vivas las estructuras `OVERLAPPED`, limita la cola en memoria y permite cancelar I/O pendiente al cerrar.
-- `FfmpegSupervisor` sigue siendo la frontera básica de proceso.
-- `FfmpegAvOutput` añade ahora la frontera A/V nativa: crea dos named pipes independientes, genera el comando FFmpeg con dos entradas raw y mapea explícitamente vídeo y audio. Todavía no conecta los productores reales de captura/audio.
-- El contrato de entrada es vídeo BGRA8 a resolución/FPS del perfil y audio `f32le` con sample rate/canales declarados. Los formatos raw no transportan por sí mismos metadata de timestamps; por eso esta capa no se marca como sincronización A/V de producción.
-- `StudioPipeline` ya incorpora `AvSyncController`; el smoke existente cubre orden temporal, tolerancia y late-drop, pero no corrección de drift/resampling de producción.
+- El head de trabajo actual de esta auditoría es **cb9659da4f411d9a965c385588c3bb410ec5e3b1** en `fix/native-windows-foundation`.
+- Se corrigió previamente el timestamp WASAPI para usar el `QPCPosition` ya convertido por Windows a 100 ns. Microsoft documenta explícitamente esa unidad; no debe volver a tratarse como ticks QPC crudos. citeturn0search0
+- `AudioTimelineMixer` introduce una frontera temporal única para micrófono, audio del sistema y futuras pistas como TTS. Normaliza canales/sample-rate, conserva PTS, produce bloques de 20 ms y mantiene métricas de rechazo, resampling, mezcla y underrun.
+- El smoke de `AudioTimelineMixer` verifica mezcla de micrófono + sistema, avance monotónico de PTS, resampling de una pista de 44.1 kHz y rechazo de paquetes malformados.
+- El mezclador todavía no se considera sincronización de producción: dos dispositivos físicos pueden tener relojes ligeramente distintos. La corrección de drift requiere observar los relojes de los dispositivos y ajustar/resamplear de forma continua; `IAudioClock::GetPosition` queda como referencia para esa etapa. citeturn0search2
+- `FfmpegAvOutput` sigue siendo la frontera A/V nativa: dos named pipes independientes y dos entradas raw. Los formatos raw de FFmpeg no transportan timestamps por sí mismos, por lo que la continuidad temporal debe mantenerse antes de escribir al pipe. citeturn0search8
+- La captura BGRA y el audio real todavía no están conectados al `NativeMediaOutputBridge`; esa conexión es el siguiente gate técnico.
+- CI no se marca como verde en este punto: el commit `4384d72e053a51fcf93114496bc5e85a29d3be0f` no mostró ejecuciones asociadas al consultar GitHub. Las nuevas modificaciones de esta continuación necesitan una ejecución Windows nueva antes de declararse verificadas.
 - La validación final de cámara, GPU, juegos, audio, rendimiento, FFmpeg real, RTMP y reconexión continúa requiriendo una máquina Windows objetivo; CI no sustituye esa prueba.
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~52%.**
+**Estimación global de ingeniería: ~54%.**
 
-El incremento respecto de la estimación anterior corresponde a la construcción del límite A/V real entre Cari y FFmpeg, no a contar archivos o documentación. El programa todavía no se considera un streamer terminado: el mayor bloque pendiente sigue siendo conectar captura/audio reales al transporte, ejecutar FFmpeg con datos sostenidos, mux/encoder, RTMP/reconexión y validación en hardware.
+El incremento es pequeño porque el mezclador temporal cierra una pieza importante del diseño de audio, pero todavía no conecta productores reales al output. El mayor bloque pendiente continúa siendo la unión sostenida de captura BGRA + audio mezclado → FFmpeg, encoder/mux real, RTMP/reconexión y validación en hardware.
 
 ## Regla de cierre
 
