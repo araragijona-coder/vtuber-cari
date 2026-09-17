@@ -44,7 +44,7 @@ private:
 
     WasapiCapture microphone_;
     WasapiCapture system_loopback_;
-    AudioTimelineMixer timeline_mixer_;
+    mutable AudioTimelineMixer timeline_mixer_;
 
     mutable std::mutex mixer_mutex_;
     mutable std::mutex error_mutex_;
