@@ -8,6 +8,7 @@
 #include "../core/software_compositor.h"
 #include "process_runner.h"
 
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <memory>
