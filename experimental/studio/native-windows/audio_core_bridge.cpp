@@ -87,14 +87,14 @@ void AudioCoreBridge::stop() noexcept {
 }
 
 void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& packet) {
-    callbacks_.fetch_add(1, std::memory_order_relaxed);
+    const auto callback_sequence = callbacks_.fetch_add(1, std::memory_order_relaxed) + 1;
 
     if (packet.sample_rate == 0 || packet.channels == 0 || packet.samples.empty()) {
         errors_.fetch_add(1, std::memory_order_relaxed);
         return;
     }
 
-    const auto sequence = packets_.load(std::memory_order_relaxed) + callbacks_.load(std::memory_order_relaxed);
+    const auto sequence = callback_sequence;
     const auto core_packet = to_core_packet(packet, sequence);
     float packet_peak = 0.0f;
     for (const auto sample : core_packet.samples) packet_peak = std::max(packet_peak, std::fabs(sample));
