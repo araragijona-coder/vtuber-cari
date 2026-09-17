@@ -46,6 +46,9 @@ jobs:
       - name: Run native media output bridge smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-native-media-output-bridge-smoke
 
+      - name: Run frame bridge smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-frame-bridge-smoke
+
       - name: Run audio timeline mixer smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-audio-timeline-mixer-smoke
 
