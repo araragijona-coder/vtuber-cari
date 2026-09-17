@@ -1,6 +1,8 @@
 #include "audio_core_bridge.h"
 
 #include <utility>
+#include <algorithm>
+#include <cmath>
 
 namespace cari::native {
 namespace {
@@ -27,8 +29,7 @@ cari::studio::core::AudioPacket to_core_packet(
 } // namespace
 
 AudioCoreBridge::AudioCoreBridge() {
-    mixer_.add_track("microphone");
-    mixer_.add_track("system");
+
 }
 
 AudioCoreBridge::~AudioCoreBridge() {
@@ -43,6 +44,7 @@ bool AudioCoreBridge::start() {
     samples_.store(0);
     errors_.store(0);
     peak_.store(0.0f);
+    timeline_mixer_.clear();
     {
         std::lock_guard lock(error_mutex_);
         last_error_.clear();
@@ -94,7 +96,8 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
 
     const auto sequence = packets_.load(std::memory_order_relaxed) + 1;
     const auto core_packet = to_core_packet(packet, sequence);
-    const float packet_peak = mixer_.peak(core_packet.samples);
+    float packet_peak = 0.0f;
+    for (const auto sample : core_packet.samples) packet_peak = std::max(packet_peak, std::fabs(sample));
 
     float observed = peak_.load(std::memory_order_relaxed);
     while (packet_peak > observed &&
@@ -106,8 +109,8 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
 
     try {
         std::lock_guard lock(mixer_mutex_);
-        if (!mixer_.set_samples(track_id, core_packet.samples)) {
-            set_error(L"AudioMixer track is missing: " + widen_ascii(track_id));
+        if (!timeline_mixer_.push(track_id, core_packet)) {
+            set_error(L"AudioTimelineMixer rejected packet for track: " + widen_ascii(track_id));
             return;
         }
     } catch (...) {
@@ -138,13 +141,21 @@ AudioCoreBridgeStats AudioCoreBridge::stats() const noexcept {
 }
 
 float AudioCoreBridge::mix_peak() const {
-    std::lock_guard lock(mixer_mutex_);
-    return mixer_.peak(mixer_.mix(4096));
+    return peak_.load(std::memory_order_relaxed);
 }
 
 std::vector<float> AudioCoreBridge::mixed_samples(std::size_t sample_count) const {
+    if (sample_count == 0) return {};
     std::lock_guard lock(mixer_mutex_);
-    return mixer_.mix(sample_count);
+    cari::studio::core::AudioPacket packet;
+    if (!timeline_mixer_.pop(packet)) return {};
+    const auto count = std::min(sample_count, packet.samples.size());
+    return std::vector<float>(packet.samples.begin(), packet.samples.begin() + count);
+}
+
+bool AudioCoreBridge::pop_mixed_audio(cari::studio::core::AudioPacket& output) {
+    std::lock_guard lock(mixer_mutex_);
+    return timeline_mixer_.pop(output);
 }
 
 std::wstring AudioCoreBridge::last_error() const {
