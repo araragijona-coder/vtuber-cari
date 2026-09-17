@@ -71,10 +71,12 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Process stderr capture and draining.
 - [x] Supervised FFmpeg process boundary: validation, launch, poll, stderr and exit state.
 - [x] CI smoke for FFmpeg supervisor failure/validation path.
+- [x] Native FFmpeg A/V output boundary with independent video/audio named pipes.
+- [x] Explicit FFmpeg two-input `-map 0:v:0 -map 1:a:0` contract.
 - [ ] FFmpeg binary discovery policy.
 - [ ] FFmpeg legal redistribution decision.
-- [ ] Raw video pipe connected to FFmpeg.
-- [ ] Raw audio pipe connected to FFmpeg.
+- [ ] Raw video producer connected to FFmpeg A/V output.
+- [ ] Raw audio producer connected to FFmpeg A/V output.
 - [ ] Output stderr classification / structured diagnostics.
 - [ ] Automatic output reconnect/backoff policy.
 
@@ -84,13 +86,15 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] I/O `OVERLAPPED` persistente para conexión y escritura.
 - [x] Cola acotada en memoria con métrica de descarte.
 - [x] Cancelación de I/O pendiente durante cierre.
-- [x] Smoke CI del transporte en Native Windows Build #147.
+- [x] Smoke CI del transporte en Native Windows Build previo.
 - [x] Cliente Windows de smoke conecta y comprueba payload + métricas.
-- [ ] Integración video BGRA → RawPipe.
-- [ ] Integración audio PCM float → RawPipe.
-- [ ] Segundo canal/entrada FFmpeg para audio.
-- [ ] Mapeo A/V y política de timestamps en FFmpeg.
+- [x] Contrato de dos canales: vídeo BGRA8 y audio PCM float32 LE.
+- [x] Generación de nombres únicos de pipe por proceso/secuencia.
+- [ ] Integración de captura BGRA → canal de vídeo.
+- [ ] Integración de AudioPacket → canal PCM float.
+- [ ] Alimentación sostenida de ambos canales durante ejecución real.
 - [ ] Prueba local con FFmpeg real y archivo de salida.
+- [ ] Verificación de sincronización A/V sostenida y drift/resampling.
 
 ### Twitch
 
@@ -143,19 +147,20 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Evidencia actual
 
-- `Native Windows Build` run **147** terminó en `success` sobre el head **229f03ba0ac644b67f6aa730b365ea0fc8851846**.
-- Run 147 configuró CMake, compiló todos los targets, ejecutó `cari-core-smoke`, `cari-ffmpeg-supervisor-smoke` y `cari-raw-pipe-smoke`, verificó el ejecutable y generó/subió el ZIP portable.
+- El head de trabajo actual es **a946d56721a9687b487affb9bf68eb5df368007b** en `fix/native-windows-foundation`.
+- El PR #2 mantiene `main` como base y el head está siendo validado por CI; las ejecuciones asociadas al head están en progreso.
 - `RawPipe` implementa `CreateNamedPipeW` con `FILE_FLAG_OVERLAPPED`, mantiene vivas las estructuras `OVERLAPPED`, limita la cola en memoria y permite cancelar I/O pendiente al cerrar.
-- `FfmpegSupervisor` sigue siendo únicamente frontera de proceso: todavía no recibe los bytes multimedia reales y, por tanto, no se considera streaming A/V completo.
-- El perfil FFmpeg actual sigue construyendo una entrada de vídeo raw por `stdin`; el audio todavía no está mapeado al proceso, así que los gates de audio/output real permanecen abiertos.
+- `FfmpegSupervisor` sigue siendo la frontera básica de proceso.
+- `FfmpegAvOutput` añade ahora la frontera A/V nativa: crea dos named pipes independientes, genera el comando FFmpeg con dos entradas raw y mapea explícitamente vídeo y audio. Todavía no conecta los productores reales de captura/audio.
+- El contrato de entrada es vídeo BGRA8 a resolución/FPS del perfil y audio `f32le` con sample rate/canales declarados. Los formatos raw no transportan por sí mismos metadata de timestamps; por eso esta capa no se marca como sincronización A/V de producción.
 - `StudioPipeline` ya incorpora `AvSyncController`; el smoke existente cubre orden temporal, tolerancia y late-drop, pero no corrección de drift/resampling de producción.
-- La validación final de cámara, GPU, juegos, audio, rendimiento y reconexión continúa requiriendo una máquina Windows objetivo; CI no sustituye esa prueba.
+- La validación final de cámara, GPU, juegos, audio, rendimiento, FFmpeg real, RTMP y reconexión continúa requiriendo una máquina Windows objetivo; CI no sustituye esa prueba.
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~50%.**
+**Estimación global de ingeniería: ~52%.**
 
-Este porcentaje es una medida de madurez funcional estimada, no una suma de archivos ni una promesa de funcionamiento final. La base nativa, contratos core, captura Windows, audio foundation, escenas, automatización Twitch y la infraestructura de CI ya tienen bastante trabajo implementado; el mayor bloque pendiente sigue siendo el camino multimedia de producción (compositor GPU, encoder/muxer real, A/V real hacia FFmpeg, RTMP/reconexión) y la validación en hardware.
+El incremento respecto de la estimación anterior corresponde a la construcción del límite A/V real entre Cari y FFmpeg, no a contar archivos o documentación. El programa todavía no se considera un streamer terminado: el mayor bloque pendiente sigue siendo conectar captura/audio reales al transporte, ejecutar FFmpeg con datos sostenidos, mux/encoder, RTMP/reconexión y validación en hardware.
 
 ## Regla de cierre
 
