@@ -1,7 +1,7 @@
 #pragma once
 
 #include "wasapi_capture.h"
-#include "../core/audio_mixer.h"
+#include "audio_timeline_mixer.h"
 #include "../core/types.h"
 
 #include <atomic>
@@ -35,6 +35,7 @@ public:
     [[nodiscard]] AudioCoreBridgeStats stats() const noexcept;
     [[nodiscard]] float mix_peak() const;
     [[nodiscard]] std::vector<float> mixed_samples(std::size_t sample_count) const;
+    bool pop_mixed_audio(cari::studio::core::AudioPacket& output);
     [[nodiscard]] std::wstring last_error() const;
 
 private:
@@ -43,7 +44,7 @@ private:
 
     WasapiCapture microphone_;
     WasapiCapture system_loopback_;
-    cari::studio::core::AudioMixer mixer_;
+    AudioTimelineMixer timeline_mixer_;
 
     mutable std::mutex mixer_mutex_;
     mutable std::mutex error_mutex_;
