@@ -21,6 +21,7 @@ add_executable(cari-studio-native WIN32
     ffmpeg_supervisor.cpp
     ffmpeg_av_output.cpp
     native_media_output_bridge.cpp
+    media_graph_controller.cpp
     raw_media_adapter.cpp
     raw_pipe.cpp
     wasapi_capture.cpp
