@@ -48,7 +48,18 @@ int main() {
     assert(has("aac"));
     assert(has("160k"));
     assert(has("-use_wallclock_as_timestamps"));
-    assert(has("1"));
+    const wallclock = std::find(
+        command.arguments.begin(), command.arguments.end(),
+        "-use_wallclock_as_timestamps");
+    assert(wallclock != command.arguments.end());
+    assert(std::next(wallclock) != command.arguments.end());
+    assert(*std::next(wallclock) == "1");
+    const first_input = std::find(command.arguments.begin(), command.arguments.end(), inputs.video_input);
+    const second_input = std::find(command.arguments.begin(), command.arguments.end(), inputs.audio_input);
+    assert(first_input != command.arguments.end());
+    assert(second_input != command.arguments.end());
+    assert(std::distance(wallclock, first_input) > 0);
+    assert(std::distance(wallclock, second_input) > 0);
     assert(has("-shortest"));
     assert(has("matroska"));
 
