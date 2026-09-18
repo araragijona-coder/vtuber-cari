@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <vector>
 
 int main() {
     using namespace cari::studio::core;
@@ -48,18 +49,24 @@ int main() {
     assert(has("aac"));
     assert(has("160k"));
     assert(has("-use_wallclock_as_timestamps"));
-    const wallclock = std::find(
-        command.arguments.begin(), command.arguments.end(),
-        "-use_wallclock_as_timestamps");
-    assert(wallclock != command.arguments.end());
-    assert(std::next(wallclock) != command.arguments.end());
-    assert(*std::next(wallclock) == "1");
-    const first_input = std::find(command.arguments.begin(), command.arguments.end(), inputs.video_input);
-    const second_input = std::find(command.arguments.begin(), command.arguments.end(), inputs.audio_input);
+    std::vector<std::size_t> wallclock_positions;
+    for (std::size_t i = 0; i < command.arguments.size(); ++i) {
+        if (command.arguments[i] == "-use_wallclock_as_timestamps") {
+            wallclock_positions.push_back(i);
+            assert(i + 1 < command.arguments.size());
+            assert(command.arguments[i + 1] == "1");
+        }
+    }
+    assert(wallclock_positions.size() == 2);
+
+    const auto first_input = std::find(command.arguments.begin(), command.arguments.end(), inputs.video_input);
+    const auto second_input = std::find(command.arguments.begin(), command.arguments.end(), inputs.audio_input);
     assert(first_input != command.arguments.end());
     assert(second_input != command.arguments.end());
-    assert(std::distance(wallclock, first_input) > 0);
-    assert(std::distance(wallclock, second_input) > 0);
+    assert(wallclock_positions[0] < static_cast<std::size_t>(
+        std::distance(command.arguments.begin(), first_input)));
+    assert(wallclock_positions[1] < static_cast<std::size_t>(
+        std::distance(command.arguments.begin(), second_input)));
     assert(has("-shortest"));
     assert(has("matroska"));
 
