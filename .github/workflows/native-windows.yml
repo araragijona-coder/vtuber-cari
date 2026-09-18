@@ -58,6 +58,15 @@ jobs:
       - name: Run raw pipe smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-raw-pipe-smoke
 
+      - name: Run A/V sync smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-av-sync-smoke
+
+      - name: Run media clock smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-media-clock-smoke
+
+      - name: Run control protocol smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-control-protocol-smoke
+
       - name: Verify native executable exists
         shell: pwsh
         run: |
