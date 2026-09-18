@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -46,16 +47,15 @@ public:
     bool poll() noexcept;
     void stop() noexcept;
 
-    [[nodiscard]] bool running() const noexcept { return output_.running(); }
-    [[nodiscard]] bool connected() const noexcept { return output_.connected(); }
-    [[nodiscard]] const std::string& last_error() const noexcept { return last_error_; }
-    [[nodiscard]] const std::string& stderr_text() const noexcept { return output_.stderr_text(); }
-    [[nodiscard]] MediaGraphStats stats() const noexcept { return stats_; }
-    [[nodiscard]] FfmpegAvOutputMetrics transport_metrics() const noexcept {
-        return output_.transport_metrics();
-    }
+    [[nodiscard]] bool running() const noexcept;
+    [[nodiscard]] bool connected() const noexcept;
+    [[nodiscard]] std::string last_error() const;
+    [[nodiscard]] std::string stderr_text() const;
+    [[nodiscard]] MediaGraphStats stats() const noexcept;
+    [[nodiscard]] FfmpegAvOutputMetrics transport_metrics() const noexcept;
 
 private:
+    mutable std::mutex mutex_;
     NativeMediaOutputBridge output_;
     MediaGraphStats stats_{};
     std::string last_error_;
