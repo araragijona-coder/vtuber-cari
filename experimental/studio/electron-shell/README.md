@@ -43,4 +43,16 @@ No cloud API is required for the control plane.
 
 ## Important status
 
-This shell is not promoted to production yet. The native executable must expose the JSON command contract before the UI can control capture/output for real. Until that integration is implemented and hardware-tested, this entire directory remains experimental.
+The native executable now exposes a small line-oriented JSON command contract on stdin/stdout. Supported commands are:
+
+- {"type":"status"}
+- {"type":"capture.start","source":"window"}
+- {"type":"capture.stop"}
+- {"type":"audio.start"}
+- {"type":"audio.stop"}
+- {"type":"output.start","profile":"local-record"}
+- {"type":"output.stop"}
+
+The Electron shell sends these commands through the child process stdin. The native runtime reads stdin on a worker thread and posts commands onto its Win32 UI thread, keeping Windows Graphics Capture control on the apartment thread.
+
+The shell is still not promoted to production: the local A/V path remains experimental, timestamp fidelity between raw pipes is not yet a capture-PTS contract, the compositor is currently a reference validation stage rather than the encoded video source, and hardware/FFmpeg integration tests are still required. Until those gates pass, this entire directory remains experimental.
