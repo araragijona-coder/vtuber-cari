@@ -49,6 +49,8 @@ std::atomic<std::uint64_t> g_compositor_bytes{0};
 std::atomic<std::uint64_t> g_last_composited_sequence{0};
 cari::native::MediaGraphController g_media_graph;
 std::atomic<bool> g_media_enabled{false};
+std::atomic<bool> g_record_started_capture{false};
+std::atomic<bool> g_record_started_audio{false};
 
 std::wstring BuildAudioStatus() {
     const auto endpoints = cari::native::enumerate_audio_endpoints();
@@ -162,7 +164,19 @@ void PollMediaGraph() {
     }
 }
 
-bool StartLocalRecording() {
+bool StartLocalRecording(HWND hwnd) {
+    if (!g_capture.is_running()) {
+        if (g_selected_window && IsWindow(g_selected_window))
+            g_capture.start_window(g_selected_window);
+        else
+            g_capture.start_window(hwnd);
+        if (!g_capture.is_running()) return false;
+        g_record_started_capture.store(true, std::memory_order_relaxed);
+    }
+    if (!g_audio_bridge.running()) {
+        if (!g_audio_bridge.start()) return false;
+        g_record_started_audio.store(true, std::memory_order_relaxed);
+    }
     cari::studio::core::OutputProfile profile{
         .id = "local-record",
         .kind = cari::studio::core::OutputKind::file,
@@ -214,7 +228,7 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
             return cari::native::control_response(false, "unsupported output profile");
         if (g_media_enabled.load(std::memory_order_relaxed))
             return cari::native::control_response(true, "output=running");
-        if (!StartLocalRecording())
+        if (!StartLocalRecording(hwnd))
             return cari::native::control_response(false, "output=start-failed");
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "output=started");
@@ -319,6 +333,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
                 };
                 if (g_media_graph.start(profile, 48000, 2)) {
                     g_media_enabled.store(true, std::memory_order_relaxed);
+                    if (!g_capture.is_running()) {
+                        if (g_selected_window && IsWindow(g_selected_window))
+                            g_capture.start_window(g_selected_window);
+                        else
+                            g_capture.start_window(hwnd);
+                    }
+                    if (!g_audio_bridge.running()) {
+                        g_audio_bridge.start();
+                    }
                 }
             }
             RefreshStatus(hwnd);
