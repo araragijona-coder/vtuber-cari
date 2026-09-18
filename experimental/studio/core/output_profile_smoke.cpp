@@ -47,6 +47,8 @@ int main() {
     assert(has("libx264"));
     assert(has("aac"));
     assert(has("160k"));
+    assert(has("-use_wallclock_as_timestamps"));
+    assert(has("1"));
     assert(has("-shortest"));
     assert(has("matroska"));
 
