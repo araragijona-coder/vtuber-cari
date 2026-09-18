@@ -6,7 +6,7 @@
 
 namespace cari::studio::core {
 
-using Timestamp = std::int64_t;
+// Media timestamps use signed 100-nanosecond ticks. Native Windows capture/audio sources\n// can share this domain because GraphicsCapture SystemRelativeTime and WASAPI\n// GetBuffer QPC timestamps are both derived from the system performance clock.\nusing Timestamp = std::int64_t;
 
 struct Frame {
     Timestamp pts = 0;
