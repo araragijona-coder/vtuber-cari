@@ -35,7 +35,7 @@ bool MediaGraphController::submit_video(
     const cari::studio::core::Frame& frame,
     const std::shared_ptr<std::vector<std::uint8_t>>& bgra) noexcept {
     std::lock_guard lock(mutex_);
-    if (!output_.submit_video(frame, bgra))
+    if (!output_.submit_video(frame, bgra)) {
         ++stats_.video_dropped;
         last_error_ = output_.last_error();
         return false;
@@ -47,7 +47,7 @@ bool MediaGraphController::submit_video(
 bool MediaGraphController::submit_audio(
     const cari::studio::core::AudioPacket& packet) noexcept {
     std::lock_guard lock(mutex_);
-    if (!output_.submit_audio(packet))
+    if (!output_.submit_audio(packet)) {
         ++stats_.audio_dropped;
         last_error_ = output_.last_error();
         return false;
