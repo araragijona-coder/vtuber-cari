@@ -13,6 +13,7 @@ bool MediaGraphController::start(
     const std::wstring& ffmpeg_executable,
     const std::wstring& working_directory) {
     stop();
+    std::lock_guard lock(mutex_);
     stats_ = {};
     last_error_.clear();
 
@@ -33,7 +34,8 @@ bool MediaGraphController::start(
 bool MediaGraphController::submit_video(
     const cari::studio::core::Frame& frame,
     const std::shared_ptr<std::vector<std::uint8_t>>& bgra) noexcept {
-    if (!output_.submit_video(frame, bgra)) {
+    std::lock_guard lock(mutex_);
+    if (!output_.submit_video(frame, bgra))
         ++stats_.video_dropped;
         last_error_ = output_.last_error();
         return false;
@@ -44,7 +46,8 @@ bool MediaGraphController::submit_video(
 
 bool MediaGraphController::submit_audio(
     const cari::studio::core::AudioPacket& packet) noexcept {
-    if (!output_.submit_audio(packet)) {
+    std::lock_guard lock(mutex_);
+    if (!output_.submit_audio(packet))
         ++stats_.audio_dropped;
         last_error_ = output_.last_error();
         return false;
@@ -54,6 +57,7 @@ bool MediaGraphController::submit_audio(
 }
 
 bool MediaGraphController::poll() noexcept {
+    std::lock_guard lock(mutex_);
     ++stats_.polls;
     if (!output_.poll()) {
         ++stats_.poll_failures;
@@ -64,7 +68,38 @@ bool MediaGraphController::poll() noexcept {
 }
 
 void MediaGraphController::stop() noexcept {
+    std::lock_guard lock(mutex_);
     output_.stop();
+}
+
+bool MediaGraphController::running() const noexcept {
+    std::lock_guard lock(mutex_);
+    return output_.running();
+}
+
+bool MediaGraphController::connected() const noexcept {
+    std::lock_guard lock(mutex_);
+    return output_.connected();
+}
+
+std::string MediaGraphController::last_error() const {
+    std::lock_guard lock(mutex_);
+    return last_error_;
+}
+
+std::string MediaGraphController::stderr_text() const {
+    std::lock_guard lock(mutex_);
+    return output_.stderr_text();
+}
+
+MediaGraphStats MediaGraphController::stats() const noexcept {
+    std::lock_guard lock(mutex_);
+    return stats_;
+}
+
+FfmpegAvOutputMetrics MediaGraphController::transport_metrics() const noexcept {
+    std::lock_guard lock(mutex_);
+    return output_.transport_metrics();
 }
 
 } // namespace cari::native
