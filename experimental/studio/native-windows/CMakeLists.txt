@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(cari-studio-native WIN32
     main.cpp
+    control_protocol.cpp
     audio_probe.cpp
     audio_core_bridge.cpp
     audio_timeline_mixer.cpp
