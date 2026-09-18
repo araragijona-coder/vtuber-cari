@@ -164,25 +164,27 @@ void PollMediaGraph() {
     }
 }
 
-bool g_capture_started_by_recording = false;
-
 bool StartLocalRecording(HWND hwnd) {
+    bool started_capture = false;
+    bool started_audio = false;
+
     if (!g_capture.is_running()) {
         if (g_selected_window && IsWindow(g_selected_window))
             g_capture.start_window(g_selected_window);
         else
             g_capture.start_window(hwnd);
         if (!g_capture.is_running()) return false;
-        g_capture_started_by_recording = true;
+        started_capture = true;
     }
+
     if (!g_audio_bridge.running()) {
         if (!g_audio_bridge.start()) {
-            if (!g_capture_started_by_recording) {
-                g_capture.stop();
-            }
+            if (started_capture) g_capture.stop();
             return false;
         }
+        started_audio = true;
     }
+
     cari::studio::core::OutputProfile profile{
         .id = "local-record",
         .kind = cari::studio::core::OutputKind::file,
@@ -196,10 +198,8 @@ bool StartLocalRecording(HWND hwnd) {
         .audio_codec = "aac",
     };
     if (!g_media_graph.start(profile, 48000, 2)) {
-        if (g_capture_started_by_recording) {
-            g_capture.stop();
-            g_capture_started_by_recording = false;
-        }
+        if (started_audio) g_audio_bridge.stop();
+        if (started_capture) g_capture.stop();
         return false;
     }
     g_media_enabled.store(true, std::memory_order_relaxed);
