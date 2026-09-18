@@ -1,6 +1,6 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
+// Windows headers are configured with WIN32_LEAN_AND_MEAN by the native target.
 #include <windows.h>
 
 #include <cstddef>
