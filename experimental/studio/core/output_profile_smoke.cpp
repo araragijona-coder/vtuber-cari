@@ -22,7 +22,7 @@ int main() {
     const auto validation = validate_output_profile(profile);
     assert(validation.valid);
 
-    const auto command = build_ffmpeg_rtmp_command(profile, inputs);
+    const auto command = build_ffmpeg_av_command(profile, inputs);
     assert(command.executable == "ffmpeg");
 
     const auto has = [&](const std::string& value) {
@@ -47,6 +47,8 @@ int main() {
     assert(has("libx264"));
     assert(has("aac"));
     assert(has("160k"));
+    assert(has("-shortest"));
+    assert(has("matroska"));
 
     std::cout << "Output profile A/V mapping smoke: PASS\n";
     return 0;
