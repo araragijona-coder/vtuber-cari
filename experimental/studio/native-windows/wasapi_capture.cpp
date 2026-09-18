@@ -32,7 +32,7 @@ float pcm32_to_float(const std::uint8_t* data) {
     return static_cast<float>(value) / 2147483648.0f;
 }
 
-std::int64_t qpc_to_100ns(std::int64_t qpc) {
+std::int64_t raw_qpc_to_100ns(std::int64_t qpc) {
     LARGE_INTEGER frequency{};
     if (!QueryPerformanceFrequency(&frequency) || frequency.QuadPart <= 0) {
         return 0;
@@ -48,7 +48,7 @@ std::int64_t current_qpc_100ns() {
     if (!QueryPerformanceCounter(&qpc)) {
         return 0;
     }
-    return qpc_to_100ns(qpc.QuadPart);
+    return raw_qpc_to_100ns(qpc.QuadPart);
 }
 
 } // namespace
@@ -282,7 +282,7 @@ void WasapiCapture::run(WasapiMode mode, AudioFrameCallback callback) {
             packet.timestamp =
                 (qpc_position != 0 &&
                  (packet_flags & AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR) == 0)
-                    ? qpc_to_100ns(static_cast<std::int64_t>(qpc_position))
+                    ? static_cast<std::int64_t>(qpc_position)
                     : current_qpc_100ns();
             packet.samples.resize(static_cast<std::size_t>(frames_available) * channels);
 
