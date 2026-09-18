@@ -8,6 +8,8 @@
 #include "capture_engine.h"
 #include "compositor_bridge.h"
 #include "window_sources.h"
+#include "media_graph_controller.h"
+#include "../core/output_profile.h"
 
 #include <algorithm>
 #include <atomic>
@@ -20,6 +22,7 @@ namespace {
 constexpr wchar_t kClassName[] = L"CariStudioNative";
 constexpr wchar_t kWindowTitle[] = L"Cari Studio — Windows x64";
 constexpr UINT_PTR kStatusTimerId = 1;
+constexpr UINT_PTR kMediaTimerId = 2;
 constexpr std::uint64_t kBridgeSampleEvery = 30;
 
 cari::native::CaptureEngine g_capture;
@@ -39,6 +42,8 @@ std::atomic<std::uint64_t> g_compositor_successes{0};
 std::atomic<std::uint64_t> g_compositor_failures{0};
 std::atomic<std::uint64_t> g_compositor_bytes{0};
 std::atomic<std::uint64_t> g_last_composited_sequence{0};
+cari::native::MediaGraphController g_media_graph;
+std::atomic<bool> g_media_enabled{false};
 
 std::wstring BuildAudioStatus() {
     const auto endpoints = cari::native::enumerate_audio_endpoints();
@@ -136,6 +141,22 @@ std::wstring BuildCaptureStatus() {
            std::to_wstring(composited_sequence);
 }
 
+void PollMediaGraph() {
+    if (!g_media_enabled.load(std::memory_order_relaxed)) {
+        return;
+    }
+    if (!g_media_graph.poll()) {
+        return;
+    }
+
+    cari::studio::core::AudioPacket packet;
+    while (g_audio_bridge.pop_mixed_audio(packet)) {
+        if (!g_media_graph.submit_audio(packet)) {
+            break;
+        }
+    }
+}
+
 void RefreshStatus(HWND hwnd) {
     g_source_status = BuildSourceStatus();
     g_audio_status = BuildAudioStatus();
@@ -169,17 +190,44 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
     switch (message) {
     case WM_CREATE:
         SetTimer(hwnd, kStatusTimerId, 1000, nullptr);
+        SetTimer(hwnd, kMediaTimerId, 10, nullptr);
         return 0;
 
     case WM_TIMER:
         if (wparam == kStatusTimerId) {
             RefreshStatus(hwnd);
+        } else if (wparam == kMediaTimerId) {
+            PollMediaGraph();
         }
         return 0;
 
     case WM_KEYDOWN:
         if (wparam >= '1' && wparam <= '9') {
             SelectWindow(hwnd, static_cast<std::size_t>(wparam - '1'));
+            return 0;
+        }
+        if (wparam == 'R') {
+            if (g_media_enabled.load(std::memory_order_relaxed)) {
+                g_media_graph.stop();
+                g_media_enabled.store(false, std::memory_order_relaxed);
+            } else {
+                cari::studio::core::OutputProfile profile{
+                    .id = "local-record",
+                    .kind = cari::studio::core::OutputKind::file,
+                    .target = "cari-capture.mkv",
+                    .width = 1280,
+                    .height = 720,
+                    .fps = 30,
+                    .bitrate_kbps = 4500,
+                    .audio_bitrate_kbps = 160,
+                    .video_codec = "libx264",
+                    .audio_codec = "aac",
+                };
+                if (g_media_graph.start(profile, 48000, 2)) {
+                    g_media_enabled.store(true, std::memory_order_relaxed);
+                }
+            }
+            RefreshStatus(hwnd);
             return 0;
         }
         if (wparam == 'A') {
@@ -215,7 +263,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             g_source_status + L"\n" + BuildCaptureStatus() + L"\n\n" +
             L"1-9: select a window\n"
             L"SPACE: start/stop capture\n"
-            L"A: start/stop microphone + system audio";
+            L"A: start/stop microphone + system audio\n"
+            L"R: start/stop local A/V recording (experimental)";
 
         RECT client{};
         GetClientRect(hwnd, &client);
@@ -227,6 +276,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 
     case WM_DESTROY:
         KillTimer(hwnd, kStatusTimerId);
+        KillTimer(hwnd, kMediaTimerId);
+        g_media_graph.stop();
+        g_media_enabled.store(false, std::memory_order_relaxed);
         g_capture.stop();
         g_audio_bridge.stop();
         PostQuitMessage(0);
@@ -278,6 +330,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
             std::memory_order_relaxed);
         g_last_composited_sequence.store(
             bridged.frame.sequence, std::memory_order_relaxed);
+
+        if (g_media_enabled.load(std::memory_order_relaxed) &&
+            g_media_graph.connected() && bridged.pixels) {
+            g_media_graph.submit_video(bridged.frame, bridged.pixels);
+        }
     });
 
     const bool capture_supported =
