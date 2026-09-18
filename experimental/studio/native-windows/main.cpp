@@ -9,6 +9,7 @@
 #include "compositor_bridge.h"
 #include "window_sources.h"
 #include "media_graph_controller.h"
+#include "control_protocol.h"
 #include "../core/output_profile.h"
 
 #include <algorithm>
@@ -16,6 +17,9 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <thread>
+#include <iostream>
+#include <memory>
 
 namespace {
 
@@ -23,6 +27,7 @@ constexpr wchar_t kClassName[] = L"CariStudioNative";
 constexpr wchar_t kWindowTitle[] = L"Cari Studio — Windows x64";
 constexpr UINT_PTR kStatusTimerId = 1;
 constexpr UINT_PTR kMediaTimerId = 2;
+constexpr UINT kControlCommandMessage = WM_APP + 42;
 constexpr std::uint64_t kBridgeSampleEvery = 30;
 
 cari::native::CaptureEngine g_capture;
@@ -157,6 +162,86 @@ void PollMediaGraph() {
     }
 }
 
+bool StartLocalRecording() {
+    cari::studio::core::OutputProfile profile{
+        .id = "local-record",
+        .kind = cari::studio::core::OutputKind::file,
+        .target = "cari-capture.mkv",
+        .width = 1280,
+        .height = 720,
+        .fps = 30,
+        .bitrate_kbps = 4500,
+        .audio_bitrate_kbps = 160,
+        .video_codec = "libx264",
+        .audio_codec = "aac",
+    };
+    if (!g_media_graph.start(profile, 48000, 2)) {
+        return false;
+    }
+    g_media_enabled.store(true, std::memory_order_relaxed);
+    return true;
+}
+
+std::string HandleControlCommand(const cari::native::ControlCommand& command, HWND hwnd) {
+    switch (command.type) {
+    case cari::native::ControlCommandType::status:
+        return cari::native::control_response(
+            true, g_capture.is_running() ? "capture=running" : "capture=stopped");
+    case cari::native::ControlCommandType::capture_start:
+        if (g_capture.is_running()) return cari::native::control_response(true, "capture=running");
+        if (g_selected_window && IsWindow(g_selected_window))
+            g_capture.start_window(g_selected_window);
+        else
+            g_capture.start_window(hwnd);
+        RefreshStatus(hwnd);
+        return cari::native::control_response(
+            g_capture.is_running(), g_capture.is_running() ? "capture=started" : "capture=start-failed");
+    case cari::native::ControlCommandType::capture_stop:
+        g_capture.stop();
+        RefreshStatus(hwnd);
+        return cari::native::control_response(true, "capture=stopped");
+    case cari::native::ControlCommandType::audio_start:
+        if (!g_audio_bridge.running()) g_audio_bridge.start();
+        RefreshStatus(hwnd);
+        return cari::native::control_response(
+            g_audio_bridge.running(), g_audio_bridge.running() ? "audio=started" : "audio=start-failed");
+    case cari::native::ControlCommandType::audio_stop:
+        g_audio_bridge.stop();
+        RefreshStatus(hwnd);
+        return cari::native::control_response(true, "audio=stopped");
+    case cari::native::ControlCommandType::output_start:
+        if (command.profile != "local-record")
+            return cari::native::control_response(false, "unsupported output profile");
+        if (g_media_enabled.load(std::memory_order_relaxed))
+            return cari::native::control_response(true, "output=running");
+        if (!StartLocalRecording())
+            return cari::native::control_response(false, "output=start-failed");
+        RefreshStatus(hwnd);
+        return cari::native::control_response(true, "output=started");
+    case cari::native::ControlCommandType::output_stop:
+        g_media_graph.stop();
+        g_media_enabled.store(false, std::memory_order_relaxed);
+        RefreshStatus(hwnd);
+        return cari::native::control_response(true, "output=stopped");
+    default:
+        return cari::native::control_response(false, "invalid command");
+    }
+}
+
+void StartControlReader(HWND hwnd) {
+    std::thread([hwnd]() {
+        std::string line;
+        while (std::getline(std::cin, line)) {
+            auto* payload = new std::string(std::move(line));
+            if (!PostMessageW(hwnd, kControlCommandMessage, 0,
+                              reinterpret_cast<LPARAM>(payload))) {
+                delete payload;
+                break;
+            }
+        }
+    }).detach();
+}
+
 void RefreshStatus(HWND hwnd) {
     g_source_status = BuildSourceStatus();
     g_audio_status = BuildAudioStatus();
@@ -192,6 +277,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         SetTimer(hwnd, kStatusTimerId, 1000, nullptr);
         SetTimer(hwnd, kMediaTimerId, 10, nullptr);
         return 0;
+
+    case kControlCommandMessage: {
+        std::unique_ptr<std::string> line(
+            reinterpret_cast<std::string*>(lparam));
+        const auto command = cari::native::parse_control_command(*line);
+        const auto response = HandleControlCommand(command, hwnd);
+        std::cout << response << std::flush;
+        return 0;
+    }
 
     case WM_TIMER:
         if (wparam == kStatusTimerId) {
@@ -370,6 +464,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     if (!hwnd) {
         return 2;
     }
+
+    StartControlReader(hwnd);
 
     g_source_status = BuildSourceStatus();
     if (!g_windows.empty()) {
