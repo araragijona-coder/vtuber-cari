@@ -54,10 +54,6 @@ bool FfmpegAvOutput::start(
         fail(validation.error.c_str());
         return false;
     }
-    if (profile.kind != cari::studio::core::OutputKind::rtmp) {
-        fail("native FFmpeg A/V output currently requires an RTMP output profile");
-        return false;
-    }
     if (audio_sample_rate == 0 || audio_channels == 0) {
         fail("audio sample rate and channel count must be non-zero");
         return false;
@@ -75,7 +71,7 @@ bool FfmpegAvOutput::start(
         .audio_channels = audio_channels,
     };
 
-    const auto command = cari::studio::core::build_ffmpeg_rtmp_command(profile, inputs);
+    const auto command = cari::studio::core::build_ffmpeg_av_command(profile, inputs);
     std::vector<std::wstring> arguments;
     arguments.reserve(command.arguments.size());
     for (const auto& argument : command.arguments) {
