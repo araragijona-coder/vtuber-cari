@@ -93,6 +93,37 @@ inline EncoderCommand build_ffmpeg_rtmp_command(const OutputProfile& profile) {
     return command;
 }
 
+inline EncoderCommand build_ffmpeg_av_command(
+    const OutputProfile& profile,
+    const RawMediaInputs& inputs) {
+    EncoderCommand command;
+    command.executable = "ffmpeg";
+    const char* output_format =
+        profile.kind == OutputKind::rtmp ? "flv" : "matroska";
+    command.arguments = {
+        "-hide_banner", "-loglevel", "warning",
+        "-f", "rawvideo",
+        "-pix_fmt", "bgra",
+        "-video_size", std::to_string(profile.width) + "x" + std::to_string(profile.height),
+        "-framerate", std::to_string(profile.fps),
+        "-i", inputs.video_input,
+        "-f", "f32le",
+        "-ar", std::to_string(inputs.audio_sample_rate),
+        "-ac", std::to_string(inputs.audio_channels),
+        "-i", inputs.audio_input,
+        "-map", "0:v:0",
+        "-map", "1:a:0",
+        "-c:v", profile.video_codec,
+        "-b:v", std::to_string(profile.bitrate_kbps) + "k",
+        "-c:a", profile.audio_codec,
+        "-b:a", std::to_string(profile.audio_bitrate_kbps) + "k",
+        "-shortest",
+        "-f", output_format,
+        profile.target,
+    };
+    return command;
+}
+
 // Explicit two-input contract for the eventual native A/V transport. The
 // current supervisor intentionally does not call this overload yet: that
 // connection is a later gate requiring real RawPipe producers and timestamps.
