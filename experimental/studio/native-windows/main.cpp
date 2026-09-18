@@ -49,8 +49,6 @@ std::atomic<std::uint64_t> g_compositor_bytes{0};
 std::atomic<std::uint64_t> g_last_composited_sequence{0};
 cari::native::MediaGraphController g_media_graph;
 std::atomic<bool> g_media_enabled{false};
-std::atomic<bool> g_record_started_capture{false};
-std::atomic<bool> g_record_started_audio{false};
 
 std::wstring BuildAudioStatus() {
     const auto endpoints = cari::native::enumerate_audio_endpoints();
@@ -166,6 +164,8 @@ void PollMediaGraph() {
     }
 }
 
+bool g_capture_started_by_recording = false;
+
 bool StartLocalRecording(HWND hwnd) {
     if (!g_capture.is_running()) {
         if (g_selected_window && IsWindow(g_selected_window))
@@ -173,18 +173,22 @@ bool StartLocalRecording(HWND hwnd) {
         else
             g_capture.start_window(hwnd);
         if (!g_capture.is_running()) return false;
-        g_record_started_capture.store(true, std::memory_order_relaxed);
+        g_capture_started_by_recording = true;
     }
     if (!g_audio_bridge.running()) {
-        if (!g_audio_bridge.start()) return false;
-        g_record_started_audio.store(true, std::memory_order_relaxed);
+        if (!g_audio_bridge.start()) {
+            if (!g_capture_started_by_recording) {
+                g_capture.stop();
+            }
+            return false;
+        }
     }
     cari::studio::core::OutputProfile profile{
         .id = "local-record",
         .kind = cari::studio::core::OutputKind::file,
         .target = "cari-capture.mkv",
-        .width = 1280,
-        .height = 720,
+        .width = g_capture.stats().width,
+        .height = g_capture.stats().height,
         .fps = 30,
         .bitrate_kbps = 4500,
         .audio_bitrate_kbps = 160,
@@ -192,6 +196,10 @@ bool StartLocalRecording(HWND hwnd) {
         .audio_codec = "aac",
     };
     if (!g_media_graph.start(profile, 48000, 2)) {
+        if (g_capture_started_by_recording) {
+            g_capture.stop();
+            g_capture_started_by_recording = false;
+        }
         return false;
     }
     g_media_enabled.store(true, std::memory_order_relaxed);
@@ -391,10 +399,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
 
     g_capture.set_frame_callback([](const cari::native::CapturedFrame& captured) {
-        if ((captured.sequence % kBridgeSampleEvery) != 0) {
-            return;
-        }
-
+        const bool diagnostic_sample = (captured.sequence % kBridgeSampleEvery) == 0;
         g_bridge_attempts.fetch_add(1, std::memory_order_relaxed);
 
         cari::native::BridgedFrame bridged;
@@ -410,6 +415,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
             std::memory_order_relaxed);
         g_last_bridge_sequence.store(bridged.frame.sequence, std::memory_order_relaxed);
 
+        if (diagnostic_sample) {
         cari::studio::core::SoftwareCompositor compositor(
             static_cast<std::uint32_t>(captured.width),
             static_cast<std::uint32_t>(captured.height));
@@ -426,6 +432,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
             std::memory_order_relaxed);
         g_last_composited_sequence.store(
             bridged.frame.sequence, std::memory_order_relaxed);
+        }
 
         if (g_media_enabled.load(std::memory_order_relaxed) &&
             g_media_graph.connected() && bridged.pixels) {
