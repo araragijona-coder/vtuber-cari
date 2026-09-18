@@ -148,6 +148,8 @@ std::wstring BuildCaptureStatus() {
            std::to_wstring(composited_sequence);
 }
 
+void RefreshStatus(HWND hwnd);
+
 void PollMediaGraph() {
     if (!g_media_enabled.load(std::memory_order_relaxed)) {
         return;
@@ -319,30 +321,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
                 g_media_graph.stop();
                 g_media_enabled.store(false, std::memory_order_relaxed);
             } else {
-                cari::studio::core::OutputProfile profile{
-                    .id = "local-record",
-                    .kind = cari::studio::core::OutputKind::file,
-                    .target = "cari-capture.mkv",
-                    .width = 1280,
-                    .height = 720,
-                    .fps = 30,
-                    .bitrate_kbps = 4500,
-                    .audio_bitrate_kbps = 160,
-                    .video_codec = "libx264",
-                    .audio_codec = "aac",
-                };
-                if (g_media_graph.start(profile, 48000, 2)) {
-                    g_media_enabled.store(true, std::memory_order_relaxed);
-                    if (!g_capture.is_running()) {
-                        if (g_selected_window && IsWindow(g_selected_window))
-                            g_capture.start_window(g_selected_window);
-                        else
-                            g_capture.start_window(hwnd);
-                    }
-                    if (!g_audio_bridge.running()) {
-                        g_audio_bridge.start();
-                    }
-                }
+                StartLocalRecording(hwnd);
             }
             RefreshStatus(hwnd);
             return 0;
