@@ -234,6 +234,23 @@ add_executable(cari-raw-pipe-smoke
     raw_pipe.cpp
 )
 
+add_executable(cari-control-protocol-smoke
+    control_protocol_smoke.cpp
+    control_protocol.cpp
+)
+
+target_include_directories(cari-control-protocol-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
+target_compile_definitions(cari-control-protocol-smoke PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+
 target_compile_definitions(cari-raw-pipe-smoke PRIVATE
     UNICODE
     _UNICODE
@@ -251,6 +268,7 @@ add_test(NAME cari-frame-bridge-smoke COMMAND cari-frame-bridge-smoke)
 add_test(NAME cari-audio-timeline-mixer-smoke COMMAND cari-audio-timeline-mixer-smoke)
 add_test(NAME cari-audio-core-bridge-smoke COMMAND cari-audio-core-bridge-smoke)
 add_test(NAME cari-raw-pipe-smoke COMMAND cari-raw-pipe-smoke)
+add_test(NAME cari-control-protocol-smoke COMMAND cari-control-protocol-smoke)
 
 # Native capture/audio/output infrastructure is isolated behind stable
 # interfaces so hardware-dependent validation can happen on the target PC.
