@@ -185,6 +185,22 @@ document.querySelector("#record").onclick = async () => {
   showStatus(result.ok ? result.message : result.error);
 };
 
+document.querySelector("#stream-start").onclick = async () => {
+  const target = document.querySelector("#rtmp-target").value.trim();
+  if (!/^rtmps?:\/\//i.test(target)) {
+    showStatus("RTMP target must start with rtmp:// or rtmps://");
+    return;
+  }
+
+  const result = await controller.outputStart("rtmp", target);
+  showStatus(result.ok ? result.message : result.error);
+};
+
+document.querySelector("#stream-stop").onclick = async () => {
+  const result = await controller.outputStop();
+  showStatus(result.ok ? result.message : result.error);
+};
+
 
 document.querySelector("#obs-connect").onclick = async () => {
   try {
