@@ -171,7 +171,9 @@ std::string BuildControlStatusMessage() {
         ? "anime-bright"
         : "off";
     result += ";output=";
-    result += g_media_enabled.load(std::memory_order_relaxed) ? "running" : "stopped";
+    const output_running =
+        g_media_enabled.load(std::memory_order_relaxed) && g_media_graph.running();
+    result += output_running ? "running" : "stopped";
     result += ";video_submitted=" + std::to_string(media.video_submitted);
     result += ";video_dropped=" + std::to_string(media.video_dropped);
     result += ";audio_submitted=" + std::to_string(media.audio_submitted);
@@ -188,6 +190,15 @@ void PollMediaGraph() {
         return;
     }
     if (!g_media_graph.poll()) {
+        g_media_enabled.store(false, std::memory_order_relaxed);
+        return;
+    }
+
+    if (!g_media_graph.running()) {
+        // FFmpeg exited without a control-plane stop. Keep capture/audio alive,
+        // but publish the output as stopped so the UI cannot report a phantom
+        // recording/stream.
+        g_media_enabled.store(false, std::memory_order_relaxed);
         return;
     }
 
