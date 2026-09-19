@@ -17,6 +17,7 @@ export class StudioSessionManager {
       capture: false,
       audio: false,
       output: false,
+      source: "window",
       voice: "off"
     };
   }
@@ -53,7 +54,10 @@ export class StudioSessionManager {
         this.state.output = false;
         this.state.capture = false;
         this.state.audio = false;
-        const result = await this.native.stop();
+        const result = await this.native.stop().catch(error => ({
+          ok: false,
+          error: asErrorMessage(error)
+        }));
         this.state.engine = false;
         return {
           ok: acceptedResponse(result) && acceptedResponse(outputResult),
@@ -106,6 +110,13 @@ export class StudioSessionManager {
   }
 
   async captureStart(source = "window") {
+    if (source !== "screen" && source !== "window") {
+      return {
+        ok: false,
+        error: "unsupported capture source",
+        state: this.snapshot()
+      };
+    }
     return this.send("capture.start", { source });
   }
 
@@ -152,7 +163,10 @@ export class StudioSessionManager {
 
       try {
         if (!this.state.capture) {
-          const capture = await this.native.send({ type: "capture.start", source: "window" });
+          const capture = await this.native.send({
+            type: "capture.start",
+            source: this.state.source
+          });
           if (!acceptedResponse(capture)) {
             return { ...capture, state: this.snapshot() };
           }
@@ -230,6 +244,9 @@ export class StudioSessionManager {
     switch (type) {
       case "capture.start":
         this.state.capture = true;
+        if (payload.source === "screen" || payload.source === "window") {
+          this.state.source = payload.source;
+        }
         break;
       case "capture.stop":
         this.state.capture = false;
