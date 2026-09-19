@@ -56,7 +56,21 @@ function createWindow() {
     }
   });
 
+  const localUrl = "file://" + path.resolve(__dirname, "renderer", "index.html");
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
+
+  win.webContents.on("will-navigate", event => {
+    event.preventDefault();
+  });
+
+  win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+
+  win.webContents.on("did-navigate", (_event, url) => {
+    if (!url.startsWith("file://")) {
+      win.loadURL(localUrl);
+    }
+  });
+
   subscribers.add(win.webContents);
   win.on("closed", () => subscribers.delete(win.webContents));
 }
