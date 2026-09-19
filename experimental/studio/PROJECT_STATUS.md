@@ -18,6 +18,7 @@
 - [x] Win32 window foundation.
 - [x] D3D11 device creation.
 - [x] Windows Graphics Capture de ventana.
+- [x] Windows Graphics Capture de pantalla primaria.
 - [x] Frame callback con superficie DXGI.
 - [x] Enumeración de ventanas capturables.
 - [x] WASAPI microphone/loopback foundation.
@@ -31,17 +32,20 @@
 
 - [x] Compositor RGBA de referencia para validar escenas.
 - [x] Fan-out conceptual de múltiples salidas.
+- [x] Productor BGRA y audio mezclado conectados al boundary nativo de FFmpeg.
 - [x] Perfil de salida y boundary de FFmpeg/RTMP.
 - [x] Interleave temporal A/V en `StudioPipeline`.
 - [ ] Compositor GPU D3D11 de producción.
 - [ ] Encoder hardware/software real conectado al pipeline.
 - [ ] Muxer/recorder de producción.
-- [ ] Proceso FFmpeg administrado por Cari y conectado a las salidas.
+- [x] Proceso FFmpeg administrado por Cari y conectado a las salidas.
+  - El gate de verificación real sigue abierto: archivo/RTMP sostenido, sincronización, reconexión y hardware.
 - [ ] Drift correction / resampling de producción.
 
 ## VTuber / cámara / voz
 
 - [x] Contratos de avatar y actuación existentes.
+- [x] Contrato normalizado de expresión/pose/gaze para renderer Three.js.
 - [x] Estado de actuación independiente de apariencia.
 - [x] Perfil de apariencia modular con cabello, outfit y accesorios.
 - [x] Accesorios con ancla, posición, escala, rotación y color.
@@ -50,6 +54,7 @@
 - [ ] Render VRM integrado al compositor nativo.
 - [ ] Lip-sync alimentado por audio real.
 - [ ] Tracking/cámara final.
+  - MediaPipe Face Landmarker está integrado como adaptador local; falta validación final de rendimiento y modelo real.
 - [ ] Procesamiento de voz local de baja latencia.
 
 ## Streaming / eventos
