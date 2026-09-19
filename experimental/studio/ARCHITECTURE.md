@@ -15,10 +15,16 @@ Electron Renderer
         ▼
 Electron Main
   NativeEngine · lifecycle · request/response · eventos
+        │
+        ▼
+StudioSessionManager
+  serialización · rollback · estado de sesión
         │ stdin/stdout JSONL
         ▼
 Native Windows Engine (C++)
   Windows Graphics Capture
+  ├── window capture
+  └── primary display capture
   WASAPI microphone + system loopback
   local voice DSP
   AudioTimelineMixer
@@ -35,7 +41,7 @@ Native Windows Engine (C++)
 
 El motor nativo es la fuente de verdad para:
 
-- captura de ventana/pantalla;
+- captura de ventana y pantalla primaria;
 - audio WASAPI;
 - mezcla y timeline de audio;
 - recuperación del dispositivo de captura;
@@ -68,6 +74,8 @@ El avatar permanece desacoplado del motor multimedia:
 - `avatar/face-tracking-bridge.js`: convierte blendshapes/pose en estado de actuación.
 - `avatar/acting-bridge.js`: estado neutral consumido por cualquier renderer.
 - `avatar/three-avatar.js`: renderer WebGL con Three.js y assets glTF/GLB.
+- `runtime/session-manager.js`: orquestador de la sesión multimedia; serializa cambios y hace rollback cuando una salida no arranca.
+- `avatar/avatar-contract.js`: contrato neutral y normalizado de expresión, boca, ojos, pose y gaze.
 - Live2D queda como un backend futuro; no se distribuye un runtime propietario aquí.
 
 El renderer incluye un avatar geométrico de prueba para validar tracking sin depender de un modelo comercial.
@@ -80,7 +88,7 @@ OBS integration remains optional and lives in Electron Main through obs-websocke
 
 ## Control protocol
 
-El protocolo es JSON Lines sobre stdin/stdout.
+El protocolo es JSON Lines sobre stdin/stdout. Las órdenes de captura admiten `source: "window"` y `source: "screen"`; esta última usa el monitor primario hasta que se añada selección explícita de display.
 
 Cada petición Electron recibe un `id` generado localmente:
 
@@ -135,6 +143,7 @@ La carpeta sigue siendo `experimental/` hasta validar en CI y hardware Windows:
 - cierre y rollback;
 - captura sostenida;
 - recuperación de dispositivos;
+- captura de pantalla primaria;
 - sincronización A/V;
 - rutas Unicode;
 - ejecución de FFmpeg;
