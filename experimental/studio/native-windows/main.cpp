@@ -162,6 +162,11 @@ std::string BuildControlStatusMessage() {
     result += ";audio_packets=" + std::to_string(audio.packets);
     result += ";audio_samples=" + std::to_string(audio.samples);
     result += ";audio_peak=" + std::to_string(audio.peak);
+    result += ";voice_effect=";
+    const auto voice_style = g_audio_bridge.voice_effect().style;
+    result += voice_style == cari::native::VoiceEffectStyle::anime_bright
+        ? "anime-bright"
+        : "off";
     result += ";output=";
     result += g_media_enabled.load(std::memory_order_relaxed) ? "running" : "stopped";
     result += ";video_submitted=" + std::to_string(media.video_submitted);
@@ -294,6 +299,28 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
         g_audio_bridge.stop();
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "audio=stopped", command.request_id);
+    case cari::native::ControlCommandType::voice_set: {
+        cari::native::VoiceEffectConfig config{};
+        if (command.effect == "anime-bright") {
+            config.style = cari::native::VoiceEffectStyle::anime_bright;
+            config.drive = 1.4f;
+            config.presence = 0.30f;
+            config.output_gain = 0.95f;
+        } else if (command.effect == "off") {
+            config.style = cari::native::VoiceEffectStyle::off;
+        } else {
+            return cari::native::control_response(
+                false, "unsupported voice effect", command.request_id);
+        }
+
+        g_audio_bridge.set_voice_effect(config);
+        return cari::native::control_response(
+            true,
+            command.effect == "anime-bright"
+                ? "voice=anime-bright"
+                : "voice=off",
+            command.request_id);
+    }
     case cari::native::ControlCommandType::output_start:
         if (command.profile != "local-record" && command.profile != "rtmp")
             return cari::native::control_response(
