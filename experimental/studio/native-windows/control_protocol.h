@@ -14,6 +14,7 @@ enum class ControlCommandType {
     audio_stop,
     output_start,
     output_stop,
+    voice_set,
 };
 
 struct ControlCommand {
