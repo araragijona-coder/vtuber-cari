@@ -210,45 +210,54 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
     switch (command.type) {
     case cari::native::ControlCommandType::status:
         return cari::native::control_response(
-            true, g_capture.is_running() ? "capture=running" : "capture=stopped");
+            true,
+            g_capture.is_running() ? "capture=running" : "capture=stopped",
+            command.request_id);
     case cari::native::ControlCommandType::capture_start:
-        if (g_capture.is_running()) return cari::native::control_response(true, "capture=running");
+        if (g_capture.is_running()) {
+            return cari::native::control_response(true, "capture=running", command.request_id);
+        }
         if (g_selected_window && IsWindow(g_selected_window))
             g_capture.start_window(g_selected_window);
         else
             g_capture.start_window(hwnd);
         RefreshStatus(hwnd);
         return cari::native::control_response(
-            g_capture.is_running(), g_capture.is_running() ? "capture=started" : "capture=start-failed");
+            g_capture.is_running(),
+            g_capture.is_running() ? "capture=started" : "capture=start-failed",
+            command.request_id);
     case cari::native::ControlCommandType::capture_stop:
         g_capture.stop();
         RefreshStatus(hwnd);
-        return cari::native::control_response(true, "capture=stopped");
+        return cari::native::control_response(true, "capture=stopped", command.request_id);
     case cari::native::ControlCommandType::audio_start:
         if (!g_audio_bridge.running()) g_audio_bridge.start();
         RefreshStatus(hwnd);
         return cari::native::control_response(
-            g_audio_bridge.running(), g_audio_bridge.running() ? "audio=started" : "audio=start-failed");
+            g_audio_bridge.running(),
+            g_audio_bridge.running() ? "audio=started" : "audio=start-failed",
+            command.request_id);
     case cari::native::ControlCommandType::audio_stop:
         g_audio_bridge.stop();
         RefreshStatus(hwnd);
-        return cari::native::control_response(true, "audio=stopped");
+        return cari::native::control_response(true, "audio=stopped", command.request_id);
     case cari::native::ControlCommandType::output_start:
         if (command.profile != "local-record")
-            return cari::native::control_response(false, "unsupported output profile");
+            return cari::native::control_response(
+                false, "unsupported output profile", command.request_id);
         if (g_media_enabled.load(std::memory_order_relaxed))
-            return cari::native::control_response(true, "output=running");
+            return cari::native::control_response(true, "output=running", command.request_id);
         if (!StartLocalRecording(hwnd))
-            return cari::native::control_response(false, "output=start-failed");
+            return cari::native::control_response(false, "output=start-failed", command.request_id);
         RefreshStatus(hwnd);
-        return cari::native::control_response(true, "output=started");
+        return cari::native::control_response(true, "output=started", command.request_id);
     case cari::native::ControlCommandType::output_stop:
         g_media_graph.stop();
         g_media_enabled.store(false, std::memory_order_relaxed);
         RefreshStatus(hwnd);
-        return cari::native::control_response(true, "output=stopped");
+        return cari::native::control_response(true, "output=stopped", command.request_id);
     default:
-        return cari::native::control_response(false, "invalid command");
+        return cari::native::control_response(false, "invalid command", command.request_id);
     }
 }
 
