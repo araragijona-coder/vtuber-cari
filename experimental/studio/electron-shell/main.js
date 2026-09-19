@@ -3,6 +3,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 const { pathToFileURL } = require("node:url");
 const { NativeEngine } = require("./runtime/native-engine");
+const { ObsService } = require("./runtime/obs-service");
 
 const engineEvents = ["message", "log", "error", "exit"];
 const subscribers = new Set();
@@ -23,6 +24,7 @@ function resolveNativeExecutable() {
 const engine = new NativeEngine({
   executableResolver: resolveNativeExecutable
 });
+const obs = new ObsService();
 
 function publish(payload) {
   for (const webContents of subscribers) {
@@ -59,15 +61,66 @@ function createWindow() {
   win.on("closed", () => subscribers.delete(win.webContents));
 }
 
-ipcMain.handle("native:start", () => engine.start());
-ipcMain.handle("native:send", (_, command) => engine.send(command));
-ipcMain.handle("native:stop", () => engine.stop());
-ipcMain.handle("native:status", () => ({
-  running: engine.running,
-  pid: engine.pid
-}));
+function isTrustedSender(event) {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (!window || window.isDestroyed()) return false;
+  return event.sender.getURL().startsWith("file://");
+}
 
-ipcMain.handle("app:config", () => ({
+function requireTrustedSender(event) {
+  if (!isTrustedSender(event)) {
+    throw new Error("untrusted IPC sender");
+  }
+}
+
+ipcMain.handle("native:start", event => {
+  requireTrustedSender(event);
+  return engine.start();
+});
+ipcMain.handle("native:send", (event, command) => {
+  requireTrustedSender(event);
+  return engine.send(command);
+});
+ipcMain.handle("native:stop", event => {
+  requireTrustedSender(event);
+  return engine.stop();
+});
+ipcMain.handle("native:status", event => {
+  requireTrustedSender(event);
+  return {
+    running: engine.running,
+    pid: engine.pid
+  };
+});
+
+ipcMain.handle("obs:connect", async (event, options = {}) => {
+  requireTrustedSender(event);
+  return obs.connect(options);
+});
+ipcMain.handle("obs:disconnect", async event => {
+  requireTrustedSender(event);
+  return obs.disconnect();
+});
+ipcMain.handle("obs:start-stream", async event => {
+  requireTrustedSender(event);
+  return obs.startStream();
+});
+ipcMain.handle("obs:stop-stream", async event => {
+  requireTrustedSender(event);
+  return obs.stopStream();
+});
+ipcMain.handle("obs:set-scene", async (event, sceneName) => {
+  requireTrustedSender(event);
+  return obs.setScene(sceneName);
+});
+ipcMain.handle("obs:status", async event => {
+  requireTrustedSender(event);
+  return obs.getStatus();
+});
+
+ipcMain.handle("app:config", event => {
+  requireTrustedSender(event);
+
   mediaPipeModelPath: process.env.CARI_MEDIAPIPE_MODEL_PATH
     ? pathToFileURL(path.resolve(process.env.CARI_MEDIAPIPE_MODEL_PATH)).href
     : null,
