@@ -31,7 +31,27 @@ jobs:
         run: cmake -S . -B build -A x64
 
       - name: Build native targets
-        run: cmake --build build --config Release --parallel
+        id: native-build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+          cmake --build build --config Release --parallel *> build/native-build.log
+          $code = $LASTEXITCODE
+          Get-Content build/native-build.log
+          if ($code -ne 0) {
+            exit $code
+          }
+
+      - name: Upload native build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CariStudio-native-build-diagnostics
+          path: |
+            experimental/studio/native-windows/build/native-build.log
+            experimental/studio/native-windows/build/**/CMakeError.log
+            experimental/studio/native-windows/build/**/CMakeOutput.log
+          if-no-files-found: ignore
 
       - name: Run Cari Core smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-core-smoke
@@ -56,6 +76,9 @@ jobs:
 
       - name: Run native audio core bridge smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-audio-core-bridge-smoke
+
+      - name: Run voice effects smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-voice-effects-smoke
 
       - name: Run raw pipe smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-raw-pipe-smoke
@@ -118,4 +141,20 @@ jobs:
           node-version: 22
 
       - name: Validate Electron shell JavaScript
-        run: npm run check
+        id: shell-check
+        shell: pwsh
+        run: |
+          npm run check *> shell-check.log
+          $code = $LASTEXITCODE
+          Get-Content shell-check.log
+          if ($code -ne 0) {
+            exit $code
+          }
+
+      - name: Upload Electron shell diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CariStudio-electron-shell-diagnostics
+          path: experimental/studio/electron-shell/shell-check.log
+          if-no-files-found: ignore
