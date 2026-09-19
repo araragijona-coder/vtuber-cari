@@ -72,7 +72,7 @@ Supported commands:
 
 ```json
 {"type":"status","id":"..."}
-{"type":"capture.start","source":"window","id":"..."}
+{"type":"capture.start","source":"window","window_index":0,"id":"..."}
 {"type":"capture.start","source":"screen","id":"..."}
 {"type":"capture.stop","id":"..."}
 {"type":"audio.start","id":"..."}
@@ -84,7 +84,7 @@ Supported commands:
 
 The `status` response also exposes capture FPS/frame count, audio packet/sample counters, output submission/drop counters and raw-pipe byte/drop counters so the UI can display real runtime metrics without scraping the diagnostic window.
 
-The parser is intentionally tiny and deterministic; it is not a general JSON implementation. The protocol remains experimental until a full schema validator is justified and tested.
+The parser is intentionally tiny and deterministic; it is not a general JSON implementation. Window indices are zero-based and refer to the native enumerated visible-window list; the UI exposes them to the user as 1-based numbers. The protocol remains experimental until a full schema validator is justified and tested.
 
 ## Local configuration
 
