@@ -235,11 +235,9 @@ bool StartOutput(
     bool started_audio = false;
 
     if (!g_capture.is_running()) {
-        if (g_selected_window && IsWindow(g_selected_window))
-            g_capture.start_window(g_selected_window);
-        else
-            g_capture.start_window(hwnd);
-        if (!g_capture.is_running()) return false;
+        if (!StartCaptureSource(hwnd, g_capture_source)) {
+            return false;
+        }
         started_capture = true;
     }
 
@@ -466,9 +464,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         if (wparam == VK_SPACE) {
             if (g_capture.is_running()) {
                 g_capture.stop();
-            } else if (g_selected_window && IsWindow(g_selected_window)) {
-                g_capture.start_window(g_selected_window);
-            } else if (!g_capture.start_window(hwnd)) {
+            } else if (!StartCaptureSource(hwnd, g_capture_source)) {
                 // The engine keeps the concrete error for the status view.
             }
             RefreshStatus(hwnd);
