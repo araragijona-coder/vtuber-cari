@@ -18,6 +18,12 @@ int main() {
     assert(output.target == "capture.mkv");
     assert(output.request_id == "req-17");
 
+    const auto voice = cari::native::parse_control_command(
+        R"({"type":"voice.set","effect":"anime-bright","id":"voice-01"})");
+    assert(voice.type == ControlCommandType::voice_set);
+    assert(voice.effect == "anime-bright");
+    assert(voice.request_id == "voice-01");
+
     const auto invalid = cari::native::parse_control_command(
         R"({"type":"not-a-command"})");
     assert(invalid.type == ControlCommandType::invalid);
