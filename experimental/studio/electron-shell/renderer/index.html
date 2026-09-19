@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Cari Studio</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self' ws://127.0.0.1:4455 wss:;">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -107,6 +108,13 @@
     <h3>Capture / Output</h3>
     <button id="capture">Start Window Capture</button>
     <button id="record">Start Local Record</button>
+
+    <h3>OBS (optional)</h3>
+    <button id="obs-connect">Connect OBS</button>
+    <div class="row">
+      <button id="obs-start">Stream On</button>
+      <button id="obs-stop">Stream Off</button>
+    </div>
 
     <h3>Face Tracking</h3>
     <div class="row">
