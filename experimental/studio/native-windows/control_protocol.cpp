@@ -41,7 +41,7 @@ bool has(const std::string& line, const char* token) {
 }
 
 std::string read_string_field(const std::string& compact, const char* field) {
-    const std::string prefix = std::string("\"") + field + "\":\"";
+    const std::string prefix = std::string(""") + field + "":"";
     const auto begin = compact.find(prefix);
     if (begin == std::string::npos) {
         return {};
@@ -76,20 +76,21 @@ ControlCommand parse_control_command(const std::string& line) noexcept {
     ControlCommand command{};
     const auto compact = compact_json(line);
 
-    if (has(compact, "\"type\":\"status\"")) command.type = ControlCommandType::status;
-    else if (has(compact, "\"type\":\"capture.start\"")) command.type = ControlCommandType::capture_start;
-    else if (has(compact, "\"type\":\"capture.stop\"")) command.type = ControlCommandType::capture_stop;
-    else if (has(compact, "\"type\":\"audio.start\"")) command.type = ControlCommandType::audio_start;
-    else if (has(compact, "\"type\":\"audio.stop\"")) command.type = ControlCommandType::audio_stop;
-    else if (has(compact, "\"type\":\"output.start\"")) command.type = ControlCommandType::output_start;
-    else if (has(compact, "\"type\":\"output.stop\"")) command.type = ControlCommandType::output_stop;
-    else if (has(compact, "\"type\":\"voice.set\"")) command.type = ControlCommandType::voice_set;
+    if (has(compact, ""type":"status"")) command.type = ControlCommandType::status;
+    else if (has(compact, ""type":"capture.start"")) command.type = ControlCommandType::capture_start;
+    else if (has(compact, ""type":"capture.stop"")) command.type = ControlCommandType::capture_stop;
+    else if (has(compact, ""type":"audio.start"")) command.type = ControlCommandType::audio_start;
+    else if (has(compact, ""type":"audio.stop"")) command.type = ControlCommandType::audio_stop;
+    else if (has(compact, ""type":"output.start"")) command.type = ControlCommandType::output_start;
+    else if (has(compact, ""type":"output.stop"")) command.type = ControlCommandType::output_stop;
+    else if (has(compact, ""type":"voice.set"")) command.type = ControlCommandType::voice_set;
 
-    if (has(compact, "\"source\":\"window\"")) command.source = "window";
-    if (has(compact, "\"profile\":\"local-record\"")) command.profile = "local-record";
-    if (has(compact, "\"profile\":\"rtmp\"")) command.profile = "rtmp";
-    if (has(compact, "\"effect\":\"anime-bright\"")) command.effect = "anime-bright";
-    if (has(compact, "\"effect\":\"off\"")) command.effect = "off";
+    if (has(compact, ""source":"screen"")) command.source = "screen";
+    else if (has(compact, ""source":"window"")) command.source = "window";
+    if (has(compact, ""profile":"local-record"")) command.profile = "local-record";
+    if (has(compact, ""profile":"rtmp"")) command.profile = "rtmp";
+    if (has(compact, ""effect":"anime-bright"")) command.effect = "anime-bright";
+    if (has(compact, ""effect":"off"")) command.effect = "off";
     command.target = read_string_field(compact, "target");
     command.request_id = read_string_field(compact, "id");
     return command;
@@ -101,7 +102,7 @@ std::string escape_json_string(const std::string& value) {
     for (char c : value) {
         switch (c) {
         case '\\': escaped += "\\\\"; break;
-        case '"': escaped += "\\\""; break;
+        case '"': escaped += "\\""; break;
         case '\n': escaped += "\\n"; break;
         case '\r': escaped += "\\r"; break;
         case '\t': escaped += "\\t"; break;
@@ -117,9 +118,10 @@ std::string control_response(
     const std::string& request_id) {
     const std::string id_fragment = request_id.empty()
         ? std::string()
-        : std::string(",\"id\":\"") + escape_json_string(request_id) + "\"";
-    return std::string("{\"ok\":") + (ok ? "true" : "false") +
-           id_fragment + ",\"message\":\"" +
-           escape_json_string(message) + "\"}\n";
+        : std::string(","id":"") + escape_json_string(request_id) + """;
+    return std::string("{"ok":") + (ok ? "true" : "false") +
+           id_fragment + ","message":"" +
+           escape_json_string(message) + ""}\n";
+}
 
 } // namespace cari::native
