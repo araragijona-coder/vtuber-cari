@@ -41,7 +41,7 @@ int main() {
         true, "quote: \" slash: \\", "id-\\42");
     assert(!escaped.empty() && escaped.back() == '\n');
     assert(escaped.find("\\\"") != std::string::npos);
-    assert(escaped.find("\\\\\\\\") != std::string::npos);
+    assert(escaped.find("\\\\") != std::string::npos);
     assert(escaped.size() >= 2 && escaped[escaped.size() - 2] == '}' && escaped.back() == '\n');
 
     std::cout << "control protocol smoke: OK\n";
