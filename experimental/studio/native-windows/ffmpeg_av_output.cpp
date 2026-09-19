@@ -12,12 +12,43 @@ namespace cari::native {
 
 namespace {
 
-std::wstring widen_ascii(const std::string& value) {
-    return std::wstring(value.begin(), value.end());
+std::wstring widen_utf8(const std::string& value) {
+    if (value.empty()) {
+        return {};
+    }
+    const int required = MultiByteToWideChar(
+        CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()), nullptr, 0);
+    if (required <= 0) {
+        return {};
+    }
+
+    std::wstring result(static_cast<std::size_t>(required), L'\\0');
+    if (MultiByteToWideChar(
+            CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()),
+            result.data(), required) != required) {
+        return {};
+    }
+    return result;
 }
 
-std::string narrow_ascii(const std::wstring& value) {
-    return std::string(value.begin(), value.end());
+std::string narrow_utf8(const std::wstring& value) {
+    if (value.empty()) {
+        return {};
+    }
+    const int required = WideCharToMultiByte(
+        CP_UTF8, WC_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()),
+        nullptr, 0, nullptr, nullptr);
+    if (required <= 0) {
+        return {};
+    }
+
+    std::string result(static_cast<std::size_t>(required), '\\0');
+    if (WideCharToMultiByte(
+            CP_UTF8, WC_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()),
+            result.data(), required, nullptr, nullptr) != required) {
+        return {};
+    }
+    return result;
 }
 
 std::wstring make_pipe_name(const wchar_t* stream_name) {
@@ -64,8 +95,8 @@ bool FfmpegAvOutput::start(
     }
 
     const cari::studio::core::RawMediaInputs inputs{
-        .video_input = narrow_ascii(video_pipe_name()),
-        .audio_input = narrow_ascii(audio_pipe_name()),
+        .video_input = narrow_utf8(video_pipe_name()),
+        .audio_input = narrow_utf8(audio_pipe_name()),
         .audio_sample_rate = audio_sample_rate,
         .audio_channels = audio_channels,
     };
@@ -74,7 +105,7 @@ bool FfmpegAvOutput::start(
     std::vector<std::wstring> arguments;
     arguments.reserve(command.arguments.size());
     for (const auto& argument : command.arguments) {
-        arguments.push_back(widen_ascii(argument));
+        arguments.push_back(widen_utf8(argument));
     }
 
     state_ = FfmpegAvOutputState::starting;
