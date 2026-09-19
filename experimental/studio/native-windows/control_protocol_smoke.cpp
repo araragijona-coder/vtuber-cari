@@ -24,6 +24,12 @@ int main() {
     const auto response = cari::native::control_response(true, "ok\nready", "req-17");
     assert(response == "{\"ok\":true,\"id\":\"req-17\",\"message\":\"ok\\nready\"}\n");
 
+    const auto escaped = cari::native::control_response(
+        true, "quote: \" slash: \\", "id-\\42");
+    assert(
+        escaped ==
+        "{\"ok\":true,\"id\":\"id-\\\\42\",\"message\":\"quote: \\\" slash: \\\\ \"}\n");
+
     std::cout << "control protocol smoke: OK\n";
     return 0;
 }
