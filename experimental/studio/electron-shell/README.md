@@ -57,6 +57,12 @@ WASAPI capture and the native timeline mixer stay outside Electron. The UI can s
 - The renderer has a deliberately simple placeholder avatar so the UI remains testable without distributing a proprietary model.
 - Live2D is a future adapter boundary; this repository does not bundle the Live2D runtime or SDK.
 
+### Optional OBS control
+
+OBS is **not** required for Cari Studio's native capture/recording pipeline. The shell can optionally connect to a local obs-websocket v5 server from Electron Main, where the `OBSWebSocket` client is isolated from the renderer. Supported operations are connect, disconnect, start/stop stream, set current program scene and query stream status.
+
+The JavaScript client uses obs-websocket v5's named CommonJS export and `call()` request model. The dependency is pinned in `package.json` so upgrades are deliberate.
+
 ### Control plane
 
 The native process accepts line-delimited JSON. Every Electron request receives a generated `id`, and native responses echo that id so concurrent UI actions cannot be confused.
