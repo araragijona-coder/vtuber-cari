@@ -10,6 +10,7 @@
 #include <dxgi.h>
 #include <windows.h>
 #include <wrl/client.h>
+#include <winrt/Windows.Graphics.Capture.h>
 
 namespace cari::native {
 
@@ -45,6 +46,7 @@ public:
     CaptureEngine& operator=(const CaptureEngine&) = delete;
 
     bool start_window(HWND target_window);
+    bool start_display(HMONITOR monitor);
     void stop();
 
     void set_frame_callback(FrameCallback callback);
@@ -55,6 +57,9 @@ public:
     std::wstring last_error() const;
 
 private:
+    bool start_capture_item(
+        winrt::Windows::Graphics::Capture::GraphicsCaptureItem item);
+
     std::shared_ptr<Impl> impl_;
     std::wstring last_start_error_;
     mutable std::mutex callback_mutex_;
