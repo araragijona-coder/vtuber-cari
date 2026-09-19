@@ -18,6 +18,7 @@ export class StudioSessionManager {
       audio: false,
       output: false,
       source: "window",
+      windowIndex: 0,
       voice: "off"
     };
   }
@@ -109,7 +110,7 @@ export class StudioSessionManager {
     });
   }
 
-  async captureStart(source = "window") {
+  async captureStart(source = "window", windowIndex = this.state.windowIndex) {
     if (source !== "screen" && source !== "window") {
       return {
         ok: false,
@@ -117,7 +118,20 @@ export class StudioSessionManager {
         state: this.snapshot()
       };
     }
-    return this.send("capture.start", { source });
+    const normalizedIndex = Number.isInteger(Number(windowIndex))
+      ? Number(windowIndex)
+      : -1;
+    if (source === "window" && (normalizedIndex < 0 || normalizedIndex > 9999)) {
+      return {
+        ok: false,
+        error: "invalid capture window index",
+        state: this.snapshot()
+      };
+    }
+    return this.send("capture.start", {
+      source,
+      window_index: source === "window" ? normalizedIndex : -1
+    });
   }
 
   async captureStop() {
@@ -165,7 +179,8 @@ export class StudioSessionManager {
         if (!this.state.capture) {
           const capture = await this.native.send({
             type: "capture.start",
-            source: this.state.source
+            source: this.state.source,
+            window_index: this.state.source === "window" ? this.state.windowIndex : -1
           });
           if (!acceptedResponse(capture)) {
             return { ...capture, state: this.snapshot() };
@@ -260,6 +275,9 @@ export class StudioSessionManager {
         this.state.capture = true;
         if (payload.source === "screen" || payload.source === "window") {
           this.state.source = payload.source;
+        }
+        if (payload.source === "window" && Number.isInteger(Number(payload.window_index))) {
+          this.state.windowIndex = Number(payload.window_index);
         }
         break;
       case "capture.stop":
