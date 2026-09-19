@@ -301,8 +301,20 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
         return cari::native::control_response(
             true, BuildControlStatusMessage(), command.request_id);
     case cari::native::ControlCommandType::capture_start:
+        if (g_media_enabled.load(std::memory_order_relaxed)) {
+            return cari::native::control_response(
+                false, "capture=busy-output-active", command.request_id);
+        }
         if (g_capture.is_running()) {
-            return cari::native::control_response(true, "capture=running", command.request_id);
+            if (g_capture_source == command.source) {
+                return cari::native::control_response(
+                    true, "capture=running", command.request_id);
+            }
+            g_capture.stop();
+        }
+        if (command.source != "screen" && command.source != "window") {
+            return cari::native::control_response(
+                false, "capture=unsupported-source", command.request_id);
         }
         if (!StartCaptureSource(hwnd, command.source)) {
             RefreshStatus(hwnd);
