@@ -12,9 +12,10 @@ int main() {
     assert(status.source == "window");
 
     const auto output = cari::native::parse_control_command(
-        R"({"type" : "output.start", "profile" : "local-record", "id" : "req-17"})");
+        R"({"type" : "output.start", "profile" : "local-record", "target" : "capture.mkv", "id" : "req-17"})");
     assert(output.type == ControlCommandType::output_start);
     assert(output.profile == "local-record");
+    assert(output.target == "capture.mkv");
     assert(output.request_id == "req-17");
 
     const auto invalid = cari::native::parse_control_command(
