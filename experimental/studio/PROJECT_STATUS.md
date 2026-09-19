@@ -11,7 +11,7 @@
 - [x] Monitoring y clasificación de salud.
 - [x] Cola temporal A/V con reloj maestro lógico de audio.
 - [x] Smoke test nativo para contratos core.
-- [ ] CI Windows verde sobre el head actual (run todavía por observar).
+- [ ] CI Windows verde sobre el head actual (los runs recientes fallan con `steps=null` antes de registrar steps; requiere nueva evidencia del runner).
 
 ## Windows
 
@@ -39,6 +39,8 @@
 - [ ] Encoder hardware/software real conectado al pipeline.
 - [ ] Muxer/recorder de producción.
 - [x] Proceso FFmpeg administrado por Cari y conectado a las salidas.
+  - El cierre intenta primero EOF/flush antes de escalar a terminación forzada.
+  - El estado nativo se reconcilia si FFmpeg termina inesperadamente.
   - El gate de verificación real sigue abierto: archivo/RTMP sostenido, sincronización, reconexión y hardware.
 - [ ] Drift correction / resampling de producción.
 
