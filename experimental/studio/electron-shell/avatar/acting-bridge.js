@@ -1,22 +1,13 @@
+import { normalizeAvatarState, toRenderParameters } from "./avatar-contract.js";
+
 export class AvatarActingBridge {
   constructor() {
-    this.state = {
-      expression: "neutral",
-      mouthOpen: 0,
-      blink: 0,
-      head: { x: 0, y: 0, z: 0 },
-      gaze: { x: 0, y: 0 }
-    };
+    this.state = normalizeAvatarState();
     this.listeners = new Set();
   }
 
   set(partial) {
-    this.state = {
-      ...this.state,
-      ...partial,
-      head: { ...this.state.head, ...(partial.head || {}) },
-      gaze: { ...this.state.gaze, ...(partial.gaze || {}) }
-    };
+    this.state = normalizeAvatarState(this.state, partial);
     for (const listener of this.listeners) listener(this.state);
   }
 
@@ -27,15 +18,6 @@ export class AvatarActingBridge {
   }
 
   toRenderParameters() {
-    return {
-      headYaw: this.state.head.x,
-      headPitch: this.state.head.y,
-      headRoll: this.state.head.z,
-      eyeX: this.state.gaze.x,
-      eyeY: this.state.gaze.y,
-      mouthOpen: this.state.mouthOpen,
-      blink: this.state.blink,
-      expression: this.state.expression
-    };
+    return toRenderParameters(this.state);
   }
 }
