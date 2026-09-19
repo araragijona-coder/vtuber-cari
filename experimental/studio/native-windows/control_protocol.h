@@ -20,6 +20,7 @@ struct ControlCommand {
     ControlCommandType type = ControlCommandType::invalid;
     std::string source = "window";
     std::string profile = "local-record";
+    std::string target;
     std::string request_id;
 };
 
