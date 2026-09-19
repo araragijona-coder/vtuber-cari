@@ -93,6 +93,7 @@ The shell does not require cloud services. Optional local environment variables 
 - `CARI_NATIVE_EXECUTABLE`: absolute path to `cari-studio-native.exe`.
 - `CARI_MEDIAPIPE_MODEL_PATH`: absolute path to a compatible MediaPipe Face Landmarker `.task` model.
 - `CARI_AVATAR_MODEL_PATH`: absolute path to a local GLB/glTF-compatible avatar asset.
+- `CARI_FFMPEG_EXECUTABLE`: optional absolute path to the local FFmpeg executable. Falls back to `ffmpeg.exe` from PATH.
 
 Example PowerShell session:
 
@@ -100,6 +101,7 @@ Example PowerShell session:
 $env:CARI_NATIVE_EXECUTABLE="C:\path\to\cari-studio-native.exe"
 $env:CARI_MEDIAPIPE_MODEL_PATH="C:\path\to\face_landmarker.task"
 $env:CARI_AVATAR_MODEL_PATH="C:\path\to\avatar.glb"
+$env:CARI_FFMPEG_EXECUTABLE="C:\path\to\ffmpeg.exe"
 npm install
 npm run check
 npm start
