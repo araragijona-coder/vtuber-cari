@@ -96,11 +96,26 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
 
     const auto sequence = callback_sequence;
     auto core_packet = to_core_packet(packet, sequence);
-    if (track_id && std::string(track_id) == "microphone") {
-        microphone_effect_.process(
-            core_packet.samples,
-            core_packet.sample_rate,
-            core_packet.channels);
+    {
+        std::lock_guard lock(mixer_mutex_);
+        if (track_id && std::string(track_id) == "microphone") {
+            microphone_effect_.process(
+                core_packet.samples,
+                core_packet.sample_rate,
+                core_packet.channels);
+        }
+
+        try {
+            if (!timeline_mixer_.push(track_id, core_packet)) {
+                set_error(
+                    L"AudioTimelineMixer rejected packet for track: " +
+                    widen_ascii(track_id));
+                return;
+            }
+        } catch (...) {
+            set_error(L"WASAPI to AudioTimelineMixer bridge failed");
+            return;
+        }
     }
     float packet_peak = 0.0f;
     for (const auto sample : core_packet.samples) packet_peak = std::max(packet_peak, std::fabs(sample));
