@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
+const { pathToFileURL } = require("node:url");
 const { NativeEngine } = require("./runtime/native-engine");
 
 const engineEvents = ["message", "log", "error", "exit"];
@@ -64,6 +65,15 @@ ipcMain.handle("native:stop", () => engine.stop());
 ipcMain.handle("native:status", () => ({
   running: engine.running,
   pid: engine.pid
+}));
+
+ipcMain.handle("app:config", () => ({
+  mediaPipeModelPath: process.env.CARI_MEDIAPIPE_MODEL_PATH
+    ? pathToFileURL(path.resolve(process.env.CARI_MEDIAPIPE_MODEL_PATH)).href
+    : null,
+  avatarModelPath: process.env.CARI_AVATAR_MODEL_PATH
+    ? pathToFileURL(path.resolve(process.env.CARI_AVATAR_MODEL_PATH)).href
+    : null
 }));
 
 app.whenReady().then(() => {
