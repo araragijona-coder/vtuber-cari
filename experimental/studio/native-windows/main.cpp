@@ -148,6 +148,33 @@ std::wstring BuildCaptureStatus() {
 
 void RefreshStatus(HWND hwnd);
 
+std::string BuildControlStatusMessage() {
+    const auto capture = g_capture.stats();
+    const auto audio = g_audio_bridge.stats();
+    const auto media = g_media_graph.stats();
+    const auto transport = g_media_graph.transport_metrics();
+
+    std::string result = "capture=";
+    result += g_capture.is_running() ? "running" : "stopped";
+    result += ";frames=" + std::to_string(capture.frames);
+    result += ";fps=" + std::to_string(capture.fps);
+    result += ";capture_errors=" + std::to_string(capture.errors);
+    result += ";audio_packets=" + std::to_string(audio.packets);
+    result += ";audio_samples=" + std::to_string(audio.samples);
+    result += ";audio_peak=" + std::to_string(audio.peak);
+    result += ";output=";
+    result += g_media_enabled.load(std::memory_order_relaxed) ? "running" : "stopped";
+    result += ";video_submitted=" + std::to_string(media.video_submitted);
+    result += ";video_dropped=" + std::to_string(media.video_dropped);
+    result += ";audio_submitted=" + std::to_string(media.audio_submitted);
+    result += ";audio_dropped=" + std::to_string(media.audio_dropped);
+    result += ";video_bytes=" + std::to_string(transport.video.bytes_written);
+    result += ";audio_bytes=" + std::to_string(transport.audio.bytes_written);
+    result += ";video_pipe_drops=" + std::to_string(transport.video.writes_dropped);
+    result += ";audio_pipe_drops=" + std::to_string(transport.audio.writes_dropped);
+    return result;
+}
+
 void PollMediaGraph() {
     if (!g_media_enabled.load(std::memory_order_relaxed)) {
         return;
@@ -210,9 +237,7 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
     switch (command.type) {
     case cari::native::ControlCommandType::status:
         return cari::native::control_response(
-            true,
-            g_capture.is_running() ? "capture=running" : "capture=stopped",
-            command.request_id);
+            true, BuildControlStatusMessage(), command.request_id);
     case cari::native::ControlCommandType::capture_start:
         if (g_capture.is_running()) {
             return cari::native::control_response(true, "capture=running", command.request_id);
