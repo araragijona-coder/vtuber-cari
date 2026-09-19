@@ -205,11 +205,23 @@ bool FfmpegAvOutput::write_audio(const std::uint8_t* data, std::size_t size) noe
 }
 
 void FfmpegAvOutput::stop() noexcept {
+    // Close both raw inputs before terminating FFmpeg. EOF lets FFmpeg flush
+    // encoders and finalize the muxer, which is especially important for local
+    // recordings. Only escalate to TerminateProcess if graceful shutdown does
+    // not complete within the bounded timeout.
+    video_pipe_.close();
+    audio_pipe_.close();
+
     if (process_.running()) {
-        process_.terminate();
-        const auto result = process_.wait(1000);
-        if (result.exited) {
-            exit_code_ = result.exit_code;
+        const auto graceful = process_.wait(1500);
+        if (graceful.exited) {
+            exit_code_ = graceful.exit_code;
+        } else {
+            process_.terminate();
+            const auto forced = process_.wait(1000);
+            if (forced.exited) {
+                exit_code_ = forced.exit_code;
+            }
         }
     }
 
@@ -217,9 +229,6 @@ void FfmpegAvOutput::stop() noexcept {
     if (process_.captures_stderr() && process_.drain_stderr(final_chunk)) {
         stderr_text_.append(final_chunk);
     }
-
-    video_pipe_.close();
-    audio_pipe_.close();
 
     if (state_ == FfmpegAvOutputState::running ||
         state_ == FfmpegAvOutputState::starting) {
