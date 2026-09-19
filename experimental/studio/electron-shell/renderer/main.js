@@ -11,7 +11,8 @@ const ui = {
   engine: document.querySelector("#engine"),
   tracking: document.querySelector("#tracking"),
   render: document.querySelector("#render"),
-  model: document.querySelector("#model")
+  model: document.querySelector("#model"),
+  metrics: document.querySelector("#metrics")
 };
 
 const controller = new StudioController(window.cari.native);
@@ -36,6 +37,40 @@ async function refresh() {
   ui.engine.textContent = state.running
     ? `running (PID ${state.pid})`
     : "offline";
+
+  if (!state.running) {
+    ui.metrics.textContent = "native engine offline";
+    return;
+  }
+
+  const result = await controller.send("status");
+  if (result.ok) {
+    const metrics = parseStatus(result.message);
+    ui.metrics.textContent =
+      `Capture ${metrics.frames ?? 0} frames @ ${metrics.fps ?? 0} FPS · ` +
+      `Audio ${metrics.audio_packets ?? 0} packets · ` +
+      `Video ${formatBytes(metrics.video_bytes)} · ` +
+      `Audio ${formatBytes(metrics.audio_bytes)} · ` +
+      `Drops V/A ${metrics.video_dropped ?? 0}/${metrics.audio_dropped ?? 0}`;
+  }
+}
+
+function parseStatus(message) {
+  return Object.fromEntries(
+    String(message || "")
+      .split(";")
+      .map(part => part.split("="))
+      .filter(parts => parts.length === 2)
+      .map(([key, value]) => [key, /^-?\\d+(?:\\.\\d+)?$/.test(value) ? Number(value) : value])
+  );
+}
+
+function formatBytes(value) {
+  const bytes = Number(value) || 0;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GiB`;
 }
 
 async function startCamera() {
@@ -196,4 +231,7 @@ document.querySelector("#angry").onclick = () => acting.set({ expression: "angry
 await configureAvatar();
 trackingLoop(performance.now());
 await refresh();
+setInterval(() => {
+  refresh().catch(error => showStatus(`Status error: ${error.message}`));
+}, 1000);
 renderer.render();
