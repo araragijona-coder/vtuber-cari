@@ -52,9 +52,7 @@
       border: 1px solid #292e39;
       border-radius: 8px;
     }
-    #camera {
-      object-fit: cover;
-    }
+    #camera { object-fit: cover; }
     button, input {
       width: 100%;
       box-sizing: border-box;
@@ -65,10 +63,7 @@
       background: #202530;
       color: #fff;
     }
-    button:hover {
-      background: #2a3040;
-      cursor: pointer;
-    }
+    button:hover { background: #2a3040; cursor: pointer; }
     button:focus-visible, input:focus-visible {
       outline: 2px solid #7aa2ff;
       outline-offset: 1px;
@@ -105,11 +100,17 @@
     <button id="start">Start Native Engine</button>
     <button id="stop">Stop Native Engine</button>
 
-    <h3>Capture / Output</h3>
-    <button id="capture">Start Window Capture</button>
+    <h3>Capture</h3>
+    <div class="row">
+      <button id="capture-window">Window</button>
+      <button id="capture-screen">Primary Screen</button>
+    </div>
+    <button id="capture-stop">Stop Capture</button>
+
+    <h3>Output</h3>
     <button id="record">Start Local Record</button>
     <label for="rtmp-target"><small>RTMP target</small></label>
-    <input id="rtmp-target" type="text" inputmode="url" autocomplete="off"
+    <input id="rtmp-target" type="text" inputmode="url" autocomplete="off" spellcheck="false"
       placeholder="rtmps://server.example/live/stream-key">
     <button id="stream-start">Start Direct RTMP</button>
     <button id="stream-stop">Stop Output</button>
@@ -167,7 +168,7 @@
 
     <div class="metric">
       <small>Runtime contract</small>
-      <div>Local Electron → stdin/stdout JSON → native Windows engine</div>
+      <div>Electron control plane → local native engine</div>
     </div>
 
     <div class="metric">
