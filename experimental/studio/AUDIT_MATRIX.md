@@ -54,6 +54,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Win32 host.
 - [x] D3D11 device.
 - [x] Windows Graphics Capture.
+- [x] Captura de pantalla primaria con `CreateForMonitor`.
 - [x] Free-threaded frame callback.
 - [x] Window enumeration.
 - [x] WASAPI foundation.
@@ -79,8 +80,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Explicit FFmpeg two-input `-map 0:v:0 -map 1:a:0` contract.
 - [ ] FFmpeg binary discovery policy.
 - [ ] FFmpeg legal redistribution decision.
-- [ ] Raw video producer connected to FFmpeg A/V output.
-- [ ] Mixed raw audio producer connected to FFmpeg A/V output.
+- [x] Raw video producer connected to FFmpeg A/V output.
+- [x] Mixed raw audio producer connected to FFmpeg A/V output.
 - [x] Temporal audio mixer implemented before the single FFmpeg audio pipe.
 - [ ] Output stderr classification / structured diagnostics.
 - [ ] Automatic output reconnect/backoff policy.
@@ -95,8 +96,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Cliente Windows de smoke conecta y comprueba payload + métricas.
 - [x] Contrato de dos canales: vídeo BGRA8 y audio PCM float32 LE.
 - [x] Generación de nombres únicos de pipe por proceso/secuencia.
-- [ ] Integración de captura BGRA → canal de vídeo.
-- [ ] Integración de AudioTimelineMixer → canal PCM float.
+- [x] Integración de captura BGRA → canal de vídeo.
+- [x] Integración de AudioTimelineMixer → canal PCM float.
 - [ ] Alimentación sostenida de ambos canales durante ejecución real.
 - [ ] Prueba local con FFmpeg real y archivo de salida.
 - [ ] Verificación de sincronización A/V sostenida y drift/resampling.
@@ -125,6 +126,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] JSON presets.
 - [x] Canonical Cari personality bible with explicit invariants and data classification.
 - [ ] Character behavior engine consuming personality/value/state layers.
+- [x] Neutral avatar contract consumed by the Three.js renderer.
+
 - [ ] Native VRM renderer.
 - [ ] Audio-driven lip-sync.
 - [ ] Final tracking.
@@ -152,13 +155,13 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Evidencia actual
 
-- El head de trabajo actual de esta auditoría es **cb9659da4f411d9a965c385588c3bb410ec5e3b1** en `fix/native-windows-foundation`.
+- El head de trabajo actual de esta auditoría es **46c8e112b0a475db46b9fce80e73af90e44bbf89** en `fix/native-windows-foundation`.
 - Se corrigió previamente el timestamp WASAPI para usar el `QPCPosition` ya convertido por Windows a 100 ns. Microsoft documenta explícitamente esa unidad; no debe volver a tratarse como ticks QPC crudos. citeturn0search0
 - `AudioTimelineMixer` introduce una frontera temporal única para micrófono, audio del sistema y futuras pistas como TTS. Normaliza canales/sample-rate, conserva PTS, produce bloques de 20 ms y mantiene métricas de rechazo, resampling, mezcla y underrun.
 - El smoke de `AudioTimelineMixer` verifica mezcla de micrófono + sistema, avance monotónico de PTS, resampling de una pista de 44.1 kHz y rechazo de paquetes malformados.
 - El mezclador todavía no se considera sincronización de producción: dos dispositivos físicos pueden tener relojes ligeramente distintos. La corrección de drift requiere observar los relojes de los dispositivos y ajustar/resamplear de forma continua; `IAudioClock::GetPosition` queda como referencia para esa etapa. citeturn0search2
 - `FfmpegAvOutput` sigue siendo la frontera A/V nativa: dos named pipes independientes y dos entradas raw. Los formatos raw de FFmpeg no transportan timestamps por sí mismos, por lo que la continuidad temporal debe mantenerse antes de escribir al pipe. citeturn0search8
-- La captura BGRA y el audio real todavía no están conectados al `NativeMediaOutputBridge`; esa conexión es el siguiente gate técnico.
+- La captura BGRA y el audio mezclado ya atraviesan `MediaGraphController` → `NativeMediaOutputBridge` → `FfmpegAvOutput`. El gate restante es demostrar funcionamiento sostenido con FFmpeg real, A/V sincronizado y hardware Windows.
 - CI no se marca como verde en este punto: el commit `4384d72e053a51fcf93114496bc5e85a29d3be0f` no mostró ejecuciones asociadas al consultar GitHub. Las nuevas modificaciones de esta continuación necesitan una ejecución Windows nueva antes de declararse verificadas.
 - La validación final de cámara, GPU, juegos, audio, rendimiento, FFmpeg real, RTMP y reconexión continúa requiriendo una máquina Windows objetivo; CI no sustituye esa prueba.
 
