@@ -13,6 +13,7 @@ on:
     paths:
       - 'experimental/studio/native-windows/**'
       - 'experimental/studio/core/**'
+      - 'experimental/studio/electron-shell/**'
       - '.github/workflows/native-windows.yml'
 
 jobs:
