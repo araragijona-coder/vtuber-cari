@@ -236,6 +236,18 @@ bool StartCaptureSource(HWND hwnd, const std::string& source, std::int32_t reque
     return started;
 }
 
+std::wstring configured_ffmpeg_executable() {
+    wchar_t buffer[4096]{};
+    const DWORD length = GetEnvironmentVariableW(
+        L"CARI_FFMPEG_EXECUTABLE",
+        buffer,
+        static_cast<DWORD>(std::size(buffer)));
+    if (length == 0 || length >= std::size(buffer)) {
+        return L"ffmpeg.exe";
+    }
+    return std::wstring(buffer, buffer + length);
+}
+
 bool StartOutput(
     HWND hwnd,
     const std::string& output_profile,
@@ -295,7 +307,11 @@ bool StartOutput(
         return false;
     }
 
-    if (!g_media_graph.start(profile, 48000, 2)) {
+    if (!g_media_graph.start(
+            profile,
+            48000,
+            2,
+            configured_ffmpeg_executable())) {
         if (started_audio) g_audio_bridge.stop();
         if (started_capture) g_capture.stop();
         return false;
