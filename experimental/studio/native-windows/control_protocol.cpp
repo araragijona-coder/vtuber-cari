@@ -83,9 +83,13 @@ ControlCommand parse_control_command(const std::string& line) noexcept {
     else if (has(compact, "\"type\":\"audio.stop\"")) command.type = ControlCommandType::audio_stop;
     else if (has(compact, "\"type\":\"output.start\"")) command.type = ControlCommandType::output_start;
     else if (has(compact, "\"type\":\"output.stop\"")) command.type = ControlCommandType::output_stop;
+    else if (has(compact, "\"type\":\"voice.set\"")) command.type = ControlCommandType::voice_set;
 
     if (has(compact, "\"source\":\"window\"")) command.source = "window";
     if (has(compact, "\"profile\":\"local-record\"")) command.profile = "local-record";
+    if (has(compact, "\"profile\":\"rtmp\"")) command.profile = "rtmp";
+    if (has(compact, "\"effect\":\"anime-bright\"")) command.effect = "anime-bright";
+    if (has(compact, "\"effect\":\"off\"")) command.effect = "off";
     command.target = read_string_field(compact, "target");
     command.request_id = read_string_field(compact, "id");
     return command;
