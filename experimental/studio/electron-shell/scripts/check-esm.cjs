@@ -1,6 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const vm = require("node:vm");
+const { spawnSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
 const files = [
@@ -15,6 +15,18 @@ const files = [
 for (const relative of files) {
   const filename = path.join(root, relative);
   const source = fs.readFileSync(filename, "utf8");
-  new vm.SourceTextModule(source, { identifier: filename });
+  const result = spawnSync(
+    process.execPath,
+    ["--input-type=module", "--check"],
+    { input: source, encoding: "utf8" }
+  );
+
+  if (result.status !== 0) {
+    process.stderr.write(
+      `ESM syntax error in ${relative}\n${result.stderr || result.stdout || ""}`
+    );
+    process.exit(result.status || 1);
+  }
+
   process.stdout.write(`ESM syntax OK: ${relative}\n`);
 }
