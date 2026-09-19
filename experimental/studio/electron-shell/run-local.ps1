@@ -5,6 +5,7 @@ $Native = $env:CARI_NATIVE_EXECUTABLE
 
 if (-not $Native) {
     $candidates = @(
+        (Join-Path $Root "..\native-windows\build\Release\cari-studio-native.exe"),
         (Join-Path $Root "..\native\cari-studio-native.exe"),
         (Join-Path $Root "..\native\CariStudio.exe")
     )
