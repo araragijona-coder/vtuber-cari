@@ -191,14 +191,15 @@ void PollMediaGraph() {
     }
     if (!g_media_graph.poll()) {
         g_media_enabled.store(false, std::memory_order_relaxed);
+        g_media_graph.stop();
         return;
     }
 
     if (!g_media_graph.running()) {
-        // FFmpeg exited without a control-plane stop. Keep capture/audio alive,
-        // but publish the output as stopped so the UI cannot report a phantom
-        // recording/stream.
+        // FFmpeg exited without a control-plane stop. Release the output
+        // resources immediately while keeping capture/audio alive.
         g_media_enabled.store(false, std::memory_order_relaxed);
+        g_media_graph.stop();
         return;
     }
 
