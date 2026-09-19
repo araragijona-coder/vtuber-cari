@@ -150,6 +150,34 @@ document.querySelector("#record").onclick = async () => {
   showStatus(result.ok ? result.message : result.error);
 };
 
+
+document.querySelector("#obs-connect").onclick = async () => {
+  try {
+    const result = await window.cari.native.obs.connect({});
+    showStatus(`OBS connected: ${result.obsWebSocketVersion || "ready"}`);
+  } catch (error) {
+    showStatus(`OBS connection failed: ${error.message}`);
+  }
+};
+
+document.querySelector("#obs-start").onclick = async () => {
+  try {
+    await window.cari.native.obs.startStream();
+    showStatus("OBS stream started");
+  } catch (error) {
+    showStatus(`OBS start failed: ${error.message}`);
+  }
+};
+
+document.querySelector("#obs-stop").onclick = async () => {
+  try {
+    await window.cari.native.obs.stopStream();
+    showStatus("OBS stream stopped");
+  } catch (error) {
+    showStatus(`OBS stop failed: ${error.message}`);
+  }
+};
+
 document.querySelector("#camera-start").onclick = async () => {
   try {
     await startCamera();
