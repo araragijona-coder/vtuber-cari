@@ -1,6 +1,14 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
+const MORPH_ALIASES = {
+  mouthOpen: ["jawOpen", "mouthOpen", "MouthOpen", "viseme_aa"],
+  blinkLeft: ["eyeBlinkLeft", "blinkLeft", "Blink_L", "EyeBlink_L"],
+  blinkRight: ["eyeBlinkRight", "blinkRight", "Blink_R", "EyeBlink_R"],
+  smileLeft: ["mouthSmileLeft", "smileLeft", "Smile_L"],
+  smileRight: ["mouthSmileRight", "smileRight", "Smile_R"]
+};
+
 export class ThreeAvatarRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -27,19 +35,27 @@ export class ThreeAvatarRenderer {
 
     this.avatar = null;
     this.placeholder = this.#createPlaceholder();
+    this.placeholderParts = {
+      head: this.placeholder.children[0],
+      leftEye: this.placeholder.children[1],
+      rightEye: this.placeholder.children[2],
+      mouth: this.placeholder.children[3]
+    };
 
+    this.morphTargets = [];
     this.resizeObserver = new ResizeObserver(() => this.#resize());
     this.resizeObserver.observe(canvas);
-
     this.#resize();
   }
 
   async load(url) {
     const gltf = await new GLTFLoader().loadAsync(url);
     if (this.avatar) this.root.remove(this.avatar);
+
     this.avatar = gltf.scene;
     this.root.add(this.avatar);
     this.root.remove(this.placeholder);
+    this.morphTargets = collectMorphTargets(this.avatar);
     return this.avatar;
   }
 
@@ -49,10 +65,38 @@ export class ThreeAvatarRenderer {
     target.rotation.x = params.headPitch || 0;
     target.rotation.z = params.headRoll || 0;
 
+    const mouthOpen = clamp01(params.mouthOpen || 0);
+    const blink = clamp01(params.blink || 0);
+    const expression = params.expression || "neutral";
+
     target.userData.cari = params;
-    target.userData.expression = params.expression || "neutral";
-    target.userData.mouthOpen = params.mouthOpen || 0;
-    target.userData.blink = params.blink || 0;
+    target.userData.expression = expression;
+
+    if (this.avatar) {
+      applyMorph(this.morphTargets, "mouthOpen", mouthOpen);
+      applyMorph(this.morphTargets, "blinkLeft", blink);
+      applyMorph(this.morphTargets, "blinkRight", blink);
+      applyMorph(
+        this.morphTargets,
+        "smileLeft",
+        expression === "happy" ? 0.85 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "smileRight",
+        expression === "happy" ? 0.85 : 0
+      );
+      return;
+    }
+
+    const eyesScale = Math.max(0.12, 1 - blink * 0.88);
+    this.placeholderParts.leftEye.scale.y = eyesScale;
+    this.placeholderParts.rightEye.scale.y = eyesScale;
+    this.placeholderParts.mouth.scale.y = 0.5 + mouthOpen * 2.2;
+    this.placeholderParts.mouth.rotation.z =
+      expression === "happy" ? Math.PI * 0.82 :
+      expression === "angry" ? Math.PI * 1.18 :
+      Math.PI;
   }
 
   render() {
@@ -61,6 +105,9 @@ export class ThreeAvatarRenderer {
 
   dispose() {
     this.resizeObserver.disconnect();
+
+    if (this.avatar) disposeObject(this.avatar);
+    disposeObject(this.placeholder);
     this.renderer.dispose();
   }
 
@@ -103,4 +150,63 @@ export class ThreeAvatarRenderer {
     this.root.add(group);
     return group;
   }
+}
+
+function collectMorphTargets(root) {
+  const targets = [];
+
+  root.traverse(object => {
+    if (!object.isMesh || !object.morphTargetDictionary || !object.morphTargetInfluences) {
+      return;
+    }
+
+    targets.push({
+      dictionary: object.morphTargetDictionary,
+      influences: object.morphTargetInfluences
+    });
+  });
+
+  return targets;
+}
+
+function applyMorph(targets, kind, value) {
+  const aliases = MORPH_ALIASES[kind] || [];
+  for (const target of targets) {
+    for (const alias of aliases) {
+      const index = target.dictionary[alias];
+      if (index !== undefined) {
+        target.influences[index] = value;
+        break;
+      }
+    }
+  }
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+function disposeObject(object) {
+  object.traverse(child => {
+    if (child.geometry) child.geometry.dispose();
+
+    if (child.material) {
+      const materials = Array.isArray(child.material)
+        ? child.material
+        : [child.material];
+
+      for (const material of materials) {
+        for (const key of [
+          "map",
+          "normalMap",
+          "roughnessMap",
+          "metalnessMap",
+          "emissiveMap"
+        ]) {
+          material[key]?.dispose();
+        }
+        material.dispose();
+      }
+    }
+  });
 }
