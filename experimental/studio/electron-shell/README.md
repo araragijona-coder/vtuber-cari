@@ -8,7 +8,7 @@ This directory is intentionally **experimental**. It is the desktop control/UI l
 ┌─────────────────────────────────────────────────────────────────┐
 │ Electron renderer                                               │
 │                                                                 │
-│  StudioController ── Native command requests                   │
+│  StudioSessionManager ── serialized session commands                   │
 │  AvatarActingBridge ← FaceTrackingBridge ← MediaPipe            │
 │  ThreeAvatarRenderer ── GLB/glTF avatar                        │
 │  local camera preview                                           │
@@ -42,7 +42,7 @@ This directory is intentionally **experimental**. It is the desktop control/UI l
 
 ### Capture
 
-The native runtime owns screen/window capture through Windows Graphics Capture. This avoids putting the core desktop capture path inside the browser process and keeps device recovery and WinRT apartment requirements in one place.
+The native runtime owns screen/window/primary-display capture through Windows Graphics Capture. This avoids putting the core desktop capture path inside the browser process and keeps device recovery and WinRT apartment requirements in one place.
 
 ### Audio
 
@@ -50,6 +50,7 @@ WASAPI capture and the native timeline mixer stay outside Electron. The UI can s
 
 ### Avatar bridge
 
+- `avatar/avatar-contract.js` normalizes the state contract before rendering.
 - `AvatarActingBridge` is the stable state model for expressions, mouth openness, blinking, head rotation and gaze.
 - `FaceTracker` is the MediaPipe adapter.
 - `FaceTrackingBridge` converts MediaPipe blendshapes/pose into avatar state.
@@ -101,6 +102,16 @@ $env:CARI_AVATAR_MODEL_PATH="C:\path\to\avatar.glb"
 npm install
 npm run check
 npm start
+```
+
+## Validation
+
+From this directory:
+
+```powershell
+npm install
+npm run check
+npm test
 ```
 
 ## What is deliberately not production-ready
