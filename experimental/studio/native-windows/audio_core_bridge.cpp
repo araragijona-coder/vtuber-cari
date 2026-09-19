@@ -128,17 +128,6 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
                std::memory_order_relaxed)) {
     }
 
-    try {
-        std::lock_guard lock(mixer_mutex_);
-        if (!timeline_mixer_.push(track_id, core_packet)) {
-            set_error(L"AudioTimelineMixer rejected packet for track: " + widen_ascii(track_id));
-            return;
-        }
-    } catch (...) {
-        set_error(L"WASAPI to AudioTimelineMixer bridge failed");
-        return;
-    }
-
     packets_.fetch_add(1, std::memory_order_relaxed);
     samples_.fetch_add(core_packet.samples.size(), std::memory_order_relaxed);
 }
