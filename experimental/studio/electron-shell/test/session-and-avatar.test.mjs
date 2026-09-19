@@ -97,6 +97,16 @@ test("session manager rolls back resources it started when output fails", async 
   assert.ok(stopTypes.includes("audio.stop"));
 });
 
+test("stop-only commands never start an offline engine", async () => {
+  const native = makeNative();
+  const session = new StudioSessionManager(native);
+
+  const result = await session.captureStop();
+  assert.equal(result.ok, true);
+  assert.equal(result.skipped, true);
+  assert.deepEqual(native.calls, []);
+});
+
 test("avatar contract clamps unsafe values and keeps the renderer contract stable", () => {
   assert.equal(clamp01(2), 1);
   assert.equal(clamp01(-1), 0);
