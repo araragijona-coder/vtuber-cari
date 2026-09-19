@@ -38,6 +38,7 @@ public:
     [[nodiscard]] std::vector<float> mixed_samples(std::size_t sample_count) const;
     bool pop_mixed_audio(cari::studio::core::AudioPacket& output);
     [[nodiscard]] std::wstring last_error() const;
+    [[nodiscard]] VoiceEffectConfig voice_effect() const noexcept;
     void set_voice_effect(VoiceEffectConfig config) noexcept;
 
 private:
