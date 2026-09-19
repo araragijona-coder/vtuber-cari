@@ -238,11 +238,12 @@ bool StartCaptureSource(HWND hwnd, const std::string& source, std::int32_t reque
 
 std::wstring configured_ffmpeg_executable() {
     wchar_t buffer[4096]{};
+    constexpr DWORD capacity = static_cast<DWORD>(sizeof(buffer) / sizeof(buffer[0]));
     const DWORD length = GetEnvironmentVariableW(
         L"CARI_FFMPEG_EXECUTABLE",
         buffer,
-        static_cast<DWORD>(std::size(buffer)));
-    if (length == 0 || length >= std::size(buffer)) {
+        capacity);
+    if (length == 0 || length >= capacity) {
         return L"ffmpeg.exe";
     }
     return std::wstring(buffer, buffer + length);
