@@ -121,13 +121,15 @@ ipcMain.handle("obs:status", async event => {
 ipcMain.handle("app:config", event => {
   requireTrustedSender(event);
 
-  mediaPipeModelPath: process.env.CARI_MEDIAPIPE_MODEL_PATH
-    ? pathToFileURL(path.resolve(process.env.CARI_MEDIAPIPE_MODEL_PATH)).href
-    : null,
-  avatarModelPath: process.env.CARI_AVATAR_MODEL_PATH
-    ? pathToFileURL(path.resolve(process.env.CARI_AVATAR_MODEL_PATH)).href
-    : null
-}));
+  return {
+    mediaPipeModelPath: process.env.CARI_MEDIAPIPE_MODEL_PATH
+      ? pathToFileURL(path.resolve(process.env.CARI_MEDIAPIPE_MODEL_PATH)).href
+      : null,
+    avatarModelPath: process.env.CARI_AVATAR_MODEL_PATH
+      ? pathToFileURL(path.resolve(process.env.CARI_AVATAR_MODEL_PATH)).href
+      : null
+  };
+});
 
 app.whenReady().then(() => {
   createWindow();
