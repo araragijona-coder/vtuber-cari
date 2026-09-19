@@ -199,7 +199,7 @@ void PollMediaGraph() {
     }
 }
 
-bool StartCaptureSource(HWND hwnd, const std::string& source) {
+bool StartCaptureSource(HWND hwnd, const std::string& source, std::int32_t requested_window_index = -1) {
     if (source == "screen") {
         const HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
         const bool started = g_capture.start_display(monitor);
@@ -211,6 +211,15 @@ bool StartCaptureSource(HWND hwnd, const std::string& source) {
 
     if (source != "window") {
         return false;
+    }
+
+    if (requested_window_index >= 0) {
+        g_windows = cari::native::enumerate_capturable_windows();
+        if (static_cast<std::size_t>(requested_window_index) >= g_windows.size()) {
+            return false;
+        }
+        g_selected_window_index = static_cast<std::size_t>(requested_window_index);
+        g_selected_window = g_windows[g_selected_window_index].hwnd;
     }
 
     if (g_selected_window && IsWindow(g_selected_window)) {
@@ -235,7 +244,7 @@ bool StartOutput(
     bool started_audio = false;
 
     if (!g_capture.is_running()) {
-        if (!StartCaptureSource(hwnd, g_capture_source)) {
+        if (!StartCaptureSource(hwnd, g_capture_source, -1)) {
             return false;
         }
         started_capture = true;
@@ -316,7 +325,7 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
             return cari::native::control_response(
                 false, "capture=unsupported-source", command.request_id);
         }
-        if (!StartCaptureSource(hwnd, command.source)) {
+        if (!StartCaptureSource(hwnd, command.source, command.window_index)) {
             RefreshStatus(hwnd);
             return cari::native::control_response(
                 false, "capture=start-failed", command.request_id);
