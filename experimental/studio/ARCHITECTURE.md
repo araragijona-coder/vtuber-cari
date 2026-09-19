@@ -19,14 +19,16 @@ Electron Main
         ▼
 Native Windows Engine (C++)
   Windows Graphics Capture
-  WASAPI + timeline mixer
+  WASAPI microphone + system loopback
+  local voice DSP
+  AudioTimelineMixer
   FrameBridge
   MediaGraphController
   RawPipe
   FFmpeg A/V output
         │
         ├── local recording
-        └── future validated streaming outputs
+        └── direct RTMP/RTMPS
 ```
 
 ## Captura y audio
@@ -42,6 +44,22 @@ El motor nativo es la fuente de verdad para:
 
 La UI no escribe frames ni buffers de audio directamente.
 
+## Voice processing
+
+The microphone enters a deterministic local DSP stage before the timeline mixer:
+
+```
+WASAPI microphone
+      ↓
+VoiceEffectProcessor
+      ↓
+AudioTimelineMixer
+      ↓
+FFmpeg
+```
+
+The first built-in profile is `anime-bright`. It changes tone/dynamics locally without changing sample rate, channel count or duration. This is a voice-effect stage, not a pitch/formant engine.
+
 ## Avatar y tracking
 
 El avatar permanece desacoplado del motor multimedia:
@@ -53,6 +71,12 @@ El avatar permanece desacoplado del motor multimedia:
 - Live2D queda como un backend futuro; no se distribuye un runtime propietario aquí.
 
 El renderer incluye un avatar geométrico de prueba para validar tracking sin depender de un modelo comercial.
+
+## Output and streaming
+
+The native engine supports the existing local recording profile and a direct RTMP/RTMPS profile. The direct streaming path does not require OBS.
+
+OBS integration remains optional and lives in Electron Main through obs-websocket v5. It can control stream state and the current program scene when a local OBS server is available.
 
 ## Control protocol
 
