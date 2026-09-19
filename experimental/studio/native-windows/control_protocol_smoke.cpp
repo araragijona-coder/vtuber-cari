@@ -12,16 +12,17 @@ int main() {
     assert(status.source == "window");
 
     const auto output = cari::native::parse_control_command(
-        R"({"type" : "output.start", "profile" : "local-record"})");
+        R"({"type" : "output.start", "profile" : "local-record", "id" : "req-17"})");
     assert(output.type == ControlCommandType::output_start);
     assert(output.profile == "local-record");
+    assert(output.request_id == "req-17");
 
     const auto invalid = cari::native::parse_control_command(
         R"({"type":"not-a-command"})");
     assert(invalid.type == ControlCommandType::invalid);
 
-    const auto response = cari::native::control_response(true, "ok\nready");
-    assert(response == "{\"ok\":true,\"message\":\"ok\\nready\"}\n");
+    const auto response = cari::native::control_response(true, "ok\nready", "req-17");
+    assert(response == "{\"ok\":true,\"id\":\"req-17\",\"message\":\"ok\\nready\"}\n");
 
     std::cout << "control protocol smoke: OK\n";
     return 0;
