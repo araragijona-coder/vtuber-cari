@@ -1,16 +1,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  StudioSessionManager
-} from "../runtime/session-manager.js";
-import {
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
+const root = path.resolve(new URL(".", import.meta.url).pathname, "..");
+async function loadModule(relativePath) {
+  const source = await fs.readFile(path.join(root, relativePath), "utf8");
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "cari-contract-"));
+  const tempFile = path.join(tempRoot, path.basename(relativePath, ".js") + ".mjs");
+  await fs.writeFile(tempFile, source, "utf8");
+  return import(pathToFileURL(tempFile).href);
+}
+
+const { StudioSessionManager } = await loadModule("runtime/session-manager.js");
+const {
   normalizeAvatarState,
   normalizeExpression,
   clamp01,
   normalizeSigned,
   toRenderParameters
-} from "../avatar/avatar-contract.js";
+} = await loadModule("avatar/avatar-contract.js");
 
 function makeNative(responses = {}) {
   const calls = [];
