@@ -38,6 +38,7 @@ std::wstring g_source_status;
 std::vector<cari::native::WindowSourceInfo> g_windows;
 HWND g_selected_window = nullptr;
 std::size_t g_selected_window_index = 0;
+std::string g_capture_source = "window";
 std::atomic<std::uint64_t> g_bridge_attempts{0};
 std::atomic<std::uint64_t> g_bridge_successes{0};
 std::atomic<std::uint64_t> g_bridge_failures{0};
@@ -113,9 +114,11 @@ std::wstring BuildCaptureStatus() {
 
     const auto stats = g_capture.stats();
     const std::wstring selected_title =
-        (g_selected_window_index < g_windows.size())
-            ? g_windows[g_selected_window_index].title
-            : std::wstring(L"unknown source");
+        g_capture_source == "screen"
+            ? std::wstring(L"primary display")
+            : ((g_selected_window_index < g_windows.size())
+                ? g_windows[g_selected_window_index].title
+                : std::wstring(L"unknown source"));
 
     const auto bridge_attempts = g_bridge_attempts.load(std::memory_order_relaxed);
     const auto bridge_successes = g_bridge_successes.load(std::memory_order_relaxed);
@@ -199,7 +202,11 @@ void PollMediaGraph() {
 bool StartCaptureSource(HWND hwnd, const std::string& source) {
     if (source == "screen") {
         const HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
-        return g_capture.start_display(monitor);
+        const bool started = g_capture.start_display(monitor);
+        if (started) {
+            g_capture_source = "screen";
+        }
+        return started;
     }
 
     if (source != "window") {
@@ -207,9 +214,17 @@ bool StartCaptureSource(HWND hwnd, const std::string& source) {
     }
 
     if (g_selected_window && IsWindow(g_selected_window)) {
-        return g_capture.start_window(g_selected_window);
+        const bool started = g_capture.start_window(g_selected_window);
+        if (started) {
+            g_capture_source = "window";
+        }
+        return started;
     }
-    return g_capture.start_window(hwnd);
+    const bool started = g_capture.start_window(hwnd);
+    if (started) {
+        g_capture_source = "window";
+    }
+    return started;
 }
 
 bool StartOutput(
@@ -392,7 +407,9 @@ void SelectWindow(HWND hwnd, std::size_t index) {
 
     if (g_capture.is_running()) {
         g_capture.stop();
-        g_capture.start_window(g_selected_window);
+        if (g_capture.start_window(g_selected_window)) {
+            g_capture_source = "window";
+        }
     }
 
     RefreshStatus(hwnd);
