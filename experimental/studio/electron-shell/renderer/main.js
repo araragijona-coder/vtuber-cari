@@ -229,6 +229,16 @@ document.querySelector("#obs-stop").onclick = async () => {
   }
 };
 
+document.querySelector("#voice-off").onclick = async () => {
+  const result = await controller.send("voice.set", { effect: "off" });
+  showStatus(result.ok ? result.message : result.error);
+};
+
+document.querySelector("#voice-anime").onclick = async () => {
+  const result = await controller.send("voice.set", { effect: "anime-bright" });
+  showStatus(result.ok ? result.message : result.error);
+};
+
 document.querySelector("#camera-start").onclick = async () => {
   try {
     await startCamera();
