@@ -121,7 +121,7 @@ export class StudioSessionManager {
   }
 
   async captureStop() {
-    return this.send("capture.stop");
+    return this.#stopOnlyWhenRunning("capture.stop", "capture");
   }
 
   async audioStart() {
@@ -129,7 +129,7 @@ export class StudioSessionManager {
   }
 
   async audioStop() {
-    return this.send("audio.stop");
+    return this.#stopOnlyWhenRunning("audio.stop", "audio");
   }
 
   async outputStart(profile = "local-record", target = "") {
@@ -211,7 +211,21 @@ export class StudioSessionManager {
   }
 
   async outputStop() {
-    return this.send("output.stop");
+    return this.#stopOnlyWhenRunning("output.stop", "output");
+  }
+
+  async #stopOnlyWhenRunning(type, stateKey) {
+    return this.#serialize(async () => {
+      if (!this.state.engine || !this.state[stateKey]) {
+        return { ok: true, skipped: true, state: this.snapshot() };
+      }
+
+      const result = await this.native.send({ type });
+      if (result?.ok !== false) {
+        this.#applyCommandState(type, {}, result);
+      }
+      return { ...result, state: this.snapshot() };
+    });
   }
 
   async setVoiceEffect(effect = "off") {
