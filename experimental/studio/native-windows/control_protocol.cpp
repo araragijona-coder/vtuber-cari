@@ -95,7 +95,7 @@ std::string escape_json_string(const std::string& value) {
     escaped.reserve(value.size());
     for (char c : value) {
         switch (c) {
-        case '\\': escaped += "\\\\"; break;
+        case '"': escaped += "\\\""; break;
         case '"': escaped += "\\""; break;
         case '\n': escaped += "\\n"; break;
         case '\r': escaped += "\\r"; break;
