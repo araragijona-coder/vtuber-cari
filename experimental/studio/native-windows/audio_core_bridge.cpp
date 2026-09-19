@@ -95,7 +95,13 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
     }
 
     const auto sequence = callback_sequence;
-    const auto core_packet = to_core_packet(packet, sequence);
+    auto core_packet = to_core_packet(packet, sequence);
+    if (track_id && std::string(track_id) == "microphone") {
+        microphone_effect_.process(
+            core_packet.samples,
+            core_packet.sample_rate,
+            core_packet.channels);
+    }
     float packet_peak = 0.0f;
     for (const auto sample : core_packet.samples) packet_peak = std::max(packet_peak, std::fabs(sample));
 
@@ -128,6 +134,11 @@ void AudioCoreBridge::set_error(std::wstring error) {
         last_error_ = std::move(error);
     }
     errors_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void AudioCoreBridge::set_voice_effect(VoiceEffectConfig config) noexcept {
+    std::lock_guard lock(mixer_mutex_);
+    microphone_effect_.set_config(config);
 }
 
 AudioCoreBridgeStats AudioCoreBridge::stats() const noexcept {
