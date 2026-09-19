@@ -76,6 +76,23 @@ test("session manager serializes output startup and remembers selected source", 
   assert.equal(session.snapshot().output, true);
 });
 
+test("session manager sends the selected native window index", async () => {
+  const native = makeNative({
+    "capture.start:window": { ok: true, message: "capture=started" }
+  });
+  const session = new StudioSessionManager(native);
+
+  const result = await session.captureStart("window", 4);
+  assert.equal(result.ok, true);
+  assert.equal(session.snapshot().windowIndex, 4);
+
+  const captureCall = native.calls.find(call =>
+    call[0] === "send" && call[1].type === "capture.start"
+  );
+  assert.ok(captureCall);
+  assert.equal(captureCall[1].window_index, 4);
+});
+
 test("session manager rolls back resources it started when output fails", async () => {
   const native = makeNative({
     "capture.start:window": { ok: true, message: "capture=started" },
