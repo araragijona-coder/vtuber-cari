@@ -11,6 +11,12 @@ int main() {
     assert(status.type == ControlCommandType::status);
     assert(status.source == "window");
 
+    const auto screen = cari::native::parse_control_command(
+        R"({"type":"capture.start","source":"screen","id":"screen-02"})");
+    assert(screen.type == ControlCommandType::capture_start);
+    assert(screen.source == "screen");
+    assert(screen.request_id == "screen-02");
+
     const auto output = cari::native::parse_control_command(
         R"({"type" : "output.start", "profile" : "local-record", "target" : "capture.mkv", "id" : "req-17"})");
     assert(output.type == ControlCommandType::output_start);
