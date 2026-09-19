@@ -196,6 +196,22 @@ void PollMediaGraph() {
     }
 }
 
+bool StartCaptureSource(HWND hwnd, const std::string& source) {
+    if (source == "screen") {
+        const HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+        return g_capture.start_display(monitor);
+    }
+
+    if (source != "window") {
+        return false;
+    }
+
+    if (g_selected_window && IsWindow(g_selected_window)) {
+        return g_capture.start_window(g_selected_window);
+    }
+    return g_capture.start_window(hwnd);
+}
+
 bool StartOutput(
     HWND hwnd,
     const std::string& output_profile,
@@ -275,15 +291,13 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
         if (g_capture.is_running()) {
             return cari::native::control_response(true, "capture=running", command.request_id);
         }
-        if (g_selected_window && IsWindow(g_selected_window))
-            g_capture.start_window(g_selected_window);
-        else
-            g_capture.start_window(hwnd);
+        if (!StartCaptureSource(hwnd, command.source)) {
+            RefreshStatus(hwnd);
+            return cari::native::control_response(
+                false, "capture=start-failed", command.request_id);
+        }
         RefreshStatus(hwnd);
-        return cari::native::control_response(
-            g_capture.is_running(),
-            g_capture.is_running() ? "capture=started" : "capture=start-failed",
-            command.request_id);
+        return cari::native::control_response(true, "capture=started", command.request_id);
     case cari::native::ControlCommandType::capture_stop:
         g_capture.stop();
         RefreshStatus(hwnd);
