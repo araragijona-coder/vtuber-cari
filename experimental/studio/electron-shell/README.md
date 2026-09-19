@@ -104,7 +104,8 @@ $env:CARI_AVATAR_MODEL_PATH="C:\path\to\avatar.glb"
 $env:CARI_FFMPEG_EXECUTABLE="C:\path\to\ffmpeg.exe"
 npm install
 npm run check
-npm start
+npm test
+.un-local.ps1
 ```
 
 ## Validation
