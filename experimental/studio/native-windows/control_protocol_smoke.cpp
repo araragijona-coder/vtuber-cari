@@ -11,6 +11,13 @@ int main() {
     assert(status.type == ControlCommandType::status);
     assert(status.source == "window");
 
+    const auto indexed = cari::native::parse_control_command(
+        R"({"type":"capture.start","source":"window","window_index":4,"id":"window-04"})");
+    assert(indexed.type == ControlCommandType::capture_start);
+    assert(indexed.source == "window");
+    assert(indexed.window_index == 4);
+    assert(indexed.request_id == "window-04");
+
     const auto screen = cari::native::parse_control_command(
         R"({"type":"capture.start","source":"screen","id":"screen-02"})");
     assert(screen.type == ControlCommandType::capture_start);
