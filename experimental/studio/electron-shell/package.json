@@ -9,7 +9,7 @@
     "check": "node --check main.js && node --check runtime/native-engine.js"
   },
   "dependencies": {
-    "@mediapipe/tasks-vision": "^0.10.22",
+    "@mediapipe/tasks-vision": "0.10.35",
     "obs-websocket-js": "^5.0.6",
     "three": "^0.179.1"
   },
