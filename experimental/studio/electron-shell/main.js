@@ -56,7 +56,9 @@ function createWindow() {
     }
   });
 
-  const localUrl = "file://" + path.resolve(__dirname, "renderer", "index.html");
+  const localUrl = pathToFileURL(
+    path.join(__dirname, "renderer", "index.html")
+  ).href;
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
 
   win.webContents.on("will-navigate", event => {
