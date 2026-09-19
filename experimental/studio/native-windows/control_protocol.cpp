@@ -40,6 +40,38 @@ bool has(const std::string& line, const char* token) {
     return line.find(token) != std::string::npos;
 }
 
+std::int32_t read_int_field(const std::string& compact, const char* field) {
+    const std::string prefix = std::string(""") + field + "":";
+    const auto begin = compact.find(prefix);
+    if (begin == std::string::npos) {
+        return -1;
+    }
+
+    std::size_t index = begin + prefix.size();
+    bool negative = false;
+    if (index < compact.size() && compact[index] == '-') {
+        negative = true;
+        ++index;
+    }
+
+    std::int32_t value = 0;
+    bool found = false;
+    while (index < compact.size() && std::isdigit(static_cast<unsigned char>(compact[index]))) {
+        found = true;
+        const int digit = compact[index] - '0';
+        if (value > 1000000) {
+            return -1;
+        }
+        value = value * 10 + digit;
+        ++index;
+    }
+
+    if (!found) {
+        return -1;
+    }
+    return negative ? -value : value;
+}
+
 std::string read_string_field(const std::string& compact, const char* field) {
     const std::string prefix = std::string("\"") + field + "\":\"";
     const auto begin = compact.find(prefix);
@@ -92,6 +124,7 @@ ControlCommand parse_control_command(const std::string& line) noexcept {
     if (has(compact, "\"effect\":\"anime-bright\"")) command.effect = "anime-bright";
     if (has(compact, "\"effect\":\"off\"")) command.effect = "off";
     command.target = read_string_field(compact, "target");
+    command.window_index = read_int_field(compact, "window_index");
     command.request_id = read_string_field(compact, "id");
     return command;
 }
