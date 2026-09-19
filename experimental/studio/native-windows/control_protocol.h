@@ -22,6 +22,7 @@ struct ControlCommand {
     std::string source = "window";
     std::string profile = "local-record";
     std::string target;
+    std::string effect = "off";
     std::string request_id;
 };
 
