@@ -86,6 +86,7 @@ ControlCommand parse_control_command(const std::string& line) noexcept {
 
     if (has(compact, "\"source\":\"window\"")) command.source = "window";
     if (has(compact, "\"profile\":\"local-record\"")) command.profile = "local-record";
+    command.target = read_string_field(compact, "target");
     command.request_id = read_string_field(compact, "id");
     return command;
 }
