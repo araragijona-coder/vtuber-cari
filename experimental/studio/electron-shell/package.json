@@ -5,7 +5,8 @@
   "description": "Local Windows control shell for Cari Studio native media engine.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "check": "node --check main.js && node --check runtime/native-engine.js"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.22",
