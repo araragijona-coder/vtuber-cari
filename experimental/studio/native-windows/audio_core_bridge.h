@@ -2,6 +2,7 @@
 
 #include "wasapi_capture.h"
 #include "audio_timeline_mixer.h"
+#include "voice_effects.h"
 #include "../core/types.h"
 
 #include <atomic>
@@ -37,6 +38,8 @@ public:
     [[nodiscard]] std::vector<float> mixed_samples(std::size_t sample_count) const;
     bool pop_mixed_audio(cari::studio::core::AudioPacket& output);
     [[nodiscard]] std::wstring last_error() const;
+
+    void set_voice_effect(VoiceEffectConfig config) noexcept;
 
 private:
     void on_packet(const char* track_id, const AudioCapturePacket& packet);
