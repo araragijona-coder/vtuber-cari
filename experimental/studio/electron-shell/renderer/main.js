@@ -1,4 +1,4 @@
-import { StudioController } from "../runtime/studio-controller.js";
+import { StudioSessionManager } from "../runtime/session-manager.js";
 import { FaceTracker } from "../avatar/face-tracker.js";
 import { FaceTrackingBridge } from "../avatar/face-tracking-bridge.js";
 import { ThreeAvatarRenderer } from "../avatar/three-avatar.js";
@@ -15,7 +15,7 @@ const ui = {
   metrics: document.querySelector("#metrics")
 };
 
-const controller = new StudioController(window.cari.native);
+const session = new StudioSessionManager(window.cari.native);
 const acting = new AvatarActingBridge();
 const renderer = new ThreeAvatarRenderer(ui.canvas);
 const trackingBridge = new FaceTrackingBridge(acting);
@@ -23,54 +23,74 @@ const trackingBridge = new FaceTrackingBridge(acting);
 let faceTracker = null;
 let cameraStream = null;
 let trackingFrame = 0;
+let refreshInFlight = false;
 
 function showStatus(message) {
-  ui.status.textContent = message;
+  ui.status.textContent = String(message || "");
 }
 
 function setTracking(message) {
-  ui.tracking.textContent = message;
-}
-
-async function refresh() {
-  const state = await controller.status();
-  ui.engine.textContent = state.running
-    ? `running (PID ${state.pid})`
-    : "offline";
-
-  if (!state.running) {
-    ui.metrics.textContent = "native engine offline";
-    return;
-  }
-
-  const result = await controller.send("status");
-  if (result.ok) {
-    const metrics = parseStatus(result.message);
-    ui.metrics.textContent =
-      `Capture ${metrics.frames ?? 0} frames @ ${metrics.fps ?? 0} FPS · ` +
-      `Audio ${metrics.audio_packets ?? 0} packets · ` +
-      `Video ${formatBytes(metrics.video_bytes)} · ` +
-      `Audio ${formatBytes(metrics.audio_bytes)} · ` +
-      `Drops V/A ${metrics.video_dropped ?? 0}/${metrics.audio_dropped ?? 0}`;
-  }
+  ui.tracking.textContent = String(message || "");
 }
 
 function parseStatus(message) {
   return Object.fromEntries(
     String(message || "")
       .split(";")
-      .map(part => part.split("="))
-      .filter(parts => parts.length === 2)
-      .map(([key, value]) => [key, /^-?\\d+(?:\\.\\d+)?$/.test(value) ? Number(value) : value])
+      .map(part => {
+        const index = part.indexOf("=");
+        return index > 0 ? [part.slice(0, index), part.slice(index + 1)] : null;
+      })
+      .filter(Boolean)
+      .map(([key, value]) => [
+        key,
+        /^-?\d+(?:\.\d+)?$/.test(value) ? Number(value) : value
+      ])
   );
 }
 
 function formatBytes(value) {
   const bytes = Number(value) || 0;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GiB`;
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KiB";
+  if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + " MiB";
+  return (bytes / 1024 / 1024 / 1024).toFixed(2) + " GiB";
+}
+
+async function refresh() {
+  if (refreshInFlight) return;
+  refreshInFlight = true;
+
+  try {
+    const result = await session.status();
+    ui.engine.textContent = result.engine?.running
+      ? "running (PID " + result.engine.pid + ")"
+      : "offline";
+
+    if (!result.engine?.running) {
+      ui.metrics.textContent = "native engine offline";
+      return;
+    }
+
+    if (result.native?.ok !== true) {
+      ui.metrics.textContent = result.native?.error || "native status unavailable";
+      return;
+    }
+
+    const metrics = parseStatus(result.native.message);
+    ui.metrics.textContent =
+      "Capture " + (metrics.frames ?? 0) +
+      " frames @ " + Number(metrics.fps ?? 0).toFixed(1) + " FPS · " +
+      "Audio " + (metrics.audio_packets ?? 0) + " packets · " +
+      "Video " + formatBytes(metrics.video_bytes) + " · " +
+      "Audio " + formatBytes(metrics.audio_bytes) + " · " +
+      "Drops V/A " + (metrics.video_dropped ?? 0) + "/" + (metrics.audio_dropped ?? 0) + " · " +
+      "Voice " + (metrics.voice_effect ?? "off");
+  } catch (error) {
+    showStatus("Status error: " + error.message);
+  } finally {
+    refreshInFlight = false;
+  }
 }
 
 async function startCamera() {
@@ -96,6 +116,7 @@ async function stopCamera() {
   for (const track of cameraStream.getTracks()) track.stop();
   ui.camera.srcObject = null;
   cameraStream = null;
+  trackingBridge.setEnabled(false);
   setTracking("idle");
 }
 
@@ -107,7 +128,9 @@ async function configureTracking() {
   }
 
   faceTracker?.close();
-  faceTracker = new FaceTracker({ modelPath: config.mediaPipeModelPath });
+  faceTracker = new FaceTracker({
+    modelPath: config.mediaPipeModelPath
+  });
   await faceTracker.init();
   trackingBridge.setEnabled(true);
   setTracking("MediaPipe ready");
@@ -124,7 +147,7 @@ async function configureAvatar() {
     await renderer.load(config.avatarModelPath);
     ui.model.textContent = "GLB avatar loaded";
   } catch (error) {
-    ui.model.textContent = `avatar load failed: ${error.message}`;
+    ui.model.textContent = "avatar load failed: " + error.message;
   }
 }
 
@@ -148,12 +171,14 @@ acting.subscribe(state => {
 });
 
 window.cari.native.onEvent(event => {
+  session.handleNativeEvent(event);
+
   if (event.type === "error") {
-    showStatus(`Native error: ${event.message}`);
+    showStatus("Native error: " + event.message);
   } else if (event.type === "log") {
     console.debug("[native]", event.message);
   } else if (event.type === "exit") {
-    showStatus(`Native engine exited (code ${event.code ?? "?"})`);
+    showStatus("Native engine exited (code " + (event.code ?? "?") + ")");
     refresh();
   } else if (event.ok === false) {
     showStatus(event.message || "Native command failed");
@@ -163,51 +188,55 @@ window.cari.native.onEvent(event => {
 });
 
 document.querySelector("#start").onclick = async () => {
-  const result = await controller.start();
+  const result = await session.start();
   showStatus(result.error || "Native engine started");
   await refresh();
 };
 
 document.querySelector("#stop").onclick = async () => {
-  await controller.stop();
+  await session.stop();
   await stopCamera();
   showStatus("Native engine stopped");
   await refresh();
 };
 
-document.querySelector("#capture").onclick = async () => {
-  const result = await controller.captureStart("window");
+document.querySelector("#capture-window").onclick = async () => {
+  const result = await session.captureStart("window");
+  showStatus(result.ok ? result.message : result.error);
+};
+
+document.querySelector("#capture-screen").onclick = async () => {
+  const result = await session.captureStart("screen");
+  showStatus(result.ok ? result.message : result.error);
+};
+
+document.querySelector("#capture-stop").onclick = async () => {
+  const result = await session.captureStop();
   showStatus(result.ok ? result.message : result.error);
 };
 
 document.querySelector("#record").onclick = async () => {
-  const result = await controller.outputStart("local-record");
+  const result = await session.outputStart("local-record");
   showStatus(result.ok ? result.message : result.error);
 };
 
 document.querySelector("#stream-start").onclick = async () => {
   const target = document.querySelector("#rtmp-target").value.trim();
-  if (!/^rtmps?:\/\//i.test(target)) {
-    showStatus("RTMP target must start with rtmp:// or rtmps://");
-    return;
-  }
-
-  const result = await controller.outputStart("rtmp", target);
+  const result = await session.outputStart("rtmp", target);
   showStatus(result.ok ? result.message : result.error);
 };
 
 document.querySelector("#stream-stop").onclick = async () => {
-  const result = await controller.outputStop();
+  const result = await session.outputStop();
   showStatus(result.ok ? result.message : result.error);
 };
-
 
 document.querySelector("#obs-connect").onclick = async () => {
   try {
     const result = await window.cari.native.obs.connect({});
-    showStatus(`OBS connected: ${result.obsWebSocketVersion || "ready"}`);
+    showStatus("OBS connected: " + (result.obsWebSocketVersion || "ready"));
   } catch (error) {
-    showStatus(`OBS connection failed: ${error.message}`);
+    showStatus("OBS connection failed: " + error.message);
   }
 };
 
@@ -216,7 +245,7 @@ document.querySelector("#obs-start").onclick = async () => {
     await window.cari.native.obs.startStream();
     showStatus("OBS stream started");
   } catch (error) {
-    showStatus(`OBS start failed: ${error.message}`);
+    showStatus("OBS start failed: " + error.message);
   }
 };
 
@@ -225,17 +254,17 @@ document.querySelector("#obs-stop").onclick = async () => {
     await window.cari.native.obs.stopStream();
     showStatus("OBS stream stopped");
   } catch (error) {
-    showStatus(`OBS stop failed: ${error.message}`);
+    showStatus("OBS stop failed: " + error.message);
   }
 };
 
 document.querySelector("#voice-off").onclick = async () => {
-  const result = await controller.send("voice.set", { effect: "off" });
+  const result = await session.setVoiceEffect("off");
   showStatus(result.ok ? result.message : result.error);
 };
 
 document.querySelector("#voice-anime").onclick = async () => {
-  const result = await controller.send("voice.set", { effect: "anime-bright" });
+  const result = await session.setVoiceEffect("anime-bright");
   showStatus(result.ok ? result.message : result.error);
 };
 
@@ -244,7 +273,7 @@ document.querySelector("#camera-start").onclick = async () => {
     await startCamera();
     if (!faceTracker) await configureTracking();
   } catch (error) {
-    showStatus(`Camera error: ${error.message}`);
+    showStatus("Camera error: " + error.message);
     setTracking("camera unavailable");
   }
 };
@@ -258,6 +287,6 @@ await configureAvatar();
 trackingLoop(performance.now());
 await refresh();
 setInterval(() => {
-  refresh().catch(error => showStatus(`Status error: ${error.message}`));
+  refresh().catch(error => showStatus("Status error: " + error.message));
 }, 1000);
 renderer.render();
