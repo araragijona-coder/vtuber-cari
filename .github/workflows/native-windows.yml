@@ -119,3 +119,6 @@ jobs:
 
       - name: Validate Electron shell JavaScript
         run: npm run check
+
+      - name: Run Electron shell contract tests
+        run: npm test
