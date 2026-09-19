@@ -6,6 +6,8 @@ const { spawnSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
 const files = [
   "runtime/studio-controller.js",
+  "runtime/session-manager.js",
+  "avatar/avatar-contract.js",
   "avatar/acting-bridge.js",
   "avatar/face-tracker.js",
   "avatar/face-tracking-bridge.js",
@@ -31,12 +33,15 @@ try {
 
     if (result.status !== 0) {
       process.stderr.write(
-        `ESM syntax error in ${relative}\n${result.stderr || result.stdout || ""}`
+        "ESM syntax error in " +
+        relative +
+        "\n" +
+        (result.stderr || result.stdout || "")
       );
       process.exit(result.status || 1);
     }
 
-    process.stdout.write(`ESM syntax OK: ${relative}\n`);
+    process.stdout.write("ESM syntax OK: " + relative + "\n");
   }
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });
