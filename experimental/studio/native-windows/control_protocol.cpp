@@ -40,6 +40,36 @@ bool has(const std::string& line, const char* token) {
     return line.find(token) != std::string::npos;
 }
 
+std::string read_string_field(const std::string& compact, const char* field) {
+    const std::string prefix = std::string("\"") + field + "\":\"";
+    const auto begin = compact.find(prefix);
+    if (begin == std::string::npos) {
+        return {};
+    }
+
+    const auto value_begin = begin + prefix.size();
+    std::string value;
+    value.reserve(32);
+    bool escaped = false;
+    for (std::size_t index = value_begin; index < compact.size(); ++index) {
+        const char c = compact[index];
+        if (escaped) {
+            value.push_back(c);
+            escaped = false;
+            continue;
+        }
+        if (c == '\\') {
+            escaped = true;
+            continue;
+        }
+        if (c == '"') {
+            return value;
+        }
+        value.push_back(c);
+    }
+    return {};
+}
+
 } // namespace
 
 ControlCommand parse_control_command(const std::string& line) noexcept {
@@ -56,10 +86,14 @@ ControlCommand parse_control_command(const std::string& line) noexcept {
 
     if (has(compact, "\"source\":\"window\"")) command.source = "window";
     if (has(compact, "\"profile\":\"local-record\"")) command.profile = "local-record";
+    command.request_id = read_string_field(compact, "id");
     return command;
 }
 
-std::string control_response(bool ok, const std::string& message) {
+std::string control_response(
+    bool ok,
+    const std::string& message,
+    const std::string& request_id) {
     std::string escaped;
     escaped.reserve(message.size());
     for (char c : message) {
@@ -67,8 +101,11 @@ std::string control_response(bool ok, const std::string& message) {
         if (c == '\n') { escaped += "\\n"; continue; }
         escaped.push_back(c);
     }
+    const std::string id_fragment = request_id.empty()
+        ? std::string()
+        : std::string(",\"id\":\"") + request_id + "\"";
     return std::string("{\"ok\":") + (ok ? "true" : "false") +
-           ",\"message\":\"" + escaped + "\"}\n";
+           id_fragment + ",\"message\":\"" + escaped + "\"}\n";
 }
 
 } // namespace cari::native
