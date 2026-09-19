@@ -116,11 +116,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: experimental/studio/electron-shell/package.json
-
-      - name: Install Electron shell dependencies
-        run: npm install --no-package-lock
 
       - name: Validate Electron shell JavaScript
         run: npm run check
