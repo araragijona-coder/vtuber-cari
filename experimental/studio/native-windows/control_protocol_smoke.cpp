@@ -39,10 +39,10 @@ int main() {
 
     const auto escaped = cari::native::control_response(
         true, "quote: \" slash: \\", "id-\\42");
-    assert(escaped.find("\\n") != std::string::npos);
+    assert(!escaped.empty() && escaped.back() == '\n');
     assert(escaped.find("\\\"") != std::string::npos);
     assert(escaped.find("\\\\\\\\") != std::string::npos);
-    assert(!escaped.empty() && escaped.back() == '\n');
+    assert(escaped.size() >= 2 && escaped[escaped.size() - 2] == '}' && escaped.back() == '\n');
 
     std::cout << "control protocol smoke: OK\n";
     return 0;
