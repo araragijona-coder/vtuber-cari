@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld("cari", {
     send: command => ipcRenderer.invoke("native:send", command),
     stop: () => ipcRenderer.invoke("native:stop"),
     status: () => ipcRenderer.invoke("native:status"),
+    config: () => ipcRenderer.invoke("app:config"),
     onEvent: callback => {
       const listener = (_, payload) => callback(payload);
       ipcRenderer.on("native:event", listener);
