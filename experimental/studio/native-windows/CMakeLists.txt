@@ -14,6 +14,7 @@ add_executable(cari-studio-native WIN32
     audio_probe.cpp
     audio_core_bridge.cpp
     audio_timeline_mixer.cpp
+    voice_effects.cpp
     camera_sources.cpp
     capture_engine.cpp
     compositor_bridge.cpp
@@ -192,7 +193,13 @@ add_executable(cari-audio-core-bridge-smoke
     audio_core_bridge_smoke.cpp
     audio_core_bridge.cpp
     audio_timeline_mixer.cpp
+    voice_effects.cpp
     wasapi_capture.cpp
+)
+
+add_executable(cari-voice-effects-smoke
+    voice_effects_smoke.cpp
+    voice_effects.cpp
 )
 
 target_include_directories(cari-audio-core-bridge-smoke PRIVATE
@@ -210,6 +217,17 @@ target_link_libraries(cari-audio-core-bridge-smoke PRIVATE
     user32
     ole32
     avrt
+)
+
+target_compile_definitions(cari-voice-effects-smoke PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+target_link_libraries(cari-voice-effects-smoke PRIVATE
+    user32
 )
 
 
@@ -283,6 +301,7 @@ add_test(NAME cari-native-media-output-bridge-smoke COMMAND cari-native-media-ou
 add_test(NAME cari-frame-bridge-smoke COMMAND cari-frame-bridge-smoke)
 add_test(NAME cari-audio-timeline-mixer-smoke COMMAND cari-audio-timeline-mixer-smoke)
 add_test(NAME cari-audio-core-bridge-smoke COMMAND cari-audio-core-bridge-smoke)
+add_test(NAME cari-voice-effects-smoke COMMAND cari-voice-effects-smoke)
 add_test(NAME cari-raw-pipe-smoke COMMAND cari-raw-pipe-smoke)
 add_test(NAME cari-av-sync-smoke COMMAND cari-av-sync-smoke)
 add_test(NAME cari-media-clock-smoke COMMAND cari-media-clock-smoke)
