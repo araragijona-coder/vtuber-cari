@@ -90,22 +90,31 @@ ControlCommand parse_control_command(const std::string& line) noexcept {
     return command;
 }
 
+std::string escape_json_string(const std::string& value) {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (char c : value) {
+        switch (c) {
+        case '\\\\': escaped += "\\\\\\\\"; break;
+        case '"': escaped += "\\\""; break;
+        case '\\n': escaped += "\\\\n"; break;
+        case '\\r': escaped += "\\\\r"; break;
+        case '\\t': escaped += "\\\\t"; break;
+        default: escaped.push_back(c); break;
+        }
+    }
+    return escaped;
+}
+
 std::string control_response(
     bool ok,
     const std::string& message,
     const std::string& request_id) {
-    std::string escaped;
-    escaped.reserve(message.size());
-    for (char c : message) {
-        if (c == '\\' || c == '"') escaped.push_back('\\');
-        if (c == '\n') { escaped += "\\n"; continue; }
-        escaped.push_back(c);
-    }
     const std::string id_fragment = request_id.empty()
         ? std::string()
-        : std::string(",\"id\":\"") + request_id + "\"";
+        : std::string(",\"id\":\"") + escape_json_string(request_id) + "\"";
     return std::string("{\"ok\":") + (ok ? "true" : "false") +
-           id_fragment + ",\"message\":\"" + escaped + "\"}\n";
-}
+           id_fragment + ",\"message\":\"" +
+           escape_json_string(message) + "\"}\n";
 
 } // namespace cari::native
