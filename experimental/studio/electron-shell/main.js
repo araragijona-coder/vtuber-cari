@@ -1,12 +1,10 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
-const { spawn } = require("node:child_process");
-const { EventEmitter } = require("node:events");
+const { NativeEngine } = require("./runtime/native-engine");
 
-const engine = new EventEmitter();
-let nativeProcess = null;
-let nativeBuffer = "";
+const engineEvents = ["message", "log", "error", "exit"];
+const subscribers = new Set();
 
 function resolveNativeExecutable() {
   const configured = process.env.CARI_NATIVE_EXECUTABLE;
@@ -17,84 +15,27 @@ function resolveNativeExecutable() {
     path.join(__dirname, "..", "native", "cari-studio-native.exe"),
     path.join(__dirname, "native", "cari-studio-native.exe")
   ];
+
   return candidates.find(candidate => fs.existsSync(candidate)) || null;
 }
 
-function emitNativeLine(line) {
-  const trimmed = line.trim();
-  if (!trimmed) return;
-  try {
-    engine.emit("message", JSON.parse(trimmed));
-  } catch {
-    engine.emit("log", trimmed);
+const engine = new NativeEngine({
+  executableResolver: resolveNativeExecutable
+});
+
+function publish(payload) {
+  for (const webContents of subscribers) {
+    if (!webContents.isDestroyed()) webContents.send("native:event", payload);
   }
 }
 
-function attachNativeStream(stream, eventName) {
-  stream.setEncoding("utf8");
-  stream.on("data", chunk => {
-    nativeBuffer += chunk;
-    let newline;
-    while ((newline = nativeBuffer.indexOf("\n")) >= 0) {
-      const line = nativeBuffer.slice(0, newline).replace(/\r$/, "");
-      nativeBuffer = nativeBuffer.slice(newline + 1);
-      emitNativeLine(line);
-    }
+for (const eventName of engineEvents) {
+  engine.on(eventName, payload => {
+    if (eventName === "message") publish(payload);
+    else if (eventName === "error") publish({ type: "error", message: payload.message });
+    else if (eventName === "log") publish({ type: "log", message: payload });
+    else if (eventName === "exit") publish({ type: "exit", ...payload });
   });
-  stream.on("error", error => engine.emit(eventName, error.message));
-}
-
-function startNativeEngine() {
-  if (nativeProcess) return { running: true, pid: nativeProcess.pid };
-
-  const exe = resolveNativeExecutable();
-  if (!exe) {
-    return {
-      running: false,
-      error: "Cari native engine not found. Set CARI_NATIVE_EXECUTABLE or package cari-studio-native.exe."
-    };
-  }
-
-  nativeBuffer = "";
-  nativeProcess = spawn(exe, [], {
-    cwd: path.dirname(exe),
-    windowsHide: true,
-    stdio: ["pipe", "pipe", "pipe"]
-  });
-
-  attachNativeStream(nativeProcess.stdout, "error");
-  attachNativeStream(nativeProcess.stderr, "error");
-
-  nativeProcess.on("exit", (code, signal) => {
-    engine.emit("exit", { code, signal });
-    nativeProcess = null;
-    nativeBuffer = "";
-  });
-
-  nativeProcess.on("error", error => {
-    engine.emit("error", error.message);
-    nativeProcess = null;
-  });
-
-  return { running: true, pid: nativeProcess.pid };
-}
-
-function sendNative(command) {
-  if (!nativeProcess || !nativeProcess.stdin.writable) {
-    return { ok: false, error: "native engine is not running" };
-  }
-  try {
-    nativeProcess.stdin.write(JSON.stringify(command) + "\n");
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: error.message };
-  }
-}
-
-function stopNative() {
-  if (!nativeProcess) return;
-  nativeProcess.kill();
-  nativeProcess = null;
 }
 
 function createWindow() {
@@ -113,29 +54,16 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
-
-  const forward = payload => {
-    if (!win.isDestroyed()) win.webContents.send("native:event", payload);
-  };
-  engine.on("message", forward);
-  engine.on("log", message => forward({ type: "log", message }));
-  engine.on("error", message => forward({ type: "error", message }));
-  engine.on("exit", payload => forward({ type: "exit", ...payload }));
-
-  win.on("closed", () => {
-    engine.removeListener("message", forward);
-  });
+  subscribers.add(win.webContents);
+  win.on("closed", () => subscribers.delete(win.webContents));
 }
 
-ipcMain.handle("native:start", () => startNativeEngine());
-ipcMain.handle("native:send", (_, command) => sendNative(command));
-ipcMain.handle("native:stop", () => {
-  stopNative();
-  return { ok: true };
-});
+ipcMain.handle("native:start", () => engine.start());
+ipcMain.handle("native:send", (_, command) => engine.send(command));
+ipcMain.handle("native:stop", () => engine.stop());
 ipcMain.handle("native:status", () => ({
-  running: !!nativeProcess,
-  pid: nativeProcess?.pid || null
+  running: engine.running,
+  pid: engine.pid
 }));
 
 app.whenReady().then(() => {
@@ -145,7 +73,7 @@ app.whenReady().then(() => {
   });
 });
 
-app.on("window-all-closed", () => {
-  stopNative();
+app.on("window-all-closed", async () => {
+  await engine.stop();
   if (process.platform !== "darwin") app.quit();
 });
