@@ -201,7 +201,13 @@ document.querySelector("#stop").onclick = async () => {
 };
 
 document.querySelector("#capture-window").onclick = async () => {
-  const result = await session.captureStart("window");
+  const input = document.querySelector("#window-index");
+  const oneBased = Number.parseInt(input.value, 10);
+  if (!Number.isInteger(oneBased) || oneBased < 1) {
+    showStatus("Window number must be at least 1");
+    return;
+  }
+  const result = await session.captureStart("window", oneBased - 1);
   showStatus(result.ok ? result.message : result.error);
 };
 
