@@ -164,6 +164,20 @@ winrt::Windows::Graphics::Capture::GraphicsCaptureItem create_item_for_window(HW
     return item;
 }
 
+winrt::Windows::Graphics::Capture::GraphicsCaptureItem create_item_for_monitor(
+    HMONITOR monitor) {
+    auto factory = winrt::get_activation_factory<
+        winrt::Windows::Graphics::Capture::GraphicsCaptureItem,
+        IGraphicsCaptureItemInterop>();
+
+    winrt::Windows::Graphics::Capture::GraphicsCaptureItem item{nullptr};
+    winrt::check_hresult(factory->CreateForMonitor(
+        monitor,
+        winrt::guid_of<winrt::Windows::Graphics::Capture::GraphicsCaptureItem>(),
+        winrt::put_abi(item)));
+    return item;
+}
+
 bool is_device_loss(const HRESULT hr) {
     return hr == DXGI_ERROR_DEVICE_REMOVED ||
            hr == DXGI_ERROR_DEVICE_RESET ||
@@ -202,16 +216,59 @@ bool CaptureEngine::start_window(HWND target_window) {
     stop();
     last_start_error_.clear();
 
+    if (!target_window || !IsWindow(target_window)) {
+        last_start_error_ = L"Capture target HWND is invalid";
+        return false;
+    }
+
+    try {
+        return start_capture_item(create_item_for_window(target_window));
+    } catch (const winrt::hresult_error& error) {
+        last_start_error_ =
+            L"Capture window item creation failed: HRESULT " +
+            std::to_wstring(static_cast<unsigned long>(error.code().value));
+        return false;
+    } catch (const std::exception& error) {
+        last_start_error_ =
+            L"Capture window item creation failed: " + narrow_error(error.what());
+        return false;
+    }
+}
+
+bool CaptureEngine::start_display(HMONITOR monitor) {
+    stop();
+    last_start_error_.clear();
+
+    if (!monitor) {
+        last_start_error_ = L"Capture monitor handle is invalid";
+        return false;
+    }
+
+    try {
+        return start_capture_item(create_item_for_monitor(monitor));
+    } catch (const winrt::hresult_error& error) {
+        last_start_error_ =
+            L"Capture monitor item creation failed: HRESULT " +
+            std::to_wstring(static_cast<unsigned long>(error.code().value));
+        return false;
+    } catch (const std::exception& error) {
+        last_start_error_ =
+            L"Capture monitor item creation failed: " + narrow_error(error.what());
+        return false;
+    }
+}
+
+bool CaptureEngine::start_capture_item(
+    winrt::Windows::Graphics::Capture::GraphicsCaptureItem item) {
+    if (!item) {
+        last_start_error_ = L"Graphics capture item is invalid";
+        return false;
+    }
+
     auto impl = std::make_shared<Impl>();
     {
         std::lock_guard lock(callback_mutex_);
         impl->callback = callback_;
-    }
-
-    if (!target_window || !IsWindow(target_window)) {
-        last_start_error_ = L"Capture target HWND is invalid";
-        impl_ = impl;
-        return false;
     }
 
     try {
@@ -228,7 +285,6 @@ bool CaptureEngine::start_window(HWND target_window) {
             return false;
         }
 
-        auto item = create_item_for_window(target_window);
         const auto size = item.Size();
         if (size.Width <= 0 || size.Height <= 0) {
             impl->set_error(L"Capture target returned an invalid size");
@@ -272,8 +328,6 @@ bool CaptureEngine::start_window(HWND target_window) {
                     }
 
                     if (previous_width != content.Width || previous_height != content.Height) {
-                        // Recreate discards queued frames from the old surface size, as
-                        // recommended by Microsoft for resize/device changes.
                         state->frame_pool.Recreate(
                             state->winrt_device,
                             kPixelFormat,
@@ -385,7 +439,6 @@ void CaptureEngine::stop() {
         state->d3d_context.Reset();
         state->d3d_device.Reset();
     } catch (...) {
-        // Shutdown must remain non-throwing.
     }
 }
 
