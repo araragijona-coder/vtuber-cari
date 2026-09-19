@@ -55,6 +55,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] D3D11 device.
 - [x] Windows Graphics Capture.
 - [x] Captura de pantalla primaria con `CreateForMonitor`.
+- [x] Selección explícita de ventana por índice en el protocolo nativo.
 - [x] Free-threaded frame callback.
 - [x] Window enumeration.
 - [x] WASAPI foundation.
