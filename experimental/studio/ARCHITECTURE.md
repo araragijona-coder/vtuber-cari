@@ -33,7 +33,7 @@ Native Windows Engine (C++)
   RawPipe
   FFmpeg A/V output
         │
-        ├── local recording
+        ├── local recording (graceful EOF/flush on stop)
         └── direct RTMP/RTMPS
 ```
 
@@ -122,6 +122,7 @@ Por este motivo:
 
 - la ruta A/V sigue siendo experimental;
 - el compositor software sigue siendo una etapa de referencia/diagnóstico;
+- el cierre ordenado del output intenta finalizar FFmpeg por EOF antes de usar terminación forzada;
 - la validación de sincronización A/V real es un gate antes de promover esta ruta.
 
 ## Assets locales
