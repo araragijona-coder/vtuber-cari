@@ -174,4 +174,9 @@ std::wstring AudioCoreBridge::last_error() const {
     return last_error_;
 }
 
+VoiceEffectConfig AudioCoreBridge::voice_effect() const noexcept {
+    std::lock_guard lock(mixer_mutex_);
+    return microphone_effect_.config();
+}
+
 } // namespace cari::native
