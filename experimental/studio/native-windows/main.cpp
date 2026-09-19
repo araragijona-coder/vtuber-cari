@@ -191,7 +191,10 @@ void PollMediaGraph() {
     }
 }
 
-bool StartLocalRecording(HWND hwnd) {
+bool StartOutput(
+    HWND hwnd,
+    const std::string& output_profile,
+    const std::string& target) {
     bool started_capture = false;
     bool started_audio = false;
 
@@ -212,10 +215,26 @@ bool StartLocalRecording(HWND hwnd) {
         started_audio = true;
     }
 
+    const bool streaming = output_profile == "rtmp";
+    if (output_profile != "local-record" && !streaming) {
+        if (started_audio) g_audio_bridge.stop();
+        if (started_capture) g_capture.stop();
+        return false;
+    }
+
+    const std::string resolved_target =
+        target.empty()
+            ? (streaming
+                ? std::string()
+                : std::string("cari-capture.mkv"))
+            : target;
+
     cari::studio::core::OutputProfile profile{
-        .id = "local-record",
-        .kind = cari::studio::core::OutputKind::file,
-        .target = "cari-capture.mkv",
+        .id = output_profile,
+        .kind = streaming
+            ? cari::studio::core::OutputKind::rtmp
+            : cari::studio::core::OutputKind::file,
+        .target = resolved_target,
         .width = static_cast<std::uint32_t>(g_capture.stats().width),
         .height = static_cast<std::uint32_t>(g_capture.stats().height),
         .fps = 30,
@@ -224,15 +243,24 @@ bool StartLocalRecording(HWND hwnd) {
         .video_codec = "libx264",
         .audio_codec = "aac",
     };
+
+    if (streaming &&
+        profile.target.rfind("rtmp://", 0) != 0 &&
+        profile.target.rfind("rtmps://", 0) != 0) {
+        if (started_audio) g_audio_bridge.stop();
+        if (started_capture) g_capture.stop();
+        return false;
+    }
+
     if (!g_media_graph.start(profile, 48000, 2)) {
         if (started_audio) g_audio_bridge.stop();
         if (started_capture) g_capture.stop();
         return false;
     }
+
     g_media_enabled.store(true, std::memory_order_relaxed);
     return true;
 }
-
 std::string HandleControlCommand(const cari::native::ControlCommand& command, HWND hwnd) {
     switch (command.type) {
     case cari::native::ControlCommandType::status:
@@ -267,12 +295,12 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "audio=stopped", command.request_id);
     case cari::native::ControlCommandType::output_start:
-        if (command.profile != "local-record")
+        if (command.profile != "local-record" && command.profile != "rtmp")
             return cari::native::control_response(
                 false, "unsupported output profile", command.request_id);
         if (g_media_enabled.load(std::memory_order_relaxed))
             return cari::native::control_response(true, "output=running", command.request_id);
-        if (!StartLocalRecording(hwnd))
+        if (!StartOutput(hwnd, command.profile, command.target))
             return cari::native::control_response(false, "output=start-failed", command.request_id);
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "output=started", command.request_id);
@@ -363,7 +391,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
                 g_media_graph.stop();
                 g_media_enabled.store(false, std::memory_order_relaxed);
             } else {
-                StartLocalRecording(hwnd);
+                StartOutput(hwnd, "local-record", "");
             }
             RefreshStatus(hwnd);
             return 0;
