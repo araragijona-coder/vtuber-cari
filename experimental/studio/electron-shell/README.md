@@ -76,6 +76,7 @@ Supported commands:
 {"type":"audio.start","id":"..."}
 {"type":"audio.stop","id":"..."}
 {"type":"output.start","profile":"local-record","id":"..."}
+{"type":"output.start","profile":"rtmp","target":"rtmps://example/live/key","id":"..."}
 {"type":"output.stop","id":"..."}
 
 The `status` response also exposes capture FPS/frame count, audio packet/sample counters, output submission/drop counters and raw-pipe byte/drop counters so the UI can display real runtime metrics without scraping the diagnostic window.
