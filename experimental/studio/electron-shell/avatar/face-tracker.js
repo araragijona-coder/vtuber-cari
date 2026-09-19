@@ -2,7 +2,7 @@ import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
 export class FaceTracker {
   constructor({
-    wasmRoot = new URL("../../node_modules/@mediapipe/tasks-vision/wasm", import.meta.url).href,
+    wasmRoot = new URL("../node_modules/@mediapipe/tasks-vision/wasm", import.meta.url).href,
     modelPath
   } = {}) {
     this.wasmRoot = wasmRoot;
