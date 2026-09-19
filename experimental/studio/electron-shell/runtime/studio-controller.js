@@ -35,8 +35,8 @@ export class StudioController {
     return this.send("audio.stop");
   }
 
-  outputStart(profile = "local-record") {
-    return this.send("output.start", { profile });
+  outputStart(profile = "local-record", target = "") {
+    return this.send("output.start", { profile, target });
   }
 
   outputStop() {
