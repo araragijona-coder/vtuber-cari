@@ -75,6 +75,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] CMake integration.
 - [x] Native smoke test for process execution.
 - [x] Process stderr capture and draining.
+- [x] Graceful FFmpeg input close before bounded forced termination.
 - [x] Supervised FFmpeg process boundary: validation, launch, poll, stderr and exit state.
 - [x] CI smoke for FFmpeg supervisor failure/validation path.
 - [x] Native FFmpeg A/V output boundary with independent video/audio named pipes.
@@ -155,6 +156,9 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Release smoke test on target PC.
 
 ## Evidencia actual
+
+- `FfmpegAvOutput::stop()` cierra primero los named pipes para permitir EOF/flush del muxer y solo fuerza la terminación si FFmpeg no sale dentro de un plazo acotado.
+- `PollMediaGraph()` ya desactiva el estado lógico de salida cuando FFmpeg termina o el polling falla, evitando reportar un output fantasma.
 
 - El head de trabajo actual de esta auditoría es **46c8e112b0a475db46b9fce80e73af90e44bbf89** en `fix/native-windows-foundation`.
 - Se corrigió previamente el timestamp WASAPI para usar el `QPCPosition` ya convertido por Windows a 100 ns. Microsoft documenta explícitamente esa unidad; no debe volver a tratarse como ticks QPC crudos. citeturn0search0
