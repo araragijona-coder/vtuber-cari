@@ -5,45 +5,161 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Cari Studio</title>
   <style>
-    html,body { margin:0; width:100%; height:100%; background:#111318; color:#f3f4f6; font:14px system-ui,sans-serif; }
-    body { display:grid; grid-template-columns:260px 1fr 300px; grid-template-rows:1fr 46px; overflow:hidden; }
-    aside { padding:16px; background:#171a21; border-right:1px solid #292e39; }
-    #right { border-left:1px solid #292e39; border-right:0; }
-    main { position:relative; display:grid; place-items:center; min-width:0; }
-    canvas { width:min(80vw,900px); height:min(80vh,760px); background:#08090c; border:1px solid #292e39; border-radius:8px; }
-    button,input { width:100%; box-sizing:border-box; margin:5px 0; padding:9px; border-radius:6px; border:1px solid #343a46; background:#202530; color:#fff; }
-    button:hover { background:#2a3040; cursor:pointer; }
-    #status { grid-column:1 / 4; padding:13px 18px; background:#0d0f13; border-top:1px solid #292e39; }
-    .metric { margin:12px 0; padding:10px; background:#1d212a; border-radius:7px; }
-    small { color:#a9b0bd; }
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #111318;
+      color: #f3f4f6;
+      font: 14px system-ui, sans-serif;
+    }
+    body {
+      display: grid;
+      grid-template-columns: 270px minmax(420px, 1fr) 320px;
+      grid-template-rows: minmax(0, 1fr) 48px;
+      overflow: hidden;
+    }
+    aside {
+      min-height: 0;
+      overflow: auto;
+      padding: 16px;
+      background: #171a21;
+      border-right: 1px solid #292e39;
+    }
+    #right {
+      border-right: 0;
+      border-left: 1px solid #292e39;
+    }
+    main {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) 180px;
+      gap: 10px;
+      padding: 12px;
+      background: #0d0f13;
+    }
+    #avatar, #camera {
+      width: 100%;
+      min-height: 0;
+      height: 100%;
+      object-fit: contain;
+      background: #08090c;
+      border: 1px solid #292e39;
+      border-radius: 8px;
+    }
+    #camera {
+      object-fit: cover;
+    }
+    button, input {
+      width: 100%;
+      box-sizing: border-box;
+      margin: 5px 0;
+      padding: 9px;
+      border-radius: 6px;
+      border: 1px solid #343a46;
+      background: #202530;
+      color: #fff;
+    }
+    button:hover {
+      background: #2a3040;
+      cursor: pointer;
+    }
+    button:focus-visible, input:focus-visible {
+      outline: 2px solid #7aa2ff;
+      outline-offset: 1px;
+    }
+    .metric {
+      margin: 12px 0;
+      padding: 10px;
+      background: #1d212a;
+      border-radius: 7px;
+      overflow-wrap: anywhere;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    small { color: #a9b0bd; }
+    #status {
+      grid-column: 1 / 4;
+      padding: 13px 18px;
+      background: #0d0f13;
+      border-top: 1px solid #292e39;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    h2, h3 { margin-top: 0; }
   </style>
 </head>
 <body>
   <aside>
     <h2>Cari Studio</h2>
+
     <button id="start">Start Native Engine</button>
     <button id="stop">Stop Native Engine</button>
+
+    <h3>Capture / Output</h3>
     <button id="capture">Start Window Capture</button>
     <button id="record">Start Local Record</button>
-    <div class="metric"><small>Engine</small><div id="engine">offline</div></div>
+
+    <h3>Face Tracking</h3>
+    <div class="row">
+      <button id="camera-start">Camera On</button>
+      <button id="camera-stop">Camera Off</button>
+    </div>
+
+    <div class="metric">
+      <small>Engine</small>
+      <div id="engine">offline</div>
+    </div>
   </aside>
+
   <main>
-    <canvas id="avatar"></canvas>
+    <canvas id="avatar" aria-label="VTuber avatar renderer"></canvas>
+    <video id="camera" autoplay muted playsinline aria-label="Local camera preview"></video>
   </main>
+
   <aside id="right">
     <h3>Avatar</h3>
     <button id="neutral">Neutral</button>
     <button id="happy">Happy</button>
     <button id="angry">Angry</button>
-    <div class="metric"><small>Render</small><div id="render">ready</div></div>
-    <div class="metric"><small>Tracking</small><div id="tracking">idle</div></div>
+
+    <div class="metric">
+      <small>Render</small>
+      <div id="render">ready</div>
+    </div>
+
+    <div class="metric">
+      <small>Tracking</small>
+      <div id="tracking">idle</div>
+    </div>
+
+    <div class="metric">
+      <small>Asset</small>
+      <div id="model">placeholder avatar</div>
+    </div>
+
+    <div class="metric">
+      <small>Runtime contract</small>
+      <div>Local Electron → stdin/stdout JSON → native Windows engine</div>
+    </div>
   </aside>
-  <div id="status">Ready — local-only control plane.</div>
+
+  <div id="status">Ready — local-first control plane.</div>
+
   <script type="importmap">
   {
     "imports": {
       "three": "../node_modules/three/build/three.module.js",
-      "three/addons/": "../node_modules/three/examples/jsm/"
+      "three/addons/": "../node_modules/three/examples/jsm/",
+      "@mediapipe/tasks-vision": "../node_modules/@mediapipe/tasks-vision/dist/tasks-vision.mjs"
     }
   }
   </script>
