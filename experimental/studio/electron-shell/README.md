@@ -77,6 +77,8 @@ Supported commands:
 {"type":"audio.stop","id":"..."}
 {"type":"output.start","profile":"local-record","id":"..."}
 {"type":"output.stop","id":"..."}
+
+The `status` response also exposes capture FPS/frame count, audio packet/sample counters, output submission/drop counters and raw-pipe byte/drop counters so the UI can display real runtime metrics without scraping the diagnostic window.
 ```
 
 The parser is intentionally tiny and deterministic; it is not a general JSON implementation. The protocol remains experimental until a full schema validator is justified and tested.
