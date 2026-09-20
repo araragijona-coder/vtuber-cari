@@ -202,15 +202,15 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - El smoke de `AudioTimelineMixer` verifica mezcla de micrófono + sistema, avance monotónico de PTS, resampling de una pista de 44.1 kHz y rechazo de paquetes malformados.
 - El mezclador todavía no se considera sincronización de producción: dos dispositivos físicos pueden tener relojes ligeramente distintos. La corrección de drift requiere observar los relojes de los dispositivos y ajustar/resamplear de forma continua; `IAudioClock::GetPosition` queda como referencia para esa etapa. citeturn0search2
 - `FfmpegAvOutput` sigue siendo la frontera A/V nativa: dos named pipes independientes y dos entradas raw. Los formatos raw de FFmpeg no transportan timestamps por sí mismos, por lo que la continuidad temporal debe mantenerse antes de escribir al pipe. citeturn0search8
-- La captura BGRA y el audio mezclado ya atraviesan `MediaGraphController` → `NativeMediaOutputBridge` → `FfmpegAvOutput`. El gate restante es demostrar funcionamiento sostenido con FFmpeg real, A/V sincronizado y hardware Windows.
-- CI no se marca como verde en este punto: el commit `4384d72e053a51fcf93114496bc5e85a29d3be0f` no mostró ejecuciones asociadas al consultar GitHub. Las nuevas modificaciones de esta continuación necesitan una ejecución Windows nueva antes de declararse verificadas.
+- La captura BGRA, el compositor D3D11 experimental y el audio mezclado atraviesan `MediaGraphController` → `NativeMediaOutputBridge` → `FfmpegAvOutput`. El gate restante es demostrar funcionamiento sostenido con FFmpeg real, A/V sincronizado y hardware Windows.
+- CI no se marca como verde en este punto: los runs recientes siguen fallando antes de registrar steps/logs observables. La bitácora canónica conserva los run IDs y evita atribuir la falla a una línea de código.
 - La validación final de cámara, GPU, juegos, audio, rendimiento, FFmpeg real, RTMP y reconexión continúa requiriendo una máquina Windows objetivo; CI no sustituye esa prueba.
 
 ## Estimación de avance
 
 **Estimación global de ingeniería: ~62%.**
 
-El incremento es pequeño porque el mezclador temporal cierra una pieza importante del diseño de audio, pero todavía no conecta productores reales al output. El mayor bloque pendiente continúa siendo la unión sostenida de captura BGRA + audio mezclado → FFmpeg, encoder/mux real, RTMP/reconexión y validación en hardware.
+El 62% refleja que la ruta principal y varios componentes experimentales ya están implementados, mientras permanecen abiertos los gates de validación Windows/hardware, PTS extremo a extremo, compositor de producción, cámara, drift, RTMP sostenido y distribución.
 
 ## Regla de cierre
 
@@ -224,18 +224,9 @@ No convertir **"una frase funciona"** en **"la personalidad está definida"**.
 
 Cada pendiente debe indicar qué evidencia falta antes de pasar a `[x]`.
 
-## Bitácora
+## Bitácora y continuidad
 
-La fuente canónica de continuidad es `experimental/studio/BITACORA.md`.
-
-## Continuidad
-
-Fuente canónica de trabajo: `experimental/studio/BITACORA.md`. Consultarla antes de abrir un componente o prueba ya registrada.
-
-## Continuidad canónica
-
-Consultar `experimental/studio/BITACORA.md` antes de reabrir una tarea. El HEAD canónico vigente está en la entrada más reciente de `BITACORA.md`.
-
+La fuente canónica de continuidad y anti-repetición es `experimental/studio/BITACORA.md`. Consultarla antes de reabrir una tarea, prueba o componente.
 ## Evidencia adicional — 2026-09-20
 - P1 dejó de ser solo diagnóstico: el callback nativo puede componer captura + placeholder GPU y enviar el frame final BGRA al MediaGraphController.
 - El readback CPU se mantiene explícitamente como limitación de rendimiento y no se marca como producción.
