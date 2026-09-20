@@ -252,7 +252,7 @@ No se modifica el porcentaje de avance por este incidente. El código E2E ya est
 
 ## Checkpoint canónico — 20/09/2026
 
-**HEAD actual del PR:** 58a00459cc9b33606551ba2696880545f9d45d11  
+**HEAD actual del PR:** 42d11e9891682abc627cb557422aef5b74fc166e
 **Avance global vigente:** **62%**  
 **Estado:** experimental / no listo para producción
 
