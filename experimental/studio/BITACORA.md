@@ -9,6 +9,45 @@
 > - **PENDIENTE** = requiere implementación o evidencia.
 > - **NO REPETIR** = solo reabrir ante regresión, nueva evidencia, cambio de requisito, dependencia o restricción legal.
 
+## Entrada 2026-09-20 — resiliencia de output y continuidad
+
+### Hecho en esta iteración
+- Se auditó el estado real del PR antes de modificar código; se conservó la arquitectura existente.
+- Se confirmó OutputRetryPolicy para backoff exponencial acotado.
+- Se confirmó OutputFailureCategory para distinguir red, encoder, input, mux, permisos y desconocido.
+- El retry automático quedó restringido a RTMP + fallos clasificados como red.
+- Se incorporaron output_retry_pending, output_retry_attempts y output_failure_category al estado nativo/UI.
+- stderr de FFmpeg permanece limitado a 256 KiB.
+- El media graph mantiene un presupuesto de 8 eventos A/V por polling.
+- Se corrigió el serializado del campo output para no generar un campo vacío.
+- Se afinó la clasificación de fallos para no tratar cualquier I/O error como fallo de red.
+- Se añadieron smoke targets CMake para retry y diagnostics.
+- El workflow Windows incluye FFmpeg instalado explícitamente solo para CI y registra smoke de named-pipe E2E, retry y diagnostics.
+- Esta BITACORA.md queda como fuente canónica de continuidad y no-repetición.
+
+### Errores detectados y resueltos
+- Un intento de creación de BITACORA.md devolvió HTTP 422 porque el archivo ya existía; se recuperó y se actualizó en lugar de duplicarlo.
+- Algunos intentos de parchear main.cpp mediante anchors no coincidieron; no se escribió código incompleto.
+- Un intento de generar CMake mediante template JavaScript provocó una interpolación accidental de ${CMAKE_CURRENT_SOURCE_DIR}; la edición se descartó y se rehizo correctamente.
+- Una primera forma de workflow_dispatch era estructuralmente incorrecta; quedó corregida.
+- Una prueba inicial con dos FIFOs expiró por el handshake/bloqueo; no se tomó como fallo del encoder.
+- La prueba FFmpeg sintética con archivos raw pasó y queda como evidencia separada de la prueba Windows named-pipe.
+- Los runs de GitHub Actions continúan terminando antes de registrar steps; no se atribuye ese fallo a una línea de código sin logs.
+
+### Evidencia
+- Smoke C++20 estricto: MediaClock, RealtimePacer, MediaInterleaver, retry y diagnostics.
+- FFmpeg sintético 7.1.5: BGRA raw + PCM float32 -> H.264/AAC -> Matroska.
+- Workflow Windows configurado para ejecutar CMake/CTest y probar named pipes con FFmpeg instalado por CI.
+- Validación Windows real todavía pendiente.
+
+### NO REPETIR
+- No crear un segundo retry/backoff.
+- No crear una segunda clasificación de errores.
+- No reabrir el scheduler/interleaver sin evidencia nueva.
+- No volver a repetir la prueba FFmpeg de archivos raw como si validara named pipes Windows.
+- No cambiar el workflow por especulación sobre el runner; primero obtener una ejecución con steps/logs.
+- No declarar reconexión RTMP completa hasta probar desconexión/reconexión real.
+
 ## Snapshot actual
 
 - Fecha de corte: 2026-09-20
@@ -18,7 +57,7 @@
 - Estado PR: abierto, draft.
 - Avance global: **60% de ingeniería**.
 - Última comprobación de esta iteración: contratos retry/diagnostics portables pasan con C++20 `-Wall -Wextra -Werror`.
-- Último HEAD comprobado: `2fec7c39fb1870ff2707f6975dff691806e95d52`.
+- Último HEAD comprobado: `7c2dd0769b17426ec666c6642c62374ec651c4ce`.
 - Interpretación del porcentaje: avance frente al producto completo; **no** equivale a validación de hardware ni a CI verde.
 - Regla de promoción: mantener la implementación en `experimental/` hasta cerrar los gates.
 
