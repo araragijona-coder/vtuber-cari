@@ -4,10 +4,10 @@
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
 **Última auditoría:** 20/09/2026 13:32 ART
-**HEAD canónico:** 1a8be5fa0b68f7af4c90fe0f42412b07a87a3645
+**HEAD canónico:** e03bfcd074164072af82aa0c65dd26a0fcb8cffb
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
-**Avance global de ingeniería:** **62%**
+**Avance global de ingeniería:** **63%**
 **Readiness:** experimental; **NO listo para producción**.
 
 ## 1. Estados de evidencia
@@ -204,7 +204,7 @@ Estos resultados verifican contratos core portables; no sustituyen Windows CI ni
 
 ## 9. Estado canónico
 
-**Avance global: 62% de ingeniería.**
+**Avance global: 63% de ingeniería.**
 
 El 62% no significa 62% de código ni disponibilidad para producción. La ruta principal está construida, pero quedan gates de validación Windows/hardware, transporte PTS explícito, composición de avatar final, cámara, drift, RTMP sostenido, Game Capture, multistream y distribución.
 
@@ -503,3 +503,17 @@ El siguiente trabajo debe atacar exclusivamente un gate PENDIENTE. Una pieza mar
 
 ### CI
 Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese resultado para afirmar que la cámara compila en Windows. La verificación real del módulo queda condicionada a un runner Windows observable.
+## 12. Cierre de esta iteración — 20/09/2026 13:46 ART
+
+- Se mantuvieron intactos los componentes que la bitácora ya marca IMPLEMENTADO/VERIFICADO.
+- Nuevo módulo: MediaFoundationCamera, fuente nativa de vídeo con PTS de Media Foundation y salida BGRA.
+- Nuevo smoke: media_foundation_camera_smoke.cpp.
+- CMake registra el módulo y el smoke sin sustituir WGC.
+- Gate de cámara cambió de PENDIENTE DE IMPLEMENTACIÓN a IMPLEMENTADO; siguen pendientes integración al runtime/control y validación en Windows real.
+- CI: los runs del HEAD actual siguen terminando en failure sin steps/logs_url observables; no se usa ese resultado para atribuir fallos al código.
+- No se repiten: WGC, WASAPI, MediaClock, RealtimePacer, interleaver, RawPipe, FFmpeg supervisor, compositor D3D11, Three.js renderer y MediaPipe tracker.
+
+### Siguiente foco obligatorio
+1. Integrar MediaFoundationCamera al runtime sin duplicar el control plane existente.
+2. Obtener una ejecución Windows observable del E2E y del nuevo smoke.
+3. Solo después avanzar a drift/PTS explícito y avatar real → frame final.
