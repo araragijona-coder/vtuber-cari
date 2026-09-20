@@ -303,3 +303,74 @@ El runtime nativo Windows completo **no** se promovió todavía porque sus gates
 ### Avance
 **58% de ingeniería.**
 La promoción de código no aumenta artificialmente el porcentaje: el siguiente incremento debe provenir de cerrar validaciones funcionales, no de mover archivos.
+
+## 2026-09-20 — Consolidación de continuidad y estado 63%
+
+### Regla de organización vigente
+La rama main es la referencia del código aceptado/promovido. La carpeta superior experimental es la única zona de cuarentena para componentes que todavía necesitan evidencia externa, hardware o validación de producción. No se crean nuevas carpetas experimentales paralelas.
+
+### Estado canónico
+- HEAD de main al iniciar esta consolidación: 1c22b40ae076628c77852f20714402418ffa55ac.
+- Rama de ingeniería: fix/native-windows-foundation.
+- HEAD de la rama de ingeniería consultada: 581cb2944326c9c27312c139230167eb5310ffae.
+- PR #2 sigue siendo la referencia de los cambios nativos experimentales.
+- Avance global vigente: 63% de ingeniería.
+- Estado de producción: NO listo para producción.
+
+### Ya aceptado en main
+- perfiles y configuración de avatar que ya tenían contratos/tests;
+- app/studio para acciones, métricas y bindings;
+- automatización y bridge de Twitch con cobertura existente;
+- workflows y documentación generales;
+- esta bitácora maestra.
+
+### Sigue deliberadamente en experimental
+- runtime Windows nativo;
+- captura Windows Graphics Capture;
+- WASAPI y AudioTimelineMixer;
+- FrameBridge y compositor experimental;
+- RealtimePacer e interleaver A/V;
+- RawPipe y FFmpeg A/V;
+- retry/backoff RTMP;
+- cámara Media Foundation;
+- Game Capture;
+- multistream;
+- harness E2E Windows.
+
+### NO REPETIR
+1. No rediseñar captura de ventana/pantalla desde cero.
+2. No crear otro enumerador de ventanas.
+3. No crear otro mixer de audio.
+4. No crear otro scheduler/interleaver A/V paralelo.
+5. No quitar los bounded queues ni el límite de 8 eventos por polling.
+6. No crear otro supervisor FFmpeg.
+7. No reintentar encoder/mux/permiso/input como si fueran fallos de red.
+8. No usar la prueba Linux de FFmpeg como evidencia de named pipes Windows.
+9. No declarar A/V sincronizado extremo a extremo hasta transportar PTS explícitamente.
+10. No crear otra carpeta experimental.
+
+### Trabajo cerrado de esta fase
+- interleaver global por PTS con empate a favor de audio;
+- rechazo de cambios de sample-rate/canales durante una sesión;
+- backpressure de arranque hasta conectar ambos pipes;
+- límite de 8 eventos A/V por polling;
+- estado/código de salida FFmpeg;
+- stderr acotado a 256 KiB;
+- clasificación básica de errores;
+- retry RTMP con backoff acotado;
+- invariantes de sesión durante output;
+- métricas de output/retry/pacing;
+- harness validate-windows.ps1.
+
+### Próximo orden de trabajo
+P0: build y E2E Windows observable.
+P1: transporte temporal explícito de PTS, compositor GPU D3D11 y avatar dentro del frame final.
+P2: cámara Media Foundation, Game Capture, tracking sostenido y lip-sync.
+P3: drift correction, FFmpeg sostenido, grabación prolongada, RTMP real y reconnect validado.
+P4: hardware objetivo, distribución, instalador, multistream y diagnóstico de usuario.
+
+### Regla del porcentaje
+El 63% es el valor canónico actual. Mover archivos o aumentar documentación no aumenta el porcentaje. El porcentaje solo cambia al cerrar funcionalidad o evidencia de un gate.
+
+### Continuidad
+Antes de implementar algo nuevo, consultar esta bitácora. Si está IMPLEMENTADO o VERIFICADO, continuar sobre su gate restante. Si está DESCARTADO, no repetirlo sin nueva evidencia.
