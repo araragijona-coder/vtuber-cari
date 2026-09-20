@@ -63,6 +63,15 @@ cari::native::MediaGraphController g_media_graph;
 std::atomic<bool> g_media_enabled{false};
 MediaFoundationCamera g_camera;
 cari::native::D3D11Compositor g_gpu_compositor;
+cari::native::CaptureEngine g_avatar_capture;
+std::mutex g_avatar_overlay_mutex;
+std::shared_ptr<std::vector<std::uint8_t>> g_avatar_overlay_rgba;
+std::uint32_t g_avatar_overlay_width = 0;
+std::uint32_t g_avatar_overlay_height = 0;
+std::uint64_t g_avatar_overlay_sequence = 0;
+std::atomic<std::uint64_t> g_avatar_overlay_frames{0};
+std::atomic<std::uint64_t> g_avatar_overlay_failures{0};
+std::string g_avatar_overlay_error;
 std::mutex g_gpu_compositor_mutex;
 std::shared_ptr<std::vector<std::uint8_t>> g_gpu_avatar_placeholder;
 std::string g_gpu_compositor_error;
@@ -315,6 +324,9 @@ std::string BuildControlStatusMessage() {
     result += ";audio_dropped_format=" + std::to_string(media.audio_dropped_format);
     result += ";audio_late=" + std::to_string(media.audio_late);
     result += ";pacing_budget_exhausted=" + std::to_string(media.pacing_budget_exhausted);
+    result += ";avatar_overlay=" + std::string(g_avatar_capture.is_running() ? "running" : "fallback");
+    result += ";avatar_overlay_frames=" + std::to_string(g_avatar_overlay_frames.load(std::memory_order_relaxed));
+    result += ";avatar_overlay_failures=" + std::to_string(g_avatar_overlay_failures.load(std::memory_order_relaxed));
     result += ";video_bytes=" + std::to_string(transport.video.bytes_written);
     result += ";audio_bytes=" + std::to_string(transport.audio.bytes_written);
     result += ";video_pipe_drops=" + std::to_string(transport.video.writes_dropped);
@@ -452,6 +464,57 @@ bool StartCaptureSource(
     return started;
 }
 
+HWND configured_avatar_hwnd() {
+    wchar_t buffer[64]{};
+    constexpr DWORD capacity =
+        static_cast<DWORD>(sizeof(buffer) / sizeof(buffer[0]));
+    const DWORD length = GetEnvironmentVariableW(
+        L"CARI_AVATAR_HWND",
+        buffer,
+        capacity);
+    if (length == 0 || length >= capacity) {
+        return nullptr;
+    }
+
+    wchar_t* end = nullptr;
+    const unsigned long long value = std::wcstoull(buffer, &end, 10);
+    if (end == buffer || *end != L'\0' || value == 0) {
+        return nullptr;
+    }
+
+    const HWND hwnd =
+        reinterpret_cast<HWND>(static_cast<UINT_PTR>(value));
+    return IsWindow(hwnd) ? hwnd : nullptr;
+}
+
+void StopAvatarOverlayCapture() {
+    g_avatar_capture.stop();
+    std::lock_guard lock(g_avatar_overlay_mutex);
+    g_avatar_overlay_rgba.reset();
+    g_avatar_overlay_width = 0;
+    g_avatar_overlay_height = 0;
+    g_avatar_overlay_sequence = 0;
+}
+
+bool StartAvatarOverlayCapture() {
+    const HWND hwnd = configured_avatar_hwnd();
+    if (!hwnd) {
+        return false;
+    }
+
+    if (g_avatar_capture.is_running()) {
+        return true;
+    }
+
+    if (!g_avatar_capture.start_window(hwnd)) {
+        std::lock_guard lock(g_avatar_overlay_mutex);
+        g_avatar_overlay_error = g_avatar_capture.last_error();
+        return false;
+    }
+
+    return true;
+}
+
 std::wstring configured_ffmpeg_executable() {
     wchar_t buffer[4096]{};
     constexpr DWORD capacity = static_cast<DWORD>(sizeof(buffer) / sizeof(buffer[0]));
@@ -556,6 +619,15 @@ bool StartOutput(
     g_last_output_profile = output_profile;
     g_last_output_target = resolved_target;
     g_output_started_at = cari::studio::core::MediaClock::monotonic_now();
+    if (!StartAvatarOverlayCapture()) {
+        std::lock_guard lock(g_avatar_overlay_mutex);
+        if (g_avatar_overlay_error.empty()) {
+            g_avatar_overlay_error = "avatar overlay unavailable; native compositor will use placeholder";
+        }
+    } else {
+        std::lock_guard lock(g_avatar_overlay_mutex);
+        g_avatar_overlay_error.clear();
+    }
     if (reset_retry_on_success) {
         ResetOutputRetry();
     }
@@ -662,6 +734,7 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
         return cari::native::control_response(true, "output=started", command.request_id);
     case cari::native::ControlCommandType::output_stop:
         ResetOutputRetry();
+        StopAvatarOverlayCapture();
         g_media_graph.stop();
         g_media_enabled.store(false, std::memory_order_relaxed);
         RefreshStatus(hwnd);
@@ -814,6 +887,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         KillTimer(hwnd, kMediaTimerId);
         g_media_graph.stop();
         g_media_enabled.store(false, std::memory_order_relaxed);
+        StopAvatarOverlayCapture();
         StopCaptureSource();
         g_audio_bridge.stop();
         PostQuitMessage(0);
@@ -828,6 +902,42 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
+
+    g_avatar_capture.set_frame_callback([](const cari::native::CapturedFrame& captured) {
+        constexpr std::uint64_t kSampleEvery = 2;
+        if ((captured.sequence % kSampleEvery) != 0) {
+            return;
+        }
+
+        cari::native::BridgedFrame bridged;
+        std::wstring error;
+        if (!cari::native::FrameBridge::copy_to_cpu(captured, bridged, error) ||
+            !bridged.pixels) {
+            g_avatar_overlay_failures.fetch_add(1, std::memory_order_relaxed);
+            std::lock_guard lock(g_avatar_overlay_mutex);
+            g_avatar_overlay_error.assign(error.begin(), error.end());
+            return;
+        }
+
+        const auto& bgra = *bridged.pixels;
+        auto rgba = std::make_shared<std::vector<std::uint8_t>>(bgra.size());
+        for (std::size_t index = 0; index + 3 < bgra.size(); index += 4) {
+            (*rgba)[index + 0] = bgra[index + 2];
+            (*rgba)[index + 1] = bgra[index + 1];
+            (*rgba)[index + 2] = bgra[index + 0];
+            (*rgba)[index + 3] = bgra[index + 3];
+        }
+
+        {
+            std::lock_guard lock(g_avatar_overlay_mutex);
+            g_avatar_overlay_rgba = std::move(rgba);
+            g_avatar_overlay_width = bridged.frame.width;
+            g_avatar_overlay_height = bridged.frame.height;
+            g_avatar_overlay_sequence = bridged.frame.sequence;
+            g_avatar_overlay_error.clear();
+        }
+        g_avatar_overlay_frames.fetch_add(1, std::memory_order_relaxed);
+    });
 
     g_capture.set_frame_callback([](const cari::native::CapturedFrame& captured) {
         const bool diagnostic_sample = (captured.sequence % kBridgeSampleEvery) == 0;
@@ -919,6 +1029,18 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
                             cari::native::PlaceholderAvatarGpuSource::make_rgba();
                     }
 
+                    std::shared_ptr<std::vector<std::uint8_t>> avatar_rgba;
+                    std::uint32_t avatar_width = 192;
+                    std::uint32_t avatar_height = 192;
+                    {
+                        std::lock_guard lock(g_avatar_overlay_mutex);
+                        avatar_rgba = g_avatar_overlay_rgba;
+                        if (avatar_rgba) {
+                            avatar_width = g_avatar_overlay_width;
+                            avatar_height = g_avatar_overlay_height;
+                        }
+                    }
+
                     const bool needs_init =
                         g_gpu_compositor.output_texture() == nullptr ||
                         desc.Width != static_cast<UINT>(captured.width) ||
@@ -946,9 +1068,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
                                 desc.Height > 210 ? desc.Height - 210 : 8);
 
                         cari::native::GpuOverlay avatar_overlay{
-                            .width = 192,
-                            .height = 192,
-                            .rgba = g_gpu_avatar_placeholder,
+                            .width = avatar_width,
+                            .height = avatar_height,
+                            .rgba = avatar_rgba ? avatar_rgba : g_gpu_avatar_placeholder,
                             .opacity = 0.92f,
                             .x = overlay_x,
                             .y = overlay_y,
