@@ -331,3 +331,32 @@ No subir de estado por documentación o por la simple existencia del código.
 No equivale a 62% de tiempo ni a 62% de disponibilidad para producción.
 
 **Readiness actual: NO listo para uso diario de streaming.**
+
+
+## Cierre de auditoría — 20/09/2026
+
+**HEAD observado:** f17d752d121390337248ea67bc495bf1a08cb945
+
+### Resultado
+
+- Avance vigente del proyecto: **62%**.
+- El código de retry/backoff y diagnóstico existe e incluye smoke tests portables.
+- El compositor D3D11 experimental, alpha overlay, lip-sync por amplitud y E2E Windows named-pipe ya existen en el repositorio.
+- El E2E Windows está implementado pero no puede marcarse VERIFIED hasta observar una ejecución real.
+- Los workflows se disparan sobre la rama de desarrollo, pero los jobs recientes siguen terminando con `failure` y `steps=null`, sin `logs_url`; por tanto no se cuenta como build/test ejecutado.
+- No se creó otro sistema de captura, mixer, scheduler, retry, tracker, renderer ni compositor para sustituir los existentes.
+
+### Próximo punto único de entrada
+
+La próxima iteración debe comenzar leyendo esta bitácora y continuar en P0/P1:
+
+1. evidencia Windows real de build/test;
+2. E2E named-pipe + FFmpeg + decode;
+3. timestamps explícitos extremo a extremo;
+4. compositor GPU sin readback CPU de producción;
+5. avatar real dentro del frame final.
+
+### Regla de cierre
+
+No marcar un gate como verificado por la existencia del archivo o del workflow. Debe existir ejecución observable y reproducible.
+
