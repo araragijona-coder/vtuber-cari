@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld("cari", {
       profiles: () => ipcRenderer.invoke("obs:profiles"),
       sceneCollections: () => ipcRenderer.invoke("obs:scene-collections"),
       setProfile: profileName => ipcRenderer.invoke("obs:set-profile", profileName),
+      setScene: sceneName => ipcRenderer.invoke("obs:set-scene", sceneName),
       setSceneCollection: sceneCollectionName => ipcRenderer.invoke("obs:set-scene-collection", sceneCollectionName)
     },
     twitch: {
