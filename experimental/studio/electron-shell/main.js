@@ -292,7 +292,7 @@ ipcMain.handle("obs:set-scene", async (event, sceneName) => {
 });
 ipcMain.handle("obs:status", async event => {
   requireTrustedSender(event);
-  return obs.getStatus();
+  return obs.status();
 });
 ipcMain.handle("obs:scenes", async event => {
   requireTrustedSender(event);
