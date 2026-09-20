@@ -222,4 +222,4 @@ Fuente canónica de trabajo: `experimental/studio/BITACORA.md`. Consultarla ante
 
 ## Continuidad canónica
 
-Consultar `experimental/studio/BITACORA.md` antes de reabrir una tarea. HEAD de referencia: `4293bd1063da2dd9f049fe79a30e095bdb0c6df3`.
+Consultar `experimental/studio/BITACORA.md` antes de reabrir una tarea. HEAD de referencia: `47d94620836bae7b640e488ca8ea5cc78e873ecf`.
