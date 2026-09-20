@@ -227,6 +227,17 @@ document.querySelector("#capture-screen").onclick = async () => {
   showStatus(result.ok ? result.message : result.error);
 };
 
+document.querySelector("#capture-camera").onclick = async () => {
+  const input = document.querySelector("#camera-source-index");
+  const oneBased = Number.parseInt(input.value, 10);
+  if (!Number.isInteger(oneBased) || oneBased < 1) {
+    showStatus("Camera number must be at least 1");
+    return;
+  }
+  const result = await session.captureStart("camera", oneBased - 1);
+  showStatus(result.ok ? result.message : result.error);
+};
+
 document.querySelector("#capture-stop").onclick = async () => {
   const result = await session.captureStop();
   showStatus(result.ok ? result.message : result.error);
