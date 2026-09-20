@@ -193,7 +193,16 @@ Antes de programar:
 5. Si aparece un hallazgo nuevo, registrarlo aquí antes de crear otra implementación.
 6. No crear un segundo parser, mixer, reloj, scheduler, transporte raw, supervisor FFmpeg, retry policy, tracker MediaPipe, renderer Three.js o compositor D3D11 para sustituir los existentes.
 
-## 8. Estado canónico
+## 8. Evidencia añadida en la auditoría actual
+
+Smoke tests portables ejecutados localmente con **C++20 + `-Wall -Wextra -Werror`**:
+- `media_scheduler_smoke`: PASS.
+- `output_retry_smoke`: PASS.
+- `output_diagnostics_smoke`: PASS.
+
+Estos resultados verifican contratos core portables; no sustituyen Windows CI ni hardware.
+
+## 9. Estado canónico
 
 **Avance global: 62% de ingeniería.**
 
