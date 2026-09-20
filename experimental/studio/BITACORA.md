@@ -97,6 +97,8 @@
 8. No promover código de `experimental/` a producción por compilar solamente.
 9. No reabrir el análisis del problema `steps=null` como si fuese un error de una línea concreta: ya se reintentó y continúa sin steps/logs.
 10. No marcar RTMP como “completo” hasta una prueba de conexión sostenida y reconexión real.
+11. No volver a crear otra bitácora paralela: usar `BITACORA.md` como registro maestro.
+12. No repetir el smoke e2e en otra implementación; añadir casos al existente.
 
 ## Decisiones que se mantienen
 
@@ -147,3 +149,25 @@
 - `ffmpeg_named_pipe_e2e_smoke.cpp`.
 
 El HEAD actual debe consultarse en GitHub antes de continuar; esta bitácora nunca sustituye una lectura del código real.
+
+
+### 2026-09-20 — P0 named-pipe e2e
+
+**IMPLEMENTADO**
+- `ffmpeg_named_pipe_e2e_smoke.cpp` crea una sesión real de `FfmpegAvOutput`.
+- Ambos named pipes son abiertos por FFmpeg y alimentados por datos sintéticos.
+- Vídeo BGRA 320x180 a 30 FPS y PCM float32 48 kHz estéreo.
+- El smoke cierra los pipes y permite a FFmpeg hacer EOF/flush.
+- El archivo Matroska generado se vuelve a procesar con FFmpeg y exige salida 0.
+- El workflow Windows instala FFmpeg explícitamente antes de CMake/CTest.
+- Se registran también los smoke de retry y clasificación de errores.
+
+**ESTADO**
+- IMPLEMENTADO.
+- VERIFICADO EN ENTORNO DE DESARROLLO: contrato FFmpeg sintético validado.
+- VERIFICADO EN WINDOWS CI: pendiente porque los runners actuales siguen terminando con `steps=null`.
+- VALIDADO EN HARDWARE: pendiente.
+
+**NO REPETIR**
+- No crear otro smoke de named pipes básico: ampliar `ffmpeg_named_pipe_e2e_smoke.cpp`.
+- No instalar FFmpeg como dependencia de runtime del producto: la instalación actual es solo para CI.
