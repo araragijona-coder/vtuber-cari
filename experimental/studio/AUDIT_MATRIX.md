@@ -141,7 +141,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] `1+` public TTS gate.
 - [x] Local chat output rate guard.
 - [x] TwitchIO owns WebSocket connection management and subscription delegation.
-- [ ] Explicit reconnection/re-subscription integration test.
+- [x] Ledger de continuidad EventSub y observación de `session_welcome` integrado sin duplicar TwitchIO.
+- [ ] Explicit reconnection/re-subscription integration test con Twitch CLI/canal real.
 - [ ] Token refresh lifecycle test.
 - [ ] Live broadcaster/bot validation.
 
