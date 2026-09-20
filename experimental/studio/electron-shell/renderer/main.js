@@ -26,6 +26,71 @@ let faceTracker = null;
 let cameraStream = null;
 let trackingFrame = 0;
 let refreshInFlight = false;
+let twitchReadAloud = false;
+let twitchConnected = false;
+
+const twitchUi = {
+  clientId: document.querySelector("#twitch-client-id"),
+  channel: document.querySelector("#twitch-channel"),
+  status: document.querySelector("#twitch-status"),
+  log: document.querySelector("#chat-log"),
+  input: document.querySelector("#chat-input"),
+  read: document.querySelector("#chat-read"),
+  events: document.querySelector("#event-log")
+};
+
+function appendEvent(text) {
+  const row = document.createElement("div");
+  row.className = "event-line";
+  row.textContent = text;
+  twitchUi.events.appendChild(row);
+  twitchUi.events.scrollTop = twitchUi.events.scrollHeight;
+}
+
+function appendChat(message, outbound = false) {
+  const row = document.createElement("div");
+  row.className = "chat-line";
+  const name = document.createElement("span");
+  name.className = "chat-name";
+  name.textContent = outbound ? "Cari" : (message.user_name || message.user_login || "viewer");
+  row.appendChild(name);
+  row.appendChild(document.createTextNode(": " + (message.text || "")));
+  twitchUi.log.appendChild(row);
+  twitchUi.log.scrollTop = twitchUi.log.scrollHeight;
+
+  if (!outbound && twitchReadAloud && "speechSynthesis" in window) {
+    const utterance = new SpeechSynthesisUtterance(
+      String(message.text || "").slice(0, 500)
+    );
+    utterance.rate = 1.05;
+    utterance.pitch = 1.15;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
+
+  const command = String(message.text || "").trim().toLowerCase();
+  if (command === "!happy" || command === "!cari happy") acting.set({ expression: "happy" });
+  if (command === "!angry" || command === "!cari angry") acting.set({ expression: "angry" });
+  if (command === "!neutral" || command === "!cari neutral") acting.set({ expression: "neutral" });
+}
+
+function updateTwitchStatus(status) {
+  twitchConnected = Boolean(status?.connected);
+  twitchUi.status.textContent = twitchConnected
+    ? "Connected as " + (status.user?.display_name || status.user?.login || "?") +
+      " → " + (status.channel?.display_name || status.channel?.login || "?")
+    : (status?.authorized ? "Authorized — connecting chat…" : "Disconnected");
+}
+
+function saveTwitchInputs() {
+  localStorage.setItem("cari.twitch.clientId", twitchUi.clientId.value.trim());
+  localStorage.setItem("cari.twitch.channel", twitchUi.channel.value.trim());
+}
+
+function restoreTwitchInputs() {
+  twitchUi.clientId.value = localStorage.getItem("cari.twitch.clientId") || "";
+  twitchUi.channel.value = localStorage.getItem("cari.twitch.channel") || "";
+}
 
 function showStatus(message) {
   ui.status.textContent = String(message || "");
@@ -185,6 +250,32 @@ acting.subscribe(state => {
 });
 
 window.cari.native.onEvent(event => {
+  if (event.type === "twitch.chat") {
+    appendChat(event);
+    appendEvent("chat ← " + (event.user_name || event.user_login || "viewer"));
+    return;
+  }
+  if (event.type === "twitch.chat.sent") {
+    appendChat(event, true);
+    return;
+  }
+  if (event.type === "twitch.status") {
+    updateTwitchStatus(event);
+    return;
+  }
+  if (event.type === "twitch.eventsub.welcome") {
+    appendEvent("EventSub connected");
+    return;
+  }
+  if (event.type === "twitch.eventsub.keepalive") {
+    return;
+  }
+  if (event.type === "twitch.error") {
+    appendEvent("Twitch error: " + event.message);
+    showStatus("Twitch error: " + event.message);
+    return;
+  }
+
   session.handleNativeEvent(event);
 
   if (event.type === "error") {
@@ -321,3 +412,82 @@ setInterval(() => {
   refresh().catch(error => showStatus("Status error: " + error.message));
 }, 250);
 renderer.render();
+
+document.querySelector("#twitch-connect").onclick = async () => {
+  saveTwitchInputs();
+  try {
+    const status = await window.cari.native.twitch.connect({
+      clientId: twitchUi.clientId.value.trim(),
+      channel: twitchUi.channel.value.trim()
+    });
+    updateTwitchStatus(status);
+    appendEvent("Twitch connected");
+  } catch (error) {
+    updateTwitchStatus({ connected: false });
+    appendEvent("Twitch connect failed: " + error.message);
+    showStatus("Twitch connect failed: " + error.message);
+  }
+};
+
+document.querySelector("#twitch-disconnect").onclick = async () => {
+  try {
+    const status = await window.cari.native.twitch.disconnect();
+    updateTwitchStatus(status);
+    appendEvent("Twitch disconnected");
+  } catch (error) {
+    showStatus("Twitch disconnect failed: " + error.message);
+  }
+};
+
+async function sendTwitchChat() {
+  const text = twitchUi.input.value.trim();
+  if (!text) return;
+  try {
+    await window.cari.native.twitch.sendChat(text);
+    twitchUi.input.value = "";
+  } catch (error) {
+    showStatus("Chat send failed: " + error.message);
+    appendEvent("chat send failed: " + error.message);
+  }
+}
+
+document.querySelector("#chat-send").onclick = sendTwitchChat;
+twitchUi.input.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    sendTwitchChat();
+  }
+});
+
+document.querySelector("#chat-read").onclick = () => {
+  twitchReadAloud = !twitchReadAloud;
+  twitchUi.read.textContent = "Read Chat: " + (twitchReadAloud ? "On" : "Off");
+  if (!twitchReadAloud && "speechSynthesis" in window) window.speechSynthesis.cancel();
+};
+
+document.querySelector("#model-pick").onclick = async () => {
+  try {
+    const result = await window.cari.native.avatar.chooseModel();
+    if (result?.canceled) return;
+    await renderer.load(result.url);
+    ui.model.textContent = result.name || "GLB model loaded";
+    renderer.render();
+    showStatus("Avatar loaded: " + (result.name || "model"));
+  } catch (error) {
+    ui.model.textContent = "model load failed";
+    showStatus("Avatar load failed: " + error.message);
+  }
+};
+
+document.querySelector("#overlay-show").onclick = () =>
+  window.cari.native.avatar.overlay.show()
+    .then(() => showStatus("Avatar overlay shown"))
+    .catch(error => showStatus("Overlay error: " + error.message));
+
+document.querySelector("#overlay-hide").onclick = () =>
+  window.cari.native.avatar.overlay.hide()
+    .then(() => showStatus("Avatar overlay hidden"))
+    .catch(error => showStatus("Overlay error: " + error.message));
+
+restoreTwitchInputs();
+window.cari.native.twitch.status().then(updateTwitchStatus).catch(() => undefined);
