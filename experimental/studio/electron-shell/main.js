@@ -86,6 +86,13 @@ function createAvatarOverlayWindow() {
     if (avatarOverlayWindow === win) avatarOverlayWindow = null;
   });
 
+  if (process.platform === "win32") {
+    const handle = win.getNativeWindowHandle();
+    if (handle?.length) {
+      process.env.CARI_AVATAR_HWND = handle.readBigUInt64LE(0).toString();
+    }
+  }
+
   avatarOverlayWindow = win;
   return win;
 }
@@ -145,18 +152,7 @@ ipcMain.handle("native:start", event => {
 ipcMain.handle("native:send", (event, command) => {
   requireTrustedSender(event);
 
-  const payload = { ...command };
-  if (payload.type === "output.start" && avatarOverlayWindow && !avatarOverlayWindow.isDestroyed()) {
-    const handle = avatarOverlayWindow.getNativeWindowHandle();
-    if (handle?.length) {
-      const handleValue = process.platform === "win32"
-        ? handle.readBigUInt64LE(0).toString()
-        : "";
-      if (handleValue) payload.avatar_hwnd = handleValue;
-    }
-  }
-
-  return engine.send(payload);
+  return engine.send(command);
 });
 
 ipcMain.handle("avatar:set-state", (event, state) => {
