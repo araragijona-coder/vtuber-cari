@@ -3,8 +3,8 @@
 > **Fuente canónica única de continuidad.**
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
-**Última auditoría:** 20/09/2026 15:20 ART
-**HEAD canónico:** 0b5510cae7a9f5a2730b0d683eeeca2d5a0b43ba
+**Última auditoría:** 20/09/2026 15:40 ART
+**HEAD canónico:** 0457b643c99ba3fa0522c674b2c0d623b55be920
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
