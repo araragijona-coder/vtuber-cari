@@ -278,3 +278,60 @@ El siguiente trabajo debe cerrar gates de producción, no duplicar infraestructu
 - packaging, licencias, FFmpeg redistribution, installer y release validation.
 
 **Regla:** no abrir una implementación paralela de ningún componente listado en IMPLEMENTADO/NO REPETIR. Ampliar el componente existente o registrar primero por qué una nueva arquitectura es necesaria.
+
+
+## Registro de iteración — 2026-09-20 09:08 ART
+
+**HEAD al cierre:** fcba7d14dbffe0fa2cfc4372c21a1909da10afd2
+
+### Cambios realizados en esta iteración
+
+- Se integró OutputRetryPolicy en experimental/studio/core/ con backoff 1s → 2s → 4s → …, tope de 30s y máximo de 5 intentos.
+- Se integró OutputFailureCategory para clasificar fallos de output en red, encoder, input, mux, permisos y desconocidos.
+- El retry automático quedó restringido a RTMP + categoría network; no se reintentan ciegamente encoder/mux/input/permission.
+- Se añadieron métricas de estado, exit code, reintentos y categoría de fallo al plano de control.
+- La UI Electron ya muestra estado/código del output y presupuesto de pacing.
+- Se corrigió la serialización del campo output en el status JSONL para que no quede vacío antes de output_state.
+- Se corrigieron los workflows para ejecutar también sobre la rama de desarrollo y se agregó workflow_dispatch como evento independiente.
+- El workflow Windows instala FFmpeg solo para CI y registra el smoke end-to-end de named pipes.
+- Se mantuvo la regla de backpressure: no consumir audio del mixer antes de conectar ambos pipes.
+- Se reforzaron las invariantes para impedir cambios de captura/audio durante una salida activa.
+- Se actualizó la documentación de estado y auditoría; la bitácora canónica sigue siendo este archivo.
+
+### Evidencia comprobada
+
+- MediaClock / RealtimePacer / MediaInterleaver: smoke C++20 estricto documentado como PASS.
+- OutputRetryPolicy: smoke PASS documentado.
+- OutputFailureCategory: smoke PASS documentado.
+- FFmpeg sintético BGRA + PCM float32 → H.264/AAC → Matroska: PASS documentado.
+- Workflow Windows contiene explícitamente build, CTest, instalación de FFmpeg y smoke de named pipes.
+
+### Estado que NO debe marcarse como cerrado
+
+- CI sigue sin aportar steps/logs útiles en los runs observados; algunos jobs continúan con steps=null.
+- Named-pipe + FFmpeg todavía necesita evidencia real de ejecución Windows.
+- Grabación sostenida, sincronización A/V sostenida y RTMP real continúan sin validación de hardware/servicio.
+- El transporte raw todavía no preserva PTS originales extremo a extremo.
+- El avatar todavía no está compuesto dentro del frame final nativo.
+- La captura actual usa CPU readback como ruta de referencia; falta compositor GPU/zero-copy.
+
+### NO REPETIR — actualización
+
+15. No crear otro sistema de retry: reutilizar OutputRetryPolicy.
+16. No crear otro clasificador de errores de output: reutilizar OutputFailureCategory.
+17. No declarar reconnect RTMP terminado hasta probar pérdida/restauración de conexión contra un servidor real.
+18. No confundir la instalación de FFmpeg en CI con una dependencia de runtime del producto.
+19. No volver a crear una bitácora: experimental/studio/BITACORA.md es la fuente canónica.
+20. No repetir los smoke básicos; ampliar escenarios únicamente cuando aparezca un nuevo riesgo.
+
+### Próximo frente real
+
+P0: conseguir ejecución Windows observable (steps/logs), estabilizar named-pipe e2e y medir grabación/AV/RTMP sostenidos.
+
+P1: transporte temporal explícito o equivalente, compositor GPU D3D11 y composición de avatar/captura/overlays.
+
+P2: cámara Media Foundation, Game Capture, lip-sync y backends reales de acciones del runtime.
+
+P3: multistream, EventSub reconnect verificado, FFmpeg redistribution/licencias, installer y release validation.
+
+Regla de continuidad: antes de implementar, buscar el componente en BITACORA.md, AUDIT_MATRIX.md y WORKLOG.md; si existe, extenderlo. Solo abrir arquitectura nueva con motivo y evidencia registrados.
