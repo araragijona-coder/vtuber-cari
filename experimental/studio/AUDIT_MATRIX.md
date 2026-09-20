@@ -152,7 +152,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Neutral avatar contract consumed by the Three.js renderer.
 
 - [ ] Native VRM renderer.
-- [ ] Audio-driven lip-sync.
+- [x] Lip-sync de amplitud local conectado al `AudioCoreBridge` y al `AvatarActingBridge` como fallback cuando tracking facial no está activo.
 - [ ] Final tracking.
 - [ ] Real-time voice processing.
 
