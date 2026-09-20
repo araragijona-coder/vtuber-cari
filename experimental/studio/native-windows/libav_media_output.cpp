@@ -15,10 +15,9 @@ extern "C" {
 }
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
-#include <limits>
 #include <mutex>
-#include <sstream>
 #include <utility>
 
 namespace cari::native {
@@ -206,11 +205,12 @@ struct LibavMediaOutput::Impl {
         return write_packets_from_encoder(audio_codec, audio_stream, false);
     }
 
-    bool drain_audio_fifo() {
+    bool drain_audio_fifo(bool flush_remainder = false) {
         const int frame_size =
             audio_codec->frame_size > 0 ? audio_codec->frame_size : 1024;
 
-        while (av_audio_fifo_size(audio_fifo) > 0) {
+        while (av_audio_fifo_size(audio_fifo) >= frame_size ||
+               (flush_remainder && av_audio_fifo_size(audio_fifo) > 0)) {
             const int available = av_audio_fifo_size(audio_fifo);
             const int samples_to_encode =
                 std::min(available, frame_size);
@@ -318,23 +318,24 @@ struct LibavMediaOutput::Impl {
         }
     }
 
+    bool drain_all_audio_for_stop() {
+        if (!flush_resampler()) {
+            return false;
+        }
+        return drain_audio_fifo(true);
+    }
+
     void stop_locked() noexcept {
         if (format != nullptr && running && header_written) {
             if (audio_codec != nullptr) {
                 if (audio_pts_ready) {
-                    encode_audio(nullptr);
-                }
-                while (write_packets_from_encoder(
-                    audio_codec, audio_stream, false)) {
-                    break;
+                    if (drain_all_audio_for_stop()) {
+                        encode_audio(nullptr);
+                    }
                 }
             }
             if (video_codec != nullptr) {
                 encode_video(nullptr);
-                while (write_packets_from_encoder(
-                    video_codec, video_stream, true)) {
-                    break;
-                }
             }
             av_write_trailer(format);
         }
@@ -649,6 +650,12 @@ struct LibavMediaOutput::Impl {
         }
 
         ensure_origin(input_frame.pts);
+        if (stats.last_video_input_pts >= 0 &&
+            input_frame.pts < stats.last_video_input_pts) {
+            ++stats.video_packets_dropped;
+            set_error("video PTS moved backwards");
+            return false;
+        }
         stats.last_video_input_pts = input_frame.pts;
         ++stats.video_frames_submitted;
 
@@ -699,6 +706,12 @@ struct LibavMediaOutput::Impl {
         }
 
         ensure_origin(input_packet.pts);
+        if (stats.last_audio_input_pts >= 0 &&
+            input_packet.pts < stats.last_audio_input_pts) {
+            ++stats.audio_packets_dropped;
+            set_error("audio PTS moved backwards");
+            return false;
+        }
         stats.last_audio_input_pts = input_packet.pts;
         ++stats.audio_packets_submitted;
 
@@ -772,7 +785,7 @@ struct LibavMediaOutput::Impl {
             audio_pts_ready = true;
         }
 
-        return drain_audio_fifo();
+        return drain_audio_fifo(false);
     }
 
     void stop_now() noexcept {
