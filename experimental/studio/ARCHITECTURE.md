@@ -29,7 +29,7 @@ Native Windows Engine (C++)
   local voice DSP
   AudioTimelineMixer
   FrameBridge
-  RealtimePacer → paced raw emission
+  RealtimePacer → global PTS interleaver → paced raw emission
   MediaGraphController
   RawPipe
   FFmpeg A/V output
@@ -117,7 +117,7 @@ El renderer no puede lanzar procesos. `NativeEngine` vive en Electron Main y es 
 
 ## Transporte multimedia: límite actual
 
-El puente raw hacia FFmpeg transporta bytes de video/audio, pero **no transporta los PTS originales de captura dentro del protocolo del pipe**. `MediaGraphController` usa esos PTS para planificar la emisión contra un reloj monotónico compartido, evitando bloquear los callbacks de captura/audio. La configuración actual de FFmpeg no debe interpretarse como una garantía de preservar timestamps del hardware/captura.
+El puente raw hacia FFmpeg transporta bytes de video/audio, pero **no transporta los PTS originales de captura dentro del protocolo del pipe**. `MediaGraphController` mantiene dos colas acotadas, selecciona globalmente el siguiente elemento por PTS y lo pacea contra un reloj monotónico compartido. La configuración actual de FFmpeg no debe interpretarse como una garantía de preservar timestamps del hardware/captura.
 
 Por este motivo:
 
