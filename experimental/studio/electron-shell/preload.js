@@ -20,5 +20,8 @@ contextBridge.exposeInMainWorld("cari", {
       ipcRenderer.on("native:event", listener);
       return () => ipcRenderer.removeListener("native:event", listener);
     }
+    avatar: {
+      setState: state => ipcRenderer.invoke("avatar:set-state", state)
+    }
   }
 });
