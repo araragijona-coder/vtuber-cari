@@ -19,7 +19,8 @@ export class StudioSessionManager {
       output: false,
       source: "window",
       windowIndex: 0,
-      voice: "off"
+      voice: "off",
+      cameraIndex: 0
     };
   }
 
@@ -110,27 +111,36 @@ export class StudioSessionManager {
     });
   }
 
-  async captureStart(source = "window", windowIndex = this.state.windowIndex) {
-    if (source !== "screen" && source !== "window") {
+  async captureStart(source = "window", sourceIndex = undefined) {
+    if (source !== "screen" && source !== "window" && source !== "camera") {
       return {
         ok: false,
         error: "unsupported capture source",
         state: this.snapshot()
       };
     }
-    const normalizedIndex = Number.isInteger(Number(windowIndex))
-      ? Number(windowIndex)
-      : -1;
-    if (source === "window" && (normalizedIndex < 0 || normalizedIndex > 9999)) {
+
+    const fallbackIndex =
+      source === "camera" ? this.state.cameraIndex : this.state.windowIndex;
+    const normalizedIndex = Number.isInteger(Number(sourceIndex))
+      ? Number(sourceIndex)
+      : fallbackIndex;
+
+    if ((source === "window" || source === "camera") &&
+        (normalizedIndex < 0 || normalizedIndex > 9999)) {
       return {
         ok: false,
-        error: "invalid capture window index",
+        error: source === "camera"
+          ? "invalid camera index"
+          : "invalid capture window index",
         state: this.snapshot()
       };
     }
+
     return this.send("capture.start", {
       source,
-      window_index: source === "window" ? normalizedIndex : -1
+      window_index: source === "window" ? normalizedIndex : -1,
+      camera_index: source === "camera" ? normalizedIndex : -1
     });
   }
 
@@ -180,7 +190,8 @@ export class StudioSessionManager {
           const capture = await this.native.send({
             type: "capture.start",
             source: this.state.source,
-            window_index: this.state.source === "window" ? this.state.windowIndex : -1
+            window_index: this.state.source === "window" ? this.state.windowIndex : -1,
+            camera_index: this.state.source === "camera" ? this.state.cameraIndex : -1
           });
           if (!acceptedResponse(capture)) {
             return { ...capture, state: this.snapshot() };
@@ -279,6 +290,9 @@ export class StudioSessionManager {
         if (payload.source === "window" && Number.isInteger(Number(payload.window_index))) {
           this.state.windowIndex = Number(payload.window_index);
         }
+        if (payload.source === "camera" && Number.isInteger(Number(payload.camera_index))) {
+          this.state.cameraIndex = Number(payload.camera_index);
+        }
         break;
       case "capture.stop":
         this.state.capture = false;
@@ -315,6 +329,7 @@ export class StudioSessionManager {
     );
 
     if (values.capture === "running") this.state.capture = true;
+    if (values.capture_source === "camera") this.state.source = "camera";
     if (values.capture === "stopped") this.state.capture = false;
     if (values.output === "running") this.state.output = true;
     if (values.output === "stopped") this.state.output = false;
