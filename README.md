@@ -231,3 +231,8 @@ Remaining external/operational items for literal **100% stream-ready**:
 6. Benchmark Ollama on the target PC and choose the best small model.
 
 These cannot honestly be marked green from repository CI alone because they require the user's local assets, accounts and streaming environment.
+
+
+## Cari Studio
+
+El estado y la bitácora de continuidad de la aplicación están en [`CARI_STUDIO_BITACORA.md`](CARI_STUDIO_BITACORA.md). Los componentes que todavía no tienen validación suficiente permanecen en la única zona `experimental/`.
