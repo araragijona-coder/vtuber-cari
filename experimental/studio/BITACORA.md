@@ -229,3 +229,36 @@ Una tarjeta del menú no convierte una capacidad en una función terminada.
 - El test UI↔OBS↔botones cubre botones con ID y botones declarativos.
 - PROJECT_STATUS.md se sincronizó a un porcentaje global de **60%**.
 - Referencia de seguimiento: ingeniería 66%, producto usable 52%, porcentaje global 60%.
+
+## Actualización 2026-09-20 — verificación final de continuidad
+
+HEAD auditado: d47c008e3384f84f0da923a60205428f6ca14228
+
+Resultado de auditoría UI:
+- 57 botones estáticos con ID.
+- 0 handlers estáticos apuntando a IDs inexistentes.
+- 0 llamadas desde Electron Main a métodos inexistentes de ObsService.
+- 1 control estático deshabilitado sin acción: Pitch / Formant, marcado intencionalmente como futuro.
+- `action-add-images` es un control dinámico creado por el inspector; no debe añadirse al HTML base solo para satisfacer el test.
+- Overlay lateral quedó conectado.
+- Centro Twitch quedó conectado con toggle y estado.
+- Test contractual UI↔OBS fue ampliado para cubrir botones declarativos, controles deshabilitados y elementos dinámicos conocidos.
+
+Regla de continuidad:
+- Antes de implementar nuevas acciones, ejecutar la auditoría de botones y revisar esta bitácora.
+- Las capacidades Twitch/OBS mostradas como catálogo no se consideran backend hasta tener endpoint/handler, prueba y servicio real.
+
+Estado global:
+- Porcentaje global de seguimiento: **60%**.
+- Ingeniería: **66%**.
+- Producto usable: **52%**.
+
+Pendientes prioritarios que no deben reemplazarse por trabajo repetido:
+1. timestamps A/V explícitos extremo a extremo;
+2. compositor GPU D3D11 con avatar dentro del frame final;
+3. FFmpeg + named pipes sostenidos en Windows;
+4. drift correction WASAPI;
+5. cámara Media Foundation / Game Capture;
+6. Twitch EventSub avanzado y scopes;
+7. OBS controls adicionales;
+8. hardware, multistream e instalador.
