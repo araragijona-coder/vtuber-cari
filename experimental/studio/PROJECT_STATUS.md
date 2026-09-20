@@ -196,3 +196,10 @@ El porcentaje de ingeniería y el porcentaje de producto listo para uso real se 
 - **Producto usable/end-user: ~48%**.
 
 Producto usable todavía requiere: prueba Windows real, Twitch real, RTMP sostenido, modelo artístico final, composición avatar→encoder, cámara final, Game Capture, drift correction, lip-sync, distribución FFmpeg y validación del PC objetivo.
+
+## User-facing readiness update
+
+- Twitch OAuth + EventSub chat está conectado al desktop shell con UI de conexión, chat entrante, envío y lectura local.
+- Avatar GLB/glTF tiene selector y framing de cuerpo completo.
+- Instalador NSIS x64 y launchers están definidos.
+- La validación real del servicio/hardware continúa abierta.
