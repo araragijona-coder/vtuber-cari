@@ -85,8 +85,8 @@ int main() {
     constexpr std::uint32_t height = 36;
     constexpr std::uint32_t sample_rate = 48000;
     constexpr std::uint16_t channels = 2;
-    constexpr std::size_t video_frames = 30;
-    constexpr std::size_t audio_packets = 50;
+    constexpr std::size_t video_frames = 150; // 5 s at 30 FPS.
+    constexpr std::size_t audio_packets = 250; // 5 s at 50 x 20 ms/s.
     constexpr std::size_t samples_per_packet = 960;
 
     const std::string target = "cari-ffmpeg-named-pipe-e2e.mkv";
@@ -155,7 +155,9 @@ int main() {
             }
         }
         if (!check(pump(output), "FFmpeg polling failed")) { output.stop(); return 1; }
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        // Pace the synthetic producer close to realtime so this also exercises
+        // sustained named-pipe backpressure rather than only burst throughput.
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
     if (!check(wait_writes(output, video_frames, audio_packets),
