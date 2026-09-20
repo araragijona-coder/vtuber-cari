@@ -205,6 +205,7 @@ std::string BuildControlStatusMessage() {
     result += ";audio_dropped_overflow=" + std::to_string(media.audio_dropped_overflow);
     result += ";audio_dropped_format=" + std::to_string(media.audio_dropped_format);
     result += ";audio_late=" + std::to_string(media.audio_late);
+    result += ";pacing_budget_exhausted=" + std::to_string(media.pacing_budget_exhausted);
     result += ";video_bytes=" + std::to_string(transport.video.bytes_written);
     result += ";audio_bytes=" + std::to_string(transport.audio.bytes_written);
     result += ";video_pipe_drops=" + std::to_string(transport.video.writes_dropped);
