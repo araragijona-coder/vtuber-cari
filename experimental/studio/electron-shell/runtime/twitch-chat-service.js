@@ -4,7 +4,8 @@ const {
   validateToken,
   getUser,
   sendChatMessage,
-  subscribeChat
+  subscribeChat,
+  subscribeEventSub
 } = require("./twitch-api");
 
 class TwitchChatService extends EventEmitter {
@@ -21,6 +22,7 @@ class TwitchChatService extends EventEmitter {
     this.generation = 0;
     this.reconnectAttempt = 0;
     this.reconnectTimer = null;
+    this.keepaliveTimer = null;
     this.manualDisconnect = false;
     this.messageIds = new Set();
   }
@@ -222,19 +224,86 @@ class TwitchChatService extends EventEmitter {
           this.broadcaster.id,
           this.user.id
         );
+
+        // These subscriptions require no additional user scopes and give Cari
+        // enough lifecycle context to drive VTuber/scene automations.
+        const subscriptions = [
+          {
+            type: "channel.update",
+            version: "2",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "channel.raid",
+            version: "1",
+            condition: { to_broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "stream.online",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "stream.offline",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "channel.shared_chat.begin",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "channel.shared_chat.update",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "channel.shared_chat.end",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          }
+        ];
+
+        for (const subscription of subscriptions) {
+          try {
+            await subscribeEventSub(
+              this.clientId,
+              this.token,
+              sessionId,
+              subscription
+            );
+          } catch (error) {
+            // Chat remains the required baseline. Optional event subscriptions
+            // must not tear down a healthy chat connection.
+            this.emit("error", new Error(
+              `EventSub ${subscription.type} unavailable: ${error.message}`
+            ));
+          }
+        }
+
         delete this.socket.__cariFreshSession;
       }
+
+      const keepaliveTimeout =
+        Number(message.payload?.session?.keepalive_timeout_seconds) || 10;
+      clearTimeout(this.keepaliveTimer);
+      this.keepaliveTimer = setTimeout(() => {
+        if (this.manualDisconnect) return;
+        try { this.socket?.close(4005, "keepalive timeout"); } catch {}
+      }, Math.max(10, keepaliveTimeout) * 1000 + 1000);
 
       this.emit("eventsub:welcome", {
         generation,
         sessionId,
-        keepaliveTimeout: message.payload?.session?.keepalive_timeout_seconds
+        keepaliveTimeout
       });
       this.emit("status", this.status);
       return;
     }
 
     if (type === "session_keepalive") {
+      this.#refreshKeepaliveTimer();
       this.emit("eventsub:keepalive", { generation });
       return;
     }
@@ -245,10 +314,30 @@ class TwitchChatService extends EventEmitter {
       return;
     }
 
-    if (type !== "notification") return;
-    if (message?.payload?.subscription?.type !== "channel.chat.message") return;
+    this.#refreshKeepaliveTimer();
 
+    if (type !== "notification") return;
+
+    const notificationId = message?.metadata?.message_id;
+    if (notificationId && this.messageIds.has(notificationId)) return;
+    if (notificationId) {
+      this.messageIds.add(notificationId);
+      if (this.messageIds.size > 2000) {
+        this.messageIds.delete(this.messageIds.values().next().value);
+      }
+    }
+
+    const eventType = message?.payload?.subscription?.type;
     const event = message.payload.event || {};
+
+    if (eventType !== "channel.chat.message") {
+      this.emit("event", {
+        eventType,
+        payload: event,
+        subscription: message.payload.subscription || null
+      });
+      return;
+    }
     const id = event.message_id;
     if (id && this.messageIds.has(id)) return;
     if (id) {
@@ -269,7 +358,16 @@ class TwitchChatService extends EventEmitter {
     });
   }
 
-  #scheduleReconnect() {
+  #refreshKeepaliveTimer() {
+    clearTimeout(this.keepaliveTimer);
+    const timeoutSeconds = 10;
+    this.keepaliveTimer = setTimeout(() => {
+      if (this.manualDisconnect) return;
+      try { this.socket?.close(4005, "keepalive timeout"); } catch {}
+    }, timeoutSeconds * 1000 + 1000);
+  }
+
+
     if (this.manualDisconnect) return;
 
     this.reconnectAttempt += 1;
