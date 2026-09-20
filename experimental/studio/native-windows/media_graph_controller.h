@@ -31,6 +31,7 @@ struct MediaGraphStats {
     std::uint64_t audio_dropped_overflow = 0;
     std::uint64_t audio_dropped_format = 0;
     std::uint64_t audio_late = 0;
+    std::uint64_t pacing_budget_exhausted = 0;
     std::uint64_t polls = 0;
     std::uint64_t poll_failures = 0;
 };
@@ -76,6 +77,7 @@ private:
 
     static constexpr std::size_t kMaxPendingVideo = 8;
     static constexpr std::size_t kMaxPendingAudio = 32;
+    static constexpr std::size_t kMaxDispatchEventsPerPoll = 8;
 
     mutable std::mutex mutex_;
     NativeMediaOutputBridge output_;
