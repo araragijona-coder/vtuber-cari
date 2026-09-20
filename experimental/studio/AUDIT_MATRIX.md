@@ -72,6 +72,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Camera enumeration.
 - [x] Frame-pool recreate ante cambios de tamaño.
 - [ ] Media Foundation camera streaming.
+  - Implementación nativa e integración al control plane/output ya realizadas; falta verificación Windows con cámara real y reconexión.
 - [ ] Dedicated game capture.
 - [x] Device-loss recovery para removed/reset/hung.
 - [ ] Exhaustive device-loss/reconnect path.
