@@ -517,3 +517,45 @@ Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese re
 1. Integrar MediaFoundationCamera al runtime sin duplicar el control plane existente.
 2. Obtener una ejecución Windows observable del E2E y del nuevo smoke.
 3. Solo después avanzar a drift/PTS explícito y avatar real → frame final.
+## 13. Continuación — cámara nativa conectada al runtime (20/09/2026)
+
+### Trabajo realizado
+- Se respetó la regla anti-repetición: WGC, WASAPI, MediaClock, RealtimePacer, MediaInterleaver, RawPipe, FFmpeg supervisor, D3D11 compositor, Three.js renderer y MediaPipe tracker no fueron reimplementados.
+- Se corrigió MediaFoundationCamera para usar MFSetAttributeSize/MFSetAttributeRatio y leer el formato negociado con MFGetAttributeSize/MFGetAttributeRatio.
+- El smoke de cámara valida enumeración, intenta captura real cuando existe dispositivo y permite exigir recepción de frames con CARI_CAMERA_SMOKE_REQUIRED.
+- capture.start fue extendido de forma compatible a source=camera.
+- Se añadió camera_index separado de window_index.
+- StudioSessionManager conserva cameraIndex independiente y envía camera_index.
+- El runtime nativo conecta MediaFoundationCamera al MediaGraphController existente.
+- StartOutput obtiene resolución/FPS de la fuente activa, incluida la cámara.
+- La UI añade selección de cámara nativa separada de la cámara usada por MediaPipe.
+- Se agregó prueba de sesión para el enrutamiento source=camera.
+- Se corrigió el caso de cambiar de cámara mientras otra cámara está activa.
+- No se creó un segundo transporte raw ni un segundo control plane.
+
+### Estado
+| Elemento | Estado | Gate restante |
+|---|---|---|
+| MediaFoundationCamera | IMPLEMENTADO | cámara real/reconexión Windows |
+| source=camera en control plane | IMPLEMENTADO | validación Windows |
+| Cámara → MediaGraphController | IMPLEMENTADO | E2E sostenido |
+| UI cámara nativa | IMPLEMENTADO | prueba real |
+| Smoke cámara | IMPLEMENTADO | ejecución Windows observable |
+| Cámara + MediaPipe + avatar | PENDIENTE | conectar frames al tracker existente sin duplicarlo |
+
+### No repetir
+- No crear otro backend Media Foundation.
+- No sustituir WGC por OpenCV.
+- No crear otro tracker facial.
+- No crear otro protocolo de control.
+- No crear otro RawPipe.
+
+### Evidencia
+- Código y CMake del smoke están integrados.
+- Los runners actuales de Actions siguen sin exponer steps/logs observables.
+- source=camera es una extensión del protocolo existente.
+
+### Porcentaje
+- Avance canónico: 63%.
+- P07 permanece abierto hasta observar captura/cadencia/lifecycle/reconexión en Windows.
+- No sumar puntos por la misma implementación dos veces.
