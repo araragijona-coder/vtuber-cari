@@ -1053,3 +1053,184 @@ El header debe ser versionado, pequeño y con validación de tamaño antes de ac
 - **HEAD auditado:** 59952e8e68c9857aa9c4e528218503fc7ab7cddd.
 
 Esta sección reemplaza cualquier descripción anterior de P0-02 que diga que existe una "segunda readback de composición software". Esa descripción está obsoleta y no debe reutilizarse.
+
+
+## 26. P0-02 profundizado — callback WGC / GPU / CPU — 20/09/2026 15:04 ART
+
+**HEAD auditado:** 59952e8e68c9857aa9c4e528218503fc7ab7cddd  
+**Avance canónico:** **63%**  
+**Estado:** P0 abierto; no agregar nuevas funciones que dependan de esta ruta hasta corregirla.
+
+### Hallazgo confirmado
+
+El callback principal de `g_capture.set_frame_callback(...)` no es un simple productor de frames. Cuando hay output activo, realiza dentro del worker de `FrameArrived`:
+
+1. Obtención de `ID3D11Texture2D` desde la superficie WGC.
+2. Inicialización/reutilización del `D3D11Compositor`.
+3. `CopyResource(capture → output)`.
+4. Para cada overlay, creación de textura `IMMUTABLE` + SRV mediante `upload_overlay()`.
+5. Dibujo del overlay mediante shader.
+6. `copy_output_to_cpu()`: creación de staging texture.
+7. `CopyResource(output → staging)`.
+8. `Map(D3D11_MAP_READ)` y copia completa a un `std::vector<uint8_t>`.
+9. Envío del buffer a `MediaGraphController`.
+
+Esto significa que el cuello no está solamente en el CPU readback del `FrameBridge`: el camino normal de output ya hace **GPU composition + GPU→CPU readback por frame**.
+
+### Hallazgo confirmado adicional: overlay del avatar
+
+La captura de la ventana del avatar ejecuta en su propio callback WGC:
+
+```
+WGC avatar
+  ↓
+FrameBridge::copy_to_cpu()
+  ↓
+staging + Map(READ)
+  ↓
+BGRA → RGBA CPU
+  ↓
+shared_ptr
+```
+
+y luego el callback principal sube ese bitmap a GPU nuevamente con `upload_overlay()`.
+
+Por tanto existe un segundo circuito de cruces CPU/GPU que debe eliminarse o desacoplarse del callback.
+
+### Corrección respecto de snapshots anteriores
+
+No volver a describir el problema como:
+
+```
+WGC → CPU readback → software compositor → GPU readback
+```
+
+La implementación actual real es:
+
+```
+WGC
+ ↓
+D3D11 GPU compositor
+ ↓
+GPU → CPU readback
+ ↓
+MediaGraph
+ ↓
+raw pipe
+ ↓
+FFmpeg
+```
+
+con un fallback/diagnóstico alternativo:
+
+```
+WGC
+ ↓
+FrameBridge CPU readback
+ ↓
+MediaGraph
+```
+
+### P0-06 — device-loss / compositor stale device
+
+Hay un bug adicional confirmado.
+
+`CaptureEngine::recover_device_and_pool()` puede crear un nuevo `ID3D11Device` después de `DXGI_ERROR_DEVICE_REMOVED/RESET/HUNG`.
+
+Sin embargo `g_gpu_compositor` conserva sus `device_`/`context_`/textures anteriores y en `main.cpp` la condición `needs_init` solo comprueba null o cambio de dimensiones. No comprueba que el dispositivo D3D11 haya cambiado.
+
+Consecuencia esperable: después de una recuperación de dispositivo, el compositor puede intentar operar con una textura del device nuevo usando recursos/contexto del device anterior. Debe invalidarse y reconstruirse explícitamente.
+
+### P1-24 — asignación de overlay por frame
+
+`D3D11Compositor::upload_overlay()` crea y destruye recursos GPU por overlay y por frame. El bitmap del avatar puede no cambiar, pero el pipeline vuelve a crear la textura igualmente.
+
+**Acción:** cachear textura/SRV y actualizar contenido solo cuando cambie el frame del overlay.
+
+### P1-25 — staging por frame
+
+`D3D11Compositor::copy_output_to_cpu()` crea un staging texture nuevo en cada frame. Esto impide un readback pipelined eficiente.
+
+**Acción:** pool de 2–3 staging textures y lectura diferida; este gate queda provisional hasta disponer de encoder GPU/direct-surface.
+
+### P1-26 — avatar sin sincronización temporal
+
+`g_avatar_overlay_sequence` se almacena pero no participa en la selección del overlay. El frame principal puede combinar una captura de escritorio nueva con un avatar más antiguo.
+
+**Acción:** añadir edad máxima del overlay y selección temporal por PTS/sequence.
+
+### P1-27 — UI/control bloqueante al iniciar cámara
+
+`StartOutput()` puede ejecutar hasta 100 iteraciones de `Sleep(10)` para esperar el formato de cámara. Es una espera de hasta ~1 s en el hilo de control/UI.
+
+**Acción:** convertir el arranque de cámara en estado asíncrono/event-driven.
+
+### P1-28 — enumeración de cámaras en refresh
+
+`BuildSourceStatus()` enumera cámaras periódicamente. La enumeración invoca Media Foundation startup/shutdown, por lo que no debe mantenerse como tarea periódica de UI.
+
+**Acción:** cachear endpoints y refrescar por evento o bajo demanda.
+
+### P1-29 — timestamps de cámara
+
+El Source Reader entrega el timestamp del media sample, pero la auditoría aún no demuestra equivalencia de reloj con WGC/WASAPI. No asumir sincronización solo porque ambas escalas sean 100 ns.
+
+### P1-30 — Libav audio timeline
+
+La ruta `LibavMediaOutput` convierte los paquetes de audio a una secuencia continua basada en `next_audio_pts`. Los gaps/overlaps del PTS de entrada no modifican esa continuidad después del primer paquete.
+
+**Acción:** definir política explícita para paquetes perdidos, gaps y overlaps antes de usar Libav como ruta de producción.
+
+### P1-31 — elección de sample-rate en Libav
+
+La distancia inicial para seleccionar el sample-rate soportado se calcula contra 48 kHz antes de comparar con el sample-rate real de entrada. Ese inicializador puede conservar una frecuencia incorrecta cuando el primer sample-rate soportado no coincide con la entrada y las alternativas posteriores tienen mayor distancia que el error inicial.
+
+**Acción:** inicializar la mejor distancia contra `input_audio_sample_rate` desde el principio y cubrir 22.05/32/44.1/48/96 kHz.
+
+### P0/P1 oficial — FFmpeg wallclock
+
+FFmpeg documenta que `use_wallclock_as_timestamps=1` fuerza PTS/DTS desde wallclock y advierte resultados indefinidos con B-frames. El perfil raw actual utiliza esa opción mientras el encoder de archivo permite B-frames.
+
+**Acción:** no considerar esta configuración como solución temporal de sincronización. La ruta PTS explícita debe resolver el problema de raíz.
+
+### CI actual
+
+Los runs del HEAD reciente continúan muriendo antes de steps/logs observables:
+
+- Native Windows Build: failure, jobs sin `steps`/logs.
+- Actions Runner Diagnostic: failure, job sin `steps`/logs.
+- CI: failure, jobs sin `steps`/logs.
+- Character Runtime Tests: failure, jobs sin `steps`/logs.
+
+Esto sigue siendo evidencia de **CI no verificable**, no de una regresión específica de C++.
+
+### No repetir
+
+- No rehacer WGC.
+- No reimplementar el compositor D3D11 desde cero.
+- No crear un segundo pipeline de readback.
+- No crear otro renderer/avatar/tracker.
+- No usar OpenCV para sustituir WGC.
+- No volver a `capturePage()`.
+- No optimizar primero el software compositor.
+- No reintentar la misma prueba FFmpeg sintética sin cambios de contrato.
+- No marcar el E2E Windows como VERIFIED hasta obtener steps/logs y métricas.
+- No marcar device-loss como resuelto sin reconstrucción del compositor sobre el device nuevo.
+
+### Cola única posterior al análisis
+
+**P0-02:** callback WGC mínimo + cola latest-frame acotada + worker.
+
+**P0-06:** invalidación del compositor al cambiar device.
+
+**P0-04:** transporte PTS explícito, evitando `use_wallclock_as_timestamps` como sustituto.
+
+**P1-24/P1-25:** cache de overlay + pool de readback provisional.
+
+**P1-26:** sincronización temporal del avatar.
+
+**P1-27/P1-28:** arranque/enumeración de cámara sin bloquear UI.
+
+**P1-30/P1-31:** corregir timeline y selección de sample-rate Libav.
+
+No avanzar a multistream ni a más funciones de plataforma hasta cerrar P0-02, P0-04 y P0-06.
