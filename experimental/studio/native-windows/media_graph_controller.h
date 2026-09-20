@@ -29,6 +29,8 @@ struct MediaGraphStats {
     std::uint64_t audio_submitted = 0;
     std::uint64_t audio_dropped = 0;
     std::uint64_t audio_dropped_overflow = 0;
+    std::uint64_t audio_dropped_format = 0;
+    std::uint64_t audio_late = 0;
     std::uint64_t polls = 0;
     std::uint64_t poll_failures = 0;
 };
@@ -81,6 +83,8 @@ private:
     std::uint32_t output_width_ = 0;
     std::uint32_t output_height_ = 0;
     std::uint32_t output_fps_ = 0;
+    std::uint32_t output_audio_sample_rate_ = 0;
+    std::uint16_t output_audio_channels_ = 0;
     cari::studio::core::Timestamp last_video_pts_ = 0;
     bool have_last_video_pts_ = false;
     MediaGraphStats stats_{};
