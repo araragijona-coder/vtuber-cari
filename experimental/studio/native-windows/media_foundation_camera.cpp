@@ -47,8 +47,12 @@ bool select_video_type(
     type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
     type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
     type->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive);
-    type->SetUINT32(MF_MT_FRAME_SIZE, ((requested_width & 0xffffu) << 16) | (requested_height & 0xffffu));
-    type->SetUINT32(MF_MT_FRAME_RATE, ((requested_fps & 0xffffu) << 16) | 1u);
+    if (FAILED(MFSetAttributeSize(
+            type.Get(), MF_MT_FRAME_SIZE, requested_width, requested_height)) ||
+        FAILED(MFSetAttributeRatio(
+            type.Get(), MF_MT_FRAME_RATE, requested_fps, 1))) {
+        return false;
+    }
 
     const HRESULT hr = reader->SetCurrentMediaType(
         MF_SOURCE_READER_FIRST_VIDEO_STREAM,
@@ -70,15 +74,25 @@ bool read_current_type(
         return false;
     }
 
-    UINT32 frame_size = 0;
-    UINT32 frame_rate = 0;
-    if (FAILED(type->GetUINT32(MF_MT_FRAME_SIZE, &frame_size))) return false;
-    type->GetUINT32(MF_MT_FRAME_RATE, &frame_rate);
+    UINT32 actual_width = 0;
+    UINT32 actual_height = 0;
+    if (FAILED(MFGetAttributeSize(
+            type.Get(), MF_MT_FRAME_SIZE, &actual_width, &actual_height))) {
+        return false;
+    }
 
-    width = frame_size >> 16;
-    height = frame_size & 0xffffu;
-    fps_num = frame_rate >> 16;
-    fps_den = std::max<std::uint32_t>(1, frame_rate & 0xffffu);
+    UINT32 actual_fps_num = 0;
+    UINT32 actual_fps_den = 1;
+    if (FAILED(MFGetAttributeRatio(
+            type.Get(), MF_MT_FRAME_RATE, &actual_fps_num, &actual_fps_den))) {
+        actual_fps_num = 0;
+        actual_fps_den = 1;
+    }
+
+    width = actual_width;
+    height = actual_height;
+    fps_num = actual_fps_num;
+    fps_den = std::max<std::uint32_t>(1, actual_fps_den);
     return width != 0 && height != 0;
 }
 
