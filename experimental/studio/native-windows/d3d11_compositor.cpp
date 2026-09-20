@@ -547,4 +547,65 @@ bool D3D11Compositor::compose_capture(
     return true;
 }
 
+bool D3D11Compositor::copy_output_to_cpu(
+    std::shared_ptr<std::vector<std::uint8_t>>& pixels,
+    std::wstring& error) {
+    error.clear();
+    pixels.reset();
+
+    if (!output_texture_ || !device_ || !context_ ||
+        width_ == 0 || height_ == 0) {
+        error = L"compositor output is not initialized";
+        return false;
+    }
+
+    D3D11_TEXTURE2D_DESC desc{};
+    output_texture_->GetDesc(&desc);
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    desc.MiscFlags = 0;
+
+    ComPtr<ID3D11Texture2D> staging;
+    HRESULT hr = device_->CreateTexture2D(&desc, nullptr, &staging);
+    if (FAILED(hr)) {
+        error = hresult_error(hr, L"CreateTexture2D staging output");
+        return false;
+    }
+
+    context_->CopyResource(staging.Get(), output_texture_.Get());
+
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    hr = context_->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped);
+    if (FAILED(hr)) {
+        error = hresult_error(hr, L"Map staging output");
+        return false;
+    }
+
+    try {
+        const std::size_t row_bytes =
+            static_cast<std::size_t>(width_) * 4u;
+        const std::size_t total_bytes =
+            row_bytes * static_cast<std::size_t>(height_);
+        auto result = std::make_shared<std::vector<std::uint8_t>>(total_bytes);
+        auto* source = static_cast<const std::uint8_t*>(mapped.pData);
+
+        for (std::uint32_t row = 0; row < height_; ++row) {
+            std::memcpy(
+                result->data() + static_cast<std::size_t>(row) * row_bytes,
+                source + static_cast<std::size_t>(row) * mapped.RowPitch,
+                row_bytes);
+        }
+
+        context_->Unmap(staging.Get(), 0);
+        pixels = std::move(result);
+        ++stats_.cpu_readbacks;
+        return true;
+    } catch (...) {
+        context_->Unmap(staging.Get(), 0);
+        error = L"failed to allocate CPU output frame";
+        return false;
+    }
+}
+
 } // namespace cari::native
