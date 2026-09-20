@@ -262,3 +262,48 @@ Pendientes prioritarios que no deben reemplazarse por trabajo repetido:
 6. Twitch EventSub avanzado y scopes;
 7. OBS controls adicionales;
 8. hardware, multistream e instalador.
+
+## Actualización 2026-09-20 — ciclo actual: botones + Twitch + OBS + continuidad
+
+### Hecho
+- Se corrigió el renderer para usar el elemento real #engine-chip.
+- Se agregó controls-contract.test.mjs y quedó incorporado al test de Electron.
+- Auditoría automática: 57 botones con ID; 0 sin handler/navegación; 0 métodos OBS/Twitch consumidos desde renderer sin wrapper en preload.
+- OBS quedó con espejo de runtime: Stream, Record, Virtual Camera, Program, Preview y Studio Mode, con eventos hacia renderer y limpieza de estado ante desconexión.
+- Twitch mantiene un único EventSub websocket; lifecycle events, keepalive watchdog, reconnect transfer y deduplicación están centralizados en TwitchChatService.
+- Los eventos Twitch de lifecycle pueden activar acciones locales del avatar.
+- El ciclo nativo mantiene retry RTMP acotado a fallos de red, diagnóstico básico, stderr acotado, backpressure y presupuesto de 8 eventos por polling.
+
+### Correcciones durante este ciclo
+- Se detectó y reparó una mutilación de #scheduleReconnect() provocada por una edición del watchdog.
+- Se detectó y reparó el formato del nuevo test contractual, que inicialmente contenía saltos de línea literales en lugar de saltos reales.
+- Se corrigió el orden de serialización del campo output en el estado nativo.
+
+### Evidencia
+- Parseo sintáctico independiente: TwitchChatService, ObsService, Electron Main, preload y renderer: OK.
+- Auditoría estática UI: OK.
+- Pruebas C++20 strict y FFmpeg sintético: PASS según evidencias ya registradas.
+- CI actual: BLOQUEADO por jobs que terminan con steps=null y sin logs observables.
+
+### NO REPETIR
+- No rehacer navegación.
+- No crear otro ObsService, TwitchChatService, EventSub websocket o Action Store.
+- No volver a usar #engine; el elemento correcto es #engine-chip.
+- No declarar Twitch, OBS, RTMP o hardware como validados solo porque el botón existe.
+- No rehacer MediaClock, RealtimePacer o MediaInterleaver.
+- No sustituir Windows Graphics Capture por OpenCV para escritorio sin evidencia.
+- No convertir capturePage en compositor de producción.
+
+### Siguiente foco
+1. Transporte A/V con timestamps explícitos.
+2. Compositor GPU final: captura + avatar + overlays → frame codificado.
+3. E2E Windows FFmpeg/named pipes.
+4. Drift correction WASAPI.
+5. Cámara Media Foundation y Game Capture.
+6. Twitch scopes/endpoints adicionales y pruebas reales.
+7. OBS scene items/filters/hotkeys.
+8. Hardware, multistream e instalador.
+
+### Porcentaje canónico actual
+- Ingeniería: ~65%.
+- Producto usable: ~50%.
