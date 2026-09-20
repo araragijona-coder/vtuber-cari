@@ -1,0 +1,29 @@
+name: Character Runtime Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/characters/**'
+      - 'tests/test_character_profiles.py'
+      - '.github/workflows/character-tests.yml'
+  push:
+    branches: [main, "fix/native-windows-foundation"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile character runtime
+        run: python -m compileall -q app/characters tests/test_character_profiles.py
+      - name: Run character profile tests
+        run: python -m unittest tests.test_character_profiles -v
