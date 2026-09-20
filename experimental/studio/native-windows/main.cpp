@@ -5,6 +5,7 @@
 #include "audio_core_bridge.h"
 #include "audio_probe.h"
 #include "camera_sources.h"
+#include "media_foundation_camera.h"
 #include "capture_engine.h"
 #include "compositor_bridge.h"
 #include "d3d11_compositor.h"
@@ -47,6 +48,7 @@ std::wstring g_source_status;
 std::vector<cari::native::WindowSourceInfo> g_windows;
 HWND g_selected_window = nullptr;
 std::size_t g_selected_window_index = 0;
+std::size_t g_selected_camera_index = 0;
 std::string g_capture_source = "window";
 std::atomic<std::uint64_t> g_bridge_attempts{0};
 std::atomic<std::uint64_t> g_bridge_successes{0};
@@ -59,6 +61,7 @@ std::atomic<std::uint64_t> g_compositor_bytes{0};
 std::atomic<std::uint64_t> g_last_composited_sequence{0};
 cari::native::MediaGraphController g_media_graph;
 std::atomic<bool> g_media_enabled{false};
+MediaFoundationCamera g_camera;
 cari::native::D3D11Compositor g_gpu_compositor;
 std::mutex g_gpu_compositor_mutex;
 std::shared_ptr<std::vector<std::uint8_t>> g_gpu_avatar_placeholder;
@@ -97,6 +100,50 @@ std::wstring BuildAudioStatus() {
     return result;
 }
 
+bool CaptureIsRunning() {
+    return g_capture.is_running() || g_camera.running();
+}
+
+void StopCaptureSource() noexcept {
+    g_camera.stop();
+    g_capture.stop();
+}
+
+struct ActiveCaptureFormat {
+    bool running = false;
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    std::uint32_t fps = 30;
+};
+
+ActiveCaptureFormat GetActiveCaptureFormat() {
+    if (g_camera.running() || g_capture_source == "camera") {
+        const auto camera = g_camera.stats();
+        const std::uint32_t fps = camera.fps_num > 0
+            ? std::max<std::uint32_t>(
+                1,
+                static_cast<std::uint32_t>(
+                    (static_cast<std::uint64_t>(camera.fps_num) +
+                     camera.fps_den / 2u) /
+                    std::max<std::uint32_t>(1, camera.fps_den)))
+            : 30u;
+        return {
+            g_camera.running(),
+            camera.width,
+            camera.height,
+            fps
+        };
+    }
+
+    const auto capture = g_capture.stats();
+    return {
+        g_capture.is_running(),
+        static_cast<std::uint32_t>(capture.width),
+        static_cast<std::uint32_t>(capture.height),
+        30u
+    };
+}
+
 std::wstring BuildSourceStatus() {
     g_windows = cari::native::enumerate_capturable_windows();
     const auto cameras = cari::native::enumerate_cameras();
@@ -123,62 +170,54 @@ std::wstring BuildSourceStatus() {
 }
 
 std::wstring BuildCaptureStatus() {
-    if (!g_capture.is_running()) {
+    if (!CaptureIsRunning()) {
+        if (!g_camera.last_error().empty() && g_capture_source == "camera") {
+            return L"Capture: stopped — " + g_camera.last_error();
+        }
         if (!g_capture.last_error().empty()) {
             return L"Capture: stopped — " + g_capture.last_error();
         }
         return L"Capture: stopped";
     }
 
-    const auto stats = g_capture.stats();
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    double fps = 0.0;
+    std::uint64_t frames = 0;
+    std::uint64_t errors = 0;
+    if (g_capture_source == "camera") {
+        const auto camera = g_camera.stats();
+        width = camera.width;
+        height = camera.height;
+        fps = camera.fps_num > 0 && camera.fps_den > 0
+            ? static_cast<double>(camera.fps_num) / camera.fps_den
+            : 0.0;
+        frames = camera.frames;
+        errors = camera.errors;
+    } else {
+        const auto capture = g_capture.stats();
+        width = static_cast<std::uint32_t>(capture.width);
+        height = static_cast<std::uint32_t>(capture.height);
+        fps = capture.fps;
+        frames = capture.frames;
+        errors = capture.errors;
+    }
+
     const std::wstring selected_title =
         g_capture_source == "screen"
             ? std::wstring(L"primary display")
-            : ((g_selected_window_index < g_windows.size())
-                ? g_windows[g_selected_window_index].title
-                : std::wstring(L"unknown source"));
-
-    const auto bridge_attempts = g_bridge_attempts.load(std::memory_order_relaxed);
-    const auto bridge_successes = g_bridge_successes.load(std::memory_order_relaxed);
-    const auto bridge_failures = g_bridge_failures.load(std::memory_order_relaxed);
-    const auto bridge_bytes = g_bridge_bytes.load(std::memory_order_relaxed);
-    const auto bridge_sequence = g_last_bridge_sequence.load(std::memory_order_relaxed);
-    const auto compositor_successes = g_compositor_successes.load(std::memory_order_relaxed);
-    const auto compositor_failures = g_compositor_failures.load(std::memory_order_relaxed);
-    const auto compositor_bytes = g_compositor_bytes.load(std::memory_order_relaxed);
-    const auto composited_sequence = g_last_composited_sequence.load(std::memory_order_relaxed);
-    std::uint64_t gpu_frames = 0;
-    std::uint64_t gpu_uploads = 0;
-    std::uint64_t gpu_rejected = 0;
-    {
-        std::lock_guard gpu_lock(g_gpu_compositor_mutex);
-        const auto gpu_stats = g_gpu_compositor.stats();
-        gpu_frames = gpu_stats.composed_frames;
-        gpu_uploads = gpu_stats.overlay_uploads;
-        gpu_rejected = gpu_stats.rejected_frames;
-    }
+            : (g_capture_source == "camera"
+                ? std::wstring(L"camera #") + std::to_wstring(g_selected_camera_index + 1)
+                : ((g_selected_window_index < g_windows.size())
+                    ? g_windows[g_selected_window_index].title
+                    : std::wstring(L"unknown source")));
 
     return L"Capture: running — " + selected_title + L" — " +
-           std::to_wstring(stats.width) + L"x" + std::to_wstring(stats.height) +
-           L", " + std::to_wstring(stats.frames) + L" frame(s), " +
-           std::to_wstring(stats.fps) + L" FPS, " +
-           std::to_wstring(stats.errors) + L" error(s), " +
-           std::to_wstring(stats.recreates) + L" recreate(s), " +
-           std::to_wstring(stats.device_recoveries) + L" device recovery(ies)\n" +
-           L"Frame bridge: " + std::to_wstring(bridge_successes) + L" success / " +
-           std::to_wstring(bridge_failures) + L" failed / " +
-           std::to_wstring(bridge_attempts) + L" sample(s), " +
-           std::to_wstring(bridge_bytes) + L" byte(s), last sequence " +
-           std::to_wstring(bridge_sequence) + L"\n" +
-           L"Reference compositor: " + std::to_wstring(compositor_successes) +
-           L" success / " + std::to_wstring(compositor_failures) +
-           L" failed, " + std::to_wstring(compositor_bytes) +
-           L" output byte(s), last sequence " +
-           std::to_wstring(composited_sequence) + L"\n" +
-           L"GPU compositor: " + std::to_wstring(gpu_frames) +
-           L" frame(s), " + std::to_wstring(gpu_uploads) +
-           L" overlay upload(s), " + std::to_wstring(gpu_rejected) +
-           L" rejection(s)";
+           std::to_wstring(width) + L"x" + std::to_wstring(height) +
+           L", " + std::to_wstring(frames) + L" frame(s), " +
+           std::to_wstring(fps) + L" FPS, " +
+           std::to_wstring(errors) + L" error(s)\n" +
+           L"Source: " + std::wstring(g_capture_source.begin(), g_capture_source.end());
 }
 
 void RefreshStatus(HWND hwnd);
@@ -239,7 +278,9 @@ std::string BuildControlStatusMessage() {
     const auto transport = g_media_graph.transport_metrics();
 
     std::string result = "capture=";
-    result += g_capture.is_running() ? "running" : "stopped";
+    result += CaptureIsRunning() ? "running" : "stopped";
+    result += ";capture_source=" + g_capture_source;
+    result += ";camera_index=" + std::to_string(g_selected_camera_index);
     result += ";frames=" + std::to_string(capture.frames);
     result += ";fps=" + std::to_string(capture.fps);
     result += ";capture_errors=" + std::to_string(capture.errors);
@@ -340,12 +381,46 @@ void PollMediaGraph(HWND hwnd) {
     }
 }
 
-bool StartCaptureSource(HWND hwnd, const std::string& source, std::int32_t requested_window_index = -1) {
+bool StartCaptureSource(
+    HWND hwnd,
+    const std::string& source,
+    std::int32_t requested_window_index = -1,
+    std::int32_t requested_camera_index = -1) {
     if (source == "screen") {
         const HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
         const bool started = g_capture.start_display(monitor);
         if (started) {
             g_capture_source = "screen";
+        }
+        return started;
+    }
+
+    if (source == "camera") {
+        const auto cameras = MediaFoundationCamera::enumerate();
+        if (requested_camera_index >= 0) {
+            const auto index = static_cast<std::size_t>(requested_camera_index);
+            if (index >= cameras.size()) {
+                return false;
+            }
+            g_selected_camera_index = index;
+        } else if (g_selected_camera_index >= cameras.size()) {
+            g_selected_camera_index = 0;
+        }
+
+        const bool started = g_camera.start(
+            g_selected_camera_index,
+            [](const cari::studio::core::Frame& frame,
+               const std::shared_ptr<std::vector<std::uint8_t>>& pixels) {
+                if (g_media_enabled.load(std::memory_order_relaxed) &&
+                    g_media_graph.connected() && pixels) {
+                    g_media_graph.submit_video(frame, pixels);
+                }
+            },
+            1280,
+            720,
+            30);
+        if (started) {
+            g_capture_source = "camera";
         }
         return started;
     }
@@ -398,8 +473,8 @@ bool StartOutput(
     bool started_capture = false;
     bool started_audio = false;
 
-    if (!g_capture.is_running()) {
-        if (!StartCaptureSource(hwnd, g_capture_source, -1)) {
+    if (!CaptureIsRunning()) {
+        if (!StartCaptureSource(hwnd, g_capture_source, -1, -1)) {
             return false;
         }
         started_capture = true;
@@ -407,7 +482,7 @@ bool StartOutput(
 
     if (!g_audio_bridge.running()) {
         if (!g_audio_bridge.start()) {
-            if (started_capture) g_capture.stop();
+            if (started_capture) StopCaptureSource();
             return false;
         }
         started_audio = true;
@@ -416,7 +491,7 @@ bool StartOutput(
     const bool streaming = output_profile == "rtmp";
     if (output_profile != "local-record" && !streaming) {
         if (started_audio) g_audio_bridge.stop();
-        if (started_capture) g_capture.stop();
+        if (started_capture) StopCaptureSource();
         return false;
     }
 
@@ -427,20 +502,38 @@ bool StartOutput(
                 : std::string("cari-capture.mkv"))
             : target;
 
+    const auto capture_format = GetActiveCaptureFormat();
+    if (capture_format.width == 0 || capture_format.height == 0) {
+        if (g_capture_source == "camera") {
+            for (int attempt = 0; attempt < 100 && g_camera.running(); ++attempt) {
+                if (g_camera.stats().width != 0 && g_camera.stats().height != 0) {
+                    break;
+                }
+                Sleep(10);
+            }
+        }
+    }
+    const auto active_format = GetActiveCaptureFormat();
+    if (active_format.width == 0 || active_format.height == 0) {
+        if (started_audio) g_audio_bridge.stop();
+        if (started_capture) StopCaptureSource();
+        return false;
+    }
+
     cari::studio::core::OutputProfile profile{
         .id = output_profile,
         .kind = streaming
             ? cari::studio::core::OutputKind::rtmp
             : cari::studio::core::OutputKind::file,
         .target = resolved_target,
-        .width = static_cast<std::uint32_t>(g_capture.stats().width),
-        .height = static_cast<std::uint32_t>(g_capture.stats().height),
-        .fps = 30,
+        .width = active_format.width,
+        .height = active_format.height,
+        .fps = active_format.fps,
         .bitrate_kbps = 4500,
         .audio_bitrate_kbps = 160,
         .video_codec = "libx264",
         .audio_codec = "aac",
-    };
+   
 
     if (streaming &&
         profile.target.rfind("rtmp://", 0) != 0 &&
@@ -479,18 +572,18 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
             return cari::native::control_response(
                 false, "capture=busy-output-active", command.request_id);
         }
-        if (g_capture.is_running()) {
+        if (CaptureIsRunning()) {
             if (g_capture_source == command.source) {
                 return cari::native::control_response(
                     true, "capture=running", command.request_id);
             }
-            g_capture.stop();
+            StopCaptureSource();
         }
-        if (command.source != "screen" && command.source != "window") {
+        if (command.source != "screen" && command.source != "window" && command.source != "camera") {
             return cari::native::control_response(
                 false, "capture=unsupported-source", command.request_id);
         }
-        if (!StartCaptureSource(hwnd, command.source, command.window_index)) {
+        if (!StartCaptureSource(hwnd, command.source, command.window_index, command.camera_index)) {
             RefreshStatus(hwnd);
             return cari::native::control_response(
                 false, "capture=start-failed", command.request_id);
@@ -502,7 +595,7 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
             return cari::native::control_response(
                 false, "capture=busy-output-active", command.request_id);
         }
-        g_capture.stop();
+        StopCaptureSource();
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "capture=stopped", command.request_id);
     case cari::native::ControlCommandType::audio_start:
@@ -604,7 +697,7 @@ void SelectWindow(HWND hwnd, std::size_t index) {
     g_selected_window = target;
 
     if (g_capture.is_running()) {
-        g_capture.stop();
+        StopCaptureSource();
         if (g_capture.start_window(g_selected_window)) {
             g_capture_source = "window";
         }
@@ -670,9 +763,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
                 RefreshStatus(hwnd);
                 return 0;
             }
-            if (g_capture.is_running()) {
-                g_capture.stop();
-            } else if (!StartCaptureSource(hwnd, g_capture_source)) {
+            if (CaptureIsRunning()) {
+                StopCaptureSource();
+            } else if (!StartCaptureSource(hwnd, g_capture_source, -1, -1)) {
                 // The engine keeps the concrete error for the status view.
             }
             RefreshStatus(hwnd);
@@ -707,7 +800,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         KillTimer(hwnd, kMediaTimerId);
         g_media_graph.stop();
         g_media_enabled.store(false, std::memory_order_relaxed);
-        g_capture.stop();
+        StopCaptureSource();
         g_audio_bridge.stop();
         PostQuitMessage(0);
         return 0;
