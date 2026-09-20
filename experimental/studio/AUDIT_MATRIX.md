@@ -41,6 +41,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Output profile validation.
 - [x] Encoder boundary.
 - [x] Interleave temporal A/V con reloj maestro lógico de audio.
+- [x] Pacing de emisión raw por PTS mediante un reloj monotónico compartido y colas acotadas.
 - [x] Smoke tests de orden, tolerancia y late-drop.
 - [x] Mezclador temporal de audio para micrófono + sistema + futuras pistas como TTS.
 - [x] Normalización inicial de canales y sample rate en el mezclador.
@@ -101,6 +102,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Integración de captura BGRA → canal de vídeo.
 - [x] Integración de AudioTimelineMixer → canal PCM float.
 - [ ] Alimentación sostenida de ambos canales durante ejecución real.
+- [ ] Verificación sostenida de que el pacing mantiene A/V estable con FFmpeg real.
 - [ ] Prueba local con FFmpeg real y archivo de salida.
 - [ ] Verificación de sincronización A/V sostenida y drift/resampling.
 
