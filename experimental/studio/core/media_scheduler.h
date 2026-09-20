@@ -26,6 +26,16 @@ public:
         wall_origin_ = 0;
     }
 
+    void arm(Timestamp media_origin, Timestamp wall_origin) noexcept {
+        initialized_ = true;
+        media_origin_ = media_origin;
+        wall_origin_ = wall_origin;
+    }
+
+    [[nodiscard]] bool initialized() const noexcept {
+        return initialized_;
+    }
+
     [[nodiscard]] RealtimePaceDecision decide(
         Timestamp media_pts,
         Timestamp wall_now) noexcept {
