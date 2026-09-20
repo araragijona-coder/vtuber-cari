@@ -20,6 +20,13 @@ int main() {
 
     const auto screen = cari::native::parse_control_command(
         R"({"type":"capture.start","source":"screen","id":"screen-02"})");
+    const auto camera = cari::native::parse_control_command(
+        R"({"type":"capture.start","source":"camera","camera_index":2,"id":"camera-03"})");
+    assert(camera.type == ControlCommandType::capture_start);
+    assert(camera.source == "camera");
+    assert(camera.camera_index == 2);
+    assert(camera.request_id == "camera-03");
+
     assert(screen.type == ControlCommandType::capture_start);
     assert(screen.source == "screen");
     assert(screen.request_id == "screen-02");
