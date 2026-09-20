@@ -16,6 +16,7 @@ async function loadModule(relativePath) {
 }
 
 const { StudioSessionManager } = await loadModule("runtime/session-manager.js");
+const { AudioLipSync } = await loadModule("avatar/audio-lipsync.js");
 const {
   normalizeAvatarState,
   normalizeExpression,
@@ -157,4 +158,34 @@ test("avatar contract clamps unsafe values and keeps the renderer contract stabl
     blink: 0,
     expression: "happy"
   });
+});
+
+
+test("audio lip sync maps local amplitude to the existing avatar mouth state", () => {
+  const state = {
+    mouthOpen: 0,
+    expression: "neutral",
+    blink: 0,
+    head: { x: 0, y: 0, z: 0 },
+    gaze: { x: 0, y: 0 }
+  };
+  const actingStub = {
+    set(partial) {
+      state.mouthOpen = Math.max(0, Math.min(1, Number(partial.mouthOpen) || 0));
+    }
+  };
+
+  const lipSync = new AudioLipSync(actingStub, {
+    floor: 0.1,
+    gain: 2,
+    attack: 1,
+    release: 1
+  });
+
+  assert.equal(lipSync.update(0.05), 0);
+  assert.equal(lipSync.update(0.35), 0.5);
+  assert.equal(state.mouthOpen, 0.5);
+  assert.equal(lipSync.update(0), 0);
+  lipSync.reset();
+  assert.equal(state.mouthOpen, 0);
 });
