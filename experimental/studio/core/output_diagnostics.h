@@ -30,8 +30,8 @@ enum class OutputFailureCategory {
         contains("Could not resolve host") ||
         contains("Name or service not known") ||
         contains("Broken pipe") ||
-        contains("End of file") ||
-        contains("I/O error")) {
+        contains("TLS handshake failed") ||
+        contains("Network error")) {
         return OutputFailureCategory::network;
     }
 
