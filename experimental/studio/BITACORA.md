@@ -17,7 +17,7 @@
 - PR: #2 — `fix: harden native Windows foundation`
 - Estado PR: abierto, draft.
 - Avance global: **60% de ingeniería**.
-- Último HEAD comprobado: `20ef3cf319daa0e4a3bd0ecea2f82cd09956e293`.
+- Último HEAD comprobado: `2fec7c39fb1870ff2707f6975dff691806e95d52`.
 - Interpretación del porcentaje: avance frente al producto completo; **no** equivale a validación de hardware ni a CI verde.
 - Regla de promoción: mantener la implementación en `experimental/` hasta cerrar los gates.
 
@@ -254,6 +254,10 @@ Al reabrirlo, registrar primero **motivo + evidencia nueva**.
 
 **Avance global: 60% de ingeniería.**
 
+**Última actualización:** 2026-09-20, corte de esta iteración.
+
+**Último HEAD verificado en PR #2:** `2fec7c39fb1870ff2707f6975dff691806e95d52`.
+
 El siguiente trabajo debe cerrar gates de producción, no duplicar infraestructura existente.
 
 ## Próximo bloque de trabajo
@@ -395,3 +399,71 @@ Regla de continuidad: antes de implementar, buscar el componente en BITACORA.md,
 
 ### Regla de continuidad
 Antes de implementar, buscar primero aquí, en `AUDIT_MATRIX.md` y `PROJECT_STATUS.md`. Si el componente existe, ampliarlo o corregirlo; no generar una segunda implementación paralela.
+
+---
+
+## Registro maestro — 2026-09-20
+
+### Cambios confirmados en el repositorio
+- Se consolidó una única arquitectura Windows-first: WGC/D3D11 + WASAPI + mixer temporal + FFmpeg local, controlada por Electron.
+- Se consolidó el timing con `MediaClock`, `RealtimePacer` y `MediaInterleaver`; no abrir otra implementación equivalente.
+- Se añadió protección de formato de audio durante una sesión.
+- Se añadió backpressure de arranque para no consumir audio antes del handshake de ambos pipes.
+- Se limitó el despacho multimedia a 8 eventos por polling.
+- Se añadió clasificación de fallos de output y retry/backoff limitado.
+- El retry automático solo aplica al perfil RTMP y a fallos clasificados como red.
+- Se limitó stderr retenido de FFmpeg a 256 KiB.
+- Se expone estado, exit code, categoría de fallo, reintentos y métricas de pacing.
+- Se reforzaron invariantes de sesión para impedir detener/cambiar captura o audio mientras hay output.
+- Los workflows de CI ahora incluyen la rama de desarrollo y `workflow_dispatch`; el workflow Windows contempla FFmpeg + smoke named-pipe e2e.
+- Se mantiene auditoría de dependencias/licencias y no se distribuyen assets propietarios por defecto.
+
+### Pruebas / evidencia
+| Elemento | Estado | Evidencia |
+|---|---|---|
+| MediaClock + RealtimePacer + Interleaver | VERIFICADO | Smoke C++20 estricto |
+| AudioTimelineMixer | VERIFICADO | Smoke de mezcla/resampling/rechazos |
+| OutputRetryPolicy | VERIFICADO | Smoke de backoff y límite de intentos |
+| OutputFailureCategory | VERIFICADO | Smoke de clasificación |
+| FFmpeg sintético | VERIFICADO | BGRA raw + PCM float32 → H.264/AAC → Matroska |
+| Electron session/avatar | VERIFICADO | Tests existentes del shell |
+| Named pipes + FFmpeg en Windows | IMPLEMENTADO / PENDIENTE DE EVIDENCIA | Smoke e2e presente en CMake/workflow; runner no está produciendo steps/logs útiles |
+| CI completa | PENDIENTE | Runs observados terminan con failure y `steps=null` |
+| Captura/audio en PC objetivo | PENDIENTE | Requiere hardware Windows real |
+| RTMP real/reconexión | PENDIENTE | Requiere endpoint real/controlado |
+
+### Errores históricos importantes
+1. La prueba FIFO inicial se bloqueó durante handshake. No volver a usar ese escenario como prueba principal; usar el smoke Windows dedicado.
+2. El primer YAML de `workflow_dispatch` tenía una estructura inválida. Ya fue corregido.
+3. Algunos parches automáticos por anchor no coincidieron; cuando ocurre, no asumir que el cambio fue aplicado.
+4. La serialización de `output` en status llegó a quedar vacía; fue corregida y debe permanecer cubierta.
+5. La clasificación de red era demasiado amplia; se eliminó la clasificación ambigua para evitar retries incorrectos.
+6. El stderr acumulativo podía crecer indefinidamente; ahora tiene límite de 256 KiB.
+7. El mixer podía drenar audio antes de conectar los pipes; ahora espera `connected()`.
+8. El despacho audio/video estaba separado por tipo; ahora usa interleaving global por PTS.
+9. La recuperación atrasada podía producir una ráfaga en un solo tick; ahora existe presupuesto de 8 eventos.
+10. CI puede dispararse sobre la rama, pero el runner actualmente falla antes de steps; no convertir esto en diagnóstico del código.
+
+### Estado de producto
+**60% de ingeniería.**
+
+El 60% significa que las capas principales y una parte importante de las protecciones de producción ya existen. No significa 60% de código terminado ni 60% de validación real.
+
+### Regla para siguientes iteraciones
+Antes de tocar una función:
+1. buscar su nombre en `BITACORA.md`;
+2. revisar `AUDIT_MATRIX.md`;
+3. revisar `PROJECT_STATUS.md`;
+4. si aparece como IMPLEMENTADO/VERIFICADO/NO REPETIR, extender o corregir; no crear otra versión;
+5. si aparece como PENDIENTE, trabajar directamente sobre esa implementación;
+6. registrar pruebas y errores inmediatamente después del cambio.
+
+### Próxima cola, por prioridad
+- P0: obtener ejecución observable de Windows CI y cerrar named-pipe e2e.
+- P0: prueba sostenida de grabación/A-V.
+- P0: RTMP real + reconexión con el retry existente.
+- P1: transporte temporal explícito o equivalente.
+- P1: compositor GPU D3D11 y composición avatar/captura/overlays en frame final.
+- P1: cámara Media Foundation + Game Capture.
+- P2: drift correction, lip-sync y backends reales de acciones.
+- P3: multistream, EventSub reconnect, distribución FFmpeg/codec, installer y release validation.
