@@ -182,3 +182,5 @@ El proyecto tiene un build experimental con los componentes principales implemen
 **Streamer/VTuber estable para uso diario:** todavía no.
 
 **Gate inmediato:** ejecutar y obtener PASS del E2E Windows named-pipe -> FFmpeg -> archivo y del build completo; después medir estabilidad sostenida y sincronización.
+
+- [x] Harness local `validate-windows.ps1` para ejecutar build, smoke/E2E y checks de Electron con evidencia reproducible.
