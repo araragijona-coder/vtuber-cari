@@ -22,6 +22,7 @@ except ImportError as exc:  # pragma: no cover - exercised only when optional ex
 
 from app.pipeline.runtime import LocalPipeline
 from app.twitch.models import ChatMessage
+from experimental.twitch.continuity import TwitchContinuityLedger
 
 LOGGER = logging.getLogger("cari.twitch.experimental")
 
@@ -37,6 +38,7 @@ class CariTwitchBot(commands.Bot):
 
         self.pipeline = pipeline
         self.broadcaster_id = broadcaster_id
+        self.continuity = TwitchContinuityLedger({"channel.chat.message"})
 
         super().__init__(
             client_id=client_id,
@@ -57,6 +59,31 @@ class CariTwitchBot(commands.Bot):
 
     async def event_ready(self) -> None:
         LOGGER.info("Cari connected to Twitch as bot_id=%s", self.bot_id)
+
+    async def event_websocket_welcome(self, payload: twitchio.WebsocketWelcome) -> None:
+        state = self.continuity.on_welcome(
+            payload.id,
+            payload.keepalive_timeout_seconds,
+        )
+        subscriptions = self.websocket_subscriptions()
+        active_types = {
+            subscription.type.value
+            for subscription in subscriptions.values()
+        }
+        verified = self.continuity.verify_subscription_types(active_types)
+        LOGGER.info(
+            "Twitch EventSub websocket generation=%s session=%s reconnects=%s "
+            "subscriptions_ok=%s",
+            state.generation,
+            state.session_id,
+            state.reconnects,
+            verified,
+        )
+        if not verified:
+            LOGGER.warning(
+                "Twitch EventSub subscription audit missing expected types: %s",
+                sorted(self.continuity.expected_subscription_types - active_types),
+            )
 
     async def event_message(self, message: twitchio.ChatMessage) -> None:
         if message.chatter.id == self.bot_id:
