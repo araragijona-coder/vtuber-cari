@@ -1,0 +1,253 @@
+# Cari Studio — BITÁCORA CANÓNICA DE CONTINUIDAD
+
+> Última actualización: 2026-09-20
+> Rama: `fix/native-windows-foundation`
+> PR: #2
+> HEAD canónico al registrar esta entrada: `6341b66d3e91945f3c542d95cdb003deae6d4725`
+
+Esta es la fuente única de continuidad para Cari Studio. Su objetivo es impedir que el mismo componente se rediseñe o implemente repetidamente.
+
+## Estados
+
+- **PENDIENTE**: todavía no existe una implementación suficiente.
+- **IMPLEMENTADO**: existe código integrado.
+- **VERIFICADO**: existe una prueba reproducible que pasó.
+- **VALIDADO EN HARDWARE**: funciona en Windows/hardware/servicio real cuando corresponde.
+- **BLOQUEADO**: existe implementación, pero falta evidencia externa o infraestructura.
+- **DESCARTADO**: enfoque abandonado; no volver a implementarlo salvo nueva evidencia.
+
+## Alcance vigente
+
+Cari Studio es una aplicación Windows-first de streaming y VTubing, operable sin IA ni API cloud. Electron es el control plane; C++ nativo es la fuente de verdad para captura, audio, media graph y output. OBS WebSocket es opcional.
+
+## Ya realizado — NO REPETIR
+
+### Plataforma / Electron
+- VERIFICADO — Electron shell con `contextIsolation=true`, `nodeIntegration=false`, `sandbox=true`.
+- IMPLEMENTADO — preload con superficie explícita.
+- IMPLEMENTADO — navegación local restringida.
+- IMPLEMENTADO — permiso de cámara limitado al renderer local.
+- IMPLEMENTADO — NativeEngine con request IDs y correlación JSONL.
+- IMPLEMENTADO — StudioSessionManager con serialización, rollback y stop-only.
+- IMPLEMENTADO — OBS WebSocket 5.x opcional.
+
+### Captura Windows
+- VERIFICADO — Win32 host.
+- VERIFICADO — D3D11 device creation.
+- IMPLEMENTADO — Windows Graphics Capture de ventana.
+- IMPLEMENTADO — captura de pantalla primaria.
+- VERIFICADO — enumeración y selección de ventanas.
+- IMPLEMENTADO — frame callback + DXGI surface.
+- IMPLEMENTADO — recreate del frame pool.
+- IMPLEMENTADO — recuperación DXGI device removed/reset/hung.
+- PENDIENTE — validación exhaustiva en hardware.
+- PENDIENTE — Game Capture dedicada.
+
+### Cámara
+- IMPLEMENTADO — enumeración Media Foundation.
+- IMPLEMENTADO — source=camera en runtime/control plane.
+- BLOQUEADO — captura/reconexión de cámara real pendiente de Windows hardware.
+
+### Audio
+- IMPLEMENTADO — WASAPI microphone.
+- IMPLEMENTADO — WASAPI system loopback.
+- IMPLEMENTADO — timestamp domain canónico de 100 ns.
+- IMPLEMENTADO — VoiceEffectProcessor local.
+- IMPLEMENTADO — cadena local HPF/presencia/compresión/saturación/limitador.
+- IMPLEMENTADO — AudioTimelineMixer.
+- IMPLEMENTADO — normalización sample-rate/canales.
+- IMPLEMENTADO — gate contra cambio de formato durante output.
+- VERIFICADO — smoke tests del mixer.
+- PENDIENTE — drift correction con relojes físicos.
+- PENDIENTE — validación prolongada en hardware.
+
+### Media timing / A/V
+- VERIFICADO — MediaClock.
+- VERIFICADO — RealtimePacer.
+- VERIFICADO — MediaInterleaver global por PTS.
+- VERIFICADO — empate determinista a favor de audio.
+- VERIFICADO — bounded queues.
+- VERIFICADO — límite de despacho por polling.
+- IMPLEMENTADO — política de late-drop de vídeo.
+- IMPLEMENTADO — métrica de audio tardío sin hueco forzado.
+- BLOQUEADO — PTS originales todavía no atraviesan el transporte raw.
+- PENDIENTE — transporte temporal explícito o frontera equivalente.
+- PENDIENTE — drift correction de producción.
+- PENDIENTE — prueba sostenida A/V.
+
+### Raw transport / FFmpeg
+- VERIFICADO — named pipes Windows con overlapped I/O.
+- VERIFICADO — cancelación y colas acotadas.
+- VERIFICADO — contrato vídeo BGRA8.
+- VERIFICADO — contrato audio PCM float32 LE.
+- IMPLEMENTADO — dos canales independientes hacia FFmpeg.
+- IMPLEMENTADO — supervisor de proceso.
+- IMPLEMENTADO — quoting Windows/Unicode.
+- IMPLEMENTADO — EOF/flush antes de forced termination.
+- IMPLEMENTADO — reconciliación de salida inesperada.
+- IMPLEMENTADO — stderr limitado a 256 KiB.
+- VERIFICADO — prueba FFmpeg local BGRA + PCM → H.264/AAC → Matroska.
+- PENDIENTE — FFmpeg + named pipes sostenidos en Windows.
+- PENDIENTE — grabación prolongada real.
+- PENDIENTE — RTMP real.
+- PENDIENTE — política final de redistribución/codec.
+
+### Resiliencia de output
+- VERIFICADO — OutputRetryPolicy.
+- VERIFICADO — backoff exponencial acotado.
+- VERIFICADO — clasificación network/encoder/input/mux/permission/unknown.
+- IMPLEMENTADO — retry solo para RTMP.
+- IMPLEMENTADO — no reintentar automáticamente errores locales no recuperables.
+- IMPLEMENTADO — métricas de retry.
+- IMPLEMENTADO — stop manual cancela retry.
+- PENDIENTE — validar reconexión contra RTMP real.
+
+### Avatar / tracking
+- IMPLEMENTADO — contrato neutral de avatar.
+- IMPLEMENTADO — expression/mouth/blink/head/gaze normalizados.
+- IMPLEMENTADO — FaceTrackingBridge.
+- IMPLEMENTADO — MediaPipe Face Landmarker adapter.
+- IMPLEMENTADO — guardia de timestamps crecientes.
+- IMPLEMENTADO — Three.js + GLTFLoader.
+- IMPLEMENTADO — morph target aliases.
+- IMPLEMENTADO — appearance profile/presets.
+- IMPLEMENTADO — anchors para accesorios.
+- IMPLEMENTADO — randomización reproducible.
+- IMPLEMENTADO — placeholder full-body técnico con cabeza, torso, brazos, manos, caderas, piernas, pies y anchors.
+- BLOQUEADO — **asset visual definitivo de Cari**: la documentación canónica todavía no fija diseño visual definitivo.
+- PENDIENTE — modelo VRM/GLB final aprobado.
+- PENDIENTE — lip-sync de producción.
+- PENDIENTE — composición avatar → frame final sin readback CPU.
+- PENDIENTE — validación de tracking/render en hardware.
+- ADAPTER-ONLY — Live2D hasta resolver runtime/licencia/distribución.
+
+### Composición
+- IMPLEMENTADO — compositor RGBA de referencia.
+- IMPLEMENTADO — compositor D3D11 experimental.
+- IMPLEMENTADO — alpha overlay experimental.
+- IMPLEMENTADO — readback CPU lazy para diagnóstico/fallback.
+- PENDIENTE — compositor GPU de producción sin readback.
+- PENDIENTE — composición estable avatar + captura + overlays → encoder.
+
+### Streaming / eventos
+- IMPLEMENTADO — EventSub/chat.
+- IMPLEMENTADO — eventos follow/sub/gift/resub/cheer/raid/channel points/polls/predictions.
+- IMPLEMENTADO — comandos locales.
+- IMPLEMENTADO — TTS local gate.
+- IMPLEMENTADO — StudioActionRouter.
+- IMPLEMENTADO — runtime bindings.
+- PENDIENTE — ejecución completa de backends nativos.
+- IMPLEMENTADO — supervisor multi-stream experimental hasta 4 destinos.
+- PENDIENTE — multi-stream real.
+- PENDIENTE — reconexión/re-suscripción EventSub validada en servicio real.
+
+### CI / distribución
+- IMPLEMENTADO — CMake Release x64.
+- IMPLEMENTADO — smoke targets.
+- IMPLEMENTADO — portable ZIP.
+- IMPLEMENTADO — workflows para rama de desarrollo y workflow_dispatch.
+- BLOQUEADO — GitHub Actions recientes terminan antes de steps/logs útiles.
+- PENDIENTE — CI Windows verde.
+- PENDIENTE — package-lock reproducible.
+- PENDIENTE — bundle de FFmpeg/codec legalmente redistribuible.
+- PENDIENTE — instalador.
+- PENDIENTE — logs/diagnóstico de usuario.
+- PENDIENTE — hardware validation.
+
+## Correcciones recientes
+
+### 2026-09-20
+- Se añadió `OutputRetryPolicy` con backoff limitado.
+- Se añadió clasificación de fallos de output.
+- Se integró retry condicionado a RTMP.
+- Se añadió estado/código de salida de FFmpeg al control plane.
+- Se limitó stderr a 256 KiB.
+- Se añadió backpressure de arranque de pipes.
+- Se añadió límite de 8 eventos multimedia por polling.
+- Se reforzaron invariantes para impedir cambios de captura/audio durante output.
+- Se creó fallback VTuber **de cuerpo completo** en Three.js para dejar de depender de la cabeza aislada como placeholder.
+- El fallback está compuesto por head/face/hair/torso/hips, hombros, brazos, codos, manos, muslos, rodillas, tibias y pies, además de anchors para assets.
+- El tracking de cabeza del fallback ahora rota solo la cara, no todo el cuerpo.
+- Se corrigió la serialización del campo `output` en status.
+- Se amplió la UI con métricas de pacing/retry/output.
+- Se añadió/actualizó este ledger para evitar repetir estas implementaciones.
+
+## Intentos descartados — NO REPETIR
+
+1. **capturePage() como transporte principal de vídeo** — DESCARTADO. Produce snapshots y no sustituye una ruta nativa multimedia.
+2. **Python como motor multimedia principal** — DESCARTADO. Python queda para tooling/tests; el runtime Windows sigue en C++.
+3. **OpenCV como sustituto de Windows Graphics Capture** — DESCARTADO. Se puede usar para procesamiento/cámara, no como reemplazo obligatorio.
+4. **Live2D propietario como dependencia embebida** — DESCARTADO hasta resolver licencia/runtime.
+5. **IA como requisito del streamer** — DESCARTADO.
+6. **Retry indiscriminado de cualquier error FFmpeg** — DESCARTADO.
+7. **Declarar CI verde solo porque existe workflow** — DESCARTADO.
+8. **Promover el placeholder geométrico a “modelo definitivo de Cari”** — DESCARTADO. El placeholder sirve para validar pipeline; el asset final necesita definición/asset aprobado.
+
+## Punto importante sobre el VTuber de Cari
+
+El renderer ya no debe interpretarse como “una cabeza de Cari”.
+
+Hay dos conceptos distintos:
+
+- **Fallback técnico:** cuerpo completo procedimental, usado para probar tracking, composición, anchors y pipeline.
+- **Avatar final de Cari:** modelo artístico completo, con diseño, cabello, ropa, materiales, rig/morphs y expresiones definitivas.
+
+El primero ya está implementado. El segundo sigue pendiente porque la documentación canónica de Cari marca su diseño visual definitivo como no establecido. No inventar ese diseño dentro del runtime.
+
+## Cola priorizada actual
+
+### P0 — output verificable
+1. Resolver/diagnosticar GitHub Actions.
+2. Build Windows.
+3. Ejecutar named-pipe + FFmpeg E2E durante una sesión real.
+4. Inspeccionar archivo con ffprobe.
+5. Medir A/V sostenido.
+6. Validar RTMP y reconnect.
+
+### P1 — avatar real dentro del frame
+1. Sustituir placeholder por modelo GLB/VRM aprobado.
+2. Mantener contrato neutral de actuación.
+3. Mapear morphs/bones.
+4. Componer avatar + captura + overlays en D3D11.
+5. Eliminar readback CPU del camino normal.
+6. Validar rendimiento.
+
+### P2 — calidad de tracking/audio
+1. Cámara Media Foundation real.
+2. Medición MediaPipe sostenida.
+3. Lip-sync.
+4. Drift correction.
+5. Pitch/formant solo después de medir latencia.
+
+### P3 — streaming
+1. RTMP real.
+2. reconnect/backoff real.
+3. Twitch/YouTube.
+4. EventSub reconnect.
+5. multistream después de estabilidad single-output.
+
+### P4 — producto
+1. presets/UI final.
+2. asset catalog.
+3. instalador.
+4. distribución FFmpeg/codec.
+5. logs.
+6. hardware validation.
+7. release candidate.
+
+## Regla anti-repetición
+
+Antes de crear un módulo nuevo:
+1. buscar este archivo;
+2. buscar `PROJECT_STATUS.md`;
+3. buscar `AUDIT_MATRIX.md`;
+4. buscar el código existente;
+5. si ya está IMPLEMENTADO o VERIFICADO, trabajar únicamente sobre el gate pendiente o una regresión reproducible.
+
+**No crear una segunda implementación paralela de un componente ya existente.**
+
+## Porcentaje
+
+La estimación global actual es **~63% de ingeniería**.
+
+No se aumenta por cantidad de archivos. El porcentaje solo sube cuando una capacidad cruza un gate funcional o de validación.
