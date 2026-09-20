@@ -1,6 +1,6 @@
 import unittest
 
-from app.twitch.oauth import DEFAULT_REDIRECT_URI, TwitchOAuthConfig
+from app.twitch.oauth import DEFAULT_REDIRECT_URI, DEFAULT_SCOPES, TwitchOAuthConfig
 
 
 class TwitchOAuthTests(unittest.TestCase):
@@ -12,6 +12,17 @@ class TwitchOAuthTests(unittest.TestCase):
         self.assertIn("response_type=code", url)
         self.assertIn("state=state-123", url)
         self.assertIn("force_verify=true", url)
+
+    def test_default_scopes_cover_cari_eventsub_features(self) -> None:
+        required = {
+            "moderator:read:followers",
+            "channel:read:subscriptions",
+            "channel:read:redemptions",
+            "channel:read:polls",
+            "channel:read:predictions",
+            "bits:read",
+        }
+        self.assertTrue(required.issubset(DEFAULT_SCOPES))
 
     def test_default_callback_matches_twitchio_v3_setup(self) -> None:
         self.assertEqual(DEFAULT_REDIRECT_URI, "http://localhost:4343/oauth/callback")
