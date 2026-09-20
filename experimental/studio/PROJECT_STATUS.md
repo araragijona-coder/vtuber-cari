@@ -87,7 +87,7 @@
 - [x] Perfil de apariencia modular con cabello, outfit y accesorios.
 - [x] Accesorios con ancla, posición, escala, rotación y color.
 - [x] Selección aleatoria reproducible de accesorios.
-- [x] Renderer VRM experimental web existente.
+- [x] Renderer Three.js/glTF experimental con fallback de cuerpo completo.
 - [x] Fallback Three.js de cuerpo completo para validación de tracking/composición; ya no es un placeholder de solo cabeza.
 - [x] Overlay Three.js/glTF integrado experimentalmente al compositor nativo mediante la ventana transparente capturada con WGC.
 - [ ] Integración de avatar de producción sin readback CPU.
@@ -137,7 +137,7 @@
 
 - [x] Workflow reproducible de compilación Release x64 en Windows CI.
 - [x] Paquete portable x64 generado por CI como artifact.
-- [ ] Bundle de assets de producción.
+- [ ] Bundle de assets de producción y modelo artístico final.
 - [ ] FFmpeg/codec legalmente redistribuible elegido.
 - [ ] Instalador Windows.
 - [ ] Diagnóstico/rollback y logs de usuario.
@@ -187,3 +187,12 @@ El proyecto tiene un build experimental con los componentes principales implemen
 **Gate inmediato:** ejecutar y obtener PASS del E2E Windows named-pipe -> FFmpeg -> archivo y del build completo; después medir estabilidad sostenida y sincronización.
 
 - [x] Harness local `validate-windows.ps1` para ejecutar build, smoke/E2E y checks de Electron con evidencia reproducible.
+
+## Indicador de producto usable
+
+El porcentaje de ingeniería y el porcentaje de producto listo para uso real se separan para evitar confundir infraestructura con experiencia de usuario.
+
+- **Ingeniería implementada: ~63%**.
+- **Producto usable/end-user: ~48%**.
+
+Producto usable todavía requiere: prueba Windows real, Twitch real, RTMP sostenido, modelo artístico final, composición avatar→encoder, cámara final, Game Capture, drift correction, lip-sync, distribución FFmpeg y validación del PC objetivo.
