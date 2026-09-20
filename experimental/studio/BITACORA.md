@@ -710,3 +710,46 @@ P2: diseñar timestamps explícitos extremo a extremo sobre el transporte local.
 
 ### Avance global
 **60%**. Se mantiene la cifra porque P0 sigue sin evidencia Windows y P1 todavía no es el camino de encoding final.
+
+## 029 — P1 compositor GPU conectado al frame final + CI E2E preparada — 2026-09-20
+**Estado:** IMPLEMENTADO / VERIFICACIÓN WINDOWS PENDIENTE
+
+### Trabajo realizado
+- `D3D11Compositor` ya compone la captura D3D11 con overlays RGBA usando shaders y alpha blending.
+- `PlaceholderAvatarGpuSource` aporta un avatar procedural sin assets propietarios.
+- Se añadió `copy_output_to_cpu()` para convertir la textura GPU final a BGRA CPU cuando la frontera FFmpeg actual lo requiere.
+- El callback de captura ahora intenta usar el frame compuesto GPU como frame enviado a `MediaGraphController`.
+- Si el compositor GPU no está disponible, permanece el fallback CPU de captura.
+- CMake incluye `avatar_gpu_overlay.cpp` en el ejecutable nativo y registra el smoke WARP.
+- El workflow Windows instala FFmpeg temporalmente y ejecuta el E2E named-pipe, compositor y nuevos smokes de retry/diagnóstico.
+- Se corrigieron invocaciones duplicadas de smoke en el workflow.
+
+### Límites
+- El readback GPU→CPU ocurre por frame para alimentar el raw pipe actual; esto todavía no es la ruta de producción de máximo rendimiento.
+- El overlay actual es procedural; aún no representa el modelo real Three.js/VRM/Live2D.
+- La señal del renderer todavía no entrega una textura/avatar real al compositor nativo.
+
+### Evidencia
+- Smoke de retry/diagnóstico portable: PASS con C++20, `-Wall -Wextra -Werror`.
+- Smoke de timing/interleave portable: PASS.
+- FFmpeg sintético BGRA + PCM float32 → H.264/AAC → Matroska: PASS en Linux.
+- P0 named-pipe Windows: IMPLEMENTADO y registrado; VERIFICACIÓN REAL PENDIENTE porque los runners recientes siguen sin producir steps/logs.
+- P1 D3D11/WARP: IMPLEMENTADO y registrado; VERIFICACIÓN REAL PENDIENTE.
+
+### NO REPETIR
+- No crear otro compositor D3D11 paralelo.
+- No crear otro named-pipe E2E equivalente.
+- No crear otro retry/backoff.
+- No usar `capturePage()` como compositor de vídeo.
+- No declarar P1 producción mientras exista readback por frame y avatar procedural.
+
+### Próximos gates
+- P0: obtener ejecución Windows observable y PASS del `cari-ffmpeg-named-pipe-e2e-smoke`.
+- P1: eliminar readback CPU por frame y conectar avatar/overlays reales.
+- P2: resolver transporte/timestamps explícitos extremo a extremo.
+- P3: cámara Media Foundation + drift correction + lip-sync.
+- P4: RTMP real + reconexión + hardware.
+- P5: packaging/installer/redistribución.
+
+### Avance
+**62%**. El incremento corresponde a que el frame GPU compuesto ya entra en la ruta de output; no equivale a validación de producción.
