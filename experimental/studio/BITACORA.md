@@ -1260,3 +1260,53 @@ No inferir resultados hasta que existan steps/logs observables.
 
 ### Próxima ejecución
 Trabajar exclusivamente sobre P0-02/P0-05/P0-04. No agregar features de plataforma, multistream o nuevos backends mientras esos tres gates sigan abiertos.
+
+## 28. Auditoría y correcciones — 20/09/2026 15:14 ART
+
+HEAD observado al cierre: consultar HEAD actual del PR #2.
+Avance canónico: 63%.
+Readiness: experimental / NO listo para producción.
+
+### Hallazgos confirmados
+1. El callback FrameArrived de WGC hacía composición GPU, subida de overlays y readback GPU→CPU dentro del hilo de captura.
+2. El compositor D3D11 podía conservar recursos de un ID3D11Device anterior después de DEVICE_REMOVED/RESET/HUNG.
+3. StartOutput usa un cuarto parámetro explícito para distinguir arranque manual de retry automático.
+
+### Correcciones realizadas
+- Creado experimental/studio/core/latest_item_queue.h.
+  - Mantiene solo el frame más reciente.
+  - Cuenta pushed/replaced/popped.
+  - Permite stop/reset seguro.
+- Creado latest_item_queue_smoke.cpp.
+- Registrado el smoke en CMake.
+- main.cpp ahora encola CapturedFrame y delega el procesamiento pesado a StartPrimaryCaptureWorker().
+- añadido guard de identidad de dispositivo en la inicialización del compositor para reconstruir recursos cuando cambia el device.
+- corregidos los call sites manuales de StartOutput(..., true); false queda reservado para retry automático.
+- la serialización del campo output ya estaba corregida y se conserva.
+
+### Evidencia
+- latest_item_queue_smoke: PASS con C++20, -Wall -Wextra -Werror.
+- output_retry_smoke: PASS con C++20, -Wall -Wextra -Werror.
+- output_diagnostics_smoke: PASS con C++20, -Wall -Wextra -Werror.
+- D3D11 WARP smoke y E2E Windows named-pipe existen, pero siguen pendientes de ejecución observable en Windows.
+- Actions continúa produciendo fallos sin steps/logs observables; no se usa ese resultado para atribuir una regresión.
+
+### Qué NO repetir
+- No volver a meter composición/readback pesado dentro de FrameArrived.
+- No rehacer el compositor D3D11.
+- No crear otra implementación de latest-frame queue.
+- No sustituir WGC por OpenCV.
+- No crear otro tracker MediaPipe ni otro renderer Three.js.
+- No declarar P0-02/P0-05 VERIFIED hasta una ejecución Windows observable.
+
+### Cola única siguiente
+P0-02: validar worker sobre Windows y medir replaced/FPS/latencia.
+P0-05: validar reconstrucción del compositor después de device-loss en Windows.
+P0-04: transporte de PTS explícito; retirar use_wallclock_as_timestamps=1 como solución definitiva.
+P1-24/P1-25: cache de overlay y staging pool.
+
+### Decisión sobre pruebas
+El proyecto ya está en el punto donde los tests en Windows son necesarios para cerrar los gates principales.
+No hace falta acceso remoto a la PC. Ejecutar experimental/studio/native-windows/validate-windows.ps1 en Windows y conservar validation-evidence.
+
+Regla: el porcentaje no aumenta por scaffolding. Solo cambia cuando un gate pasa a VERIFIED o VALIDADO EN HARDWARE.
