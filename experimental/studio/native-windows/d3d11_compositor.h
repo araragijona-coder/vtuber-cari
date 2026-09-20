@@ -24,6 +24,7 @@ struct D3D11CompositorStats {
     std::uint64_t composed_frames = 0;
     std::uint64_t overlay_uploads = 0;
     std::uint64_t rejected_frames = 0;
+    std::uint64_t cpu_readbacks = 0;
     std::uint64_t shader_failures = 0;
 };
 
@@ -45,6 +46,10 @@ public:
     bool compose_capture(
         ID3D11Texture2D* capture,
         const std::vector<GpuOverlay>& overlays,
+        std::wstring& error);
+
+    bool copy_output_to_cpu(
+        std::shared_ptr<std::vector<std::uint8_t>>& pixels,
         std::wstring& error);
 
     [[nodiscard]] ID3D11Texture2D* output_texture() const noexcept {
