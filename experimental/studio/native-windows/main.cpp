@@ -174,10 +174,15 @@ std::string BuildControlStatusMessage() {
     const output_running =
         g_media_enabled.load(std::memory_order_relaxed) && g_media_graph.running();
     result += output_running ? "running" : "stopped";
+    result += ";video_queued=" + std::to_string(media.video_queued);
     result += ";video_submitted=" + std::to_string(media.video_submitted);
     result += ";video_dropped=" + std::to_string(media.video_dropped);
+    result += ";video_dropped_late=" + std::to_string(media.video_dropped_late);
+    result += ";video_dropped_overflow=" + std::to_string(media.video_dropped_overflow);
+    result += ";audio_queued=" + std::to_string(media.audio_queued);
     result += ";audio_submitted=" + std::to_string(media.audio_submitted);
     result += ";audio_dropped=" + std::to_string(media.audio_dropped);
+    result += ";audio_dropped_overflow=" + std::to_string(media.audio_dropped_overflow);
     result += ";video_bytes=" + std::to_string(transport.video.bytes_written);
     result += ";audio_bytes=" + std::to_string(transport.audio.bytes_written);
     result += ";video_pipe_drops=" + std::to_string(transport.video.writes_dropped);
