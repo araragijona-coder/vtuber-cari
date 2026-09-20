@@ -36,6 +36,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Bounded queues con descarte medible.
 - [x] Scene/layers.
 - [x] Software compositor de referencia.
+- [x] D3D11 compositor experimental con placeholder GPU y frame final BGRA.
 - [x] Output interface.
 - [x] Fan-out output.
 - [x] Output profile validation.
@@ -52,6 +53,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] D3D11 compositor GPU experimental con overlay RGBA y output texture.
 - [x] Smoke D3D11 compositor con WARP.
 - [ ] Encoder real conectado.
+  - La frontera FFmpeg ya recibe el frame compuesto; la validación sostenida en Windows sigue pendiente.
 - [ ] Mux/record real.
 - [ ] RTMP real desde el pipeline.
 
@@ -89,6 +91,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Retención acotada de stderr FFmpeg (256 KiB) para sesiones prolongadas.
 - [x] Explicit FFmpeg two-input `-map 0:v:0 -map 1:a:0` contract.
 - [ ] FFmpeg binary discovery policy.
+  - CI usa instalación temporal; la política de redistribución del producto sigue pendiente.
   - CI instala FFmpeg para pruebas, pero la distribución de producto continúa sin decidir.
 - [ ] FFmpeg legal redistribution decision.
 - [x] Raw video producer connected to FFmpeg A/V output.
@@ -96,6 +99,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Temporal audio mixer implemented before the single FFmpeg audio pipe.
 - [x] Output failure classification for network/encoder/input/mux/permission/unknown.
 - [x] Clasificación inicial de fallos de output por categoría.
+- [x] Output stderr failure categorization inicial.
 - [ ] Output stderr classification / structured diagnostics.
   - Estado/código de salida ya están expuestos; queda pendiente clasificar mensajes de stderr en categorías estables.
 - [x] Automatic output reconnect/backoff policy skeleton with bounded attempts for RTMP network failures.
@@ -200,7 +204,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~60%.**
+**Estimación global de ingeniería: ~62%.**
 
 El incremento es pequeño porque el mezclador temporal cierra una pieza importante del diseño de audio, pero todavía no conecta productores reales al output. El mayor bloque pendiente continúa siendo la unión sostenida de captura BGRA + audio mezclado → FFmpeg, encoder/mux real, RTMP/reconexión y validación en hardware.
 
@@ -227,3 +231,8 @@ Fuente canónica de trabajo: `experimental/studio/BITACORA.md`. Consultarla ante
 ## Continuidad canónica
 
 Consultar `experimental/studio/BITACORA.md` antes de reabrir una tarea. El HEAD canónico vigente está en la entrada más reciente de `BITACORA.md`.
+
+## Evidencia adicional — 2026-09-20
+- P1 dejó de ser solo diagnóstico: el callback nativo puede componer captura + placeholder GPU y enviar el frame final BGRA al MediaGraphController.
+- El readback CPU se mantiene explícitamente como limitación de rendimiento y no se marca como producción.
+- Los nuevos smoke portable de retry/diagnóstico pasan C++20 con warnings como errors.
