@@ -179,6 +179,8 @@ std::string BuildControlStatusMessage() {
     result += ";video_dropped=" + std::to_string(media.video_dropped);
     result += ";video_dropped_late=" + std::to_string(media.video_dropped_late);
     result += ";video_dropped_overflow=" + std::to_string(media.video_dropped_overflow);
+    result += ";video_dropped_cadence=" + std::to_string(media.video_dropped_cadence);
+    result += ";video_dropped_format=" + std::to_string(media.video_dropped_format);
     result += ";audio_queued=" + std::to_string(media.audio_queued);
     result += ";audio_submitted=" + std::to_string(media.audio_submitted);
     result += ";audio_dropped=" + std::to_string(media.audio_dropped);
