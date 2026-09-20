@@ -15,11 +15,12 @@
 - [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
+- [x] Smoke end-to-end Windows de FFmpeg + named pipes con vídeo BGRA y audio PCM, cierre por EOF/flush y verificación posterior de decodificación.
 - [x] Política de retry RTMP con backoff exponencial acotado y clasificación de errores.
 - [x] Bitácora maestra con ledger de trabajo realizado, descartado y pendiente.
 - [x] Auditoría de licencias de dependencias runtime fijadas.
 - [x] Smoke test nativo para contratos core.
-- [ ] CI Windows verde sobre el head actual (los runs recientes fallan con `steps=null` antes de registrar steps; requiere nueva evidencia del runner).
+- [ ] CI Windows verde sobre el head actual (los últimos runs siguen fallando antes de registrar steps; el nuevo workflow ya incluye instalación de FFmpeg y gates e2e para cuando el runner ejecute jobs normalmente).
 
 ## Windows
 
@@ -47,6 +48,8 @@
 - [ ] Encoder hardware/software real conectado al pipeline.
 - [ ] Muxer/recorder de producción.
 - [x] Proceso FFmpeg administrado por Cari y conectado a las salidas.
+  - El cierre intenta primero EOF/flush antes de escalar a terminación forzada.
+  - Se añadieron clasificación de fallos y retry exponencial limitado para RTMP de red.
   - El diagnóstico stderr queda limitado a 256 KiB para impedir crecimiento indefinido durante sesiones largas.
   - El estado/código de salida del proceso se publica en las métricas nativas y en la UI.
   - El cierre intenta primero EOF/flush antes de escalar a terminación forzada.
@@ -54,6 +57,7 @@
   - El gate de verificación real sigue abierto: archivo/RTMP sostenido, sincronización, reconexión y hardware.
 - [ ] Drift correction / resampling de producción.
 - [ ] Verificación sostenida del pacing A/V con FFmpeg real.
+  - Existe ahora un smoke Windows que ejerce ambos named pipes durante una sesión sintética y vuelve a decodificar el archivo resultante.
   - La planificación ahora interleavea globalmente por PTS; el transporte raw todavía no conserva los PTS originales.
 
 ## VTuber / cámara / voz
