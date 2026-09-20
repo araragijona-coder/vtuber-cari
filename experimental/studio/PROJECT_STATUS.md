@@ -34,6 +34,7 @@
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
 - [x] Auditoría de botones renderer y alineación de handlers OBS/Twitch/VTuber.
 - [x] Test contractual UI→IPC→ObsService para evitar regresiones de botones y API.
+- [x] Control Twitch ↔ avatar por comandos locales de chat y toggle de conexión desde Centro Twitch.
 - [x] Bitácora técnica versionada con inventario de trabajo realizado, evidencia y lista NO REPETIR.
 - [x] Test de coherencia UI para menú, vistas e IDs HTML.
 - [x] Latest-frame worker fuera del callback WGC: el callback solo encola/reemplaza frames pendientes; el procesamiento pesado queda desacoplado del hilo de captura.
@@ -164,7 +165,7 @@
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~65%.**
+**Estimación global de ingeniería: ~60%.**
 
 Este porcentaje mide cierre de requisitos de ingeniería; no equivale a porcentaje de código ni a disponibilidad para producción.
 
