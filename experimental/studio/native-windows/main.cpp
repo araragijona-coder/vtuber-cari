@@ -196,6 +196,14 @@ void PollMediaGraph() {
     if (!g_media_enabled.load(std::memory_order_relaxed)) {
         return;
     }
+
+    cari::studio::core::AudioPacket packet;
+    while (g_audio_bridge.pop_mixed_audio(packet)) {
+        if (!g_media_graph.submit_audio(packet)) {
+            break;
+        }
+    }
+
     if (!g_media_graph.poll()) {
         g_media_enabled.store(false, std::memory_order_relaxed);
         g_media_graph.stop();
@@ -210,12 +218,6 @@ void PollMediaGraph() {
         return;
     }
 
-    cari::studio::core::AudioPacket packet;
-    while (g_audio_bridge.pop_mixed_audio(packet)) {
-        if (!g_media_graph.submit_audio(packet)) {
-            break;
-        }
-    }
 }
 
 bool StartCaptureSource(HWND hwnd, const std::string& source, std::int32_t requested_window_index = -1) {
