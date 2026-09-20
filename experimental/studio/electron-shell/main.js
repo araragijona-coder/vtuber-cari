@@ -50,6 +50,8 @@ twitch.on("chat", message => publish({ type: "twitch.chat", ...message }));
 twitch.on("chat:sent", message => publish({ type: "twitch.chat.sent", ...message }));
 twitch.on("eventsub:welcome", payload => publish({ type: "twitch.eventsub.welcome", ...payload }));
 twitch.on("eventsub:keepalive", payload => publish({ type: "twitch.eventsub.keepalive", ...payload }));
+twitch.on("eventsub:reconnect", payload => publish({ type: "twitch.eventsub.reconnect", ...payload }));
+twitch.on("event", message => publish({ type: "twitch.event", ...message }));
 twitch.on("status", payload => publish({ type: "twitch.status", ...payload }));
 twitch.on("error", error => publish({ type: "twitch.error", message: error.message }));
 
