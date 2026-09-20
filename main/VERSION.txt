@@ -1,0 +1,4 @@
+Cari Studio main distribution
+Version: 0.1.0-release-candidate
+Engineering status: 63%
+Readiness: experimental / not production-ready

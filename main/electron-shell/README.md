@@ -1,0 +1,129 @@
+# Cari Studio Electron Shell
+
+This directory is intentionally **experimental**. It is the desktop control/UI layer around the native Windows media engine. The architecture is local-first: Electron provides the control surface, the Windows runtime owns screen/window capture and WASAPI, and avatar tracking/rendering stays in the UI layer.
+
+## Runtime architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Electron renderer                                               │
+│                                                                 │
+│  StudioSessionManager ── serialized session commands│
+│  AvatarActingBridge ← FaceTrackingBridge ← MediaPipe            │
+│  ThreeAvatarRenderer ── GLB/glTF avatar                        │
+│  local camera preview                                           │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │ contextBridge / IPC
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Electron main                                                   │
+│                                                                 │
+│  NativeEngine                                                   │
+│    ├─ process lifecycle                                         │
+│    ├─ stdout JSON response correlation                          │
+│    ├─ stderr diagnostics                                        │
+│    └─ graceful output.stop before process termination           │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │ stdin/stdout JSONL
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Native Windows runtime                                          │
+│                                                                 │
+│  Windows Graphics Capture → FrameBridge → MediaGraph            │
+│  WASAPI → AudioTimelineMixer ───────────────────────┐           │
+│  software compositor (reference validation)         │           │
+│  RealtimePacer → RawPipe → FFmpeg A/V output                        │           │
+│                                                     ▼           │
+│                                              local recording    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Module responsibilities
+
+### Capture
+
+The native runtime owns screen/window/primary-display capture through Windows Graphics Capture. This avoids putting the core desktop capture path inside the browser process and keeps device recovery and WinRT apartment requirements in one place.
+
+### Audio
+
+WASAPI capture and the native timeline mixer stay outside Electron. The UI can start/stop the bridge but does not manipulate device buffers directly.
+
+### Avatar bridge
+
+- `avatar/avatar-contract.js` normalizes the state contract before rendering.
+- `AvatarActingBridge` is the stable state model for expressions, mouth openness, blinking, head rotation and gaze.
+- `FaceTracker` is the MediaPipe adapter.
+- `FaceTrackingBridge` converts MediaPipe blendshapes/pose into avatar state.
+- `ThreeAvatarRenderer` consumes that state and renders a glTF/GLB avatar.
+- The renderer has a deliberately simple placeholder avatar so the UI remains testable without distributing a proprietary model.
+- Live2D is a future adapter boundary; this repository does not bundle the Live2D runtime or SDK.
+
+### Optional OBS control
+
+OBS is **not** required for Cari Studio's native capture/recording pipeline. The shell can optionally connect to a local obs-websocket v5 server from Electron Main, where the `OBSWebSocket` client is isolated from the renderer. Supported operations are connect, disconnect, start/stop stream, set current program scene and query stream status.
+
+The JavaScript client uses obs-websocket v5's named CommonJS export and `call()` request model. The dependency is pinned in `package.json` so upgrades are deliberate.
+
+### Control plane
+
+The native process accepts line-delimited JSON. Every Electron request receives a generated `id`, and native responses echo that id so concurrent UI actions cannot be confused.
+
+Supported commands:
+
+```json
+{"type":"status","id":"..."}
+{"type":"capture.start","source":"window","window_index":0,"id":"..."}
+{"type":"capture.start","source":"screen","id":"..."}
+{"type":"capture.stop","id":"..."}
+{"type":"audio.start","id":"..."}
+{"type":"audio.stop","id":"..."}
+{"type":"output.start","profile":"local-record","id":"..."}
+{"type":"output.start","profile":"rtmp","target":"rtmps://example/live/key","id":"..."}
+{"type":"output.stop","id":"..."}
+```
+
+The `status` response also exposes capture FPS/frame count, audio packet/sample counters, output submission/drop counters and raw-pipe byte/drop counters so the UI can display real runtime metrics without scraping the diagnostic window.
+
+The parser is intentionally tiny and deterministic; it is not a general JSON implementation. Window indices are zero-based and refer to the native enumerated visible-window list; the UI exposes them to the user as 1-based numbers. The protocol remains experimental until a full schema validator is justified and tested.
+
+## Local configuration
+
+The shell does not require cloud services. Optional local environment variables are:
+
+- `CARI_NATIVE_EXECUTABLE`: absolute path to `cari-studio-native.exe`.
+- `CARI_MEDIAPIPE_MODEL_PATH`: absolute path to a compatible MediaPipe Face Landmarker `.task` model.
+- `CARI_AVATAR_MODEL_PATH`: absolute path to a local GLB/glTF-compatible avatar asset.
+- `CARI_FFMPEG_EXECUTABLE`: optional absolute path to the local FFmpeg executable. Falls back to `ffmpeg.exe` from PATH.
+
+Example PowerShell session:
+
+```powershell
+$env:CARI_NATIVE_EXECUTABLE="C:\path\to\cari-studio-native.exe"
+$env:CARI_MEDIAPIPE_MODEL_PATH="C:\path\to\face_landmarker.task"
+$env:CARI_AVATAR_MODEL_PATH="C:\path\to\avatar.glb"
+$env:CARI_FFMPEG_EXECUTABLE="C:\path\to\ffmpeg.exe"
+npm install
+npm run check
+npm test
+.un-local.ps1
+```
+
+## Validation
+
+From this directory:
+
+```powershell
+npm install
+npm run check
+npm test
+```
+
+## What is deliberately not production-ready
+
+1. **A/V timestamp fidelity.** The native FFmpeg path currently transports raw video/audio bytes. It does not encode the original capture PTS into the subprocess protocol; instead, `MediaGraphController` uses the PTS to pace emission against one monotonic wall clock. This improves real-time timing without claiming that the raw pipe preserves timestamps.
+2. **Compositor output.** The software compositor is still a reference/diagnostic stage. The encoded video path currently receives the captured BGRA frame bridge directly.
+3. **Live2D.** The architecture has an adapter boundary, but no Live2D runtime is bundled.
+4. **Hardware validation.** Capture-device recovery, microphone permissions and FFmpeg execution still need validation on the target Windows machine.
+5. **Protocol parser.** It is a small command recognizer, not a general JSON parser.
+
+The directory remains `experimental/` until these gates are validated by CI and target-machine tests.
