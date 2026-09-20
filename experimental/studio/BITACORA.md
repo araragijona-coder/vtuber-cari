@@ -3,7 +3,7 @@
 > Última actualización: 2026-09-20
 > Rama: `fix/native-windows-foundation`
 > PR: #2
-> HEAD canónico al cierre: `c9e75775698814359aeb3ccab59c25efc2aa10e3`
+> HEAD registrado en este checkpoint: `c8b44f1107408897ad837ff5a343d3ba3cfd5820`
 
 Esta es la fuente única de continuidad para Cari Studio. Su objetivo es impedir que el mismo componente se rediseñe o implemente repetidamente.
 
@@ -380,3 +380,64 @@ No volver a crear:
 - otro instalador paralelo.
 
 Mejorar el componente existente solamente ante una regresión reproducible, evidencia nueva o un gate pendiente documentado.
+
+
+### Corrección de continuidad — fuente viva
+
+El SHA de HEAD puede cambiar inmediatamente después de esta entrada por nuevos commits. Para el estado vivo se debe leer siempre el HEAD del PR #2; el SHA anterior queda como checkpoint histórico.
+
+La única fuente para decidir el siguiente trabajo es:
+- `experimental/studio/BITACORA.md` para historial y NO REPETIR;
+- `experimental/studio/PROJECT_STATUS.md` para estado agregado;
+- `experimental/studio/AUDIT_MATRIX.md` para gates;
+- HEAD/metadata del PR #2 para el estado vivo del branch.
+
+### Snapshot de capacidades actuales
+
+**IMPLEMENTADO**
+- Studio desktop y editor visual de acciones.
+- ActionStore/persistencia/import-export.
+- Three.js/glTF/GLB + fallback full-body.
+- MediaPipe Face Landmarker + bridge + monotonic timestamp guard.
+- Media Foundation camera source.
+- Windows Graphics Capture ventana/pantalla.
+- WASAPI mic/loopback + AudioTimelineMixer + local voice DSP.
+- MediaClock/RealtimePacer/MediaInterleaver + bounded queues.
+- D3D11 compositor experimental + placeholder/overlay.
+- LatestItemQueue fuera del callback de captura.
+- FFmpeg supervisor + named pipes + local/RTMP profiles.
+- E2E named-pipe smoke de 5 s.
+- Libav experimental con PTS explícitos.
+- Output diagnostics + RTMP retry/backoff limitado.
+- Twitch OAuth/EventSub/chat UI.
+- Multistream experimental hasta 4 destinos.
+- NSIS x64 + harness `validate-windows.ps1`.
+- Auditoría de licencias de dependencias.
+
+**VERIFICADO**
+- Smoke tests portables de core/timing/retry/diagnostics.
+- Pruebas aisladas de ActionStore/renderer.
+- Contrato FFmpeg sintético con H.264/AAC + Matroska.
+
+**BLOQUEADO / PENDIENTE DE VALIDACIÓN**
+- CI Windows observable.
+- E2E Windows named-pipe real.
+- Composición D3D11 sostenida y eliminación del readback CPU de la ruta normal.
+- Modelo artístico final y licencia del avatar.
+- Cámara real y reconexión.
+- Game Capture.
+- Drift correction de relojes físicos.
+- PTS extremo a extremo en el transporte actual.
+- RTMP real y reconexión real.
+- EventSub reconnect real.
+- Lip-sync final.
+- Instalador firmado/distribución FFmpeg/codec.
+- Hardware/PC objetivo.
+
+**DESCARTADO — NO REPETIR**
+- capturePage como transporte principal.
+- Python como motor multimedia.
+- OpenCV como sustituto obligatorio de Windows Graphics Capture.
+- Live2D propietario embebido sin resolver runtime/licencia.
+- IA como dependencia del streamer.
+- Retry automático indiscriminado de cualquier error FFmpeg.
