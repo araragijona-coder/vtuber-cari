@@ -749,6 +749,69 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
             bridged.frame.sequence, std::memory_order_relaxed);
         }
 
+        if (diagnostic_sample) {
+            ComPtr<ID3D11Texture2D> capture_texture;
+            if (captured.surface && SUCCEEDED(captured.surface.As(&capture_texture)) && capture_texture) {
+                ComPtr<ID3D11Device> device;
+                capture_texture->GetDevice(&device);
+                ComPtr<ID3D11DeviceContext> context;
+                if (device) device->GetImmediateContext(&context);
+
+                if (device && context) {
+                    std::lock_guard gpu_lock(g_gpu_compositor_mutex);
+                    D3D11_TEXTURE2D_DESC desc{};
+                    capture_texture->GetDesc(&desc);
+
+                    if (!g_gpu_avatar_placeholder) {
+                        g_gpu_avatar_placeholder =
+                            cari::native::PlaceholderAvatarGpuSource::make_rgba();
+                    }
+
+                    const bool needs_init =
+                        g_gpu_compositor.output_texture() == nullptr ||
+                        desc.Width != static_cast<UINT>(captured.width) ||
+                        desc.Height != static_cast<UINT>(captured.height);
+                    std::wstring gpu_error;
+
+                    if (needs_init) {
+                        if (!g_gpu_compositor.initialize(
+                                device.Get(),
+                                context.Get(),
+                                static_cast<std::uint32_t>(desc.Width),
+                                static_cast<std::uint32_t>(desc.Height),
+                                gpu_error)) {
+                            g_gpu_compositor_error.assign(gpu_error.begin(), gpu_error.end());
+                        } else {
+                            g_gpu_compositor_error.clear();
+                        }
+                    }
+
+                    if (g_gpu_compositor.output_texture()) {
+                        cari::native::GpuOverlay avatar_overlay{
+                            .width = 192,
+                            .height = 192,
+                            .rgba = g_gpu_avatar_placeholder,
+                            .opacity = 0.92f,
+                            .x = static_cast<std::int32_t>(
+                                desc.Width > 220 ? desc.Width - 210 : 8),
+                            .y = static_cast<std::int32_t>(
+                                desc.Height > 210 ? desc.Height - 210 : 8),
+                            .scale = 1.0f,
+                        };
+
+                        if (!g_gpu_compositor.compose_capture(
+                                capture_texture.Get(),
+                                std::vector<cari::native::GpuOverlay>{avatar_overlay},
+                                gpu_error)) {
+                            g_gpu_compositor_error.assign(gpu_error.begin(), gpu_error.end());
+                        } else {
+                            g_gpu_compositor_error.clear();
+                        }
+                    }
+                }
+            }
+        }
+
         if (g_media_enabled.load(std::memory_order_relaxed) &&
             g_media_graph.connected() && bridged.pixels) {
             g_media_graph.submit_video(bridged.frame, bridged.pixels);
