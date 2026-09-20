@@ -647,3 +647,34 @@ Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese re
 - No reescribir las workflows de producto sin evidencia nueva.
 - No marcar CI verde por el mero hecho de que el run exista.
 - No atribuir failure pre-step a CMake, C++, Python o Electron sin logs.
+
+## 17. P11 — continuidad Twitch (20/09/2026)
+
+### Cambios
+- Añadido experimental/twitch/continuity.py con TwitchContinuityLedger.
+- Registra generaciones de WebSocket a partir de event_websocket_welcome.
+- Detecta reconexiones mediante cambio de session id.
+- Audita localmente que las suscripciones esperadas sigan activas usando la API pública de TwitchIO.
+- Integrado en CariTwitchBot; TwitchIO conserva la responsabilidad del transporte, reconexión y resubscribe.
+- Añadido test_continuity.py como test determinista para cambio de generación y auditoría de suscripciones.
+- README de Twitch actualizado para dejar explícita la frontera de responsabilidades.
+
+### Estado
+| Gate | Estado | Evidencia faltante |
+|---|---|---|
+| Continuity ledger | IMPLEMENTADO | ninguna de código |
+| TwitchIO reconnect/resubscribe ownership | IMPLEMENTADO | prueba real de canal |
+| Reconnect integration test | PENDIENTE DE VALIDACIÓN | Twitch CLI o canal real |
+
+### No repetir
+- No implementar otro WebSocket manager.
+- No copiar la lógica interna de reconnect/resubscribe de TwitchIO.
+- No introducir IRC como transporte alternativo.
+
+### Evidencia externa
+- Twitch documenta que una pérdida de WebSocket obliga a volver a suscribirse y que un mensaje session_reconnect debe usar su reconnect_url; TwitchIO implementa ese flujo internamente y resuscribe suscripciones después de reconnect. citeturn720701search0turn404085view0
+- El test local verifica solo el ledger; no es equivalente a una sesión Twitch real.
+
+### Porcentaje
+- Avance canónico: 63%.
+- P11 no suma su punto hasta disponer de evidencia real de reconexión/resuscripción.
