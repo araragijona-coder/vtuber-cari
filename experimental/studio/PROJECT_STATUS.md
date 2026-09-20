@@ -18,7 +18,6 @@
 - [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
 - [x] Retry/backoff RTMP restringido a errores de red y métricas de categoría.
 - [x] Reset de retry por nueva sesión manual, conservando intentos durante reconexiones automáticas.
-- [x] Reset de contador de retry para nuevas sesiones manuales con continuidad de intentos en reconexiones automáticas.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
 - [x] Diagnóstico y retry RTMP acotado por categoría de fallo.
@@ -26,7 +25,6 @@
 - [x] Política de retry RTMP con backoff exponencial acotado y clasificación de errores.
 - [x] Bitácora maestra con ledger de trabajo realizado, descartado y pendiente.
 - [x] Auditoría de licencias de dependencias runtime fijadas.
- de dependencias runtime fijadas.
   - No habilita por sí sola redistribución de FFmpeg/codec; esa decisión sigue pendiente.
 - [x] Smoke test nativo para contratos core.
 - [x] Smoke D3D11 compositor con WARP, incluyendo composición alpha de overlay.
