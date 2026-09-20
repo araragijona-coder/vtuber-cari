@@ -440,6 +440,14 @@ target_link_libraries(cari-media-foundation-camera-smoke PRIVATE
     mfuuid
 )
 
+add_executable(cari-latest-item-queue-smoke
+    ../core/latest_item_queue_smoke.cpp
+)
+
+target_include_directories(cari-latest-item-queue-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
 add_executable(cari-output-retry-smoke
     ../core/output_retry_smoke.cpp
 )
@@ -506,6 +514,7 @@ if(CARI_ENABLE_LIBAV_OUTPUT)
     add_test(NAME cari-libav-pts-smoke COMMAND cari-libav-pts-smoke)
 endif()
 add_test(NAME cari-media-foundation-camera-smoke COMMAND cari-media-foundation-camera-smoke)
+add_test(NAME cari-latest-item-queue-smoke COMMAND cari-latest-item-queue-smoke)
 add_test(NAME cari-output-retry-smoke COMMAND cari-output-retry-smoke)
 add_test(NAME cari-output-diagnostics-smoke COMMAND cari-output-diagnostics-smoke)
 add_test(NAME cari-control-protocol-smoke COMMAND cari-control-protocol-smoke)
