@@ -1,129 +1,100 @@
-# Cari Studio Electron Shell
+# Cari Studio — Windows desktop
 
-This directory is intentionally **experimental**. It is the desktop control/UI layer around the native Windows media engine. The architecture is local-first: Electron provides the control surface, the Windows runtime owns screen/window capture and WASAPI, and avatar tracking/rendering stays in the UI layer.
+Cari Studio es un estudio local Windows-first para captura, streaming y VTubing. La aplicación no necesita una API de IA para operar.
 
-## Runtime architecture
+## Instalación / lanzamiento
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Electron renderer                                               │
-│                                                                 │
-│  StudioSessionManager ── serialized session commands│
-│  AvatarActingBridge ← FaceTrackingBridge ← MediaPipe            │
-│  ThreeAvatarRenderer ── GLB/glTF avatar                        │
-│  local camera preview                                           │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ contextBridge / IPC
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Electron main                                                   │
-│                                                                 │
-│  NativeEngine                                                   │
-│    ├─ process lifecycle                                         │
-│    ├─ stdout JSON response correlation                          │
-│    ├─ stderr diagnostics                                        │
-│    └─ graceful output.stop before process termination           │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ stdin/stdout JSONL
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Native Windows runtime                                          │
-│                                                                 │
-│  Windows Graphics Capture → FrameBridge → MediaGraph            │
-│  WASAPI → AudioTimelineMixer ───────────────────────┐           │
-│  software compositor (reference validation)         │           │
-│  RealtimePacer → RawPipe → FFmpeg A/V output                        │           │
-│                                                     ▼           │
-│                                              local recording    │
-└─────────────────────────────────────────────────────────────────┘
-```
+1. En el release de Windows se usa el instalador NSIS generado como Cari-Studio-Setup-<version>.exe.
+2. El instalador crea accesos de Inicio y Escritorio.
+3. Para desarrollo desde el repositorio, entrar en experimental/studio/electron-shell.
+4. Ejecutar scripts\package.cmd para construir el motor nativo, instalar Node y generar el instalador.
+5. Ejecutar scripts\launch.cmd para abrir el shell durante desarrollo.
 
-## Module responsibilities
+El paquete Electron incluye cari-studio-native.exe dentro de resources/native.
 
-### Capture
+## Twitch: conexión real
 
-The native runtime owns screen/window/primary-display capture through Windows Graphics Capture. This avoids putting the core desktop capture path inside the browser process and keeps device recovery and WinRT apartment requirements in one place.
+Twitch usa OAuth 2.0. Cari no puede entrar a una cuenta sin autorización del usuario. El flujo de escritorio actual solicita los permisos de chat y conserva el token cifrado mediante el almacenamiento seguro del sistema operativo.
 
-### Audio
+En Twitch Developer Console:
 
-WASAPI capture and the native timeline mixer stay outside Electron. The UI can start/stop the bridge but does not manipulate device buffers directly.
+1. Crear una aplicación nueva.
+2. Registrar exactamente este Redirect URL: http://127.0.0.1:37845/oauth/callback
+3. Copiar el Client ID.
+4. Abrir Cari Studio.
+5. En Twitch, pegar Client ID y el login del canal.
+6. Pulsar Connect Twitch.
+7. Autorizar user:read:chat y user:write:chat.
 
-### Avatar bridge
+Después del login, Cari abre EventSub WebSocket y crea la suscripción channel.chat.message usando el session_id recibido en session_welcome. Twitch exige esa secuencia para las suscripciones por WebSocket. Las credenciales OAuth deben mantenerse privadas. (Twitch Developers: Authentication, EventSub WebSocket, Chat.)
 
-- `avatar/avatar-contract.js` normalizes the state contract before rendering.
-- `AvatarActingBridge` is the stable state model for expressions, mouth openness, blinking, head rotation and gaze.
-- `FaceTracker` is the MediaPipe adapter.
-- `FaceTrackingBridge` converts MediaPipe blendshapes/pose into avatar state.
-- `ThreeAvatarRenderer` consumes that state and renders a glTF/GLB avatar.
-- The renderer has a deliberately simple placeholder avatar so the UI remains testable without distributing a proprietary model.
-- Live2D is a future adapter boundary; this repository does not bundle the Live2D runtime or SDK.
+## Cómo activar el chat
 
-### Optional OBS control
+Una vez conectado Twitch:
 
-OBS is **not** required for Cari Studio's native capture/recording pipeline. The shell can optionally connect to a local obs-websocket v5 server from Electron Main, where the `OBSWebSocket` client is isolated from the renderer. Supported operations are connect, disconnect, start/stop stream, set current program scene and query stream status.
+- Los mensajes aparecen automáticamente en el panel Chat.
+- Send Chat publica mensajes desde el usuario autenticado.
+- Read Chat: On usa speechSynthesis local del renderer; no requiere un servicio TTS remoto.
+- Enter también envía el mensaje.
+- !happy, !angry y !neutral son reglas locales deterministas para cambiar la expresión.
 
-The JavaScript client uses obs-websocket v5's named CommonJS export and `call()` request model. The dependency is pinned in `package.json` so upgrades are deliberate.
+## Avatar
 
-### Control plane
+El visor ya no está limitado a una cabeza. La cámara del renderer fue corregida para encuadrar el cuerpo completo.
 
-The native process accepts line-delimited JSON. Every Electron request receives a generated `id`, and native responses echo that id so concurrent UI actions cannot be confused.
+Hay dos modos:
 
-Supported commands:
+- Built-in full-body demo rig: cuerpo completo generado por el renderer para probar tracking y expresiones.
+- Load GLB / glTF Model: abre el selector de archivos de Windows para cargar el modelo VTuber real del usuario.
 
-```json
-{"type":"status","id":"..."}
-{"type":"capture.start","source":"window","window_index":0,"id":"..."}
-{"type":"capture.start","source":"screen","id":"..."}
-{"type":"capture.stop","id":"..."}
-{"type":"audio.start","id":"..."}
-{"type":"audio.stop","id":"..."}
-{"type":"output.start","profile":"local-record","id":"..."}
-{"type":"output.start","profile":"rtmp","target":"rtmps://example/live/key","id":"..."}
-{"type":"output.stop","id":"..."}
-```
+El proyecto no incluye un modelo comercial ni una identidad artística inventada como si fuera la versión definitiva de Cari. El renderer soporta un modelo local y el contrato de actuación permanece separado de su apariencia.
 
-The `status` response also exposes capture FPS/frame count, audio packet/sample counters, output submission/drop counters and raw-pipe byte/drop counters so the UI can display real runtime metrics without scraping the diagnostic window.
+## Captura y salida
 
-The parser is intentionally tiny and deterministic; it is not a general JSON implementation. Window indices are zero-based and refer to the native enumerated visible-window list; the UI exposes them to the user as 1-based numbers. The protocol remains experimental until a full schema validator is justified and tested.
+Capture permite seleccionar ventana o pantalla primaria. El runtime nativo usa Windows Graphics Capture y WASAPI.
 
-## Local configuration
+Outputs:
 
-The shell does not require cloud services. Optional local environment variables are:
+- Record Local MKV.
+- Start Direct RTMP con rtmp:// o rtmps://.
+- OBS queda como integración opcional mediante obs-websocket-js.
 
-- `CARI_NATIVE_EXECUTABLE`: absolute path to `cari-studio-native.exe`.
-- `CARI_MEDIAPIPE_MODEL_PATH`: absolute path to a compatible MediaPipe Face Landmarker `.task` model.
-- `CARI_AVATAR_MODEL_PATH`: absolute path to a local GLB/glTF-compatible avatar asset.
-- `CARI_FFMPEG_EXECUTABLE`: optional absolute path to the local FFmpeg executable. Falls back to `ffmpeg.exe` from PATH.
+FFmpeg debe estar disponible como ffmpeg.exe o configurarse con CARI_FFMPEG_EXECUTABLE.
 
-Example PowerShell session:
+## Qué está realmente terminado
 
-```powershell
-$env:CARI_NATIVE_EXECUTABLE="C:\path\to\cari-studio-native.exe"
-$env:CARI_MEDIAPIPE_MODEL_PATH="C:\path\to\face_landmarker.task"
-$env:CARI_AVATAR_MODEL_PATH="C:\path\to\avatar.glb"
-$env:CARI_FFMPEG_EXECUTABLE="C:\path\to\ffmpeg.exe"
-npm install
-npm run check
-npm test
-.un-local.ps1
-```
+Implementado:
+- motor nativo Windows;
+- captura de ventana y pantalla;
+- audio micrófono + sistema;
+- mixer temporal;
+- efecto de voz local;
+- FFmpeg boundary;
+- Twitch OAuth + EventSub chat;
+- chat visible y envío;
+- avatar Three.js + carga GLB/glTF;
+- tracking MediaPipe;
+- launcher e instalador NSIS x64 configurados;
+- bitácora de continuidad.
 
-## Validation
+Aún requiere validación real:
+- build/installer Windows ejecutado con éxito en Actions;
+- Twitch en un canal real;
+- FFmpeg con named pipes durante una sesión prolongada;
+- RTMP sostenido;
+- composición definitiva avatar -> frame codificado;
+- cámara Media Foundation;
+- Game Capture;
+- drift correction;
+- lip-sync de producción;
+- modelo artístico final;
+- prueba completa en el PC objetivo.
 
-From this directory:
+## Fuentes oficiales de referencia
 
-```powershell
-npm install
-npm run check
-npm test
-```
-
-## What is deliberately not production-ready
-
-1. **A/V timestamp fidelity.** The native FFmpeg path currently transports raw video/audio bytes. It does not encode the original capture PTS into the subprocess protocol; instead, `MediaGraphController` uses the PTS to pace emission against one monotonic wall clock. This improves real-time timing without claiming that the raw pipe preserves timestamps.
-2. **Compositor output.** The software compositor is still a reference/diagnostic stage. The encoded video path currently receives the captured BGRA frame bridge directly.
-3. **Live2D.** The architecture has an adapter boundary, but no Live2D runtime is bundled.
-4. **Hardware validation.** Capture-device recovery, microphone permissions and FFmpeg execution still need validation on the target Windows machine.
-5. **Protocol parser.** It is a small command recognizer, not a general JSON parser.
-
-The directory remains `experimental/` until these gates are validated by CI and target-machine tests.
+- Twitch Authentication: https://dev.twitch.tv/docs/authentication/
+- Twitch WebSocket EventSub: https://dev.twitch.tv/docs/eventsub/handling-websocket-events/
+- Twitch Chat authentication: https://dev.twitch.tv/docs/chat/authenticating/
+- Twitch chat subscription type: https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/
+- Electron Builder Windows/NSIS: https://www.electron.build/docs/win/
+- Three.js GLTFLoader: https://threejs.org/docs/pages/GLTFLoader.html
