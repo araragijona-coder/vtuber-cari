@@ -6,6 +6,7 @@ import { ThreeAvatarRenderer } from "../avatar/three-avatar.js";
 import { AvatarActingBridge } from "../avatar/acting-bridge.js";
 import { AudioLipSync } from "../avatar/audio-lipsync.js";
 import { AvatarActionStore } from "../avatar/action-store.js";
+import { STUDIO_MENU, CAPABILITIES } from "./menu-config.js";
 
 const $ = selector => document.querySelector(selector);
 const ui = {
@@ -14,6 +15,9 @@ const ui = {
   actionOverlay: $("#action-overlay"),
   editorOverlay: $("#editor-overlay"),
   camera: $("#camera"),
+  trackingCamera: $("#tracking-camera"),
+  settingsAvatar: $("#avatar-settings-preview"),
+  menuSearch: $("#menu-search"),
   status: $("#status"),
   engine: $("#engine"),
   metrics: $("#metrics"),
@@ -47,6 +51,7 @@ const session = new StudioSessionManager(window.cari.native);
 const acting = new AvatarActingBridge();
 const renderer = new ThreeAvatarRenderer(ui.avatar);
 const editorRenderer = new ThreeAvatarRenderer(ui.editorAvatar);
+const settingsRenderer = new ThreeAvatarRenderer(ui.settingsAvatar);
 const tracking = new FaceTrackingBridge(acting);
 const lipSync = new AudioLipSync(acting);
 const actionStore = new AvatarActionStore();
@@ -89,6 +94,207 @@ function saveScenes() {
 function showStatus(message) {
   ui.status.textContent = String(message || "");
 }
+
+function renderNavigation() {
+  const container = $("#nav-container");
+  if (!container) return;
+  container.innerHTML = "";
+  const groups = [];
+  for (const item of STUDIO_MENU) {
+    let group = groups.find(value => value.name === item.group);
+    if (!group) {
+      group = { name: item.group, items: [] };
+      groups.push(group);
+    }
+    group.items.push(item);
+  }
+
+  for (const group of groups) {
+    const section = document.createElement("div");
+    section.className = "nav-group";
+    const label = document.createElement("div");
+    label.className = "nav-label";
+    label.textContent = group.name;
+    section.appendChild(label);
+
+    for (const item of group.items) {
+      const button = document.createElement("button");
+      button.className = "nav-item";
+      button.dataset.view = item.id;
+      button.title = item.description;
+      button.innerHTML = '<span class="nav-icon">' + esc(item.icon) + '</span><span>' + esc(item.label) + '</span>';
+      button.onclick = () => switchView(item.id);
+      section.appendChild(button);
+    }
+    container.appendChild(section);
+  }
+}
+
+function renderCapabilityCatalog(target, items) {
+  const container = $(target);
+  if (!container) return;
+  container.innerHTML = "";
+
+  const labels = {
+    connected: "conectado",
+    eventsub: "EventSub",
+    prepared: "preparado",
+    planned: "en desarrollo"
+  };
+
+  for (const [name, api, state] of items) {
+    const card = document.createElement("div");
+    card.className = "capability-card " + state;
+    card.innerHTML =
+      '<div class="capability-top"><h4>' + esc(name) + '</h4>' +
+      '<span class="cap-status">' + esc(labels[state] || state) + '</span></div>' +
+      '<div class="capability-api">' + esc(api) + '</div>';
+    container.appendChild(card);
+  }
+}
+
+function renderExpressionPanel() {
+  const container = $("#expression-grid");
+  if (!container) return;
+  container.innerHTML = "";
+
+  for (const action of actionStore.list()) {
+    const card = document.createElement("button");
+    card.className = "expression-button";
+    card.innerHTML =
+      '<h4>' + esc(action.icon + " " + action.label) + '</h4>' +
+      '<p>' + esc(action.expression + " · " + action.frames.length + " frame(s)") + '</p>';
+    card.onclick = () => setAction(action.id);
+    container.appendChild(card);
+  }
+}
+
+function renderHotkeys() {
+  const container = $("#hotkey-grid");
+  if (!container) return;
+  const entries = [
+    ["En vivo", "Ctrl+1", "Cambiar a control de emisión"],
+    ["VTuber", "Ctrl+2", "Abrir editor de acciones"],
+    ["Twitch", "Ctrl+3", "Abrir centro Twitch"],
+    ["OBS", "Ctrl+4", "Abrir centro OBS"],
+    ["Tracking", "Ctrl+5", "Abrir tracking facial"],
+    ["Escenas", "Ctrl+6", "Abrir composición"],
+    ["Audio", "Ctrl+7", "Abrir mixer"],
+    ["Salidas", "Ctrl+8", "Abrir streaming/recording"],
+    ["Buscar", "Ctrl+K", "Enfocar el buscador de herramientas"]
+  ];
+  container.innerHTML = entries.map(([name, key, description]) =>
+    '<div class="hotkey-card"><h4>' + esc(name) + '</h4><p>' +
+    esc(description) + '</p><kbd>' + esc(key) + '</kbd></div>'
+  ).join("");
+}
+
+function renderTwitchTriggers() {
+  const container = $("#event-triggers");
+  if (!container) return;
+  const rows = [
+    ["Follow", "Acción de bienvenida"],
+    ["Subscribe / Gift", "Acción de suscripción"],
+    ["Cheer", "Acción de Bits"],
+    ["Raid", "Cambio de escena / alert"],
+    ["Channel Points", "Acción personalizada"],
+    ["Poll / Prediction", "Automatización"],
+    ["Hype Train", "Modo evento"],
+    ["Ad Break", "Estado comercial"],
+    ["Shoutout", "Alert de canal"],
+    ["Shield / Moderation", "Protección"],
+    ["Stream Online / Offline", "Estado del canal"]
+  ];
+  container.innerHTML = rows.map(([name, action]) =>
+    '<div class="trigger-row"><span>' + esc(name) + '</span><span class="small muted">' +
+    esc(action) + '</span></div>'
+  ).join("");
+}
+
+function obsListItems(target, values, buttonLabel, callback) {
+  const container = $(target);
+  if (!container) return;
+  container.innerHTML = "";
+  for (const value of values || []) {
+    const row = document.createElement("div");
+    row.className = "obs-item";
+    const label = typeof value === "string"
+      ? value
+      : (value.sceneName || value.inputName || value.name || "item");
+    const button = document.createElement("button");
+    button.textContent = buttonLabel;
+    if (callback) button.onclick = () => callback(value);
+    row.append(document.createElement("span"), button);
+    row.firstChild.textContent = label;
+    container.appendChild(row);
+  }
+  if (!container.children.length) {
+    container.innerHTML = '<div class="small muted">Sin datos.</div>';
+  }
+}
+
+async function refreshObsCenter() {
+  const pill = $("#obs-status-pill");
+  const current = await window.cari.native.obs.status().catch(() => ({ connected: false }));
+  const connected = current?.connected === true;
+  if (pill) pill.textContent = connected ? "connected" : "offline";
+  if (connected) {
+    try {
+      const [scenesData, inputsData, statsData, studioData, profilesData, collectionsData] = await Promise.all([
+        window.cari.native.obs.scenes(),
+        window.cari.native.obs.inputs(),
+        window.cari.native.obs.stats(),
+        window.cari.native.obs.studioMode(),
+        window.cari.native.obs.profiles(),
+        window.cari.native.obs.sceneCollections()
+      ]);
+
+      const scenes = scenesData?.scenes || [];
+      obsListItems("#obs-scenes", scenes, "Program", scene => {
+        const name = scene.sceneName || scene.name;
+        command(window.cari.native.obs.setScene ? window.cari.native.obs.setScene(name) : Promise.reject(new Error("OBS scene control unavailable")));
+      });
+      const currentScene = scenesData?.currentProgramSceneName || "—";
+      $("#obs-current-scene").textContent = "Program: " + currentScene;
+
+      const inputs = inputsData?.inputs || [];
+      obsListItems("#obs-inputs", inputs, "Ver", value => showStatus("OBS input: " + (value.inputName || value.name || "source")));
+
+      const stats = statsData || {};
+      $("#obs-stats").textContent = JSON.stringify({
+        cpu: stats.cpuUsage,
+        fps: stats.activeFps,
+        render: stats.renderTotalFrames,
+        framesMissed: stats.renderMissedFrames,
+        outputSkipped: stats.outputSkippedFrames
+      }, null, 2);
+
+      $("#obs-studio-state").textContent =
+        studioData?.studioModeEnabled ? "Studio Mode ON" : "Studio Mode OFF";
+
+      const profiles = profilesData?.profiles || [];
+      obsListItems("#obs-profiles", profiles, "Usar", value => {
+        command(window.cari.native.obs.setProfile(value.profileName || value.name));
+      });
+
+      const collections = collectionsData?.sceneCollections || [];
+      obsListItems("#obs-collections", collections, "Usar", value => {
+        command(window.cari.native.obs.setSceneCollection(value.sceneCollectionName || value.name));
+      });
+    } catch (error) {
+      showStatus("OBS: " + error.message);
+    }
+  } else {
+    $("#obs-scenes").innerHTML = '<div class="small muted">Conectá OBS para cargar escenas.</div>';
+    $("#obs-inputs").innerHTML = '<div class="small muted">Conectá OBS para cargar sources.</div>';
+    $("#obs-profiles").innerHTML = '<div class="small muted">Conectá OBS para cargar perfiles.</div>';
+    $("#obs-collections").innerHTML = '<div class="small muted">Conectá OBS para cargar colecciones.</div>';
+    $("#obs-stats").textContent = "offline";
+    $("#obs-studio-state").textContent = "offline";
+    $("#obs-current-scene").textContent = "Program: —";
+  }
+}
+
 
 function addEvent(message) {
   const row = document.createElement("div");
@@ -484,12 +690,27 @@ function switchView(view) {
   document.querySelectorAll("[data-view-panel]").forEach(panel =>
     panel.classList.toggle("active", panel.dataset.viewPanel === view)
   );
-  ui.workspace.textContent = view === "vtuber" ? "Editor VTuber" : "Workspace: " + view;
+  const item = STUDIO_MENU.find(entry => entry.id === view);
+  ui.workspace.textContent = item ? item.label : ("Workspace: " + view);
+
   if (view === "vtuber") {
     renderActionGrid();
     renderActionInspector();
-  } else if (view === "assets") renderAssets();
-  else if (view === "scenes") renderScenes();
+  } else if (view === "assets") {
+    renderAssets();
+  } else if (view === "scenes") {
+    renderScenes();
+  } else if (view === "expressions") {
+    renderExpressionPanel();
+  } else if (view === "twitch-center") {
+    renderCapabilityCatalog("#twitch-capabilities", CAPABILITIES.twitch);
+    renderTwitchTriggers();
+  } else if (view === "obs-center") {
+    renderCapabilityCatalog("#obs-capabilities", CAPABILITIES.obs);
+    refreshObsCenter();
+  } else if (view === "hotkeys") {
+    renderHotkeys();
+  }
 }
 
 async function startCamera() {
@@ -499,7 +720,9 @@ async function startCamera() {
     audio: false
   });
   ui.camera.srcObject = cameraStream;
+  if (ui.trackingCamera) ui.trackingCamera.srcObject = cameraStream;
   await ui.camera.play();
+  if (ui.trackingCamera) await ui.trackingCamera.play();
   ui.tracking.textContent = "camera active";
   ui.trackingBadge.textContent = "camera active";
   const config = await window.cari.config();
@@ -516,6 +739,7 @@ function stopCamera() {
   if (!cameraStream) return;
   cameraStream.getTracks().forEach(track => track.stop());
   ui.camera.srcObject = null;
+  if (ui.trackingCamera) ui.trackingCamera.srcObject = null;
   cameraStream = null;
   tracking.setEnabled(false);
   faceTracker?.close();
@@ -535,8 +759,10 @@ acting.subscribe(state => {
   const params = acting.toRenderParameters();
   renderer.apply(params);
   editorRenderer.apply(params);
+  settingsRenderer.apply(params);
   renderer.render();
   editorRenderer.render();
+  settingsRenderer.render();
   window.cari.native.avatar.setState(params).catch(() => undefined);
   ui.previewAction.textContent = currentAction()?.label || state.expression;
 });
@@ -600,7 +826,9 @@ $("#model-pick").onclick = async () => {
     const source = result.dataUrl || result.url;
     await renderer.load(source);
     await editorRenderer.load(source);
+    await settingsRenderer.load(source);
     ui.model.textContent = result.name || "GLB avatar";
+    $("#model-side").textContent = result.name || "GLB avatar";
     showStatus("Avatar cargado");
   } catch (error) {
     showStatus("Avatar: " + error.message);
@@ -681,9 +909,87 @@ $("#assets-open-editor").onclick = () => switchView("vtuber");
 document.querySelectorAll("[data-quick-action]").forEach(button =>
   button.onclick = () => setActionByIdOrLabel(button.dataset.quickAction)
 );
-document.querySelectorAll(".nav-item").forEach(button =>
-  button.onclick = () => switchView(button.dataset.view)
-);
+renderNavigation();
+renderCapabilityCatalog("#twitch-capabilities", CAPABILITIES.twitch);
+renderCapabilityCatalog("#obs-capabilities", CAPABILITIES.obs);
+renderExpressionPanel();
+renderHotkeys();
+renderTwitchTriggers();
+
+document.querySelectorAll("[data-nav-target]").forEach(button => {
+  button.onclick = () => switchView(button.dataset.navTarget);
+});
+
+ui.menuSearch.oninput = () => {
+  const query = ui.menuSearch.value.trim().toLowerCase();
+  document.querySelectorAll(".nav-item").forEach(button => {
+    const item = STUDIO_MENU.find(entry => entry.id === button.dataset.view);
+    const haystack = [item?.label, item?.description, item?.group].join(" ").toLowerCase();
+    button.classList.toggle("nav-hidden", Boolean(query) && !haystack.includes(query));
+  });
+};
+
+document.addEventListener("keydown", event => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    ui.menuSearch.focus();
+    ui.menuSearch.select();
+    return;
+  }
+  if (!event.ctrlKey || event.shiftKey || event.altKey || event.metaKey) return;
+  const map = {
+    "1": "live", "2": "vtuber", "3": "twitch-center", "4": "obs-center",
+    "5": "tracking", "6": "scenes", "7": "audio", "8": "outputs"
+  };
+  const target = map[event.key];
+  if (target) {
+    event.preventDefault();
+    switchView(target);
+  }
+});
+
+
+$("#obs-disconnect").onclick = () => command(window.cari.native.obs.disconnect());
+$("#obs-record-start").onclick = () => command(window.cari.native.obs.startRecord());
+$("#obs-record-stop").onclick = () => command(window.cari.native.obs.stopRecord());
+$("#obs-vcam-start").onclick = () => command(window.cari.native.obs.startVirtualCamera());
+$("#obs-vcam-stop").onclick = () => command(window.cari.native.obs.stopVirtualCamera());
+$("#obs-refresh-scenes").onclick = refreshObsCenter;
+$("#obs-refresh-inputs").onclick = refreshObsCenter;
+$("#obs-refresh-stats").onclick = refreshObsCenter;
+$("#obs-refresh-studio").onclick = refreshObsCenter;
+$("#obs-transition").onclick = () => command(window.cari.native.obs.transition());
+$("#obs-refresh-scenes").ondblclick = refreshObsCenter;
+
+$("#twitch-center-connect").onclick = async () => {
+  switchView("chat");
+  await command(window.cari.native.twitch.connect({
+    clientId: twitch.clientId.value.trim(),
+    channel: twitch.channel.value.trim()
+  }));
+};
+
+$("#source-screen").onclick = () => command(session.captureStart("screen"));
+$("#source-window").onclick = () => {
+  const value = Number.parseInt($("#window-index").value, 10);
+  command(session.captureStart("window", value - 1));
+};
+$("#source-camera").onclick = () => startCamera().catch(error => showStatus("Camera: " + error.message));
+
+$("#audio-start").onclick = () => command(session.audioStart ? session.audioStart() : window.cari.native.send({ type: "audio.start" }));
+$("#audio-stop").onclick = () => command(session.audioStop ? session.audioStop() : window.cari.native.send({ type: "audio.stop" }));
+$("#voice-anime-2").onclick = () => command(session.setVoiceEffect("anime-bright"));
+$("#voice-off-2").onclick = () => command(session.setVoiceEffect("off"));
+$("#voice-anime-3").onclick = () => command(session.setVoiceEffect("anime-bright"));
+
+$("#tracking-camera-start").onclick = () => startCamera().catch(error => showStatus("Camera: " + error.message));
+$("#tracking-camera-stop").onclick = stopCamera;
+
+$("#output-record").onclick = () => command(session.outputStart("local-record"));
+$("#output-rtmp").onclick = () => command(session.outputStart("rtmp", $("#rtmp-target-2").value.trim()));
+$("#output-stop").onclick = () => command(session.outputStop());
+
+$("#model-pick-side").onclick = () => $("#model-pick").click();
 
 twitch.clientId.value = localStorage.getItem("cari.twitch.clientId") || "";
 twitch.channel.value = localStorage.getItem("cari.twitch.channel") || "";
@@ -703,6 +1009,20 @@ async function refresh() {
   refreshBusy = true;
   try {
     const result = await session.status();
+    const twitchState = await window.cari.native.twitch.status().catch(() => ({ connected: false }));
+    const obsState = await window.cari.native.obs.status().catch(() => ({ connected: false }));
+    const engineOn = result.engine?.running === true;
+    $("#engine-chip").innerHTML = "ENGINE <b>" + (engineOn ? "ON" : "OFF") + "</b>";
+    $("#twitch-chip").innerHTML = "TWITCH <b>" + (twitchState.connected ? "ON" : "OFF") + "</b>";
+    $("#obs-chip").innerHTML = "OBS <b>" + (obsState.connected ? "ON" : "OFF") + "</b>";
+    $("#dash-twitch").textContent = twitchState.connected ? "connected" : "offline";
+    $("#dash-obs").textContent = obsState.connected ? "connected" : "offline";
+    $("#service-twitch-text").textContent = twitchState.connected ? "connected" : "offline";
+    $("#service-obs-text").textContent = obsState.connected ? "connected" : "offline";
+    $("#service-engine-text").textContent = engineOn ? "running" : "offline";
+    $("#service-twitch-dot").classList.toggle("on", twitchState.connected);
+    $("#service-obs-dot").classList.toggle("on", obsState.connected);
+    $("#service-engine-dot").classList.toggle("on", engineOn);
     ui.engine.textContent = result.engine?.running ? "running (" + result.engine.pid + ")" : "offline";
     ui.dashEngine.textContent = ui.engine.textContent;
 
@@ -718,6 +1038,12 @@ async function refresh() {
     ui.fps.textContent = Number(metrics.fps ?? 0).toFixed(1);
     ui.audio.textContent = String(metrics.audio_packets ?? 0);
     ui.output.textContent = metrics.output === "running" ? "LIVE" : "stopped";
+    $("#side-output-state").textContent = metrics.output_state || metrics.output || "offline";
+    $("#output-resilience").textContent =
+      "Retry " + (metrics.output_retry_attempts ?? 0) +
+      " · " + (metrics.output_retry_pending ? "pending" : "idle") +
+      " · " + (metrics.output_failure_category || "none");
+    $("#dash-failure").textContent = metrics.output_failure_category || "none";
     ui.capture.textContent = metrics.capture || "stopped";
     ui.dashCapture.textContent = metrics.capture || "stopped";
     ui.dashAudio.textContent = metrics.audio_packets ? "running" : "stopped";
