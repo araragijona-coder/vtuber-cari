@@ -793,6 +793,33 @@ window.cari.native.onEvent(event => {
   if (event.type === "twitch.eventsub.welcome") { addEvent("EventSub connected"); return; }
   if (event.type === "twitch.eventsub.keepalive") { addEvent("EventSub keepalive"); return; }
   if (event.type === "twitch.eventsub.reconnect") { addEvent("EventSub reconnecting"); return; }
+  if (event.type === "obs.status") {
+    if (event.connected) {
+      $("#service-obs-text").textContent = "connected";
+      $("#obs-status-pill").textContent = "connected";
+    }
+    return;
+  }
+  if (event.type === "obs.event") {
+    const data = event.data || {};
+    const type = String(event.type || "OBS");
+    const labelMap = {
+      StreamStateChanged: data.outputActive ? "OBS stream: ON" : "OBS stream: OFF",
+      RecordStateChanged: data.outputActive ? "OBS recording: ON" : "OBS recording: OFF",
+      VirtualcamStateChanged: data.outputActive ? "OBS virtual camera: ON" : "OBS virtual camera: OFF",
+      CurrentProgramSceneChanged: "OBS program: " + (data.sceneName || "—"),
+      CurrentPreviewSceneChanged: "OBS preview: " + (data.sceneName || "—"),
+      StudioModeStateChanged: data.studioModeEnabled ? "OBS Studio Mode: ON" : "OBS Studio Mode: OFF"
+    };
+    addEvent(labelMap[type] || "OBS event: " + type);
+    if (type === "CurrentProgramSceneChanged" && data.sceneName) {
+      $("#obs-current-scene").textContent = "Program: " + data.sceneName;
+    }
+    if (type === "StudioModeStateChanged") {
+      $("#obs-studio-state").textContent = data.studioModeEnabled ? "Studio Mode ON" : "Studio Mode OFF";
+    }
+    return;
+  }
   if (event.type === "twitch.event") {
     const type = String(event.eventType || event.typeName || "unknown");
     const payload = event.payload || {};
