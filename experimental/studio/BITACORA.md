@@ -17,7 +17,7 @@
 - PR: #2 — `fix: harden native Windows foundation`
 - Estado PR: abierto, draft.
 - Avance global: **60% de ingeniería**.
-- Último HEAD comprobado: `e2509f6fad84a437a2d49550b97d0c8fa71cd950`.
+- Último HEAD comprobado: `547c0a41996be00d0b738fcd6cfd17d6f545d2ecee8`.
 - Interpretación del porcentaje: avance frente al producto completo; **no** equivale a validación de hardware ni a CI verde.
 - Regla de promoción: mantener la implementación en `experimental/` hasta cerrar los gates.
 
@@ -335,3 +335,63 @@ P2: cámara Media Foundation, Game Capture, lip-sync y backends reales de accion
 P3: multistream, EventSub reconnect verificado, FFmpeg redistribution/licencias, installer y release validation.
 
 Regla de continuidad: antes de implementar, buscar el componente en BITACORA.md, AUDIT_MATRIX.md y WORKLOG.md; si existe, extenderlo. Solo abrir arquitectura nueva con motivo y evidencia registrados.
+## Registro de iteración — 2026-09-20 09:11 ART
+
+### Cambios registrados
+- OutputRetryPolicy: backoff 1s → 2s → 4s → …, máximo 30s y 5 intentos.
+- OutputFailureCategory: network/encoder/input/mux/permission/unknown.
+- Retry automático limitado a RTMP y únicamente a fallos clasificados como red.
+- Estado, exit code, retry y categoría de fallo expuestos al control plane/UI.
+- stderr de FFmpeg limitado a 256 KiB.
+- Backpressure de arranque: el mixer no drena audio antes de conectar ambos pipes.
+- Invariantes de sesión contra cambios/detenciones de captura/audio durante output.
+- Media interleaver global por PTS y presupuesto de 8 eventos por polling.
+- Smoke Windows `ffmpeg_named_pipe_e2e_smoke.cpp` integrado en CMake/CI.
+- CI habilitado para la rama de desarrollo y `workflow_dispatch`; FFmpeg se instala solo para CI.
+- Auditoría de licencias registrada; FFmpeg/codecs/assets continúan pendientes de decisión de distribución.
+
+### Errores encontrados y resolución
+- Handshake FIFO inicial: la prueba se atascó; se sustituyó por validación separada y luego por smoke Windows dedicado.
+- YAML inicial de `workflow_dispatch`: configuración inválida; corregida como evento independiente.
+- Parche por anchors en `main.cpp`: hubo coincidencias fallidas; los intentos fueron abortados antes de escribir.
+- Campo `output` del status podía quedar vacío: serialización corregida.
+- Clasificación de red demasiado amplia: retirados indicadores ambiguos para evitar retries incorrectos.
+- stderr acumulativo: limitado a 256 KiB.
+- Audio consumido antes de handshake: bloqueado hasta `connected()`.
+- Despacho A/V separado por tipo: reemplazado por selección global por PTS.
+- Recuperación atrasada podía generar ráfagas: limitado a 8 eventos por polling.
+
+### Evidencia
+- VERIFICADO: MediaClock + RealtimePacer + MediaInterleaver con C++20 y `-Wall -Wextra -Werror`.
+- VERIFICADO: OutputRetryPolicy smoke.
+- VERIFICADO: OutputFailureCategory smoke.
+- VERIFICADO: AudioTimelineMixer smoke.
+- VERIFICADO: prueba FFmpeg 7.1.5 BGRA raw + PCM float32 → H.264/AAC → Matroska en entorno local.
+- IMPLEMENTADO / NO VERIFICADO: smoke Windows named-pipe + FFmpeg.
+- BLOQUEADO: los últimos runs de Actions continúan con `steps=null` y `logs_url=null`, así que no prueban CMake/CTest.
+
+### NO REPETIR
+- No crear otro scheduler PTS.
+- No crear otro interleaver A/V.
+- No crear otro RawPipe.
+- No crear otro supervisor FFmpeg.
+- No crear otra política de retry.
+- No crear otro clasificador de errores.
+- No usar `capturePage()` como compositor de producción.
+- No añadir OpenCV al core sin una necesidad concreta.
+- No convertir OBS en dependencia.
+- No declarar A/V sincronizado en producción sin transporte temporal verificable.
+- No considerar CI verde cuando no hay steps/logs.
+- No crear otra bitácora; este archivo es el canónico.
+
+## Snapshot de continuidad — 2026-09-20 09:11 ART
+- HEAD comprobado: `547c0a41996be00d0b738fcd6cfd17d6f545d2ecee8`.
+- Avance global: **60% de ingeniería**.
+- PR #2: abierto, draft, `mergeable=false`.
+- P0: evidencia Windows ejecutable, named-pipe e2e, grabación sostenida, A/V sync sostenido y RTMP real.
+- P1: PTS explícitos/equivalente, compositor GPU D3D11, avatar + captura + overlays en frame final.
+- P2: cámara Media Foundation, Game Capture, lip-sync y backends de acciones.
+- P3: multistream, EventSub reconnect, FFmpeg redistribution, installer, logs y release validation.
+
+### Regla de continuidad
+Antes de implementar, buscar primero aquí, en `AUDIT_MATRIX.md` y `PROJECT_STATUS.md`. Si el componente existe, ampliarlo o corregirlo; no generar una segunda implementación paralela.
