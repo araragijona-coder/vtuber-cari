@@ -52,6 +52,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Gate de formato de entrada: sample rate/canales no pueden cambiar silenciosamente durante una salida.
 - [ ] Drift correction / resampling de producción basado en relojes de dispositivos.
 - [x] D3D11 compositor GPU experimental con overlay RGBA y output texture.
+- [x] Readback de captura CPU lazy: diagnóstico/fallback solamente.
 - [x] Smoke D3D11 compositor con WARP.
 - [ ] Encoder real conectado.
   - FFmpeg recibe el frame final compuesto; validación sostenida Windows sigue pendiente.
@@ -105,6 +106,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Output stderr classification / structured diagnostics.
   - Estado/código de salida ya están expuestos; queda pendiente clasificar mensajes de stderr en categorías estables.
 - [x] Automatic output reconnect/backoff policy skeleton with bounded attempts for RTMP network failures.
+- [x] Reset del contador de retry entre sesiones manuales, conservando los intentos durante una reconexión automática.
   - Integration remains subject to real Windows/RTMP validation; non-network failures are intentionally not retried.
 
 ### Raw media transport
