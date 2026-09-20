@@ -74,7 +74,6 @@ class TwitchChatService extends EventEmitter {
       this.auth.saveToken(this.clientId, this.token);
     }
 
-    this.user = await getUser(this.clientId, this.token, { id: validateToken.user_id });
     const validated = await validateToken(this.clientId, this.token);
     this.user = {
       id: validated.user_id,
