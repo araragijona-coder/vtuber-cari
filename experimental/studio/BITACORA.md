@@ -249,6 +249,46 @@ No se modifica el porcentaje de avance por este incidente. El código E2E ya est
 **NO REPETIR:** no volver a crear workflows paralelos para el mismo propósito hasta disponer de evidencia nueva del runner o de una causa reproducible distinta.
 
 
+## Checkpoint de continuidad — 20/09/2026
+
+### HEAD actual
+**2a04caf11601769534a2742c32cd06429474f20d**
+
+### Cambios realizados en esta sesión
+- Reutilizado el compositor D3D11 existente; no se reconstruyó.
+- Reutilizado el E2E Windows existente `ffmpeg_named_pipe_e2e_smoke.cpp`; no se reconstruyó.
+- Verificado que el workflow Windows ya instala FFmpeg temporalmente y ejecuta el E2E named-pipe.
+- Añadida y mantenida la política `OutputRetryPolicy` con backoff exponencial acotado.
+- Añadida clasificación de fallos de output y retry únicamente para fallos de red.
+- Corregida la serialización del campo `output` en el status nativo.
+- Añadido límite de despacho A/V por polling y métrica `pacing_budget_exhausted`.
+- Añadidas invariantes para no modificar captura/audio mientras una salida está activa.
+- Añadida bitácora maestra como documento canónico de continuidad.
+- Los workflows de CI quedaron habilitados también para la rama de desarrollo y `workflow_dispatch`.
+- Los matrices Python de CI se cambiaron a `fail-fast: false` para no ocultar evidencia de un runner al cancelar el otro job.
+
+### Estado de las pruebas
+- PASS: smoke C++ portable C++20 con `-Wall -Wextra -Werror` para reloj/pacing/interleaving.
+- PASS: prueba sintética FFmpeg 7.1.5 en Linux con BGRA + PCM -> H.264/AAC -> Matroska.
+- IMPLEMENTADO, NO VERIFICADO: E2E Windows con dos named pipes + FFmpeg + decodificación posterior.
+- CI actual: los runs recientes siguen terminando antes de registrar steps (`steps=null`, sin logs observables).
+
+### NO REPETIR
+- No volver a crear otro compositor D3D11 base.
+- No volver a crear otro E2E named-pipe; solo diagnosticar/mejorar el existente cuando aparezca evidencia.
+- No volver a crear otro sistema de retry/backoff.
+- No rehacer MediaPipe, Three.js, WGC, WASAPI, MediaClock, RealtimePacer, MediaInterleaver o FFmpeg supervisor sin un bug reproducible distinto.
+
+### Siguiente foco obligatorio
+1. Obtener una ejecución real de CI Windows con steps/logs.
+2. Ejecutar/validar el E2E named-pipe Windows.
+3. Resolver timestamps explícitos extremo a extremo.
+4. Quitar el readback CPU por frame del camino de producción del compositor.
+5. Integrar modelo/avatar real al compositor.
+6. Implementar cámara Media Foundation streaming.
+7. Validar drift de audio y RTMP real.
+8. Game Capture, multistream y distribución.
+
 ## Porcentaje vigente
 
 **62%** — corresponde al estado más reciente de `PROJECT_STATUS.md` en el HEAD actual. No implica disponibilidad para producción.
