@@ -189,7 +189,7 @@ This section is the canonical handoff record. Before implementing a feature, che
 
 ## Bitácora
 
-La bitácora canónica y única de continuidad es `experimental/studio/BITACORA.md`.
+La bitácora canónica y única de continuidad es `experimental/studio/BITACORA.md`. El checkpoint vigente se sincroniza con el HEAD del PR antes de cada nueva iteración.
 Debe revisarse antes de implementar o auditar cualquier componente ya registrado.
 
 ## Continuidad
