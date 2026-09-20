@@ -221,15 +221,14 @@ std::string BuildControlStatusMessage() {
     result += voice_style == cari::native::VoiceEffectStyle::anime_bright
         ? "anime-bright"
         : "off";
-    result += ";output=";
+    const output_running =
+        g_media_enabled.load(std::memory_order_relaxed) && g_media_graph.running();
+    result += ";output=" + std::string(output_running ? "running" : "stopped");
     result += ";output_state=" + MediaOutputStateName(g_media_graph.output_state());
     result += ";output_exit_code=" + std::to_string(g_media_graph.output_exit_code());
     result += ";output_retry_pending=" + std::string(g_output_retry.pending() ? "true" : "false");
     result += ";output_retry_attempts=" + std::to_string(g_output_retry.attempts());
     result += ";output_failure_category=" + g_last_output_category;
-    const output_running =
-        g_media_enabled.load(std::memory_order_relaxed) && g_media_graph.running();
-    result += output_running ? "running" : "stopped";
     result += ";video_queued=" + std::to_string(media.video_queued);
     result += ";video_submitted=" + std::to_string(media.video_submitted);
     result += ";video_dropped=" + std::to_string(media.video_dropped);
