@@ -753,3 +753,41 @@ P2: diseñar timestamps explícitos extremo a extremo sobre el transporte local.
 
 ### Avance
 **62%**. El incremento corresponde a que el frame GPU compuesto ya entra en la ruta de output; no equivale a validación de producción.
+## 030 — Consolidación P0/P1 y limpieza de CI — 2026-09-20
+**Estado:** IMPLEMENTADO / VERIFICACIÓN WINDOWS PENDIENTE
+
+### Trabajo realizado
+- Se confirmó que `BITACORA.md` ya es la única bitácora canónica; no se creó una segunda bitácora.
+- El P0 `ffmpeg_named_pipe_e2e_smoke.cpp` ya existe y está registrado en CMake/CTest.
+- El workflow Windows instala FFmpeg temporalmente y ejecuta el E2E de named pipes.
+- Se eliminó la duplicación de invocaciones del media scheduler en el workflow.
+- El P1 D3D11 compositor ya no es solo diagnóstico: su frame compuesto puede pasar a la salida mediante readback BGRA CPU.
+- `avatar_gpu_overlay.cpp` ya forma parte del ejecutable nativo.
+- Los smokes de retry y diagnostics continúan como tests únicos del workflow.
+
+### Estado de evidencia
+- Timing/interleave portable: VERIFICADO.
+- Retry/diagnostics portable: VERIFICADO.
+- FFmpeg BGRA+PCM sintético en Linux: VERIFICADO.
+- D3D11 compositor WARP: IMPLEMENTADO/registrado; falta ejecución Windows observable.
+- Named-pipe FFmpeg E2E: IMPLEMENTADO/registrado; falta ejecución Windows observable.
+- CI: el runner todavía produce fallos sin steps/logs útiles en ejecuciones recientes; no se marca verde.
+
+### NO REPETIR
+- No crear otra bitácora.
+- No crear otro named-pipe E2E.
+- No crear otro compositor D3D11.
+- No crear otro retry/backoff o clasificador de output.
+- No usar FFmpeg Linux como sustituto del E2E Windows.
+- No llamar producción al compositor mientras exista readback CPU por frame.
+
+### Próxima cola
+- P0: obtener evidencia Windows real del E2E y build completo.
+- P1: eliminar readback CPU por frame y conectar textura/avatar real.
+- P2: resolver timestamps explícitos extremo a extremo.
+- P3: cámara Media Foundation + drift correction + lip-sync.
+- P4: RTMP/reconnect/hardware.
+- P5: packaging/installer/redistribución.
+
+### Avance
+**62%**. El porcentaje no se incrementa por scaffolding ni por repetir componentes; subirá cuando un nuevo gate cruce una evidencia proporcional.
