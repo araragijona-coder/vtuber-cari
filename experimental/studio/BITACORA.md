@@ -8,7 +8,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
-- Último HEAD registrado en esta entrada: `ea89b51ce5934881cb9f60702364a7b60e52338c`.
+- Último HEAD registrado en esta entrada: `f834649b1a074acedccb9c3037b239482aa085c1`.
 - Estado: experimental; todavía no se promueve a producción.
 - Avance de ingeniería: **60%**.
 
@@ -375,7 +375,7 @@ La regla de continuidad se mantiene: cualquier tarea que ya esté en IMPLEMENTAD
 ## 021 — Estado canónico actual — 2026-09-20
 **Estado:** ACTUALIZADO / FUENTE DE CONTINUIDAD
 
-**HEAD canónico:** `ea89b51ce5934881cb9f60702364a7b60e52338c`  
+**HEAD canónico:** `f834649b1a074acedccb9c3037b239482aa085c1`  
 **Rama:** `fix/native-windows-foundation`  
 **PR:** #2  
 **Avance global:** **60%**
