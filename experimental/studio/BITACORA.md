@@ -8,7 +8,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
-- Último HEAD registrado en esta entrada: `47d94620836bae7b640e488ca8ea5cc78e873ecf`.
+- Último HEAD registrado en esta entrada: `44765dd4c00d976cbcc39360b8743e540aeb51db`.
 - Estado: experimental; todavía no se promueve a producción.
 - Avance de ingeniería: **60%**.
 
@@ -201,6 +201,48 @@ Probar pérdida de red, recuperación, agotamiento de retry y estado visible en 
 
 ### F — Hardware gate
 Validar CPU/GPU/audio/cámara, estabilidad prolongada, device-loss y sincronización real.
+
+## 019 — Sincronización de continuidad y gates — 2026-09-20
+**Estado:** ACTUALIZADO
+
+**HEAD canónico de esta entrada:** `44765dd4c00d976cbcc39360b8743e540aeb51db`
+
+### Trabajo consolidado
+- La política de retry RTMP ya existe en `experimental/studio/core/output_retry.h`.
+- La clasificación de fallos ya existe en `experimental/studio/core/output_diagnostics.h`.
+- El runtime nativo integra retry solo para RTMP y solo para fallos clasificados como network.
+- El estado de salida, código de salida, categoría y estado del retry están expuestos por el control plane.
+- El despacho A/V mantiene interleave global por PTS y presupuesto máximo de 8 eventos por polling.
+- El mixer no se drena antes de que ambos named pipes estén conectados.
+- Los cambios de captura/audio están bloqueados mientras el output está activo.
+- La prueba `ffmpeg_named_pipe_e2e_smoke.cpp` existe y está registrada en CMake, pero su ejecución Windows sigue pendiente de un runner que llegue a los steps.
+- Los workflows CI de desarrollo ya tienen trigger por push a la rama y `workflow_dispatch`.
+
+### Corrección de criterio de evidencia
+El smoke Windows de named pipes queda clasificado como **IMPLEMENTADO**, no como **VERIFICADO**, porque los runs recientes de GitHub Actions terminan antes de registrar steps y no entregan logs.
+
+### Estado de CI
+Los runs del 20-09-2026 sobre la rama de desarrollo continúan fallando con jobs sin steps registrados. No se utiliza este estado como evidencia de fallo del código ni como evidencia de éxito.
+
+### NO REPETIR
+No:
+- crear otro retry/backoff;
+- crear otra clasificación de fallos;
+- crear otro interleaver A/V;
+- volver a diseñar WGC/D3D11 o WASAPI como núcleo;
+- reemplazar WGC por OpenCV para captura principal sin evidencia nueva;
+- declarar el smoke Linux de FFmpeg como validación Windows;
+- declarar `ffmpeg_named_pipe_e2e_smoke` verificado hasta obtener ejecución real;
+- promover `experimental/` a producción;
+- rehacer la bitácora en otro archivo.
+
+### Siguiente frente
+**P0:** conseguir evidencia ejecutable del build/smoke Windows y ejecutar el named-pipe E2E.  
+**P1:** transporte con timestamps explícitos si el E2E demuestra la limitación temporal actual.  
+**P2:** compositor GPU D3D11 para captura + avatar + overlays.  
+**P3:** cámara Media Foundation, lip-sync y drift correction.  
+**P4:** RTMP real/reconexión y hardware objetivo.  
+**P5:** empaquetado, instalador y distribución legal de FFmpeg/codec.
 
 ## Registro de intentos descartados
 
