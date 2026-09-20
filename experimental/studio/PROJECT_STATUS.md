@@ -133,3 +133,38 @@ Un componente no se marca como completo por tener una interfaz. Debe:
 ## Regla de reutilización
 
 Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus licencias y límites de distribución sean compatibles. Para código con licencia incompatible, se adopta el patrón arquitectónico y se implementa una versión propia.
+
+
+## Continuity / work ledger
+
+This section is the canonical handoff record. Before implementing a feature, check the ledger and the audit matrix to avoid repeating completed work.
+
+### Current engineering state
+- Overall estimate: **60%**. This is a coarse engineering-progress estimate, not a claim of production readiness.
+- Native capture/audio foundation: implemented; target-hardware validation remains.
+- Timing/pacing/interleaving: implemented and smoke-tested; original PTS are still not preserved through raw pipes.
+- FFmpeg boundary: implemented; synthetic codec/mux verification passed; sustained Windows verification remains.
+- RTMP: implemented as an output profile; guarded network-only retry/backoff added; real endpoint validation remains.
+- Avatar/tracking: MediaPipe + Three.js/glTF adapter implemented; final native compositor integration remains.
+- OBS: optional control integration; not a core runtime dependency.
+- CI: workflows exist, but recent runner failures with no executable steps must not be counted as green validation.
+
+### Do not redo
+- Desktop/window capture architecture: already selected as Windows Graphics Capture + D3D11.
+- Audio architecture: already selected as WASAPI mic + loopback + timeline mixer.
+- Timing architecture: MediaClock + RealtimePacer + global A/V interleaver already exists.
+- Electron security boundary: context isolation/preload/local-file permission boundary already exists.
+- MediaPipe timestamp monotonicity guard already exists.
+- Three.js/glTF placeholder avatar path already exists.
+- Output retry policy must remain network-only; do not broaden it to encoder/mux/input failures.
+
+### Next validation gates
+1. Make Windows CI execute and report real build/test results.
+2. End-to-end raw media timestamp strategy.
+3. GPU-native avatar compositor.
+4. Sustained Windows recording/capture/audio.
+5. Real RTMP reconnect test.
+6. Camera + Game Capture.
+7. Drift correction/lip-sync.
+8. Multistream.
+9. Packaging/installer/runtime FFmpeg distribution.
