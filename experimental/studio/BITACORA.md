@@ -572,3 +572,43 @@ Los runs asociados al HEAD observado terminan con `failure` y los jobs no expone
 
 ### Regla de la siguiente iteración
 Comenzar desde este ledger y tocar solamente el primer gate sin evidencia. Las soluciones ya implementadas deben modificarse **in-place** ante bugs; no crear implementaciones paralelas.
+
+
+## 025 — P0 E2E Windows preparado + límite de retry corregido — 2026-09-20
+**Estado:** IMPLEMENTADO / VERIFICACIÓN WINDOWS PENDIENTE
+
+### Trabajo realizado
+- Se creó `experimental/studio/native-windows/ffmpeg_named_pipe_e2e_smoke.cpp`.
+- El smoke usa `FfmpegAvOutput` real: crea dos named pipes, inicia FFmpeg, espera conexión de ambos canales, escribe video BGRA y audio PCM float32, espera completar todos los writes y cierra por EOF/flush.
+- El resultado Matroska se valida con un segundo proceso FFmpeg que lee y mapea video+audio.
+- El smoke no usa `assert`, por lo que las comprobaciones siguen activas en Release.
+- El target quedó registrado en CMake/CTest.
+- El workflow Windows instala FFmpeg solo para CI y ejecuta el E2E, además de retry/diagnostics smoke.
+
+### Corrección adicional
+- Se detectó que reiniciar el contador de retry al arrancar FFmpeg podía hacer ilimitados los fallos que arrancaban y caían inmediatamente.
+- Ahora el retry automático conserva el contador durante el episodio de fallo.
+- Una orden manual `output_start` reinicia el historial.
+- Una sesión estable de 30 s reinicia el historial.
+- Se mantienen máximo 5 intentos y backoff máximo de 30 s.
+
+### Evidencia
+- Retry policy smoke: VERIFICADO.
+- Failure classification smoke: VERIFICADO.
+- MediaClock/RealtimePacer/Interleaver smoke: VERIFICADO.
+- FFmpeg sintético Linux: VERIFICADO.
+- Named-pipe E2E Windows: IMPLEMENTADO; falta un runner que ejecute realmente los steps/logs.
+
+### CI
+- Los workflows ya están configurados para push en `fix/native-windows-foundation` y `workflow_dispatch`.
+- Los runs recientes siguen terminando sin `steps`/`logs_url`, por lo que CI continúa como evidencia PENDIENTE/BLOQUEADA.
+
+### NO REPETIR
+- No crear otro `ffmpeg_named_pipe_e2e_smoke` equivalente.
+- No crear otro retry/backoff.
+- No usar FFmpeg Linux como sustituto del E2E Windows.
+- No marcar P0 como VERIFICADO hasta disponer de steps/logs reales del runner Windows.
+- No elevar el porcentaje solo por scaffolding: el 60% se mantiene hasta cerrar un gate con evidencia proporcional.
+
+### Siguiente gate
+Tras P0: **P1 compositor GPU D3D11 + captura/avatar/overlays → frame final**.
