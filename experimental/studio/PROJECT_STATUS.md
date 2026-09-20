@@ -218,3 +218,8 @@ Producto usable todavía requiere: prueba Windows real, Twitch real, RTMP sosten
 - Avatar GLB/glTF tiene selector y framing de cuerpo completo.
 - Instalador NSIS x64 y launchers están definidos.
 - La validación real del servicio/hardware continúa abierta.
+
+
+## CI / Runner
+
+El workflow de diagnóstico confirma el mismo bloqueo observado en los workflows principales: los jobs terminan antes de registrar steps/logs. El estado permanece BLOQUEADO hasta disponer de ejecución observable.
