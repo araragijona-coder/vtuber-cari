@@ -96,9 +96,18 @@ std::wstring blob_error(ID3DBlob* errors, const wchar_t* fallback) {
         return fallback;
     }
 
-    const auto* bytes = static_cast<const char*>(errors->GetBufferPointer());
+    const auto* bytes = static_cast<const unsigned char*>(errors->GetBufferPointer());
     const auto size = errors->GetBufferSize();
-    return std::wstring(bytes, bytes + size);
+
+    // D3DCompile diagnostics are normally ASCII/UTF-8-compatible. Keep the
+    // conversion local and allocation-free so this path remains safe in a
+    // failure handler; non-ASCII bytes are widened one-to-one for logging.
+    std::wstring result;
+    result.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        result.push_back(static_cast<wchar_t>(bytes[i]));
+    }
+    return result;
 }
 
 } // namespace
