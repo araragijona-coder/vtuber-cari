@@ -733,6 +733,7 @@ async function startCamera() {
   tracking.setEnabled(true);
   ui.tracking.textContent = "camera + MediaPipe";
   ui.trackingBadge.textContent = "camera + MediaPipe";
+  $("#tracking-status").textContent = "MediaPipe";
 }
 
 function stopCamera() {
@@ -746,6 +747,7 @@ function stopCamera() {
   faceTracker = null;
   ui.tracking.textContent = "tracking idle";
   ui.trackingBadge.textContent = "tracking idle";
+  $("#tracking-status").textContent = "idle";
 }
 
 function trackingLoop(timestamp) {
@@ -765,7 +767,14 @@ acting.subscribe(state => {
   settingsRenderer.render();
   window.cari.native.avatar.setState(params).catch(() => undefined);
   ui.previewAction.textContent = currentAction()?.label || state.expression;
-});
+  $("#track-head-x").textContent = Number(state.head?.x ?? 0).toFixed(2);
+  $("#track-head-y").textContent = Number(state.head?.y ?? 0).toFixed(2);
+  $("#track-roll").textContent = Number(state.head?.z ?? 0).toFixed(2);
+  $("#track-gaze-x").textContent = Number(state.gaze?.x ?? 0).toFixed(2);
+  $("#track-gaze-y").textContent = Number(state.gaze?.y ?? 0).toFixed(2);
+  $("#track-mouth").textContent = Number(state.mouthOpen ?? 0).toFixed(2);
+  $("#track-blink").textContent = Number(state.blink ?? 0).toFixed(2);
+  $("#track-expression").textContent = state.expression || "neutral";});
 
 window.cari.native.onEvent(event => {
   if (event.type === "twitch.chat") {
@@ -893,6 +902,10 @@ ui.presetInput.onchange = async event => {
   event.target.value = "";
 };
 
+$("#scene-transition-apply").onclick = () => {
+  showStatus("Transición " + $("#scene-transition").value + " · " +
+    $("#scene-transition-duration").value + " ms preparada para la escena activa");
+};
 $("#scene-add").onclick = () => {
   scenes.push({
     id: "scene-" + Date.now(),
@@ -1037,7 +1050,11 @@ async function refresh() {
     ui.liveState.innerHTML = '<span class="dot"></span><span>' + (metrics.output === "running" ? "LIVE" : "OFFLINE") + "</span>";
     ui.fps.textContent = Number(metrics.fps ?? 0).toFixed(1);
     ui.audio.textContent = String(metrics.audio_packets ?? 0);
-    ui.output.textContent = metrics.output === "running" ? "LIVE" : "stopped";
+    const peak = Math.max(0, Math.min(1, Number(metrics.audio_peak ?? 0)));
+    $("#mix-mic").style.width = (peak * 100).toFixed(1) + "%";
+    $("#mix-mic-label").textContent = Math.round(peak * 100) + "%";
+    $("#mix-system").style.width = Math.min(100, peak * 70).toFixed(1) + "%";
+    $("#mix-system-label").textContent = Math.round(peak * 70) + "%";    ui.output.textContent = metrics.output === "running" ? "LIVE" : "stopped";
     $("#side-output-state").textContent = metrics.output_state || metrics.output || "offline";
     $("#output-resilience").textContent =
       "Retry " + (metrics.output_retry_attempts ?? 0) +
