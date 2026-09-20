@@ -966,3 +966,54 @@ Antes de tocar un componente, buscar su entrada aquí. Si está IMPLEMENTADO/VER
 
 ### Avance
 **62%**. No sube porque el readback final y la validación Windows siguen abiertos.
+## 035 — Estado canónico y optimización P1 — 2026-09-20
+**Estado:** ACTUALIZADO / FUENTE DE CONTINUIDAD
+
+**HEAD al registrar esta entrada:** 50b3219d5f56d76ad2ee2ace00fdf4aa4779a3f6
+**PR:** #2 — fix: harden native Windows foundation
+**Avance global:** 62%
+
+### Lo que realmente está hecho
+- P0 `ffmpeg_named_pipe_e2e_smoke.cpp`: IMPLEMENTADO y conectado a CMake/CTest/workflow; genera BGRA + PCM, ejerce los dos named pipes, espera escrituras, cierra por EOF/flush y verifica el archivo con FFmpeg.
+- P0 sigue sin VERIFICACIÓN Windows porque GitHub Actions termina los jobs con steps/logs nulos.
+- P1 D3D11Compositor: IMPLEMENTADO como único compositor GPU experimental; captura + overlay procedural + output texture.
+- P1 lazy readback: el callback ya no hace FrameBridge CPU antes de cada composición. CPU readback queda para muestras de diagnóstico o fallback.
+- El último readback GPU->CPU necesario para el output FFmpeg actual sigue pendiente de eliminar mediante una frontera de encoder/salida compatible con textura D3D11.
+- OutputRetryPolicy y OutputFailureCategory ya existen; no se debe crear otro sistema.
+- Una sesión RTMP manual nueva resetea el contador de retry; una reconexión automática conserva intentos hasta estabilidad.
+- Lip-sync local por amplitud ya existe como fallback del tracking facial.
+
+### Evidencia disponible
+- MediaClock / RealtimePacer / MediaInterleaver: smoke C++20 estricto PASS.
+- Retry/diagnostics: smoke C++20 PASS.
+- FFmpeg sintético BGRA + PCM float32 -> H.264/AAC -> Matroska: PASS en Linux.
+- P0/P1 Windows reales: PENDIENTES por falta de ejecución observable del runner.
+
+### NO REPETIR — lista maestra
+- ❌ otro named-pipe E2E
+- ❌ otro compositor D3D11
+- ❌ otro retry/backoff
+- ❌ otro clasificador de output
+- ❌ otra bitácora
+- ❌ otra arquitectura de captura
+- ❌ otro MediaClock
+- ❌ otro interleaver A/V
+- ❌ otro bridge MediaPipe→avatar
+- ❌ reemplazar Windows Graphics Capture por OpenCV como captura principal sin evidencia nueva
+- ❌ usar FFmpeg Linux como sustituto de validación Windows
+- ❌ usar capturePage() como compositor de vídeo
+- ❌ declarar raw-pipe timestamp-preserving
+- ❌ declarar CI verde sin steps/logs reales
+- ❌ promover experimental/ por simple compilación
+- ❌ inflar porcentaje por scaffolding/documentación
+
+### Próximo orden obligatorio
+P0 -> ejecución Windows observable del E2E existente.
+P1 -> eliminar el readback GPU->CPU final del output FFmpeg; preferir encoder/sink Windows capaz de aceptar textura D3D11.
+P2 -> timestamps explícitos extremo a extremo.
+P3 -> cámara Media Foundation + drift correction + tracking/lip-sync final.
+P4 -> RTMP real + pérdida de red + recuperación + hardware.
+P5 -> Game Capture + multistream + installer/redistribución.
+
+### Regla de continuidad
+Antes de modificar un componente: revisar BITACORA.md, PROJECT_STATUS.md y AUDIT_MATRIX.md. Si la pieza ya está IMPLEMENTADA, corregirla in-place; no crear una segunda implementación paralela.
