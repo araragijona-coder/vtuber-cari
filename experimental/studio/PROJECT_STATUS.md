@@ -8,6 +8,7 @@
 - [x] Escenas y capas ordenadas.
 - [x] Mixer de audio lógico.
 - [x] Frontera de encoder y salida.
+- [x] OutputRetryPolicy y clasificación de fallos para RTMP.
 - [x] Monitoring y clasificación de salud.
 - [x] Cola temporal A/V con reloj maestro lógico de audio.
 - [x] Emisión raw temporizada por PTS con `RealtimePacer` y colas acotadas.
