@@ -144,18 +144,18 @@ export const CAPABILITIES = {
   ],
   obs: [
     ["Streaming", "StartStream / StopStream / status", "connected"],
-    ["Recording", "StartRecord / StopRecord / status", "prepared"],
-    ["Scenes", "list / current program / preview", "prepared"],
-    ["Sources", "inputs / kinds / settings", "prepared"],
+    ["Recording", "StartRecord / StopRecord / status", "connected"],
+    ["Scenes", "list / current program / preview", "connected"],
+    ["Sources", "inputs / kinds / settings", "connected"],
     ["Scene items", "visibility / transform / order", "prepared"],
     ["Filters", "list / settings", "prepared"],
-    ["Transitions", "list / current / override", "prepared"],
-    ["Profiles", "profiles / switch", "prepared"],
-    ["Scene Collections", "list / switch", "prepared"],
-    ["Virtual Camera", "start / stop / status", "prepared"],
-    ["Studio Mode", "program / preview / transition", "prepared"],
+    ["Transitions", "list / current / override", "connected"],
+    ["Profiles", "profiles / switch", "connected"],
+    ["Scene Collections", "list / switch", "connected"],
+    ["Virtual Camera", "start / stop / status", "connected"],
+    ["Studio Mode", "program / preview / transition", "connected"],
     ["Hotkeys", "trigger by name", "prepared"],
-    ["Stats", "CPU / FPS / render / output", "prepared"]
+    ["Stats", "CPU / FPS / render / output", "connected"]
   ],
   vtuber: [
     ["3D Model", "GLB / glTF / Three.js", "connected"],
