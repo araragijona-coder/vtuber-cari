@@ -3,7 +3,7 @@
 > Última actualización: 2026-09-20
 > Rama: `fix/native-windows-foundation`
 > PR: #2
-> HEAD canónico al registrar esta entrada: `6341b66d3e91945f3c542d95cdb003deae6d4725`
+> HEAD canónico se actualiza en cada cierre de sesión de trabajo.
 
 Esta es la fuente única de continuidad para Cari Studio. Su objetivo es impedir que el mismo componente se rediseñe o implemente repetidamente.
 
@@ -150,8 +150,7 @@ Cari Studio es una aplicación Windows-first de streaming y VTubing, operable si
 - PENDIENTE — CI Windows verde.
 - PENDIENTE — package-lock reproducible.
 - PENDIENTE — bundle de FFmpeg/codec legalmente redistribuible.
-- PENDIENTE — instalador.
-- PENDIENTE — logs/diagnóstico de usuario.
+- IMPLEMENTADO — instalador NSIS x64 configurado; falta validación release Windows.- PENDIENTE — logs/diagnóstico de usuario.
 - PENDIENTE — hardware validation.
 
 ## Correcciones recientes
@@ -251,3 +250,37 @@ Antes de crear un módulo nuevo:
 La estimación global actual es **~63% de ingeniería**.
 
 No se aumenta por cantidad de archivos. El porcentaje solo sube cuando una capacidad cruza un gate funcional o de validación.
+
+## Producto / UX — corrección de continuidad
+
+### Problema detectado por revisión de usuario
+- La aplicación tenía capacidades internas pero no un camino claro para descubrirlas o activarlas.
+- El panel no explicaba cómo autenticarse en Twitch.
+- Chat estaba en código separado y no en la operación principal.
+- El selector de modelo no existía como acción visible.
+- El framing del avatar podía dejar solo la cabeza visible.
+- No había instalador final accesible.
+
+### Corrección implementada
+- UI Twitch con Client ID + channel + Connect/Disconnect.
+- OAuth de escritorio con callback local.
+- EventSub channel.chat.message conectado a UI.
+- Send Chat conectado.
+- Read Chat local mediante speechSynthesis.
+- Acciones locales de chat !happy / !angry / !neutral.
+- Load GLB/glTF visible.
+- Show/Hide Avatar Overlay visible.
+- Full-body framing del avatar corregido.
+- launcher .cmd e instalador NSIS x64 configurados.
+
+### Medición correcta
+- Ingeniería implementada: ~63%.
+- Producto usable de extremo a extremo: ~48%.
+- El segundo porcentaje es el indicador que debe mostrarse al usuario hasta que Windows/Twitch/RTMP/modelo/hardware estén validados.
+
+### NO REPETIR
+- No volver a contar módulos desconectados de UI como funciones terminadas.
+- No volver a usar el porcentaje de ingeniería como porcentaje de producto.
+- No rehacer Twitch chat: el transporte principal de escritorio es TwitchChatService + TwitchAuth + twitch-api.
+- No rehacer selector de avatar: avatar:choose-model ya existe.
+- No rehacer instalador NSIS: solo ampliar/validar la ruta existente.
