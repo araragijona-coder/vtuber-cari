@@ -120,36 +120,212 @@ export class ThreeAvatarRenderer {
   }
 
   #createPlaceholder() {
+    // Full-body technical fallback. This is deliberately not the final Cari
+    // artwork: the canonical visual design is still undefined. The fallback
+    // gives us a complete VTuber silhouette, articulation points and asset
+    // mounting locations so tracking/composition can be validated now.
     const group = new THREE.Group();
-    group.position.y = 0.8;
+    group.name = "CariFullBodyPlaceholder";
+    group.position.y = 0.08;
+
+    const material = new THREE.MeshStandardMaterial({
+      roughness: 0.78,
+      metalness: 0.0
+    });
+    const darkMaterial = new THREE.MeshStandardMaterial({
+      color: 0x20232a,
+      roughness: 0.72,
+      metalness: 0.0
+    });
+
+    const root = new THREE.Group();
+    root.name = "root";
+    group.add(root);
+
+    const hips = new THREE.Group();
+    hips.name = "hips";
+    hips.position.y = 0.95;
+    root.add(hips);
+
+    const torso = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.34, 0.72, 8, 20),
+      material
+    );
+    torso.name = "torso";
+    torso.scale.set(1.15, 1.0, 0.82);
+    torso.position.y = 1.42;
+    hips.add(torso);
+
+    const neck = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11, 0.13, 0.18, 20),
+      material
+    );
+    neck.name = "neck";
+    neck.position.y = 1.88;
+    hips.add(neck);
 
     const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.72, 48, 32),
-      new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.0 })
+      new THREE.SphereGeometry(0.40, 48, 32),
+      material
     );
-    head.scale.set(0.92, 1.08, 0.9);
-    group.add(head);
+    head.name = "head";
+    head.scale.set(0.94, 1.07, 0.90);
+    head.position.set(0, 2.30, 0);
+    hips.add(head);
 
-    const eyeGeometry = new THREE.SphereGeometry(0.09, 20, 12);
-    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x111318 });
+    const face = new THREE.Group();
+    face.name = "face";
+    face.position.set(0, 2.30, 0.36);
+    hips.add(face);
 
-    for (const x of [-0.25, 0.25]) {
-      const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-      eye.position.set(x, 0.05, 0.66);
-      group.add(eye);
-    }
+    const eyeGeometry = new THREE.SphereGeometry(0.055, 20, 12);
+    const leftEye = new THREE.Mesh(eyeGeometry, darkMaterial);
+    leftEye.name = "leftEye";
+    leftEye.position.set(-0.14, 0.03, 0.02);
+    face.add(leftEye);
+
+    const rightEye = new THREE.Mesh(eyeGeometry, darkMaterial);
+    rightEye.name = "rightEye";
+    rightEye.position.set(0.14, 0.03, 0.02);
+    face.add(rightEye);
 
     const mouth = new THREE.Mesh(
-      new THREE.TorusGeometry(0.12, 0.025, 12, 32, Math.PI),
-      eyeMaterial
+      new THREE.TorusGeometry(0.07, 0.014, 10, 28, Math.PI),
+      darkMaterial
     );
+    mouth.name = "mouth";
     mouth.rotation.z = Math.PI;
-    mouth.position.set(0, -0.2, 0.66);
-    group.add(mouth);
+    mouth.position.set(0, -0.12, 0.02);
+    face.add(mouth);
+
+    const hair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.43, 40, 24, 0, Math.PI * 2, 0, Math.PI * 0.56),
+      darkMaterial
+    );
+    hair.name = "hair";
+    hair.scale.set(1.02, 1.18, 0.98);
+    hair.position.set(0, 2.43, -0.035);
+    hips.add(hair);
+
+    const armGeometry = new THREE.CapsuleGeometry(0.105, 0.48, 8, 16);
+    const forearmGeometry = new THREE.CapsuleGeometry(0.09, 0.42, 8, 16);
+    const legGeometry = new THREE.CapsuleGeometry(0.13, 0.58, 8, 16);
+    const shinGeometry = new THREE.CapsuleGeometry(0.11, 0.56, 8, 16);
+    const shoeGeometry = new THREE.SphereGeometry(0.15, 24, 16);
+
+    const armSlots = {
+      left: [-0.43, 1.67],
+      right: [0.43, 1.67]
+    };
+    const bodyParts = {
+      head,
+      leftEye,
+      rightEye,
+      mouth,
+      hair,
+      torso
+    };
+
+    for (const [side, [x, y]] of Object.entries(armSlots)) {
+      const sign = side === "left" ? -1 : 1;
+      const shoulder = new THREE.Group();
+      shoulder.name = `${side}Shoulder`;
+      shoulder.position.set(x, y, 0);
+      shoulder.rotation.z = sign * -0.08;
+      hips.add(shoulder);
+
+      const upperArm = new THREE.Mesh(armGeometry, material);
+      upperArm.name = `${side}UpperArm`;
+      upperArm.position.y = -0.24;
+      shoulder.add(upperArm);
+
+      const elbow = new THREE.Group();
+      elbow.name = `${side}Elbow`;
+      elbow.position.y = -0.48;
+      shoulder.add(elbow);
+
+      const forearm = new THREE.Mesh(forearmGeometry, material);
+      forearm.name = `${side}Forearm`;
+      forearm.position.y = -0.22;
+      elbow.add(forearm);
+
+      const hand = new THREE.Mesh(
+        new THREE.SphereGeometry(0.105, 20, 14),
+        material
+      );
+      hand.name = `${side}Hand`;
+      hand.position.y = -0.48;
+      elbow.add(hand);
+
+      bodyParts[`${side}Shoulder`] = shoulder;
+      bodyParts[`${side}Elbow`] = elbow;
+      bodyParts[`${side}Hand`] = hand;
+    }
+
+    for (const side of ["left", "right"]) {
+      const sign = side === "left" ? -1 : 1;
+      const thigh = new THREE.Group();
+      thigh.name = `${side}Thigh`;
+      thigh.position.set(sign * 0.15, 0.90, 0);
+      hips.add(thigh);
+
+      const upperLeg = new THREE.Mesh(legGeometry, material);
+      upperLeg.name = `${side}UpperLeg`;
+      upperLeg.position.y = -0.30;
+      thigh.add(upperLeg);
+
+      const knee = new THREE.Group();
+      knee.name = `${side}Knee`;
+      knee.position.y = -0.60;
+      thigh.add(knee);
+
+      const shin = new THREE.Mesh(shinGeometry, material);
+      shin.name = `${side}Shin`;
+      shin.position.y = -0.28;
+      knee.add(shin);
+
+      const foot = new THREE.Mesh(shoeGeometry, darkMaterial);
+      foot.name = `${side}Foot`;
+      foot.scale.set(1.25, 0.72, 1.65);
+      foot.position.set(0, -0.61, 0.07);
+      knee.add(foot);
+
+      bodyParts[`${side}Thigh`] = thigh;
+      bodyParts[`${side}Knee`] = knee;
+      bodyParts[`${side}Foot`] = foot;
+    }
+
+    const anchors = new THREE.Group();
+    anchors.name = "assetAnchors";
+    const anchorNames = [
+      "hair",
+      "head",
+      "face",
+      "neck",
+      "chest",
+      "waist",
+      "leftHand",
+      "rightHand",
+      "leftShoulder",
+      "rightShoulder"
+    ];
+    for (const name of anchorNames) {
+      const anchor = new THREE.Group();
+      anchor.name = `anchor:${name}`;
+      anchors.add(anchor);
+    }
+    hips.add(anchors);
+
+    group.userData.placeholder = true;
+    group.userData.modelType = "full-body";
+    group.userData.parts = bodyParts;
+    group.userData.anchors = anchors;
+    group.userData.note = "Technical full-body fallback; replace with approved Cari asset.";
 
     this.root.add(group);
     return group;
   }
+
 }
 
 function collectMorphTargets(root) {
