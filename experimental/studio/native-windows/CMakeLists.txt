@@ -24,6 +24,7 @@ add_executable(cari-studio-native WIN32
     camera_sources.cpp
     capture_engine.cpp
     compositor_bridge.cpp
+    d3d11_compositor.cpp
     frame_bridge.cpp
     process_runner.cpp
     ffmpeg_supervisor.cpp
@@ -53,6 +54,7 @@ target_link_libraries(cari-studio-native PRIVATE
     ole32
     avrt
     d3d11
+    d3dcompiler
     dxgi
     mf
     mfplat
@@ -189,6 +191,28 @@ target_compile_definitions(cari-native-media-output-bridge-smoke PRIVATE
 
 target_link_libraries(cari-native-media-output-bridge-smoke PRIVATE
     user32
+)
+
+add_executable(cari-d3d11-compositor-smoke
+    d3d11_compositor_smoke.cpp
+    d3d11_compositor.cpp
+)
+
+target_include_directories(cari-d3d11-compositor-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
+target_compile_definitions(cari-d3d11-compositor-smoke PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+target_link_libraries(cari-d3d11-compositor-smoke PRIVATE
+    d3d11
+    dxgi
+    d3dcompiler
 )
 
 add_executable(cari-frame-bridge-smoke
@@ -352,6 +376,7 @@ add_test(NAME cari-raw-media-adapter-smoke COMMAND cari-raw-media-adapter-smoke)
 add_test(NAME cari-native-media-output-bridge-smoke COMMAND cari-native-media-output-bridge-smoke)
 add_test(NAME cari-ffmpeg-named-pipe-e2e-smoke COMMAND cari-ffmpeg-named-pipe-e2e-smoke)
 add_test(NAME cari-frame-bridge-smoke COMMAND cari-frame-bridge-smoke)
+add_test(NAME cari-d3d11-compositor-smoke COMMAND cari-d3d11-compositor-smoke)
 add_test(NAME cari-audio-timeline-mixer-smoke COMMAND cari-audio-timeline-mixer-smoke)
 add_test(NAME cari-audio-core-bridge-smoke COMMAND cari-audio-core-bridge-smoke)
 add_test(NAME cari-voice-effects-smoke COMMAND cari-voice-effects-smoke)
