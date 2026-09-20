@@ -1408,3 +1408,31 @@ HEAD de referencia al comenzar este checkpoint: 4fb539d78e90897fbd10530c0d396188
 Avance global de ingeniería: **63%**.
 Readiness: **NO listo para producción**.
 PR #2: abierto / draft / no mergeable.
+
+
+## 31. Estado vivo — 20/09/2026 15:45 ART
+
+**HEAD actual del PR #2:** ca0ff66a9b09ab8dc508cdaed098ac7f846fcd30
+**PR:** abierto / draft / dirty / no mergeable
+**Avance global:** **63%**
+**Producto:** **NO listo para producción**
+
+### Evidencia de CI del HEAD actual
+- Native Windows Build: failure; jobs sin steps/logs observables.
+- CI: failure; jobs sin steps/logs observables.
+- Character Runtime Tests: failure; jobs sin steps/logs observables.
+- No se atribuye la falla a una línea concreta del código porque el runner no proporciona ejecución de steps.
+
+### Estructura
+- La bitácora canónica visible está en `CARI_STUDIO_BITACORA.md` en la raíz.
+- La copia antigua `experimental/studio/BITACORA.md` fue eliminada para evitar dos fuentes de verdad.
+- No se crean nuevas zonas experimentales; los pendientes experimentales permanecen dentro de `experimental/`.
+
+### Regla de promoción a main
+No promover/fusionar los componentes experimentales a `main` por cantidad de código o por compilación parcial. La promoción exige los gates documentados: CI ejecutable con steps, E2E Windows named-pipe -> FFmpeg -> decode, estabilidad sostenida, compositor/PTS y hardware donde corresponda.
+
+### Próximo bloque sin repetir trabajo anterior
+- Ejecutar Windows `validate-windows.ps1` y conservar `validation-evidence`.
+- Validar P0-02/P0-05 en Windows real.
+- Resolver transporte PTS explícito y retirar `use_wallclock_as_timestamps=1` como solución definitiva.
+- Optimizar readback/overlay y conectar avatar real al compositor.
