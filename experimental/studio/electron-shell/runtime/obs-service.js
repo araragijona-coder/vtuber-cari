@@ -7,6 +7,17 @@ class ObsService extends EventEmitter {
     this.client = new OBSWebSocket();
     this.connected = false;
     this.url = "";
+    this.runtime = {
+      streaming: false,
+      streamState: "stopped",
+      recording: false,
+      recordState: "stopped",
+      virtualCamera: false,
+      virtualCameraState: "stopped",
+      programScene: null,
+      previewScene: null,
+      studioMode: false
+    };
 
     this.client.on("ConnectionClosed", error => {
       this.connected = false;
@@ -15,6 +26,39 @@ class ObsService extends EventEmitter {
     this.client.on("ConnectionError", error => {
       this.connected = false;
       this.emit("connection-error", error);
+    });
+    this.client.on("StreamStateChanged", event => {
+      this.runtime.streaming = event?.outputActive === true;
+      this.runtime.streamState = event?.outputState || (this.runtime.streaming ? "running" : "stopped");
+      this.emit("event", { type: "StreamStateChanged", data: event || {} });
+      this.emit("status", this.status());
+    });
+    this.client.on("RecordStateChanged", event => {
+      this.runtime.recording = event?.outputActive === true;
+      this.runtime.recordState = event?.outputState || (this.runtime.recording ? "running" : "stopped");
+      this.emit("event", { type: "RecordStateChanged", data: event || {} });
+      this.emit("status", this.status());
+    });
+    this.client.on("VirtualcamStateChanged", event => {
+      this.runtime.virtualCamera = event?.outputActive === true;
+      this.runtime.virtualCameraState = event?.outputState || (this.runtime.virtualCamera ? "running" : "stopped");
+      this.emit("event", { type: "VirtualcamStateChanged", data: event || {} });
+      this.emit("status", this.status());
+    });
+    this.client.on("CurrentProgramSceneChanged", event => {
+      this.runtime.programScene = event?.sceneName || null;
+      this.emit("event", { type: "CurrentProgramSceneChanged", data: event || {} });
+      this.emit("status", this.status());
+    });
+    this.client.on("CurrentPreviewSceneChanged", event => {
+      this.runtime.previewScene = event?.sceneName || null;
+      this.emit("event", { type: "CurrentPreviewSceneChanged", data: event || {} });
+      this.emit("status", this.status());
+    });
+    this.client.on("StudioModeStateChanged", event => {
+      this.runtime.studioMode = event?.studioModeEnabled === true;
+      this.emit("event", { type: "StudioModeStateChanged", data: event || {} });
+      this.emit("status", this.status());
     });
   }
 
@@ -30,7 +74,26 @@ class ObsService extends EventEmitter {
     const result = await this.client.connect(url, password);
     this.connected = true;
     this.url = url;
-    this.emit("status", await this.status());
+
+    const [stream, record, virtualCamera, program, preview, studioMode] = await Promise.all([
+      this.getStreamStatus(),
+      this.getRecordStatus(),
+      this.getVirtualCamStatus(),
+      this.getCurrentProgramScene(),
+      this.getCurrentPreviewScene(),
+      this.getStudioModeEnabled()
+    ]);
+    this.runtime.streaming = stream?.outputActive === true;
+    this.runtime.streamState = stream?.outputState || (this.runtime.streaming ? "running" : "stopped");
+    this.runtime.recording = record?.outputActive === true;
+    this.runtime.recordState = record?.outputState || (this.runtime.recording ? "running" : "stopped");
+    this.runtime.virtualCamera = virtualCamera?.outputActive === true;
+    this.runtime.virtualCameraState = virtualCamera?.outputState || (this.runtime.virtualCamera ? "running" : "stopped");
+    this.runtime.programScene = program?.currentProgramSceneName || null;
+    this.runtime.previewScene = preview?.currentPreviewSceneName || null;
+    this.runtime.studioMode = studioMode?.studioModeEnabled === true;
+
+    this.emit("status", this.status());
     return result;
   }
 
@@ -38,7 +101,13 @@ class ObsService extends EventEmitter {
     if (!this.connected) return { ok: true };
     await this.client.disconnect();
     this.connected = false;
-    this.emit("status", await this.status());
+    this.runtime.streaming = false;
+    this.runtime.recording = false;
+    this.runtime.virtualCamera = false;
+    this.runtime.streamState = "stopped";
+    this.runtime.recordState = "stopped";
+    this.runtime.virtualCameraState = "stopped";
+    this.emit("status", this.status());
     return { ok: true };
   }
 
@@ -170,10 +239,11 @@ class ObsService extends EventEmitter {
     return this.client.call("GetProfileList");
   }
 
-  async status() {
+  status() {
     return {
       connected: this.connected,
       url: this.url,
+      runtime: { ...this.runtime }
     };
   }
 
