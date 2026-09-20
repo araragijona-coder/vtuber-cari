@@ -327,6 +327,12 @@ std::string BuildControlStatusMessage() {
     result += ";avatar_overlay=" + std::string(g_avatar_capture.is_running() ? "running" : "fallback");
     result += ";avatar_overlay_frames=" + std::to_string(g_avatar_overlay_frames.load(std::memory_order_relaxed));
     result += ";avatar_overlay_failures=" + std::to_string(g_avatar_overlay_failures.load(std::memory_order_relaxed));
+    {
+        std::lock_guard lock(g_avatar_overlay_mutex);
+        if (!g_avatar_overlay_error.empty()) {
+            result += ";avatar_overlay_error=" + g_avatar_overlay_error;
+        }
+    }
     result += ";video_bytes=" + std::to_string(transport.video.bytes_written);
     result += ";audio_bytes=" + std::to_string(transport.audio.bytes_written);
     result += ";video_pipe_drops=" + std::to_string(transport.video.writes_dropped);
@@ -368,6 +374,7 @@ void PollMediaGraph(HWND hwnd) {
     if (!g_media_graph.poll()) {
         const bool retry = ScheduleOutputRetryIfEligible();
         g_media_enabled.store(false, std::memory_order_relaxed);
+        StopAvatarOverlayCapture();
         g_media_graph.stop();
         if (retry) {
             RefreshStatus(hwnd);
@@ -378,6 +385,7 @@ void PollMediaGraph(HWND hwnd) {
     if (!g_media_graph.running()) {
         const bool retry = ScheduleOutputRetryIfEligible();
         g_media_enabled.store(false, std::memory_order_relaxed);
+        StopAvatarOverlayCapture();
         g_media_graph.stop();
         if (retry) {
             RefreshStatus(hwnd);
