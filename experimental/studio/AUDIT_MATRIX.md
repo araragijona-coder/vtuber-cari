@@ -181,7 +181,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - La entrada de audio solo se extrae del mixer cuando ambos named pipes están conectados; esto evita consumir la cola durante el handshake inicial.
 - Cada polling del media graph despacha como máximo 8 eventos A/V; si se alcanza el presupuesto, queda una métrica pacing_budget_exhausted para diagnóstico.
 
-- El head de trabajo se actualiza en cada modificación de esta continuación; el último head registrado es **0b3e70335e67327a4a6e0fe50e96e4cebd6c7f43**.
+- El head de trabajo se actualiza en cada modificación de esta continuación; el último head de referencia de esta bitácora es **75e62403561b04e4d70cc79ffd84028f8b9c4ef4**.
 - Se corrigió previamente el timestamp WASAPI para usar el `QPCPosition` ya convertido por Windows a 100 ns. Microsoft documenta explícitamente esa unidad; no debe volver a tratarse como ticks QPC crudos. citeturn0search0
 - `AudioTimelineMixer` introduce una frontera temporal única para micrófono, audio del sistema y futuras pistas como TTS. Normaliza canales/sample-rate, conserva PTS, produce bloques de 20 ms y mantiene métricas de rechazo, resampling, mezcla y underrun.
 - El smoke de `AudioTimelineMixer` verifica mezcla de micrófono + sistema, avance monotónico de PTS, resampling de una pista de 44.1 kHz y rechazo de paquetes malformados.
