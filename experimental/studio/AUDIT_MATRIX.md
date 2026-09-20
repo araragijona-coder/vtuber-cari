@@ -49,6 +49,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Normalización inicial de canales y sample rate en el mezclador.
 - [x] Gate de formato de entrada: sample rate/canales no pueden cambiar silenciosamente durante una salida.
 - [ ] Drift correction / resampling de producción basado en relojes de dispositivos.
+- [x] D3D11 compositor GPU experimental con overlay RGBA y output texture.
+- [x] Smoke D3D11 compositor con WARP.
 - [ ] Encoder real conectado.
 - [ ] Mux/record real.
 - [ ] RTMP real desde el pipeline.
