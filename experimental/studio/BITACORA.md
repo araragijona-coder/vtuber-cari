@@ -8,7 +8,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
-- Último HEAD registrado en esta entrada: `aba837096ecf9c221be2d07bf800d1517223de1b`.
+- Último HEAD registrado en esta entrada: `1315b40f5a833374864d7e1ab99acfc3b439f3c0`.
 - Estado: experimental; todavía no se promueve a producción.
 - Avance de ingeniería: **59%**.
 
