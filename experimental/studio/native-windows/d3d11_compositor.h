@@ -3,7 +3,6 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -61,8 +60,13 @@ public:
     }
 
 private:
-    bool ensure_output(std::uint32_t width, std::uint32_t height, std::wstring& error);
+    bool ensure_output(
+        std::uint32_t width,
+        std::uint32_t height,
+        std::wstring& error);
+
     bool ensure_pipeline(std::wstring& error);
+
     bool upload_overlay(
         const GpuOverlay& overlay,
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv,
@@ -71,16 +75,22 @@ private:
         std::wstring& error);
 
     static std::wstring hresult_error(HRESULT hr, const wchar_t* operation);
+    static std::wstring shader_error(ID3DBlob* errors, const wchar_t* fallback);
 
     Microsoft::WRL::ComPtr<ID3D11Device> device_;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> context_;
+
     Microsoft::WRL::ComPtr<ID3D11Texture2D> output_texture_;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView> output_rtv_;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> output_srv_;
 
     Microsoft::WRL::ComPtr<ID3D11VertexShader> vertex_shader_;
     Microsoft::WRL::ComPtr<ID3D11PixelShader> pixel_shader_;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout> input_layout_;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> vertex_buffer_;
     Microsoft::WRL::ComPtr<ID3D11Buffer> constant_buffer_;
+    Microsoft::WRL::ComPtr<ID3D11BlendState> blend_state_;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_state_;
 
     std::uint32_t width_ = 0;
     std::uint32_t height_ = 0;
