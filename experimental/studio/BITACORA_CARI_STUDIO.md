@@ -5,7 +5,7 @@
 ## Estado actual
 
 - Fecha de corte: 2026-09-20
-- Último head comprobado: `5f44fc39306e44e225d7490fdb7db4f1d15ddd54`
+- Último head comprobado: `75e62403561b04e4d70cc79ffd84028f8b9c4ef4`
 - Repositorio: `araragijona-coder/vtuber-cari`
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
@@ -312,3 +312,38 @@ El siguiente avance debe venir de cerrar gates de producción, no de duplicar la
 ### Continuidad
 - Este ledger es la fuente maestra para impedir repetir trabajo ya cerrado.
 - `DEPENDENCY_LICENSE_AUDIT.md` registra licencias de runtime y separa esa cuestión de las licencias de modelos/assets.
+
+## Registro de continuidad — 2026-09-20
+
+### IMPLEMENTADO
+- Bitácora maestra consolidada como fuente canónica de continuidad.
+- Estado del progreso alineado a 59% para evitar inflar el porcentaje sin nueva validación.
+- PROJECT_STATUS corregido para apuntar a la bitácora real existente.
+- OutputRetryPolicy integrado en el host nativo para RTMP con reintento limitado y backoff.
+- Clasificación de fallos refinada para no tratar errores locales de I/O como fallos de red automáticamente.
+- Métricas de retry y categoría de fallo expuestas al estado del estudio.
+- Serialización del campo output corregida para no producir un valor vacío.
+
+### VERIFICADO
+- media_scheduler_smoke: PASS.
+- output_retry_smoke: PASS.
+- output_diagnostics_smoke: PASS.
+- Prueba sintética FFmpeg BGRA + PCM float32 -> H.264/AAC -> Matroska: PASS en Linux.
+
+### NO VERIFICADO
+- Compilación Windows del último head.
+- Named pipes sostenidos en Windows.
+- RTMP real y reconexión contra endpoint real.
+- Hardware/cámara/Game Capture.
+- Avatar dentro del frame codificado.
+- Drift correction y lip-sync.
+
+### NO REPETIR
+- No volver a diseñar WGC/WASAPI/MediaClock/RealtimePacer/MediaInterleaver.
+- No volver a crear la política básica de retry.
+- No volver a introducir OpenCV como dependencia del núcleo sin un problema concreto que resolver.
+- No intentar resolver la ausencia de PTS del transporte raw únicamente aumentando el pacing: son problemas distintos.
+- No marcar CI verde mientras los jobs no tengan steps/logs ejecutados.
+
+### Siguiente trabajo
+P0 -> recuperar CI real -> prueba Windows sostenida -> A/V/PTS/drift -> RTMP real/reconnect -> compositor GPU/avatar.
