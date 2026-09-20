@@ -47,6 +47,26 @@ int main() {
     }
     assert(output.destination_count() == 2);
 
+    for (int attempt = 0; attempt < 500; ++attempt) {
+        if (!output.poll()) {
+            std::cerr << "Multistream smoke: all destinations failed during handshake\n";
+            output.stop();
+            return 1;
+        }
+        const auto statuses = output.destinations();
+        bool all_connected = statuses.size() == 2;
+        for (const auto& destination : statuses) {
+            all_connected = all_connected &&
+                destination.state == "running" &&
+                destination.video_drops == 0 &&
+                destination.audio_drops == 0;
+        }
+        if (all_connected) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
     auto pixels = std::make_shared<std::vector<std::uint8_t>>(
         static_cast<std::size_t>(width) * height * 4u, 0u);
     std::vector<float> audio(960u * channels, 0.0f);
