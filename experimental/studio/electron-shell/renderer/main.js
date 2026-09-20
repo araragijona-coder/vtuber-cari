@@ -784,7 +784,10 @@ window.cari.native.onEvent(event => {
   }
   if (event.type === "twitch.chat.sent") { addChat(event, true); return; }
   if (event.type === "twitch.status") {
-    twitch.status.textContent = event.connected ? "Connected" : "Disconnected";
+    const label = event.connected ? "Connected" : "Disconnected";
+    twitch.status.textContent = label;
+    const center = $("#twitch-center-status");
+    if (center) center.textContent = event.connected ? "connected" : "offline";
     return;
   }
   if (event.type === "twitch.eventsub.welcome") { addEvent("EventSub connected"); return; }
@@ -972,6 +975,11 @@ $("#obs-transition").onclick = () => command(window.cari.native.obs.transition()
 $("#obs-refresh-scenes").ondblclick = refreshObsCenter;
 
 $("#twitch-center-connect").onclick = async () => {
+  const current = await window.cari.native.twitch.status().catch(() => ({ connected: false }));
+  if (current.connected) {
+    await command(window.cari.native.twitch.disconnect());
+    return;
+  }
   switchView("chat");
   await command(window.cari.native.twitch.connect({
     clientId: twitch.clientId.value.trim(),
@@ -1026,6 +1034,7 @@ async function refresh() {
     const engineOn = result.engine?.running === true;
     $("#engine-chip").innerHTML = "ENGINE <b>" + (engineOn ? "ON" : "OFF") + "</b>";
     $("#twitch-chip").innerHTML = "TWITCH <b>" + (twitchState.connected ? "ON" : "OFF") + "</b>";
+    $("#twitch-center-status").textContent = twitchState.connected ? "connected" : "offline";
     $("#obs-chip").innerHTML = "OBS <b>" + (obsState.connected ? "ON" : "OFF") + "</b>";
     $("#dash-twitch").textContent = twitchState.connected ? "connected" : "offline";
     $("#dash-obs").textContent = obsState.connected ? "connected" : "offline";
