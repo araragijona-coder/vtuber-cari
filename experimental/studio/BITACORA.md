@@ -3,8 +3,8 @@
 > **Fuente canónica única de continuidad.**
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
-**Última auditoría:** 20/09/2026 13:32 ART
-**HEAD canónico:** fb1abc8fb53d969cf447fb1a05fed2fa3a805f7e
+**Última auditoría:** 20/09/2026 14:33 ART
+**HEAD canónico:** 46080690edf3df3cd669ce3fda7a6dc4282cb87b
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
@@ -248,7 +248,6 @@ El 62% no significa 62% de código ni disponibilidad para producción. La ruta p
 - FFmpeg sintético BGRA raw + PCM float32 -> H.264/AAC -> Matroska: PASS;
 - D3D11 compositor smoke con WARP: PASS, según el estado registrado en `PROJECT_STATUS.md`;
 - E2E Windows named-pipe -> FFmpeg -> decode: IMPLEMENTADO EN CÓDIGO, todavía no VERIFIED por ausencia de steps/logs observables en Actions.
-
 ### No repetir
 
 - no volver a implementar captura de escritorio con OpenCV;
@@ -351,7 +350,7 @@ P4 — streaming/release: RTMP prolongado + caída de red + validación del retr
 Regla: trabajar únicamente sobre el primer gate no cerrado; no abrir nuevamente componentes ya marcados como IMPLEMENTADO/VERIFICADO sin evidencia de regresión.
 ## 11. Cierre de continuidad — 20/09/2026 13:24 ART
 
-**HEAD canónico:** consultar siempre el HEAD vivo del PR #2.
+**HEAD canónico:** 46080690edf3df3cd669ce3fda7a6dc4282cb87b
 **PR #2:** abierto / draft / no mergeable.
 **Avance canónico:** **62%**. No se incrementa por parches menores que no cierren un gate.
 
@@ -497,7 +496,6 @@ Primero P01/P02. Después P04/P05/P06. Luego P07/P08/P09. Después P10/P11. Al f
 | MF camera enumeration smoke | IMPLEMENTADO + VERIFICACIÓN PENDIENTE EN WINDOWS | ejecutar en runner Windows con cámara/no-camera | no duplicar smoke |
 | Cámara como fuente del output principal | PENDIENTE | extender control/runtime sin reabrir WGC | no reemplazar WGC |
 | Cámara + MediaPipe + avatar | PENDIENTE | conectar frames de cámara al tracker | no crear segundo tracker |
-
 ### Regla de trabajo vigente
 El siguiente trabajo debe atacar exclusivamente un gate PENDIENTE. Una pieza marcada IMPLEMENTADO/VERIFICADO se conserva y solo se modifica ante una regresión concreta.
 
@@ -721,3 +719,54 @@ Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese re
 - No añadir otra cadena de voz paralela.
 - No introducir IA/voice cloud.
 - No introducir pitch shifting externo hasta que exista una decisión explícita de dependencia/licencia; el modificador actual no lo necesita para operar.
+
+## 20. P06 — integración del avatar real al frame final (20/09/2026 14:33 ART)
+
+### Trabajo realizado
+- No se reabrieron WGC, WASAPI, MediaClock, RealtimePacer, MediaInterleaver, RawPipe, FFmpeg supervisor, compositor D3D11 base, MediaPipe tracker ni renderer Three.js base.
+- Se creó una ventana Electron transparente, frameless, click-through y local para alojar el mismo renderer Three.js/glTF ya existente.
+- El Main process conserva el último estado del avatar y lo reenvía tras `did-finish-load`, evitando perder el primer estado durante el arranque.
+- `CARI_AVATAR_MODEL_PATH` permite cargar un modelo GLB/glTF real; si no existe o falla, el overlay mantiene el placeholder procedural.
+- El HWND de la ventana se registra mediante `CARI_AVATAR_HWND`.
+- Native Windows reutiliza el `CaptureEngine`/WGC existente para capturar la ventana del avatar.
+- La captura del overlay se convierte BGRA→RGBA y se entrega al `GpuOverlay` del compositor D3D11 existente.
+- Se añadieron métricas `avatar_overlay`, `avatar_overlay_frames`, `avatar_overlay_failures` y `avatar_overlay_error`.
+- La UI refleja el estado del overlay y el shell check incluye el nuevo preload/renderer.
+- P05 no se reabre: el frame final sigue usando readback CPU porque el boundary raw actual todavía lo requiere.
+
+### Estado de evidencia
+| Elemento | Estado | Próximo gate |
+|---|---|---|
+| Overlay Electron | IMPLEMENTADO | validación Windows |
+| Estado actuación → overlay | IMPLEMENTADO | validación de sincronía |
+| GLB/glTF configurable | IMPLEMENTADO | prueba con modelo real |
+| Overlay → WGC | IMPLEMENTADO EXPERIMENTAL | transparencia/cadencia Windows |
+| WGC → compositor D3D11 | IMPLEMENTADO EXPERIMENTAL | prueba E2E |
+| Avatar → FFmpeg | IMPLEMENTADO EXPERIMENTAL | E2E Windows sostenido |
+| P06 completo | PENDIENTE | modelo real + salida Windows + rendimiento |
+
+### No repetir
+- No crear otro renderer Three.js.
+- No crear otro tracker MediaPipe.
+- No crear otro compositor D3D11.
+- No crear otro RawPipe.
+- No usar `capturePage()` como transporte de vídeo.
+- No sustituir WGC por OpenCV.
+- No marcar P06 como VERIFIED hasta ejecutar el flujo real en Windows.
+
+### CI observado
+HEAD de esta iteración: `46080690edf3df3cd669ce3fda7a6dc4282cb87b`.
+Los runs recientes de la rama ya se disparan mediante el workflow de desarrollo. Los intentos anteriores siguen terminando con jobs sin `steps`/`logs_url`; por eso P01 y P02 siguen abiertos.
+
+### Porcentaje
+**Avance canónico: 63/100 = 63%.**
+P06 tiene implementación experimental, pero sus 4 puntos permanecen abiertos hasta verificar modelo real, transparencia, composición y salida sostenida en Windows.
+
+## 21. Regla permanente de continuidad
+
+`experimental/studio/BITACORA.md` es la única fuente canónica de continuidad. Antes de modificar una pieza:
+1. Buscar su entrada.
+2. Si figura IMPLEMENTADO/VERIFICADO, no crear un reemplazo; atacar únicamente el gate restante o una regresión reproducible.
+3. Registrar primero cualquier hallazgo nuevo que justifique tocar un componente cerrado.
+4. No sumar puntos al porcentaje por implementar dos veces la misma capacidad.
+5. Mantener separados implementación, verificación y validación en hardware.
