@@ -144,7 +144,7 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 This section is the canonical handoff record. Before implementing a feature, check the ledger and the audit matrix to avoid repeating completed work.
 
 ### Current engineering state
-- Overall estimate: **59%**. This is a coarse engineering-progress estimate, not a claim of production readiness.
+- Overall estimate: **60%**. This is a coarse engineering-progress estimate, not a claim of production readiness.
 - Native capture/audio foundation: implemented; target-hardware validation remains.
 - Timing/pacing/interleaving: implemented and smoke-tested; original PTS are still not preserved through raw pipes.
 - FFmpeg boundary: implemented; synthetic codec/mux verification passed; sustained Windows verification remains.
