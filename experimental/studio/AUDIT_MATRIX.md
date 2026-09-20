@@ -93,6 +93,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Mixed raw audio producer connected to FFmpeg A/V output.
 - [x] Temporal audio mixer implemented before the single FFmpeg audio pipe.
 - [x] Output failure classification for network/encoder/input/mux/permission/unknown.
+- [x] Clasificación inicial de fallos de output por categoría.
 - [ ] Output stderr classification / structured diagnostics.
   - Estado/código de salida ya están expuestos; queda pendiente clasificar mensajes de stderr en categorías estables.
 - [x] Automatic output reconnect/backoff policy skeleton with bounded attempts for RTMP network failures.
