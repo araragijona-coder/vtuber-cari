@@ -35,12 +35,8 @@ export class ThreeAvatarRenderer {
 
     this.avatar = null;
     this.placeholder = this.#createPlaceholder();
-    this.placeholderParts = {
-      head: this.placeholder.children[0],
-      leftEye: this.placeholder.children[1],
-      rightEye: this.placeholder.children[2],
-      mouth: this.placeholder.children[3]
-    };
+    this.placeholderParts = this.placeholder.userData.parts;
+    this.placeholderFace = this.placeholder.userData.face;
 
     this.morphTargets = [];
     this.resizeObserver = new ResizeObserver(() => this.#resize());
@@ -61,9 +57,15 @@ export class ThreeAvatarRenderer {
 
   apply(params) {
     const target = this.avatar || this.placeholder;
-    target.rotation.y = params.headYaw || 0;
-    target.rotation.x = params.headPitch || 0;
-    target.rotation.z = params.headRoll || 0;
+    if (this.avatar) {
+      target.rotation.y = params.headYaw || 0;
+      target.rotation.x = params.headPitch || 0;
+      target.rotation.z = params.headRoll || 0;
+    } else {
+      this.placeholderFace.rotation.y = params.headYaw || 0;
+      this.placeholderFace.rotation.x = params.headPitch || 0;
+      this.placeholderFace.rotation.z = params.headRoll || 0;
+    }
 
     const mouthOpen = clamp01(params.mouthOpen || 0);
     const blink = clamp01(params.blink || 0);
@@ -318,6 +320,7 @@ export class ThreeAvatarRenderer {
 
     group.userData.placeholder = true;
     group.userData.modelType = "full-body";
+    group.userData.face = face;
     group.userData.parts = bodyParts;
     group.userData.anchors = anchors;
     group.userData.note = "Technical full-body fallback; replace with approved Cari asset.";
