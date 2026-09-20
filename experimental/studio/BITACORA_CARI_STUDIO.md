@@ -5,12 +5,12 @@
 ## Estado actual
 
 - Fecha de corte: 2026-09-20
-- Último head comprobado: `75e62403561b04e4d70cc79ffd84028f8b9c4ef4`
+- Último head comprobado: `ea671f19ab34ecaee5c6935183e9cbea238a01ac`
 - Repositorio: `araragijona-coder/vtuber-cari`
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
 - Estado PR: abierto, draft.
-- Avance global estimado: **59% de ingeniería**.
+- Avance global estimado: **60% de ingeniería**.
 - Interpretación: mide avance frente al producto objetivo completo; no equivale a validación en hardware.
 - Regla de promoción: mantener en `experimental/` hasta cerrar los gates correspondientes.
 
@@ -372,3 +372,55 @@ P0 -> recuperar CI real -> prueba Windows sostenida -> A/V/PTS/drift -> RTMP rea
 
 ### REGLA DE CONTINUIDAD
 El próximo trabajo debe atacar P0/P1 de arriba. No se debe volver a implementar componentes listados en NO REPETIR salvo que una nueva evidencia abra formalmente la tarea.
+
+
+## Registro de continuidad — 2026-09-20 (bitácora consolidada actual)
+
+### Estado
+- Head del archivo de esta actualización: `ea671f19ab34ecaee5c6935183e9cbea238a01ac`.
+- Avance global: **60% de ingeniería**.
+- El porcentaje no aumenta por número de commits; solo por cerrar gates con evidencia.
+
+### Trabajo realizado en esta sesión y que no debe repetirse
+1. Se confirmó que la bitácora ya existía; no se creó una segunda bitácora paralela.
+2. Se consolidaron en esta bitácora los trabajos de timing, audio, FFmpeg, sesión, avatar/tracking y CI.
+3. Se añadió una política de retry/backoff limitada a RTMP y fallos de red.
+4. Se añadió clasificación inicial de errores de output.
+5. Se añadió límite de stderr FFmpeg de 256 KiB.
+6. Se añadieron métricas de retry, categoría de fallo, estado/código de salida y presupuesto de pacing.
+7. Se reforzaron invariantes para no alterar captura/audio durante una salida activa.
+8. Se hizo que el mixer no drene audio antes de conectar ambos pipes.
+9. Se hizo que el media graph limite los eventos despachados por polling.
+10. Se modificaron los workflows para permitir push en la rama de desarrollo y ejecución manual.
+
+### Evidencia válida
+- Smoke portable C++20 de scheduler/interleaver: PASS.
+- Smoke portable C++20 de retry policy: PASS.
+- Smoke portable C++20 de clasificación de errores: PASS.
+- Prueba sintética FFmpeg BGRA raw + PCM float32 -> H.264/AAC -> Matroska: PASS.
+- Últimos runs GitHub Actions: fallan antes de steps/logs (steps=null, logs_url=null); NO cuentan como validación de código.
+- Los retries de runs anteriores tampoco produjeron steps/logs.
+
+### Decisiones congeladas
+- No cambiar WGC/D3D11 por otra captura sin evidencia.
+- No cambiar WASAPI por OpenCV para el núcleo de audio.
+- No meter IA/cloud en el camino operativo.
+- No hacer OBS obligatorio.
+- No distribuir Live2D runtime/modelos propietarios sin auditoría.
+- No ampliar retry automático a encoder/mux/input/permission.
+- No tratar pacing como sustituto de timestamps PTS extremo a extremo.
+
+### Próximo foco obligatorio
+**P0:** recuperar CI con ejecución real.
+**P0:** probar named pipes + FFmpeg en Windows de manera sostenida.
+**P0:** prueba de grabación prolongada.
+**P1:** transporte PTS explícito.
+**P1:** compositor GPU D3D11 + avatar dentro del frame final.
+**P1:** RTMP real + reconnect.
+**P1:** cámara Media Foundation + Game Capture.
+**P2:** drift correction + lip-sync.
+**P2:** multistream.
+**P3:** packaging/installer/licencias/assets.
+
+### Condición de reapertura
+Solo reabrir algo marcado NO REPETIR ante regresión, nueva evidencia, cambio de requisito, dependencia o restricción legal.
