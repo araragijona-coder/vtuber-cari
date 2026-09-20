@@ -3,8 +3,8 @@
 > **Fuente canónica única de continuidad.**
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
-**Última auditoría:** 20/09/2026 13:30 ART
-**HEAD canónico:** 366c2c693439e8e4a0f656435d00a00aa99c199d
+**Última auditoría:** 20/09/2026 13:13 ART
+**HEAD canónico:** consultar siempre el HEAD actual del PR #2.
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **62%**
@@ -210,69 +210,91 @@ El 62% no significa 62% de código ni disponibilidad para producción. La ruta p
 
 **Producto: NO listo para producción.**
 
-## 10. Continuación — 20/09/2026
+## 10. Snapshot de continuidad — 20/09/2026
 
-### Cambios confirmados en esta iteración
-
-| Cambio | Estado | Evidencia | NO REPETIR |
+| Área | Estado canónico | Próximo gate | NO REPETIR |
 |---|---|---|---|
-| Retry/backoff RTMP integrado en el runtime nativo | IMPLEMENTADO | main.cpp + output_retry.h | No crear otra policy |
-| Retry restringido a fallos clasificados como red | IMPLEMENTADO | output_diagnostics.h | No reintentar encoder/mux/input a ciegas |
-| Serialización correcta de output en status | IMPLEMENTADO | BuildControlStatusMessage() | No reabrir salvo regresión |
-| Diagnóstico output_state / exit code | IMPLEMENTADO | native + renderer | No crear otro canal de status |
-| stderr FFmpeg acotado | IMPLEMENTADO | ffmpeg_av_output.* | No volver a buffering ilimitado |
-| Backpressure de handshake | IMPLEMENTADO | PollMediaGraph() | No drenar mixer antes de pipes conectados |
-| Budget de 8 eventos A/V por tick | IMPLEMENTADO | MediaGraphController | No quitar sin benchmark |
-| Workflows ejecutables sobre branch de desarrollo | IMPLEMENTADO | .github/workflows/* | No volver a depender solo de push a main |
-| Smoke retry policy portable | VERIFICADO | C++20 + -Wall -Wextra -Werror | No repetir sin modificar policy |
-| Smoke error classification portable | VERIFICADO | C++20 + -Wall -Wextra -Werror | No repetir sin nuevos casos reales |
+| Arquitectura Electron + Native C++ | IMPLEMENTADO | solo regresiones/integración | no replantear |
+| Windows Graphics Capture | IMPLEMENTADO | hardware real + device-loss exhaustivo | no sustituir por OpenCV |
+| WASAPI + AudioTimelineMixer | IMPLEMENTADO + VERIFICADO en smoke | device clocks + drift correction | no rehacer mixer |
+| MediaClock + RealtimePacer + A/V interleaver | IMPLEMENTADO + VERIFICADO | E2E Windows/PTS explícitos | no crear otro scheduler |
+| RawPipe + FFmpeg boundary | IMPLEMENTADO | E2E Windows sostenido | no crear otro transporte |
+| D3D11 compositor + avatar placeholder | IMPLEMENTADO EXPERIMENTAL + WARP VERIFIED | eliminar readback CPU + avatar real | no reconstruir compositor base |
+| MediaPipe tracking | IMPLEMENTADO | rendimiento/cámara/modelo real | no crear segundo tracker |
+| Three.js avatar | IMPLEMENTADO | avatar real + compositor final | no rehacer renderer base |
+| OutputRetryPolicy | IMPLEMENTADO + VERIFICADO en contrato | RTMP real + caída de red | no crear otra policy |
+| Error classification | IMPLEMENTADO + VERIFICADO | ampliar con errores reales nuevos | no reintentar fallos locales |
+| CI workflows | DISPARO CONFIGURADO | runner debe ejecutar steps/logs | no cambiar workflow sin evidencia |
+| Dependency license audit | IMPLEMENTADO | revisar solo al cambiar dependencias/assets | no repetir auditoría sin cambios |
 
-### CI — estado no verificable
+### Cambios de la última iteración que quedan cerrados
 
-Los workflows ya generan ejecuciones en la rama fix/native-windows-foundation, pero los jobs disponibles siguen terminando antes de registrar steps/logs (steps=null, logs_url=null). Esto se conserva como un bloqueo de infraestructura, no como un defecto atribuido al código.
+- se registró retry RTMP con backoff exponencial acotado y máximo de intentos;
+- el retry automático solo se activa para fallos clasificados como red;
+- `Broken pipe` ya no se considera automáticamente un error de red;
+- se agregaron patrones de `Connection reset by peer`, `No route to host` y resolución DNS fallida;
+- status del output expone estado, exit code, categoría de fallo, intentos y presupuesto de pacing;
+- stderr de FFmpeg permanece limitado a 256 KiB;
+- el mixer no drena audio antes de que ambos pipes estén conectados;
+- el despacho A/V permanece limitado a 8 eventos por polling;
+- captura/audio no pueden modificarse mientras el output está activo;
+- los workflows CI pueden ejecutarse sobre la rama de desarrollo.
+
+### Evidencia disponible
+
+- smoke `media_scheduler_smoke`: PASS;
+- smoke `output_retry_smoke`: PASS;
+- smoke `output_diagnostics_smoke`: PASS;
+- FFmpeg sintético BGRA raw + PCM float32 -> H.264/AAC -> Matroska: PASS;
+- D3D11 compositor smoke con WARP: PASS, según el estado registrado en `PROJECT_STATUS.md`;
+- E2E Windows named-pipe -> FFmpeg -> decode: IMPLEMENTADO EN CÓDIGO, todavía no VERIFIED por ausencia de steps/logs observables en Actions.
 
 ### No repetir
 
-1. No reconstruir MediaClock, RealtimePacer, MediaInterleaver, RawPipe, AudioTimelineMixer, FfmpegAvOutput, OutputRetryPolicy ni el compositor D3D11 desde cero.
-2. No usar OpenCV para sustituir Windows Graphics Capture; OpenCV queda como posible herramienta auxiliar de procesamiento, no como backend principal de captura de escritorio.
-3. No usar capturePage() como transporte de vídeo.
-4. No cerrar todavía el gate de producción solo porque el smoke sintético de FFmpeg pasa.
-5. No promover la ruta D3D11 a producción mientras dependa del readback CPU.
-6. No implementar multistream antes de demostrar estabilidad del single-output RTMP.
-7. No reescribir historia de Git para resolver la divergencia de 2 commits sin una necesidad concreta.
+- no volver a implementar captura de escritorio con OpenCV;
+- no convertir `capturePage()` en transporte de vídeo;
+- no crear otro `RawPipe`, mixer, scheduler, retry policy, compositor D3D11, tracker MediaPipe o renderer Three.js;
+- no marcar `CI=VERIFIED` por un run `failure` con `steps=null`;
+- no marcar el E2E Windows como VERIFIED hasta observar su ejecución y métricas;
+- no considerar el smoke sintético de FFmpeg equivalente a una prueba Windows sostenida;
+- no implementar multistream antes del single-output RTMP sostenido.
 
-### Próximo trabajo obligatorio
+### Cola única de trabajo
 
-**P0**
-- Conseguir una ejecución Windows observable.
-- Ejecutar ffmpeg_named_pipe_e2e_smoke y guardar sus métricas.
+**P0 — Validación**
+1. Obtener CI Windows observable con steps/logs.
+2. Ejecutar el E2E Windows named-pipe -> FFmpeg -> archivo -> decode.
+3. Guardar evidencia de resolución/FPS/audio/duración/bytes/streams/errores.
 
-**P1**
-- Diseñar transporte PTS explícito o un mecanismo equivalente que conserve timing de extremo a extremo.
-- Eliminar readback CPU del camino final.
-- Conectar avatar real/neutral al compositor D3D11.
+**P1 — Pipeline final**
+1. Transporte de PTS explícitos extremo a extremo.
+2. Eliminar readback CPU del camino de producción.
+3. Avatar real/neutral dentro del compositor final.
 
-**P2**
-- Media Foundation camera streaming.
-- Device clocks + drift correction.
-- Lip-sync avanzado.
+**P2 — Audio/cámara**
+1. Media Foundation camera streaming.
+2. Device clocks.
+3. Drift correction/resampling.
+4. Lip-sync avanzado.
 
-**P3**
-- RTMP real prolongado, caída/recuperación de red y validación de la policy existente.
-- Twitch/YouTube reales.
-- Multistream posterior al single-output gate.
+**P3 — Streaming**
+1. RTMP/RTMPS prolongado.
+2. Simulación de caída de red.
+3. Validación de retry/backoff existente.
+4. Twitch/YouTube reales.
 
-**P4**
-- Game Capture.
-- Installer.
-- Redistribución FFmpeg/codec.
-- Logging/rollback de usuario.
-- Asset packaging y hardware validation.
+**P4 — Plataforma/release**
+1. Game Capture.
+2. Multistream.
+3. Installer.
+4. Redistribución FFmpeg/codec.
+5. Asset packaging.
+6. Hardware validation final.
 
-### Estado canónico actualizado
+### Regla de actualización
 
-HEAD: 366c2c693439e8e4a0f656435d00a00aa99c199d
+Cada nueva iteración debe modificar esta sección o añadir una sección posterior solo cuando exista evidencia nueva. No duplicar el mismo pendiente bajo otro nombre.
 
-Avance: **62% de ingeniería**
-
-Producto: NO listo para producción.
+**HEAD observado de esta entrada:** b42edae76160aeb0b4d0de643dcad7cfaa2d2764
+**Avance global canónico:** **62%**.
+**Producto:** NO listo para producción.
