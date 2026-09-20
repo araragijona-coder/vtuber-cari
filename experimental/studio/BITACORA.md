@@ -900,3 +900,32 @@ Con P0 bloqueado externamente, el siguiente trabajo técnico debe continuar en P
 
 ### Regla de continuidad
 Las tareas anteriores se consideran cerradas como **arquitectura**. Las próximas sesiones deben modificar los componentes existentes in-place cuando aparezca evidencia nueva, no comenzar implementaciones paralelas.
+
+
+## 034 — Snapshot de continuidad — 2026-09-20
+**Estado:** CANÓNICO / PUNTO DE PARTIDA
+
+- HEAD real de la rama al cierre de esta sesión: `4df7445f6d5384df64b8215c4f64c6c529d9f68c`
+- PR #2: `fix: harden native Windows foundation`
+- Avance global vigente en `PROJECT_STATUS.md` y `AUDIT_MATRIX.md`: **62%**
+- La única bitácora canónica sigue siendo `experimental/studio/BITACORA.md`.
+
+### NO REPETIR
+- otro named-pipe E2E;
+- otro compositor D3D11;
+- otro retry/backoff;
+- otro clasificador de output;
+- otra bitácora;
+- otra arquitectura de captura;
+- otro MediaClock;
+- otro interleaver A/V;
+- otro bridge MediaPipe→avatar.
+
+### Estado funcional de continuidad
+- P0 Windows E2E: implementado, pero la evidencia CI sigue bloqueada por jobs sin steps/logs.
+- P1 compositor D3D11: implementado experimentalmente; queda eliminar readback CPU por frame y conectar una ruta GPU de producción/encoder compatible.
+- Lip-sync local por amplitud: integrado como fallback cuando MediaPipe no controla la boca.
+- Bug de `AudioCoreBridge`: miembro `microphone_effect_` declarado correctamente; no reabrir salvo evidencia nueva.
+
+### Regla
+Antes de tocar un componente, buscar su entrada aquí. Si está IMPLEMENTADO/VERIFICADO, corregir in-place. Solo crear algo nuevo cuando el ledger indique PENDIENTE y exista una razón técnica/evidencia que lo justifique.
