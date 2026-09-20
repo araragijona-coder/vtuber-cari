@@ -339,13 +339,6 @@ class TwitchChatService extends EventEmitter {
       return;
     }
     const id = event.message_id;
-    if (id && this.messageIds.has(id)) return;
-    if (id) {
-      this.messageIds.add(id);
-      if (this.messageIds.size > 2000) {
-        this.messageIds.delete(this.messageIds.values().next().value);
-      }
-    }
 
     this.emit("chat", {
       message_id: id || null,
