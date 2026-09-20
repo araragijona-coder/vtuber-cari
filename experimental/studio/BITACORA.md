@@ -349,3 +349,49 @@ P3 — audio/cámara: Media Foundation camera streaming + device clocks + drift 
 P4 — streaming/release: RTMP prolongado + caída de red + validación del retry existente + Game Capture + multistream + installer + redistribución FFmpeg.
 
 Regla: trabajar únicamente sobre el primer gate no cerrado; no abrir nuevamente componentes ya marcados como IMPLEMENTADO/VERIFICADO sin evidencia de regresión.
+## 11. Cierre de continuidad — 20/09/2026 13:24 ART
+
+**HEAD observado en GitHub:** 8866c265eb65c13709fd9c15bd21de97e55ac7a9
+**PR #2:** abierto / draft / no mergeable.
+**Avance canónico:** **62%**. No se incrementa por parches menores que no cierren un gate.
+
+### Cambios de esta iteración
+- Se auditó nuevamente el árbol real antes de tocar módulos.
+- Se confirmó que el compositor D3D11 experimental, el overlay GPU y el E2E Windows de named pipes ya existen; no se creó una segunda implementación.
+- Se confirmó OutputRetryPolicy + clasificación de fallos y su integración condicionada a RTMP/network.
+- Se corrigió la serialización del estado output.
+- Se endureció el límite de despacho A/V por polling y se expone la métrica pacing_budget_exhausted.
+- Se añadió backpressure de arranque para no drenar audio antes de conectar ambos pipes.
+- Se endurecieron invariantes de sesión para impedir cambios de captura/audio durante una salida.
+- Los workflows de CI quedaron preparados para ejecutarse en la rama de desarrollo y mediante workflow_dispatch.
+- La bitácora canónica quedó reafirmada como fuente única de continuidad; los logs históricos no deben recibir nuevas entradas.
+
+### Hallazgos que NO deben reabrirse
+- No sustituir Windows Graphics Capture por OpenCV: WGC sigue siendo el backend principal de captura Windows.
+- No usar capturePage() del renderer Electron como transporte de vídeo.
+- No crear otro MediaClock, scheduler, interleaver, RawPipe, mixer, FFmpeg supervisor, retry policy, tracker MediaPipe, renderer Three.js o compositor D3D11.
+- No convertir el compositor D3D11 experimental en producción mientras exista readback CPU por frame.
+- No declarar el E2E named-pipe como VERIFIED hasta obtener ejecución Windows observable con steps/logs.
+- No declarar RTMP/reconnect VERIFIED hasta probar un servidor real y una caída de red controlada.
+- No reintentar fallos de encoder/mux/input/permission como si fueran network.
+- No aumentar el porcentaje por scaffolding, documentación o parches menores.
+
+### Cola exacta para la siguiente iteración
+1. CI Windows: obtener steps/logs observables.
+2. E2E named-pipe + FFmpeg + decode sobre Windows.
+3. Capturar evidencia del E2E: commit, FFmpeg, resolución, FPS, sample-rate, canales, duración, bytes, streams, exit code y stderr.
+4. Diseñar transporte de timestamps explícitos o equivalente temporal verificable.
+5. Eliminar readback CPU del camino de producción.
+6. Integrar avatar real/neutral en el compositor GPU.
+7. Validar captura sostenida WGC/WASAPI y device-loss.
+8. Implementar/validar drift correction.
+9. Validar RTMP y retry contra servidor real.
+10. Después: cámara Media Foundation, Game Capture, multistream, installer y distribución.
+
+### Registro de intentos descartados de esta iteración
+- Una edición inicial de workflow introdujo workflow_dispatch debajo de una clave con paths; se corrigió a workflow_dispatch sin filtros. No reutilizar la versión malformed.
+- Un primer intento de integrar retry directamente sobre un bloque de main.cpp no coincidió con las anclas actuales y no se escribió. La integración final se hizo sobre el archivo real. No repetir el parche por texto antiguo.
+
+### Regla de transferencia
+La próxima sesión debe empezar leyendo BITACORA.md → AUDIT_MATRIX.md → PROJECT_STATUS.md → estado vivo del PR #2.
+Después se trabaja únicamente sobre el primer gate pendiente que tenga evidencia nueva disponible.
