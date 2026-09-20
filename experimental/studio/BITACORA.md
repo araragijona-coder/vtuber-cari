@@ -8,9 +8,9 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
-- Último HEAD registrado en esta entrada: `1315b40f5a833374864d7e1ab99acfc3b439f3c0`.
+- Último HEAD registrado en esta entrada: `4293bd1063da2dd9f049fe79a30e095bdb0c6df3`.
 - Estado: experimental; todavía no se promueve a producción.
-- Avance de ingeniería: **59%**.
+- Avance de ingeniería: **60%**.
 
 ## Leyenda de estados
 
@@ -267,3 +267,65 @@ Prioridad 4: lip-sync local.
 Prioridad 5: RTMP/hardware sostenidos y multistream.
 
 Hasta que esas fronteras tengan evidencia, no mover el runtime fuera de `experimental/`.
+
+
+## 018 — Sincronización canónica de continuidad — 2026-09-20
+**Estado:** IMPLEMENTADO / ACTUALIZADO
+
+**HEAD canónico:** `4293bd1063da2dd9f049fe79a30e095bdb0c6df3`  
+**PR:** #2 — `fix: harden native Windows foundation`  
+**Avance global vigente:** **60%**
+
+Esta entrada corrige el puntero de continuidad. La bitácora canónica había quedado varios commits atrás; desde ahora este HEAD es el punto de partida para las siguientes iteraciones.
+
+### Trabajo reciente registrado y no repetir
+- consolidación del sistema de resiliencia de output;
+- `OutputFailureCategory` + `OutputRetryPolicy` ya implementados;
+- retry RTMP restringido a errores de red, con backoff y límite de intentos;
+- métricas de retry y categoría visibles en el control plane;
+- serialización del estado `output` corregida;
+- clasificación de errores de red afinada;
+- presupuesto de 8 eventos A/V por polling;
+- backpressure de inicio hasta conectar ambos pipes;
+- bloqueo de cambios de captura/audio durante output;
+- workflows de CI preparados para rama de desarrollo y dispatch manual;
+- bitácora canónica, matriz de auditoría y estado del proyecto sincronizados.
+
+### Evidencia ya disponible
+- smoke C++20 estricto de MediaClock/RealtimePacer/MediaInterleaver: PASS;
+- smoke de retry/backoff: PASS;
+- smoke de clasificación de errores: PASS;
+- prueba FFmpeg sintética BGRA + PCM float32 -> H.264/AAC -> Matroska: PASS;
+- CI sigue sin producir steps/logs útiles en los runs recientes; no se marca verde.
+
+### Límites que siguen abiertos
+1. PTS explícitos a través del transporte multimedia o equivalente temporal.
+2. FFmpeg + named pipes sostenidos en Windows.
+3. Grabación prolongada real.
+4. RTMP real y reconexión contra servidor real.
+5. Compositor GPU D3D11 con captura + avatar + overlays en el frame final.
+6. Cámara Media Foundation y Game Capture.
+7. Drift correction / resampling con relojes físicos.
+8. Lip-sync y avatar final.
+9. Multistream.
+10. Instalador, redistribución de FFmpeg/codec y diagnóstico de usuario.
+11. Validación completa en hardware objetivo.
+
+### NO REPETIR
+No volver a:
+- diseñar otra arquitectura Electron/native;
+- reemplazar WGC por OpenCV como captura principal sin evidencia nueva;
+- crear un segundo retry/backoff;
+- declarar timestamps preservados por raw pipes;
+- declarar la prueba FFmpeg Linux como prueba Windows;
+- declarar CI verde por un job con `failure + steps=null`;
+- crear un segundo compositor software como sustituto del compositor GPU.
+
+### Próxima prioridad
+**P0:** construir y validar la prueba Windows real de `named pipes -> FFmpeg -> archivo`.  
+**P1:** avanzar al compositor GPU D3D11 que entregue el frame final al encoder.  
+**P2:** cámara Media Foundation + tracking real.  
+**P3:** RTMP/reconnect real y audio drift correction.  
+**P4:** empaquetado/release.
+
+La regla de continuidad se mantiene: cualquier tarea que ya esté en IMPLEMENTADO/VERIFICADO se corrige sobre el componente existente; solo se reabre con evidencia nueva.
