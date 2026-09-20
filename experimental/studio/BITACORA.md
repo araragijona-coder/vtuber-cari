@@ -3,8 +3,8 @@
 > **Fuente canónica única de continuidad.**
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
-**Última auditoría:** 20/09/2026 14:58 ART
-**HEAD canónico:** b254ed6a70ceb9b775dda5689c94ed3ab3f1dc35
+**Última auditoría:** 20/09/2026 14:42 ART
+**HEAD canónico:** a5d9cca3b15f8cfed22b50b40f4d9885d8ed6cc5
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
@@ -818,3 +818,81 @@ El workflow diagnóstico mínimo reproduce el mismo patrón. No se modifica C++/
 - No volver a ejecutar el smoke sintético de FFmpeg sin un cambio de contrato.
 - No marcar P06 como VERIFIED por código solamente.
 - No marcar P01/P02 como VERIFIED por jobs sin steps/logs.
+
+
+## 13. Auditoría estructural actual — 20/09/2026 14:42 ART
+
+**HEAD auditado:** a5d9cca3b15f8cfed22b50b40f4d9885d8ed6cc5
+**Estado:** experimental / NO listo para producción
+**Avance canónico:** **63%**
+
+Los snapshots anteriores son históricos. Esta sección es la referencia activa de problemas y no debe abrir componentes ya cerrados.
+
+### P0 — antes de agregar nuevas features
+
+| ID | Hallazgo | Estado | Próximo paso |
+|---|---|---|---|
+| P0-01 | La bitácora tenía HEAD y snapshots contradictorios con el PR real. | CORREGIDO DOCUMENTALMENTE | Mantener el HEAD del PR como referencia viva. |
+| P0-02 | El callback de Windows Graphics Capture realiza trabajo pesado: readback CPU, composición GPU, readback CPU y envío al MediaGraph. | ABIERTO | Mover el procesamiento a una cola/worker acotada y mantener ligero el callback. |
+| P0-03 | D3D11 comparte un immediate context entre subsistemas sin una política global de sincronización. | ABIERTO | Unificar ownership del context o proteger explícitamente todo acceso. |
+| P0-04 | El transporte raw no conserva los PTS originales; wallclock de FFmpeg no equivale al timestamp de origen. | ABIERTO | Elegir una sola ruta de PTS explícitos y promoverla después de probarla. |
+
+### P1 — integración y bugs detectados
+
+| ID | Hallazgo | Estado | Próximo paso |
+|---|---|---|---|
+| P1-01 | Media Foundation Camera usa el timestamp del Source Reader como Frame.pts sin correlación demostrada con WGC/WASAPI. | ABIERTO | Medir offset y drift entre relojes. |
+| P1-02 | Camera stop hace join mientras ReadSample puede estar bloqueado. | ABIERTO | Diseñar cancelación o callback asíncrono. |
+| P1-03 | Conversión RGB32 de cámara asume pitch lineal width*4. | ABIERTO | Validar stride y copiar por fila. |
+| P1-04 | El compositor GPU sigue haciendo readback CPU por frame antes de FFmpeg. | ABIERTO | Crear frontera de encoder GPU/surface real. |
+| P1-05 | Avatar overlay hace WGC + CPU readback + conversión + upload GPU + readback CPU. | ABIERTO | Reducir cruces y compartir surface/texture. |
+| P1-06 | El avatar usa el último frame disponible sin asociación temporal con el frame final. | ABIERTO | Asociar estado/frame de avatar por timestamp. |
+| P1-07 | AudioLipSync del renderer se actualiza desde el refresh y se excluye cuando hay FaceTracker. | ABIERTO | Crear un reloj de lip-sync de baja latencia y combinarlo con tracking. |
+| P1-08 | MediaPipe usa VIDEO síncrono dentro de requestAnimationFrame. | ABIERTO | Evaluar LIVE_STREAM o Worker; no crear segundo tracker. |
+| P1-09 | Libav preserva PTS de vídeo, pero el audio usa solo el PTS inicial y luego next_audio_pts continuo. | ABIERTO | Definir política explícita para gaps/overlaps de audio. |
+| P1-10 | Selección de sample-rate en Libav inicializa la distancia respecto de 48 kHz en lugar de la entrada en todos los casos. | ABIERTO | Corregir y agregar regresión 44.1/48/32 kHz. |
+| P1-11 | MultiStreamOutput no pasa por MediaGraphController, pacing ni interleave global. | ABIERTO | No promover multistream hasta compartir el mismo contrato temporal. |
+| P1-12 | E2E named-pipe existe pero no tiene ejecución Windows observable en CI y no mide sincronización fuerte. | ABIERTO | Exigir logs/steps y medir duración, PTS, offset y streams. |
+| P1-13 | Status nativo usa g_capture.stats para frames/fps incluso cuando source=camera. | ABIERTO | Unificar métricas de fuente activa. |
+| P1-14 | NativeEngine.stop puede limpiar child antes de observar el exit. | ABIERTO | Esperar terminación explícita antes de permitir nuevo start. |
+| P1-15 | Electron shell no tiene package-lock visible. | ABIERTO | Fijar lockfile para reproducibilidad. |
+
+### P2 — deuda y riesgos secundarios
+
+| ID | Hallazgo | Estado |
+|---|---|---|
+| P2-01 | WGC está orientado a BGRA8 SDR; HDR no está cubierto. | ABIERTO |
+| P2-02 | Camera tracking del renderer y camera source nativa pueden competir por el mismo dispositivo. | ABIERTO |
+| P2-03 | file:// está endurecido pero puede migrar a protocolo local propio cuando el shell madure. | ABIERTO |
+| P2-04 | Electron está en 44.4.2 y existe 44.4.3. | ABIERTO |
+| P2-05 | AudioClockDriftEstimator existe pero no cierra un loop de corrección real. | ABIERTO |
+| P2-06 | anime-bright es DSP tonal/dinámico, no pitch/formant. | DOCUMENTADO |
+| P2-07 | Live2D sigue adapter-only y no debe empaquetarse un runtime propietario sin revisión legal. | DOCUMENTADO |
+
+### No repetir
+
+- No crear otro scheduler, mixer, RawPipe, supervisor FFmpeg, retry policy, compositor D3D11, tracker MediaPipe o renderer Three.js.
+- No volver a usar OpenCV como sustituto de Windows Graphics Capture.
+- No volver a usar capturePage como transporte de vídeo.
+- No marcar E2E Windows como VERIFIED hasta observar una ejecución real con pasos y métricas.
+- No tratar el smoke sintético de FFmpeg como prueba de Windows sostenida.
+- No implementar multistream por separado del contrato temporal del single-output.
+
+### Evidencia oficial relevante
+
+- Microsoft documenta que SystemRelativeTime de Windows Graphics Capture es tiempo QPC del render del compositor. citeturn224142search0turn224142search1
+- Microsoft indica que el Source Reader entrega el tiempo de presentación del media sample. Esto no demuestra equivalencia con el QPC usado por WGC. citeturn224142search7
+- Microsoft documenta que el immediate context de D3D11 no es thread-safe y que el acceso compartido requiere sincronización. citeturn294595search0turn294595search1
+- MediaPipe exige timestamps crecientes en VIDEO y ofrece LIVE_STREAM asíncrono para entradas en vivo. citeturn691949search1
+- FFmpeg raw no transporta los PTS de origen dentro de los bytes; la ruta con wallclock no sustituye un protocolo de timestamps explícitos. citeturn691949search0
+
+### Cola de trabajo después de la auditoría
+
+1. P0-02: sacar el trabajo pesado del callback de captura.
+2. P0-03: resolver ownership/sincronización del immediate context.
+3. P0-04: cerrar diseño de PTS explícitos y elegir la ruta principal.
+4. P1-01 a P1-03: cerrar reloj y calidad de cámara.
+5. P1-07 y P1-08: corregir latencia de tracking/lip-sync.
+6. Solo después: validación RTMP, multistream, distribución y hardware.
+
+Esta sección debe ser actualizada cuando un hallazgo cambie de estado. No duplicar entradas con otro nombre.
