@@ -7,6 +7,8 @@
 #include "camera_sources.h"
 #include "capture_engine.h"
 #include "compositor_bridge.h"
+#include "d3d11_compositor.h"
+#include "avatar_gpu_overlay.h"
 #include "window_sources.h"
 #include "media_graph_controller.h"
 #include "control_protocol.h"
@@ -22,8 +24,12 @@
 #include <thread>
 #include <iostream>
 #include <memory>
+#include <mutex>
 
 namespace {
+
+using Microsoft::WRL::ComPtr;
+
 
 constexpr wchar_t kClassName[] = L"CariStudioNative";
 constexpr wchar_t kWindowTitle[] = L"Cari Studio — Windows x64";
@@ -53,6 +59,10 @@ std::atomic<std::uint64_t> g_compositor_bytes{0};
 std::atomic<std::uint64_t> g_last_composited_sequence{0};
 cari::native::MediaGraphController g_media_graph;
 std::atomic<bool> g_media_enabled{false};
+cari::native::D3D11Compositor g_gpu_compositor;
+std::mutex g_gpu_compositor_mutex;
+std::shared_ptr<std::vector<std::uint8_t>> g_gpu_avatar_placeholder;
+std::string g_gpu_compositor_error;
 cari::studio::core::OutputRetryPolicy g_output_retry{};
 std::string g_last_output_profile;
 std::string g_last_output_target;
@@ -137,6 +147,16 @@ std::wstring BuildCaptureStatus() {
     const auto compositor_failures = g_compositor_failures.load(std::memory_order_relaxed);
     const auto compositor_bytes = g_compositor_bytes.load(std::memory_order_relaxed);
     const auto composited_sequence = g_last_composited_sequence.load(std::memory_order_relaxed);
+    std::uint64_t gpu_frames = 0;
+    std::uint64_t gpu_uploads = 0;
+    std::uint64_t gpu_rejected = 0;
+    {
+        std::lock_guard gpu_lock(g_gpu_compositor_mutex);
+        const auto gpu_stats = g_gpu_compositor.stats();
+        gpu_frames = gpu_stats.composed_frames;
+        gpu_uploads = gpu_stats.overlay_uploads;
+        gpu_rejected = gpu_stats.rejected_frames;
+    }
 
     return L"Capture: running — " + selected_title + L" — " +
            std::to_wstring(stats.width) + L"x" + std::to_wstring(stats.height) +
@@ -154,7 +174,11 @@ std::wstring BuildCaptureStatus() {
            L" success / " + std::to_wstring(compositor_failures) +
            L" failed, " + std::to_wstring(compositor_bytes) +
            L" output byte(s), last sequence " +
-           std::to_wstring(composited_sequence);
+           std::to_wstring(composited_sequence) + L"\n" +
+           L"GPU compositor: " + std::to_wstring(gpu_frames) +
+           L" frame(s), " + std::to_wstring(gpu_uploads) +
+           L" overlay upload(s), " + std::to_wstring(gpu_rejected) +
+           L" rejection(s)";
 }
 
 void RefreshStatus(HWND hwnd);
