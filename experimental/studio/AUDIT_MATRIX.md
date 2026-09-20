@@ -216,6 +216,9 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Evidencia actual
 
+- Auditoría de botones renderer: 57 botones con ID; se corrigieron los dos controles de overlay lateral sin handler y se eliminó el handler fantasma de `header-stream`.
+- Contrato OBS: Electron Main fue contrastado con `ObsService`; `obs:status` fue corregido a `status()`. Se añadió `ui-obs-contract.test.mjs` para detectar desalineaciones futuras.
+
 - `AvatarActionStore` centraliza acciones, frames, persistencia local y presets JSON; no se creó un almacenamiento paralelo para el editor.
 - `renderer/main.js` y `action-store.js` pasan la comprobación sintáctica aislada; los IDs estáticos del renderer coinciden con `index.html`.
 
