@@ -9,6 +9,10 @@ int main() {
     assert(classify_output_failure("") == OutputFailureCategory::none);
     assert(classify_output_failure("Connection timed out")
            == OutputFailureCategory::network);
+    assert(classify_output_failure("Connection reset by peer")
+           == OutputFailureCategory::network);
+    assert(classify_output_failure("Broken pipe")
+           != OutputFailureCategory::network);
     assert(classify_output_failure("Error initializing output stream")
            == OutputFailureCategory::encoder);
     assert(classify_output_failure("Error writing trailer")
