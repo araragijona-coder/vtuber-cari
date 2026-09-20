@@ -456,3 +456,45 @@ Antes de modificar uno de estos componentes, la próxima auditoría debe comprob
 Una pieza solo sube de estado cuando obtiene evidencia nueva.
 
 **No rehacer por comodidad. Mejorar solamente cuando exista una razón técnica, una regresión demostrada o un gate pendiente que requiera cambiar la arquitectura.**
+
+
+### 010 — Editor visual integrado
+Estado: IMPLEMENTADO / VERIFICADO ESTÁTICAMENTE
+
+Archivos:
+- `electron-shell/renderer/index.html`
+- `electron-shell/renderer/styles.css`
+- `electron-shell/renderer/main.js`
+- `electron-shell/avatar/action-store.js`
+- `electron-shell/test/action-store.test.mjs`
+
+Resultado:
+- la interfaz dejó de ser una consola técnica y pasó a tener navegación tipo Studio;
+- se agregó Editor VTuber;
+- `＋ Nueva acción` crea acciones;
+- vienen seis acciones iniciales: Neutral, Feliz, Triste, Hablar, Callar y Enojada;
+- cada acción acepta imágenes PNG/JPG/WebP;
+- se permiten hasta 24 frames;
+- drag-and-drop;
+- reorder;
+- loop;
+- duración por frame;
+- escala, opacidad y offsets;
+- presets JSON;
+- persistencia local;
+- activación desde el live panel;
+- comandos básicos del chat.
+
+Evidencia:
+- `renderer/main.js` pasa parseo sintáctico;
+- `action-store.js` pasa parseo sintáctico;
+- comprobación de IDs estáticos de main → index sin faltantes;
+- no quedan handlers `#start/#stop` del shell anterior;
+- ActionStore: defaults correctos y round-trip de persistencia/import-export verificado en test aislado.
+
+No confundir:
+- esto es el editor visual de acciones, no todavía el compositor nativo final que inserta esos PNG dentro del frame enviado a FFmpeg.
+
+No repetir:
+- no reconstruir el editor desde cero;
+- ampliar este editor sobre ActionStore y la estructura actual.
