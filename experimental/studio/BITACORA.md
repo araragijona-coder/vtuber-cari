@@ -1,5 +1,24 @@
 # Cari Studio — Bitácora canónica de ingeniería
 
+> **Este archivo es la única bitácora operativa del proyecto.**
+> Antes de implementar, corregir o auditar un componente, buscar aquí y en
+> `AUDIT_MATRIX.md` / `PROJECT_STATUS.md`. No crear una segunda implementación
+> ni una segunda bitácora sin registrar primero una regresión o un cambio de requisito.
+
+Estados:
+- **IMPLEMENTADO**: código/contrato integrado.
+- **VERIFICADO**: prueba reproducible pasada.
+- **BLOQUEADO**: implementación existe, pero falta evidencia externa/infraestructura.
+- **VALIDADO EN HARDWARE**: probado en Windows/hardware/servicio real.
+- **PENDIENTE**: trabajo o evidencia todavía necesaria.
+- **NO REPETIR**: solo reabrir por regresión, nueva evidencia, cambio de requisito/dependencia o restricción legal.
+
+## Fuente canónica — regla de continuidad 2026-09-20
+
+Las antiguas `WORKLOG.md` y `DEVELOPMENT_LOG.md` quedan como documentos históricos/auxiliares.
+Las nuevas entradas de continuidad deben escribirse **solo aquí**.
+
+---
 > **Fuente única de continuidad.** Esta bitácora existe para impedir que el trabajo ya realizado vuelva a implementarse, auditarse o discutirse desde cero.
 >
 > Regla de estados:
@@ -579,3 +598,85 @@ P0: conseguir ejecución real de Windows Actions con steps/logs, cerrar el smoke
 P1: compositor GPU D3D11 + transporte temporal explícito/equivalente + composición de avatar/overlays.  
 P2: cámara/Game Capture/lip-sync/backends de acciones.  
 P3: multistream/EventSub reconnect/distribución FFmpeg/installer/release validation.
+
+
+---
+
+## Registro operativo — corte 2026-09-20 09:24 ART
+
+### Snapshot real
+- Repositorio: `araragijona-coder/vtuber-cari`
+- Rama: `fix/native-windows-foundation`
+- PR: #2 — `fix: harden native Windows foundation`
+- HEAD observado: `e4c1040e5cc88fc76a985bbcfd21d462ecc93de2`
+- PR: abierto, draft, `mergeable=false`.
+- Compare contra `main`: rama divergente; 621 commits ahead en la comparación actual y 2 commits behind. No reescribir historia por este motivo sin necesidad de integración real.
+- Avance vigente: **60% de ingeniería**.
+- Interpretación: capas principales implementadas + hardening considerable; todavía no equivale a producto validado ni a CI verde.
+
+### Hecho / confirmado en este corte
+- `OutputRetryPolicy`: backoff acotado, máximo 5 intentos, tope de 30 s.
+- `OutputFailureCategory`: clasifica red/encoder/input/mux/permission/unknown.
+- Retry automático: solo RTMP + fallos de red.
+- Diagnóstico: estado, exit code, categoría de fallo, intentos y pacing visibles en control plane/UI.
+- stderr FFmpeg: retención máxima de 256 KiB.
+- Media graph: interleaver global por PTS + límite de 8 eventos por polling.
+- Backpressure: el mixer no consume audio antes de conectar ambos pipes.
+- Invariantes de sesión: no cambiar/detener captura o audio durante output activo.
+- Smoke C++20 estricto para timing/retry/diagnostics: registrado como PASS.
+- Smoke FFmpeg sintético BGRA + PCM float32 → H.264/AAC → Matroska: registrado como PASS.
+- Smoke Windows named-pipe + FFmpeg: implementado y registrado; falta evidencia observable de su ejecución real.
+
+### CI observado
+Los runs del HEAD actual `e4c1040e5cc88fc76a985bbcfd21d462ecc93de2`:
+- Native Windows Build: run `35510469256` — failure.
+- Character Runtime Tests: run `35510469243` — failure.
+- CI: run `35510469265` — failure.
+- Los jobs consultados vuelven a mostrar `steps=null` y `logs_url=null`.
+- Conclusión: no afirmar que CMake/CTest/Node/Python se ejecutaron. El bloqueo es de evidencia de runner.
+
+### NO REPETIR
+- Segundo scheduler/interleaver.
+- Segundo RawPipe.
+- Segundo supervisor/boundary FFmpeg.
+- Segunda política de retry.
+- Segundo clasificador de errores.
+- Segundo sistema de métricas equivalente.
+- Segunda bitácora.
+- `capturePage()` como compositor de producción.
+- OpenCV dentro del core sin una necesidad concreta.
+- OBS como dependencia del streaming directo.
+- Declarar A/V sincronizado en producción sin evidencia temporal extremo a extremo.
+- Declarar CI verde con `steps=null`.
+- Confundir la instalación de FFmpeg en CI con dependencia de runtime del producto.
+
+### Próximo trabajo — ejecutar, no rediseñar
+**P0**
+1. Conseguir una ejecución Windows de Actions con steps/logs reales.
+2. Ejecutar `ffmpeg_named_pipe_e2e_smoke` en Windows y conservar el artefacto/ffprobe.
+3. Medir grabación prolongada y A/V sync.
+4. Probar RTMP real + pérdida/restauración de red usando el retry existente.
+
+**P1**
+1. Transporte temporal explícito o equivalente para PTS.
+2. Compositor D3D11/GPU: captura + avatar + overlays → frame final.
+3. Eliminar CPU readback por frame de la ruta final.
+4. Cámara Media Foundation y Game Capture.
+
+**P2**
+1. Drift correction y resampling adaptativo.
+2. Lip-sync.
+3. Backends reales de `studio_*`.
+4. Reconexión EventSub verificada.
+
+**P3**
+1. Multistream.
+2. Redistribución FFmpeg/codecs con auditoría legal.
+3. Instalador.
+4. Logs/diagnóstico de usuario.
+5. Release validation.
+
+### Regla de cierre
+`IMPLEMENTADO → VERIFICADO → WINDOWS CI → HARDWARE REAL → SESIÓN PROLONGADA → STREAM/RECORD REAL → AUDITORÍA FINAL → RELEASE`.
+
+No subir el porcentaje por cantidad de archivos. Solo subirlo cuando se cierre una etapa funcional o de validación claramente identificable.
