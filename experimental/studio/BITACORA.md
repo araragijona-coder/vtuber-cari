@@ -699,3 +699,25 @@ Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese re
 - No crear otro harness de named pipes.
 - No volver a validar solamente que el archivo exista; este smoke ya verifica decodificación de vídeo y audio.
 - No confundir este E2E sintético con validación de WGC/WASAPI real.
+## 19. P09 — cadena DSP local de voz (20/09/2026)
+
+### Cambios
+- Se amplió VoiceEffectProcessor, que era un gate pendiente y por tanto no estaba protegido por la regla de módulos cerrados.
+- `anime_bright` ahora usa HPF suave + presencia + compresión + saturación suave + limitador de techo configurable.
+- Los parámetros drive/presence/gain/threshold/ratio/ceiling se acotan para evitar valores peligrosos.
+- La duración, sample rate, canales y número de muestras del bloque no cambian.
+- Se agregaron comprobaciones de transitorio limitado, valores finitos y silencio.
+
+### Evidencia
+- Compilación local C++20 con `-Wall -Wextra -Werror -pedantic`: PASS.
+- Smoke local de transitorio/limitador: PASS.
+
+### Estado
+- IMPLEMENTADO.
+- VERIFICADO EN ENTORNO PORTABLE.
+- P09 sigue abierto para validación integrada en Windows y escucha/medición sostenida.
+
+### No repetir
+- No añadir otra cadena de voz paralela.
+- No introducir IA/voice cloud.
+- No introducir pitch shifting externo hasta que exista una decisión explícita de dependencia/licencia; el modificador actual no lo necesita para operar.
