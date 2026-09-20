@@ -1,173 +1,256 @@
-# Cari Studio — Bitácora de ingeniería
+# Cari Studio — Bitácora canónica de ingeniería
 
-> Esta bitácora es parte del proyecto. Antes de comenzar una tarea nueva se debe revisar esta página y la sección **NO REPETIR**.
+> **Fuente única de continuidad.** Esta bitácora existe para impedir que el trabajo ya realizado vuelva a implementarse, auditarse o discutirse desde cero.
+>
+> Regla de estados:
+> - **IMPLEMENTADO** = el código/contrato existe en GitHub.
+> - **VERIFICADO** = existe una prueba reproducible que pasó.
+> - **VALIDADO EN HARDWARE** = probado en Windows/PC objetivo o servicio externo real.
+> - **PENDIENTE** = requiere implementación o evidencia.
+> - **NO REPETIR** = solo reabrir ante regresión, nueva evidencia, cambio de requisito, dependencia o restricción legal.
 
-## Estado vigente
+## Snapshot actual
 
-- Fecha: 2026-09-20
+- Fecha de corte: 2026-09-20
+- Repositorio: `araragijona-coder/vtuber-cari`
 - Rama: `fix/native-windows-foundation`
-- PR: #2
-- Objetivo actual: llevar la base experimental a un streamer/VTuber Windows real sin introducir dependencias obligatorias de IA/cloud.
-- Avance global de ingeniería: **60%**
-- Regla: `IMPLEMENTADO` ≠ `VERIFICADO` ≠ `VALIDADO EN HARDWARE`.
+- PR: #2 — `fix: harden native Windows foundation`
+- Estado PR: abierto, draft.
+- Avance global: **60% de ingeniería**.
+- Interpretación del porcentaje: avance frente al producto completo; **no** equivale a validación de hardware ni a CI verde.
+- Regla de promoción: mantener la implementación en `experimental/` hasta cerrar los gates.
 
-## Registro cronológico
+## Arquitectura congelada
 
-### 2026-09-19 → 2026-09-20 — Pacing y contrato A/V
+```
+Electron Renderer
+  UI / escenas / controles / cámara / MediaPipe / avatar / métricas
+        │
+        ▼
+Electron Main
+  NativeEngine / lifecycle / IPC / OBS WebSocket opcional
+        │ JSONL
+        ▼
+Native Windows C++
+  Windows Graphics Capture
+    ├─ ventana
+    └─ pantalla primaria
+  WASAPI
+    ├─ micrófono
+    └─ system loopback
+  VoiceEffectProcessor
+  AudioTimelineMixer
+  FrameBridge
+  MediaClock
+  RealtimePacer
+  MediaInterleaver
+  MediaGraphController
+  RawPipe
+  FfmpegAvOutput / supervisor
+        ├─ grabación local
+        └─ RTMP/RTMPS
+```
 
-**IMPLEMENTADO**
-- `MediaClock`: dominio canónico de timestamps en ticks de 100 ns.
-- `RealtimePacer`: pacing contra reloj monotónico.
-- `MediaInterleaver`: orden global por PTS entre audio/video.
-- `MediaGraphController`: colas acotadas y máximo 8 eventos despachados por polling.
+## IMPLEMENTADO — NO REHACER
+
+### Captura Windows
+- Win32 host.
+- D3D11 device.
+- Windows Graphics Capture de ventana.
+- Windows Graphics Capture de pantalla primaria.
+- `CreateForMonitor`.
+- Enumeración de ventanas capturables.
+- Selección explícita por índice.
+- Frame callback con superficie DXGI.
+- Recreate del frame pool ante resize.
+- Recuperación de device removed/reset/hung.
+- FrameBridge BGRA → pipeline.
+
+### Audio
+- WASAPI microphone.
+- WASAPI system loopback.
+- VoiceEffectProcessor local.
+- Perfil `anime-bright`.
+- AudioTimelineMixer.
+- Normalización inicial de sample rate/canales.
+- Timeline/PTS común y bloques de mezcla.
+- Métricas de mezcla/underrun/rechazo.
 - Rechazo de cambios de sample-rate/canales durante una salida.
-- Métricas de late, cadence, format y presupuesto de pacing.
 
-**VERIFICADO**
-- Smoke portable C++20 con `-Wall -Wextra -Werror`.
-- Interleaver con empate determinista a favor de audio.
+### Timing A/V
+- `MediaClock` en ticks de 100 ns.
+- `RealtimePacer`.
+- `MediaInterleaver` global por PTS.
+- Empates a favor de audio.
+- Colas acotadas.
+- Late-drop/cadence-drop de vídeo.
+- Presupuesto de 8 eventos por polling.
+- Métricas `audio_late` y `pacing_budget_exhausted`.
+- Backpressure: el mixer no drena audio hasta conectar ambos pipes.
 
-**NO VALIDADO AÚN**
-- PTS preservados dentro del transporte raw.
-- Sincronización A/V sostenida sobre hardware.
+### FFmpeg / Output
+- `ProcessRunner` con `CreateProcessW`.
+- Quoting de argumentos.
+- Captura/drain de stderr.
+- `FfmpegSupervisor`.
+- `FfmpegAvOutput`.
+- `NativeMediaOutputBridge`.
+- Named pipes independientes vídeo BGRA8 / audio PCM float32.
+- Mapping `0:v:0` / `1:a:0`.
+- Matroska y RTMP/RTMPS directo.
+- EOF/flush antes de terminación forzada.
+- Estado y exit code visibles.
+- stderr limitado a 256 KiB.
+- `OutputFailureCategory`.
+- `OutputRetryPolicy`: backoff 1→2→4… con tope 30 s y máximo 5 intentos.
+- Retry automático restringido a RTMP + fallos clasificados como red.
 
-### 2026-09-20 — Sesión, backpressure y FFmpeg
+### Sesión / seguridad
+- `StudioSessionManager`.
+- Serialización.
+- Rollback.
+- Stop-only.
+- Fuente no modificable durante output.
+- Captura/audio no se detienen durante output.
+- Electron `contextIsolation=true`.
+- `nodeIntegration=false`.
+- `sandbox=true`.
+- Renderer local `file://`.
+- Permiso de cámara restringido al renderer local.
+- `pathToFileURL`.
+- Renderer no lanza procesos.
 
-**IMPLEMENTADO**
-- Invariante: no detener/cambiar captura mientras existe output activo.
-- Invariante: no detener audio durante output activo.
-- El mixer no drena audio hasta que ambos named pipes están conectados.
-- Estado/código de salida de FFmpeg expuestos.
-- stderr de FFmpeg limitado a 256 KiB.
-- Clasificación de errores de output.
-- Política de retry exponencial limitada a RTMP y solo para fallos clasificados como red.
+### Avatar / tracking
+- Contrato neutral de avatar.
+- ActingBridge independiente de apariencia.
+- MediaPipe Face Landmarker.
+- Guard contra timestamps no crecientes en VIDEO.
+- FaceTrackingBridge.
+- Three.js + GLTFLoader.
+- GLTF/GLB.
+- Placeholder geométrico.
+- Morph aliases básicos.
+- Appearance/presets/accessories.
+- Live2D: solo adaptador futuro; no se distribuye runtime propietario.
 
-**VERIFICADO**
-- Prueba sintética FFmpeg 7.1.5: BGRA raw + PCM float32 → H.264/AAC → Matroska.
-- RawPipe smoke existente.
+### UI / OBS / eventos
+- UI local de capture/output/voice/camera/tracking/avatar/metrics.
+- Request IDs + JSONL.
+- OBS WebSocket opcional; no es dependencia del streaming.
+- Infraestructura existente de chat/EventSub/AutomationEngine.
+- Acciones locales desacopladas de IA.
 
-**NO VALIDADO AÚN**
-- Reintento RTMP contra una red real.
-- Sesiones largas.
-- Hardware Windows.
+## VERIFICADO
 
-### 2026-09-20 — CI
+- Smoke C++20 estricto para MediaClock/RealtimePacer/MediaInterleaver.
+- Smoke de AudioTimelineMixer: mezcla, PTS monotónico, resampling y rechazos.
+- Tests portables de sesión/avatar.
+- Selección de ventana por índice.
+- Prueba FFmpeg sintética: BGRA raw + PCM float32 → H.264/AAC → Matroska.
+- Smoke de `OutputRetryPolicy`.
+- Smoke de `OutputFailureCategory`.
+- Workflow registra scheduler/retry/diagnostics smoke.
+- Smoke e2e `ffmpeg_named_pipe_e2e_smoke.cpp` implementado para Windows: genera A/V sintético, abre ambos named pipes, fuerza EOF/flush y vuelve a decodificar el Matroska.
+- CI intenta instalar FFmpeg explícitamente para ese gate.
 
-**IMPLEMENTADO**
-- Workflows ejecutables también en `fix/native-windows-foundation`.
-- `workflow_dispatch`.
-- Instalación explícita de FFmpeg en Windows CI mediante Chocolatey.
-- Smoke e2e de named pipes + FFmpeg añadido al workflow.
-
-**OBSERVADO**
-- Runs anteriores y recientes terminaban en pocos segundos con jobs `steps=null`, sin logs.
-- Los reintentos conservaron ese comportamiento.
-- Esto impide atribuir esos fallos a un paso concreto del código.
-
-**PRÓXIMA EVIDENCIA**
-- El nuevo workflow debe alcanzar los steps de instalación, CMake y CTest.
-- Mientras los jobs sigan sin steps/logs, CI no se marcará verde.
-
-### 2026-09-20 — End-to-end named pipes
-
-**IMPLEMENTADO**
-- `ffmpeg_named_pipe_e2e_smoke.cpp`.
-- Genera vídeo sintético BGRA 320x180/30 FPS.
-- Genera audio PCM float32 48 kHz estéreo en paquetes de 20 ms.
-- Arranca `FfmpegAvOutput`, espera conexión de ambos pipes.
-- Envía aproximadamente 1 segundo de A/V por named pipes.
-- Cierra pipes para provocar EOF/flush.
-- Comprueba que el Matroska existe y tiene tamaño razonable.
-- Reabre/decodifica la salida con FFmpeg y exige código de salida 0.
-
-**ESTADO**
-- IMPLEMENTADO.
-- VERIFICADO EN ESTA MÁQUINA: aún requiere runner Windows.
-- VALIDADO EN HARDWARE: pendiente.
-
-## NO REPETIR
-
-1. No volver a implementar otro scheduler PTS paralelo: `MediaClock + RealtimePacer + MediaInterleaver` ya existe.
-2. No volver a crear otro RawPipe genérico: usar `RawPipe`.
-3. No volver a crear otro supervisor FFmpeg: usar `FfmpegAvOutput`/wrapper existente.
-4. No volver a añadir una segunda capa de OBS para capturar: OBS es integración opcional vía WebSocket.
-5. No usar `capturePage()` como compositor de producción: el compositor nativo/GPU sigue siendo el objetivo.
-6. No introducir OpenCV solo por costumbre: usar Windows Graphics Capture para pantalla/ventanas; OpenCV queda opcional para procesamiento de cámara si aporta una función concreta.
-7. No afirmar sincronización de producción mientras los PTS originales no viajen explícitamente por el transporte.
-8. No promover código de `experimental/` a producción por compilar solamente.
-9. No reabrir el análisis del problema `steps=null` como si fuese un error de una línea concreta: ya se reintentó y continúa sin steps/logs.
-10. No marcar RTMP como “completo” hasta una prueba de conexión sostenida y reconexión real.
-11. No volver a crear otra bitácora paralela: usar `BITACORA.md` como registro maestro.
-12. No repetir el smoke e2e en otra implementación; añadir casos al existente.
-
-## Decisiones que se mantienen
-
-- Windows-native C++ para captura/audio/media.
-- Electron como control plane, no como motor multimedia.
-- Tres.js/glTF para backend de avatar abierto; Live2D solo como adaptador futuro por licencias/runtime.
-- Sin IA/cloud obligatorio para operar el programa.
-- Assets propietarios no se distribuyen.
-- FFmpeg se mantiene como proceso local separado y supervisado.
-- Cualquier integración incierta permanece en `experimental/`.
-
-## Siguientes puntos por prioridad
+## VALIDACIÓN EXTERNA PENDIENTE
 
 ### P0
-- Obtener CI Windows con steps/logs reales.
-- Pasar el smoke e2e named-pipe + FFmpeg.
-- Probar grabación prolongada.
-- Probar RTMP real.
+- Conseguir runs de GitHub Actions con steps/logs ejecutados.
+- Ejecutar smoke e2e named-pipe + FFmpeg en Windows.
+- Grabación prolongada real.
+- A/V sync sostenido.
+- RTMP real.
 
 ### P1
-- Transporte de PTS explícito.
+- Transporte con PTS explícitos extremo a extremo, o sustituir la frontera raw por un mecanismo equivalente.
 - Compositor GPU D3D11.
-- Avatar → frame final.
-- Drift correction.
+- Avatar + captura + overlays dentro del frame final.
+- Evitar CPU readback por frame en la ruta final.
+- Drift correction y resampling adaptativo.
 - Cámara Media Foundation.
 - Game Capture.
 
 ### P2
-- Lip-sync.
-- Ejecutores reales de `studio_*`.
-- EventSub reconnect test.
+- Lip-sync real.
+- Ejecución real de `studio_chat_requested`, `studio_sound_requested`, `studio_scene_requested` y equivalentes.
+- Reconexión EventSub verificada.
 - Multistream.
 
 ### P3
-- FFmpeg/codecs redistribution audit.
-- Licencias/assets.
+- Política final de descubrimiento/distribución de FFmpeg.
+- Auditoría legal final de codecs/assets/modelos.
 - Installer.
-- Release validation.
+- Logs de usuario/rollback.
+- Release smoke test.
 
-## Commits/artefactos importantes recientes
+## CI — estado real
 
-- `MediaInterleaver` y pruebas de scheduler.
-- métricas A/V y límites de formato.
-- backpressure y budget de polling.
-- bounded FFmpeg stderr.
-- output diagnostics/retry policy.
-- workflows de desarrollo.
-- `ffmpeg_named_pipe_e2e_smoke.cpp`.
+Los workflows ahora tienen:
+- push sobre `fix/native-windows-foundation`;
+- `workflow_dispatch`;
+- workflow Windows con FFmpeg instalado explícitamente;
+- smoke tests adicionales.
 
-El HEAD actual debe consultarse en GitHub antes de continuar; esta bitácora nunca sustituye una lectura del código real.
+Los runs del head actual continúan terminando con:
+- `failure`;
+- `steps=null`;
+- `logs_url=null`.
 
+Conclusión: **no existe evidencia suficiente para afirmar que CMake/CTest se ejecutaron en esos runs**. No atribuir estos fallos a una línea concreta del código.
 
-### 2026-09-20 — P0 named-pipe e2e
+## NO REPETIR
 
-**IMPLEMENTADO**
-- `ffmpeg_named_pipe_e2e_smoke.cpp` crea una sesión real de `FfmpegAvOutput`.
-- Ambos named pipes son abiertos por FFmpeg y alimentados por datos sintéticos.
-- Vídeo BGRA 320x180 a 30 FPS y PCM float32 48 kHz estéreo.
-- El smoke cierra los pipes y permite a FFmpeg hacer EOF/flush.
-- El archivo Matroska generado se vuelve a procesar con FFmpeg y exige salida 0.
-- El workflow Windows instala FFmpeg explícitamente antes de CMake/CTest.
-- Se registran también los smoke de retry y clasificación de errores.
+1. No crear otro scheduler PTS paralelo.
+2. No crear otro `RawPipe`.
+3. No crear otro supervisor/boundary FFmpeg.
+4. No convertir OBS en dependencia del camino nativo.
+5. No usar `capturePage()` como compositor de producción.
+6. No añadir OpenCV al núcleo solo por costumbre; usar WGC/WASAPI para el core y OpenCV solo si resuelve una función concreta de cámara/preprocesamiento.
+7. No declarar A/V sincronizado en producción mientras los PTS originales no estén preservados extremo a extremo.
+8. No promover `experimental/` por compilación aislada.
+9. No reinterpretar `steps=null` como un error del código sin logs/steps.
+10. No marcar RTMP completo sin conexión sostenida y prueba de reconexión.
+11. No instalar FFmpeg del sistema como dependencia de runtime del producto; la instalación actual es **solo CI**.
+12. No crear otra bitácora paralela: esta `BITACORA.md` es la canónica.
+13. No repetir el smoke e2e básico: ampliarlo con nuevos casos.
+14. No reescribir la historia de la rama para resolver la divergencia con `main`; conservarla salvo una razón de integración real.
 
-**ESTADO**
-- IMPLEMENTADO.
-- VERIFICADO EN ENTORNO DE DESARROLLO: contrato FFmpeg sintético validado.
-- VERIFICADO EN WINDOWS CI: pendiente porque los runners actuales siguen terminando con `steps=null`.
-- VALIDADO EN HARDWARE: pendiente.
+## Intentos / decisiones descartadas registrados
 
-**NO REPETIR**
-- No crear otro smoke de named pipes básico: ampliar `ffmpeg_named_pipe_e2e_smoke.cpp`.
-- No instalar FFmpeg como dependencia de runtime del producto: la instalación actual es solo para CI.
+### FIFO inicial que expiró
+Una prueba con dos FIFOs se atascó durante el handshake. Se reemplazó la validación inicial por prueba con archivos raw para aislar encoder/mapping/mux y luego se implementó un smoke Windows dedicado para named pipes.
+
+### Primer YAML de workflow_dispatch
+El primer intento colocó `paths` debajo de `workflow_dispatch` de forma inválida. Se corrigió; ahora `workflow_dispatch` es un evento independiente.
+
+### Integraciones por anchors que no coincidieron
+Algunos intentos automáticos de parchear `main.cpp` fueron abortados antes de escribir cuando los anchors no coincidieron. No deben repetirse como si fueran cambios pendientes.
+
+## Decisiones congeladas
+
+- Windows native C++ para captura/audio/media.
+- Electron como control plane.
+- Three.js/glTF para backend abierto de avatar.
+- MediaPipe local para tracking.
+- Live2D únicamente detrás de auditoría de runtime/licencia.
+- Sin IA/cloud obligatorio para el funcionamiento principal.
+- FFmpeg como proceso local supervisado.
+- Código incierto permanece en `experimental/`.
+
+## Regla de reapertura
+
+Un punto de **NO REPETIR** solo vuelve a abrirse si existe:
+- regresión;
+- nueva evidencia de prueba;
+- cambio de requisito;
+- cambio de dependencia;
+- nueva restricción legal.
+
+Al reabrirlo, registrar primero **motivo + evidencia nueva**.
+
+## Snapshot de continuidad
+
+**Avance global: 60% de ingeniería.**
+
+El siguiente trabajo debe cerrar gates de producción, no duplicar infraestructura existente.
