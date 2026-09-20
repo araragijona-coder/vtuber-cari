@@ -163,7 +163,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Native VRM renderer.
 - [x] Lip-sync de amplitud local conectado al `AudioCoreBridge` y al `AvatarActingBridge` como fallback cuando tracking facial no está activo.
 - [ ] Final tracking.
-- [ ] Real-time voice processing.
+- [x] Procesamiento de voz local: HPF + presencia + compresión + saturación + limitador.
+- [ ] Real-time voice processing sustained on target Windows audio devices.
 
 ### Avatar Studio
 
