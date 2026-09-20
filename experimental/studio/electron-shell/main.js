@@ -1,9 +1,11 @@
-const { app, BrowserWindow, ipcMain, session } = require("electron");
+const { app, BrowserWindow, ipcMain, session, dialog } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { pathToFileURL } = require("node:url");
 const { NativeEngine } = require("./runtime/native-engine");
 const { ObsService } = require("./runtime/obs-service");
+const { TwitchAuth } = require("./runtime/twitch-auth");
+const { TwitchChatService } = require("./runtime/twitch-chat-service");
 
 const engineEvents = ["message", "log", "error", "exit"];
 let avatarOverlayWindow = null;
@@ -36,12 +38,20 @@ const engine = new NativeEngine({
   executableResolver: resolveNativeExecutable
 });
 const obs = new ObsService();
+const twitch = new TwitchChatService({ auth: new TwitchAuth() });
 
 function publish(payload) {
   for (const webContents of subscribers) {
     if (!webContents.isDestroyed()) webContents.send("native:event", payload);
   }
 }
+
+twitch.on("chat", message => publish({ type: "twitch.chat", ...message }));
+twitch.on("chat:sent", message => publish({ type: "twitch.chat.sent", ...message }));
+twitch.on("eventsub:welcome", payload => publish({ type: "twitch.eventsub.welcome", ...payload }));
+twitch.on("eventsub:keepalive", payload => publish({ type: "twitch.eventsub.keepalive", ...payload }));
+twitch.on("status", payload => publish({ type: "twitch.status", ...payload }));
+twitch.on("error", error => publish({ type: "twitch.error", message: error.message }));
 
 for (const eventName of engineEvents) {
   engine.on(eventName, payload => {
@@ -178,6 +188,24 @@ ipcMain.handle("avatar:set-state", (event, state) => {
   return { ok: true };
 });
 
+ipcMain.handle("avatar:choose-model", async event => {
+  requireTrustedSender(event);
+  const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
+    title: "Choose a VTuber model",
+    properties: ["openFile"],
+    filters: [
+      { name: "3D models", extensions: ["glb", "gltf"] }
+    ]
+  });
+  if (result.canceled || result.filePaths.length === 0) return { canceled: true };
+  return {
+    canceled: false,
+    path: result.filePaths[0],
+    url: pathToFileURL(result.filePaths[0]).href,
+    name: path.basename(result.filePaths[0])
+  };
+});
+
 ipcMain.handle("avatar:config", event => {
   requireTrustedSender(event);
   return {
@@ -196,6 +224,23 @@ ipcMain.handle("native:status", event => {
     running: engine.running,
     pid: engine.pid
   };
+});
+
+ipcMain.handle("twitch:connect", async (event, options = {}) => {
+  requireTrustedSender(event);
+  return twitch.connect(options);
+});
+ipcMain.handle("twitch:disconnect", async event => {
+  requireTrustedSender(event);
+  return twitch.disconnect();
+});
+ipcMain.handle("twitch:send-chat", async (event, message) => {
+  requireTrustedSender(event);
+  return twitch.sendChat(message);
+});
+ipcMain.handle("twitch:status", event => {
+  requireTrustedSender(event);
+  return twitch.status;
 });
 
 ipcMain.handle("obs:connect", async (event, options = {}) => {
