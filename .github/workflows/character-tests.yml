@@ -10,10 +10,6 @@ on:
   push:
     branches: [main, "fix/native-windows-foundation"]
   workflow_dispatch:
-    paths:
-      - 'app/characters/**'
-      - 'tests/test_character_profiles.py'
-      - '.github/workflows/character-tests.yml'
 
 jobs:
   test:
