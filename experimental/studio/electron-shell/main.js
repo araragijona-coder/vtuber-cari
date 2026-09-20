@@ -40,6 +40,10 @@ const engine = new NativeEngine({
 const obs = new ObsService();
 const twitch = new TwitchChatService({ auth: new TwitchAuth() });
 
+obs.on("event", payload => publish({ type: "obs.event", ...payload }));
+obs.on("status", payload => publish({ type: "obs.status", ...payload }));
+obs.on("connection-error", error => publish({ type: "obs.error", message: error.message }));
+
 function publish(payload) {
   for (const webContents of subscribers) {
     if (!webContents.isDestroyed()) webContents.send("native:event", payload);
