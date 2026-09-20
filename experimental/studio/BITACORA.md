@@ -247,7 +247,7 @@ Antes de crear un módulo nuevo:
 
 ## Porcentaje
 
-La estimación global actual es **~63% de ingeniería**.
+La estimación global actual es **~65% de ingeniería** y **~50% de producto usable/end-user**.
 
 No se aumenta por cantidad de archivos. El porcentaje solo sube cuando una capacidad cruza un gate funcional o de validación.
 
@@ -274,13 +274,47 @@ No se aumenta por cantidad de archivos. El porcentaje solo sube cuando una capac
 - launcher .cmd e instalador NSIS x64 configurados.
 
 ### Medición correcta
-- Ingeniería implementada: ~63%.
+- Ingeniería implementada: ~65%.
 - Producto usable de extremo a extremo: ~50%.
 - El segundo porcentaje es el indicador que debe mostrarse al usuario hasta que Windows/Twitch/RTMP/modelo/hardware estén validados.
 
 ### NO REPETIR
 - No volver a contar módulos desconectados de UI como funciones terminadas.
+- No rehacer la reconexión EventSub: `TwitchChatService` ya conserva la sesión vieja durante `session_reconnect`, espera el nuevo `session_welcome` y no recrea las suscripciones transferidas.
 - No volver a usar el porcentaje de ingeniería como porcentaje de producto.
 - No rehacer Twitch chat: el transporte principal de escritorio es TwitchChatService + TwitchAuth + twitch-api.
 - No rehacer selector de avatar: avatar:choose-model ya existe.
 - No rehacer instalador NSIS: solo ampliar/validar la ruta existente.
+## Corrección 2026-09-20 — producto usable
+
+La revisión del usuario reveló que la infraestructura avanzada no era suficiente para considerar el programa usable.
+
+Se corrige la metodología:
+- La ingeniería implementada cuenta módulos, contratos, infraestructura y automatización realmente integrados.
+- El producto usable cuenta únicamente flujos que un usuario puede descubrir y ejecutar desde el desktop.
+- Un módulo sin UI o sin integración en el flujo no se cuenta como función terminada.
+
+Flujos ahora accesibles:
+- Start Cari Engine.
+- Window / Screen capture.
+- Local MKV / Direct RTMP.
+- Connect Twitch / Disconnect.
+- Chat entrante / Send Chat / Read Chat.
+- Load GLB/glTF.
+- Show/Hide Avatar Overlay.
+- Camera On/Off.
+- Voice Off / Anime Bright.
+- OBS opcional.
+
+Pendientes críticos que impiden producción:
+- validación real Windows;
+- Twitch real;
+- RTMP real sostenido;
+- modelo artístico final;
+- composición avatar → encoder;
+- drift correction;
+- Game Capture;
+- cámara final;
+- lip-sync;
+- distribución legal de FFmpeg;
+- hardware del usuario.
