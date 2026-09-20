@@ -24,6 +24,7 @@
 - [x] Auditoría de licencias de dependencias runtime fijadas.
   - No habilita por sí sola redistribución de FFmpeg/codec; esa decisión sigue pendiente.
 - [x] Smoke test nativo para contratos core.
+- [x] Smoke D3D11 compositor con WARP, incluyendo composición alpha de overlay.
 - [ ] CI Windows verde sobre el head actual (los últimos runs siguen fallando antes de registrar steps; el nuevo workflow ya incluye instalación de FFmpeg y gates e2e para cuando el runner ejecute jobs normalmente).
 
 ## Windows
@@ -48,7 +49,8 @@
 - [x] Productor BGRA y audio mezclado conectados al boundary nativo de FFmpeg.
 - [x] Perfil de salida y boundary de FFmpeg/RTMP.
 - [x] Interleave temporal A/V en `StudioPipeline`.
-- [ ] Compositor GPU D3D11 de producción.
+- [x] Compositor D3D11 GPU experimental para captura + avatar-placeholder + overlays.
+- [ ] Compositor GPU D3D11 de producción conectado al encoder.
 - [ ] Encoder hardware/software real conectado al pipeline.
 - [ ] Muxer/recorder de producción.
 - [x] Proceso FFmpeg administrado por Cari y conectado a las salidas.
