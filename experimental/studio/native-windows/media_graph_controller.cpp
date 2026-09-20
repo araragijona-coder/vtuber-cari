@@ -2,6 +2,8 @@
 
 #include "../core/media_scheduler.h"
 
+#include <algorithm>
+#include <limits>
 #include <utility>
 
 namespace cari::native {
@@ -100,7 +102,22 @@ bool MediaGraphController::poll() noexcept {
         return true;
     }
 
+    if (!output_.connected()) {
+        // Both named pipes must be connected before any bytes are written.
+        return true;
+    }
+
     const auto wall_now = cari::studio::core::MediaClock::monotonic_now();
+    if (!pacer_.initialized() &&
+        (!pending_audio_.empty() || !pending_video_.empty())) {
+        const auto audio_pts = pending_audio_.empty()
+            ? std::numeric_limits<cari::studio::core::Timestamp>::max()
+            : pending_audio_.front().pts;
+        const auto video_pts = pending_video_.empty()
+            ? std::numeric_limits<cari::studio::core::Timestamp>::max()
+            : pending_video_.front().frame.pts;
+        pacer_.arm(std::min(audio_pts, video_pts), wall_now);
+    }
 
     while (!pending_audio_.empty()) {
         const auto decision = pacer_.decide(
