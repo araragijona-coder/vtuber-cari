@@ -79,7 +79,7 @@ class TwitchAuth {
       webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
     });
 
-    return new Promise(async (resolve, reject) => {
+    const tokenPromise = new Promise((resolve, reject) => {
       let settled = false;
       const finish = (callback, value) => {
         if (settled) return;
@@ -120,12 +120,10 @@ class TwitchAuth {
         if (!settled) finish(reject, new Error("Twitch authorization cancelled."));
       });
 
-      try {
-        await this.window.loadURL(authUrl.toString());
-      } catch (error) {
-        finish(reject, error);
-      }
+      this.window.loadURL(authUrl.toString()).catch(error => finish(reject, error));
     });
+
+    return tokenPromise;
   }
 
   async #startCallbackServer(redirectUri) {
