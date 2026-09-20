@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 namespace cari::native {
 
@@ -76,7 +77,10 @@ private:
     bool start_pipes(
         std::size_t max_video_pending_bytes,
         std::size_t max_audio_pending_bytes);
+    bool append_stderr(std::string_view chunk) noexcept;
     void fail(const char* message) noexcept;
+
+    static constexpr std::size_t kMaxStderrBytes = 256u * 1024u;
 
     ProcessRunner process_;
     RawPipe video_pipe_;
