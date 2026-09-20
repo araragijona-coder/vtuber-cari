@@ -230,3 +230,35 @@ Producto usable todavía requiere: prueba Windows real, Twitch real, RTMP sosten
 ## CI / Runner
 
 El workflow de diagnóstico confirma el mismo bloqueo observado en los workflows principales: los jobs terminan antes de registrar steps/logs. El estado permanece BLOQUEADO hasta disponer de ejecución observable.
+
+## Continuidad viva — 2026-09-20 — UI/Twitch/OBS y control contractual
+
+Este bloque supersede los porcentajes históricos anteriores de este archivo.
+- Ingeniería implementada: ~65%.
+- Producto usable/end-user: ~50%.
+- Estado de producción: NO listo para producción.
+
+### Hecho en el último ciclo
+- Auditoría automática de 57 botones estáticos del renderer: 0 botones sin handler/navegación.
+- Auditoría Renderer→preload: 0 métodos OBS/Twitch usados sin wrapper IPC.
+- Corrección de ui.engine para usar el elemento real #engine-chip.
+- Test contractual electron-shell/test/controls-contract.test.mjs incorporado a npm test.
+- OBS ahora espeja Stream, Record, Virtual Camera, Program/Preview y Studio Mode mediante eventos del websocket.
+- Estado OBS se limpia correctamente ante disconnect/error.
+- Twitch EventSub mantiene un único websocket, con lifecycle events, session_reconnect, keepalive watchdog, deduplicación y reconexión acotada.
+- Eventos Twitch recibidos pueden accionar expresiones/estados del avatar.
+- Output nativo mantiene retry RTMP restringido a fallos clasificados como red.
+- Media pipeline mantiene interleaver A/V por PTS, backpressure de handshake y máximo 8 eventos por polling.
+
+### Evidencia y límites
+- Verificación estática del shell: positiva.
+- FFmpeg sintético BGRA + PCM → H.264/AAC → Matroska: comprobado fuera de Windows.
+- Validación Windows real de build, named pipes sostenidos, cámara, Game Capture, RTMP real, sincronización sostenida y hardware: pendiente.
+- GitHub Actions continúa mostrando jobs que terminan antes de registrar steps/logs; CI no se considera verde.
+
+### Gate siguiente — no repetir
+1. No rehacer botones/navegación.
+2. No crear otro OBS service/websocket.
+3. No crear otro Twitch transport.
+4. No crear otro Action Store/renderer/clock/interleaver.
+5. Empezar por timestamps A/V explícitos, compositor GPU final, E2E Windows y drift correction.
