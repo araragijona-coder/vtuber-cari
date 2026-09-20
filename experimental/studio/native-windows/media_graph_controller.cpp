@@ -28,8 +28,15 @@ bool MediaGraphController::start(
     output_width_ = profile.width;
     output_height_ = profile.height;
     output_fps_ = profile.fps;
+    output_audio_sample_rate_ = audio_sample_rate;
+    output_audio_channels_ = audio_channels;
     last_video_pts_ = 0;
     have_last_video_pts_ = false;
+
+    if (output_audio_sample_rate_ == 0 || output_audio_channels_ == 0) {
+        last_error_ = "invalid output audio format";
+        return false;
+    }
 
     if (!output_.start(
             profile,
@@ -84,6 +91,14 @@ bool MediaGraphController::submit_audio(
         return false;
     }
 
+    if (packet.sample_rate != output_audio_sample_rate_ ||
+        packet.channels != output_audio_channels_) {
+        ++stats_.audio_dropped_format;
+        ++stats_.audio_dropped;
+        last_error_ = "audio format changed; restart output to adopt a new sample rate/channel layout";
+        return false;
+    }
+
     if (pending_audio_.size() >= kMaxPendingAudio) {
         ++stats_.audio_dropped_overflow;
         ++stats_.audio_dropped;
@@ -131,28 +146,47 @@ bool MediaGraphController::poll() noexcept {
         pacer_.arm(std::min(audio_pts, video_pts), wall_now);
     }
 
-    while (!pending_audio_.empty()) {
-        const auto decision = pacer_.decide(
-            pending_audio_.front().pts, wall_now);
+    while (!pending_audio_.empty() || !pending_video_.empty()) {
+        const auto next_kind = cari::studio::core::MediaInterleaver::select(
+            !pending_audio_.empty(),
+            pending_audio_.empty()
+                ? std::numeric_limits<cari::studio::core::Timestamp>::max()
+                : pending_audio_.front().pts,
+            !pending_video_.empty(),
+            pending_video_.empty()
+                ? std::numeric_limits<cari::studio::core::Timestamp>::max()
+                : pending_video_.front().frame.pts);
+
+        if (next_kind == cari::studio::core::MediaStreamKind::none) {
+            break;
+        }
+
+        const auto next_pts =
+            next_kind == cari::studio::core::MediaStreamKind::audio
+                ? pending_audio_.front().pts
+                : pending_video_.front().frame.pts;
+        const auto decision = pacer_.decide(next_pts, wall_now);
         if (decision == cari::studio::core::RealtimePaceDecision::wait) {
             break;
         }
 
-        auto packet = std::move(pending_audio_.front());
-        pending_audio_.pop_front();
-        if (!output_.submit_audio(packet)) {
-            ++stats_.audio_dropped;
-            last_error_ = output_.last_error();
-            break;
-        }
-        ++stats_.audio_submitted;
-    }
+        if (next_kind == cari::studio::core::MediaStreamKind::audio) {
+            if (decision == cari::studio::core::RealtimePaceDecision::late) {
+                // Do not drop late audio here: preserving continuity is safer
+                // than creating an audible gap. Track lateness explicitly and
+                // let the bounded raw pipe absorb the resulting short burst.
+                ++stats_.audio_late;
+            }
 
-    while (!pending_video_.empty()) {
-        const auto decision = pacer_.decide(
-            pending_video_.front().frame.pts, wall_now);
-        if (decision == cari::studio::core::RealtimePaceDecision::wait) {
-            break;
+            auto packet = std::move(pending_audio_.front());
+            pending_audio_.pop_front();
+            if (!output_.submit_audio(packet)) {
+                ++stats_.audio_dropped;
+                last_error_ = output_.last_error();
+                break;
+            }
+            ++stats_.audio_submitted;
+            continue;
         }
 
         if (decision == cari::studio::core::RealtimePaceDecision::late) {
@@ -198,6 +232,8 @@ void MediaGraphController::stop() noexcept {
     output_width_ = 0;
     output_height_ = 0;
     output_fps_ = 0;
+    output_audio_sample_rate_ = 0;
+    output_audio_channels_ = 0;
     last_video_pts_ = 0;
     have_last_video_pts_ = false;
     output_.stop();
