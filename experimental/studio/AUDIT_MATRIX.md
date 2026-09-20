@@ -235,7 +235,7 @@ Cada pendiente debe indicar qué evidencia falta antes de pasar a `[x]`.
 
 ## Bitácora y continuidad
 
-La fuente canónica de continuidad y anti-repetición es `experimental/studio/BITACORA.md`. Consultarla antes de reabrir una tarea, prueba o componente.
+La fuente canónica de continuidad y anti-repetición es `CARI_STUDIO_BITACORA.md`. Consultarla antes de reabrir una tarea, prueba o componente.
 ## Evidencia adicional — 2026-09-20
 - P1 dejó de ser solo diagnóstico: el callback nativo puede componer captura + placeholder GPU y enviar el frame final BGRA al MediaGraphController.
 - El readback CPU se mantiene explícitamente como limitación de rendimiento y no se marca como producción.
