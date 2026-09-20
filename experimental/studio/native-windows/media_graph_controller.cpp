@@ -146,7 +146,12 @@ bool MediaGraphController::poll() noexcept {
         pacer_.arm(std::min(audio_pts, video_pts), wall_now);
     }
 
+    std::size_t dispatch_events = 0;
     while (!pending_audio_.empty() || !pending_video_.empty()) {
+        if (dispatch_events >= kMaxDispatchEventsPerPoll) {
+            ++stats_.pacing_budget_exhausted;
+            break;
+        }
         const auto next_kind = cari::studio::core::MediaInterleaver::select(
             !pending_audio_.empty(),
             pending_audio_.empty()
@@ -186,6 +191,7 @@ bool MediaGraphController::poll() noexcept {
                 break;
             }
             ++stats_.audio_submitted;
+            ++dispatch_events;
             continue;
         }
 
@@ -217,6 +223,7 @@ bool MediaGraphController::poll() noexcept {
             break;
         }
         ++stats_.video_submitted;
+        ++dispatch_events;
         last_video_pts_ = video.frame.pts;
         have_last_video_pts_ = true;
     }
