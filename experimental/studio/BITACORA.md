@@ -831,3 +831,24 @@ P2: diseñar timestamps explícitos extremo a extremo sobre el transporte local.
 
 ### Avance
 **62%**. No se incrementa por scaffolding o duplicación de pruebas; el siguiente aumento requiere cerrar un gate de validación real.
+
+
+## 032 — Estado final de esta iteración y evidencia de CI — 2026-09-20
+**Estado:** DOCUMENTADO / P0 PENDIENTE POR INFRAESTRUCTURA
+
+### Evidencia nueva
+- HEAD actual de la rama: `2a657bc179ef8cd54ba9a8923bf2fcbae8f6a79d`.
+- El workflow `native-windows.yml` queda configurado para `windows-2022`, instala FFmpeg temporalmente con Chocolatey, compila y registra el smoke E2E named-pipe.
+- Las ejecuciones más recientes del mismo HEAD terminan como `failure` y todos sus jobs muestran `steps=null` y `logs_url=null`.
+- Por esa evidencia no es posible afirmar si el build nativo, el named-pipe E2E o los tests posteriores llegaron a ejecutarse.
+
+### NO REPETIR
+- No seguir modificando el smoke P0 sin evidencia nueva del runner.
+- No crear otro workflow paralelo para reemplazar `native-windows.yml`.
+- No llamar P0 “verificado” mientras no exista un job con steps/logs y PASS del E2E.
+
+### Decisión de continuidad
+Con P0 bloqueado externamente, el siguiente trabajo técnico debe continuar en P1/P2, usando esta bitácora para no duplicar captura, compositor, retry, diagnostics ni E2E.
+
+### Avance
+**62%**. La cifra no sube por cambios de infraestructura no verificables.
