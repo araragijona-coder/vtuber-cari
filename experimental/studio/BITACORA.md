@@ -3,8 +3,8 @@
 > **Fuente canónica única de continuidad.**
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
-**Última auditoría:** 20/09/2026 14:42 ART
-**HEAD canónico:** d89dde52dbbef57f82d5d5966f0b3ea45e8ce5aa
+**Última auditoría:** 20/09/2026 15:20 ART
+**HEAD canónico:** 9292beeaa0cf72dd9ff8f67e58a33a263f4b72a9
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
@@ -1310,3 +1310,43 @@ El proyecto ya está en el punto donde los tests en Windows son necesarios para 
 No hace falta acceso remoto a la PC. Ejecutar experimental/studio/native-windows/validate-windows.ps1 en Windows y conservar validation-evidence.
 
 Regla: el porcentaje no aumenta por scaffolding. Solo cambia cuando un gate pasa a VERIFIED o VALIDADO EN HARDWARE.
+## 29. Estado vivo — 20/09/2026 15:20 ART
+
+HEAD: 9292beeaa0cf72dd9ff8f67e58a33a263f4b72a9
+PR #2: abierto / draft / no mergeable.
+Avance: 63%.
+
+### Trabajo cerrado desde la última auditoría
+- LatestItemQueue implementada y smoke portable PASS.
+- Callback WGC principal desacoplado mediante latest-frame worker.
+- Compositor D3D11 equipado con detección de cambio de ID3D11Device para reconstrucción después de device-loss.
+- Call sites de StartOutput corregidos con modo manual/retry explícito.
+- Retry/diagnostics y límites de stderr conservados.
+
+### Verificación que ya no debe repetirse
+- latest_item_queue_smoke: PASS C++20 + -Wall -Wextra -Werror.
+- output_retry_smoke: PASS C++20 + -Wall -Wextra -Werror.
+- output_diagnostics_smoke: PASS C++20 + -Wall -Wextra -Werror.
+- FFmpeg sintético BGRA/PCM -> H.264/AAC/Matroska: PASS.
+
+### Gate que ahora requiere PC Windows
+- CMake + build Release.
+- CTest completo.
+- E2E named-pipe -> FFmpeg -> archivo -> decode.
+- WGC sostenido.
+- D3D11 compositor en hardware y device-loss.
+- WASAPI real + drift.
+- Media Foundation camera.
+- FFmpeg real sostenido / RTMP / reconexión.
+
+### Acción operativa
+Usar experimental/studio/native-windows/validate-windows.ps1 desde un checkout Windows del repositorio.
+Conservar validation-evidence/SUMMARY.txt y environment.txt.
+No hace falta acceso remoto al PC ni instalar el producto final todavía; primero obtener un build/artefacto de validación.
+
+### CI
+Los runs más recientes del HEAD real siguen finalizando failure con steps=null y logs_url=null. No se consideran evidencia de fallo del código. No marcar CI como VERIFIED.
+
+### Próximo orden de trabajo
+P0-02 validar latest-frame worker; P0-05 validar device-loss; P0-04 transporte PTS explícito; después P1-24/P1-25 cache de overlay y staging pool.
+NO REPETIR ningún componente marcado como IMPLEMENTADO/VERIFICADO salvo regresión reproducible.
