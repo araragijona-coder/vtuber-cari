@@ -1018,7 +1018,8 @@ void ProcessPrimaryCapturedFrame(const cari::native::CapturedFrame& captured) {
                 const bool needs_init =
                     g_gpu_compositor.output_texture() == nullptr ||
                     desc.Width != static_cast<UINT>(captured.width) ||
-                    desc.Height != static_cast<UINT>(captured.height);
+                    desc.Height != static_cast<UINT>(captured.height) ||
+                    g_gpu_compositor.device() != device.Get();
 
                 std::wstring gpu_error;
                 if (needs_init &&
