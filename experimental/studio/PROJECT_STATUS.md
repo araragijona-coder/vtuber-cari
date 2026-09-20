@@ -41,7 +41,8 @@
 - [x] WASAPI microphone/loopback foundation.
 - [x] Recreación del frame pool ante cambios de tamaño.
 - [x] Módulo de captura de cámara Media Foundation implementado.
-  - Integración al runtime/UI y validación en cámara real siguen pendientes.
+  - [x] Integración al runtime/control plane/UI como source=camera.
+  - [ ] Validación en cámara real y reconexión en Windows.
 - [ ] Game Capture dedicada con backend específico.
 - [x] Recuperación explícita de device removed/reset/hung.
 - [ ] Validación exhaustiva de device-loss/reconnect en hardware real.
