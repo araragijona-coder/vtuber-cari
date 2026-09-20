@@ -21,8 +21,8 @@ export class ThreeAvatarRenderer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(25, 1, 0.01, 100);
-    this.camera.position.set(0, 1.35, 3.2);
+    this.camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+    this.camera.position.set(0, 1.45, 5.6);
 
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
 
@@ -52,6 +52,7 @@ export class ThreeAvatarRenderer {
     this.root.add(this.avatar);
     this.root.remove(this.placeholder);
     this.morphTargets = collectMorphTargets(this.avatar);
+    this.#frameObject(this.avatar);
     return this.avatar;
   }
 
@@ -111,6 +112,23 @@ export class ThreeAvatarRenderer {
     if (this.avatar) disposeObject(this.avatar);
     disposeObject(this.placeholder);
     this.renderer.dispose();
+  }
+
+  #frameObject(object) {
+    const bounds = new THREE.Box3().setFromObject(object);
+    if (bounds.isEmpty()) return;
+
+    const center = bounds.getCenter(new THREE.Vector3());
+    const size = bounds.getSize(new THREE.Vector3());
+    const height = Math.max(size.y, 0.5);
+    const distance =
+      (height * 0.58) / Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5));
+
+    this.camera.position.set(center.x, center.y + height * 0.04, center.z + distance);
+    this.camera.lookAt(center.x, center.y + height * 0.02, center.z);
+    this.camera.near = Math.max(0.01, distance / 100);
+    this.camera.far = Math.max(100, distance * 20);
+    this.camera.updateProjectionMatrix();
   }
 
   #resize() {
