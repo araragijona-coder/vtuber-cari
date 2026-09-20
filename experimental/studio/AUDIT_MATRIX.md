@@ -214,3 +214,7 @@ Cada pendiente debe indicar qué evidencia falta antes de pasar a `[x]`.
 ## Bitácora
 
 La fuente canónica de continuidad es `experimental/studio/BITACORA.md`.
+
+## Continuidad
+
+Fuente canónica de trabajo: `experimental/studio/BITACORA.md`. Consultarla antes de abrir un componente o prueba ya registrada.
