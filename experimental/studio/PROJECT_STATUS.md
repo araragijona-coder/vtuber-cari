@@ -166,12 +166,12 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 
 La única fuente canónica de continuidad y anti-repetición es `CARI_STUDIO_BITACORA.md`.
 
-- HEAD canónico: consultar el HEAD actual del PR #2
+- HEAD canónico: consultar el HEAD actual del PR #2 y `CARI_STUDIO_BITACORA.md`
 - Avance global vigente: **63%**.
 - Los checkpoints anteriores son históricos y no deben usarse para decidir trabajo nuevo.
 
 ### Regla
-Antes de modificar un componente, buscarlo en `BITACORA.md`. Si está IMPLEMENTADO/VERIFICADO, trabajar sobre su gate restante o sobre una regresión reproducible; no crear un reemplazo paralelo.
+Antes de modificar un componente, buscarlo en `CARI_STUDIO_BITACORA.md`. Si está IMPLEMENTADO/VERIFICADO, trabajar sobre su gate restante o sobre una regresión reproducible; no crear un reemplazo paralelo.
 
 ## Readiness
 
