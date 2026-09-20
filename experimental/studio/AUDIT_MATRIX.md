@@ -190,7 +190,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Native executable existence gate.
 - [ ] Runtime dependency audit.
 - [ ] FFmpeg/codec redistribution package.
-- [ ] Installer.
+- [x] NSIS x64 installer configuration and packaging workflow.
+- [ ] Windows release installer validation and signing.
 - [ ] Diagnostics/log folder policy.
 - [ ] Release smoke test on target PC.
 
@@ -253,3 +254,14 @@ La fuente canónica de continuidad y anti-repetición es `CARI_STUDIO_BITACORA.m
 
 - **Harness local Windows `validate-windows.ps1`: IMPLEMENTADO.** Ejecuta configure/build CMake, todos los CTest registrados, el E2E FFmpeg named-pipe y los checks/tests del Electron shell; guarda `environment.txt`, salidas de cada fase y `SUMMARY.txt`.
 - El harness no cambia el estado de ningún gate: P01/P02 siguen pendientes hasta disponer de una ejecución Windows observable con resultados PASS.
+
+## User-facing gates
+
+Estas capacidades ahora tienen UI/acción accesible, pero siguen separadas de la validación real:
+
+- Twitch Connect → OAuth → EventSub chat → Chat panel → Send Chat.
+- Load GLB/glTF → Three.js full-body framing → overlay controls.
+- Start Cari Engine → capture → audio → local record/RTMP.
+- NSIS installer workflow → packaged native engine.
+
+La existencia de botón, módulo o workflow no equivale por sí sola a validación de servicio/hardware.
