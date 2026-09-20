@@ -237,7 +237,7 @@ No elevar un estado por documentación, existencia de código o éxito en un ent
 
 ## CI checkpoint definitivo — 20/09/2026
 
-HEAD observado: 7915556a9753198fca7be898b4e86b6c2b0012e8
+HEAD observado: 5fe62e56d30daa7f3dc90b5402157a171d201488
 
 Los runs nuevos generados después de habilitar la rama de desarrollo, `workflow_dispatch`, instalación de FFmpeg y smoke E2E continúan en el mismo estado:
 - Native Windows Build: failure, jobs sin steps y sin logs observables.
@@ -247,3 +247,8 @@ Los runs nuevos generados después de habilitar la rama de desarrollo, `workflow
 No se modifica el porcentaje de avance por este incidente. El código E2E ya está preparado; falta que GitHub Actions ejecute y exponga realmente los steps.
 
 **NO REPETIR:** no volver a crear workflows paralelos para el mismo propósito hasta disponer de evidencia nueva del runner o de una causa reproducible distinta.
+
+
+## Porcentaje vigente
+
+**62%** — corresponde al estado más reciente de `PROJECT_STATUS.md` en el HEAD actual. No implica disponibilidad para producción.
