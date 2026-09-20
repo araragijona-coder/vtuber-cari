@@ -20,6 +20,7 @@
 - [x] Reset de retry por nueva sesión manual, conservando intentos durante reconexiones automáticas.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
+- [x] Latest-frame worker fuera del callback WGC: el callback solo encola/reemplaza frames pendientes; el procesamiento pesado queda desacoplado del hilo de captura.
 - [x] Diagnóstico y retry RTMP acotado por categoría de fallo.
 - [x] Smoke end-to-end Windows de FFmpeg + named pipes implementado en código; **PENDIENTE DE VERIFICACIÓN** porque GitHub Actions no expone steps/logs ejecutados.
 - [x] Política de retry RTMP con backoff exponencial acotado y clasificación de errores.
@@ -28,6 +29,7 @@
   - No habilita por sí sola redistribución de FFmpeg/codec; esa decisión sigue pendiente.
 - [x] Smoke test nativo para contratos core.
 - [x] Smoke D3D11 compositor con WARP, incluyendo composición alpha de overlay.
+- [x] Reconstrucción del compositor ante cambio de ID3D11Device después de device-loss recovery.
 - [ ] CI Windows verde sobre el head actual (los últimos runs siguen fallando antes de registrar steps; el nuevo workflow ya incluye instalación de FFmpeg y gates e2e para cuando el runner ejecute jobs normalmente).
 
 ## Windows
