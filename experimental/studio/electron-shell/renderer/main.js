@@ -809,9 +809,6 @@ $("#header-start").onclick = async () => {
   else await session.start();
   await refresh();
 };
-$("#header-stream").onclick = () => session.snapshot().output
-  ? command(session.outputStop())
-  : command(session.outputStart("rtmp", $("#rtmp-target").value.trim()));
 $("#live-record").onclick = () => command(session.outputStart("local-record"));
 $("#live-stream").onclick = () => command(session.outputStart("rtmp", $("#rtmp-target").value.trim()));
 $("#capture-window").onclick = () => {
@@ -1003,6 +1000,8 @@ $("#output-rtmp").onclick = () => command(session.outputStart("rtmp", $("#rtmp-t
 $("#output-stop").onclick = () => command(session.outputStop());
 
 $("#model-pick-side").onclick = () => $("#model-pick").click();
+$("#overlay-show-side").onclick = () => command(window.cari.native.avatar.overlay.show());
+$("#overlay-hide-side").onclick = () => command(window.cari.native.avatar.overlay.hide());
 
 twitch.clientId.value = localStorage.getItem("cari.twitch.clientId") || "";
 twitch.channel.value = localStorage.getItem("cari.twitch.channel") || "";
