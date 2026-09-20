@@ -82,9 +82,12 @@ async function refresh() {
       "Capture " + (metrics.frames ?? 0) +
       " frames @ " + Number(metrics.fps ?? 0).toFixed(1) + " FPS · " +
       "Audio " + (metrics.audio_packets ?? 0) + " packets · " +
+      "Queues V/A " + (metrics.video_queued ?? 0) + "/" + (metrics.audio_queued ?? 0) + " · " +
       "Video " + formatBytes(metrics.video_bytes) + " · " +
       "Audio " + formatBytes(metrics.audio_bytes) + " · " +
       "Drops V/A " + (metrics.video_dropped ?? 0) + "/" + (metrics.audio_dropped ?? 0) + " · " +
+      "Late/Cadence " + (metrics.video_dropped_late ?? 0) + "/" + (metrics.video_dropped_cadence ?? 0) + " · " +
+      "Format " + (metrics.video_dropped_format ?? 0) + " · " +
       "Voice " + (metrics.voice_effect ?? "off");
   } catch (error) {
     showStatus("Status error: " + error.message);
