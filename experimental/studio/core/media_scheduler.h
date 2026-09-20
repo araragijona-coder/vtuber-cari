@@ -24,8 +24,6 @@ public:
         initialized_ = false;
         media_origin_ = 0;
         wall_origin_ = 0;
-        last_media_pts_ = 0;
-        have_last_media_pts_ = false;
     }
 
     [[nodiscard]] RealtimePaceDecision decide(
@@ -36,13 +34,6 @@ public:
             media_origin_ = media_pts;
             wall_origin_ = wall_now;
         }
-
-        if (have_last_media_pts_) {
-            media_pts = MediaClock::clamp_non_decreasing(
-                media_pts, last_media_pts_);
-        }
-        last_media_pts_ = media_pts;
-        have_last_media_pts_ = true;
 
         const Timestamp media_elapsed = media_pts - media_origin_;
         const Timestamp wall_elapsed = wall_now - wall_origin_;
@@ -70,8 +61,6 @@ private:
     bool initialized_ = false;
     Timestamp media_origin_ = 0;
     Timestamp wall_origin_ = 0;
-    Timestamp last_media_pts_ = 0;
-    bool have_last_media_pts_ = false;
 };
 
 } // namespace cari::studio::core
