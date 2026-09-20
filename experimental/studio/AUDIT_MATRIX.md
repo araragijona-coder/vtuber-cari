@@ -209,6 +209,9 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Evidencia actual
 
+- `AvatarActionStore` centraliza acciones, frames, persistencia local y presets JSON; no se creó un almacenamiento paralelo para el editor.
+- `renderer/main.js` y `action-store.js` pasan la comprobación sintáctica aislada; los IDs estáticos del renderer coinciden con `index.html`.
+
 - `AvatarActionStore` centraliza acciones, persistencia local, frames y export/import; la UI no mantiene un segundo almacenamiento paralelo.
 - El editor visual permite crear acciones con `＋`, asignar imágenes, ordenar frames y reproducirlos en preview; la promoción a composición nativa sigue siendo un gate multimedia separado.
 
@@ -233,7 +236,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~63%.**
+**Estimación global de ingeniería: ~64%.**
 
 El 62% refleja que la ruta principal y varios componentes experimentales ya están implementados, mientras permanecen abiertos los gates de validación Windows/hardware, PTS extremo a extremo, compositor de producción, cámara, drift, RTMP sostenido y distribución.
 
