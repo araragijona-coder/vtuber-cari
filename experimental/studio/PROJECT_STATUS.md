@@ -180,3 +180,7 @@ This section is the canonical handoff record. Before implementing a feature, che
 
 La bitácora canónica y única de continuidad es `experimental/studio/BITACORA.md`.
 Debe revisarse antes de implementar o auditar cualquier componente ya registrado.
+
+## Continuidad
+
+`BITACORA.md` es la fuente canónica de continuidad y no-repetición. HEAD de referencia: `4293bd1063da2dd9f049fe79a30e095bdb0c6df3`.
