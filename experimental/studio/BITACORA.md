@@ -8,7 +8,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
-- Último HEAD registrado en esta entrada: `b38373dd1e2530f35aee2c15041bd239da8df3a8`.
+- HEAD operativo: consultar siempre el ref actual de `fix/native-windows-foundation`; los SHA de las entradas son checkpoints históricos.
 - Estado: experimental; todavía no se promueve a producción.
 - Avance de ingeniería: **60%**.
 
@@ -485,3 +485,30 @@ Las ejecuciones anteriores siguen terminando sin steps/logs útiles. Las nuevas 
 
 ### Regla anti-repetición
 Toda nueva tarea debe citar aquí el componente que reutiliza y el gate que pretende cerrar. Si no existe un gate nuevo o evidencia nueva, no se implementa otra versión del mismo componente.
+
+
+## 023 — Regla de HEAD dinámico — 2026-09-20
+**Estado:** CANÓNICO
+
+La bitácora ya no intenta almacenar el HEAD vivo del branch, porque cualquier actualización de documentación crea un nuevo commit y vuelve obsoleto el puntero.
+
+### Regla
+- El branch `fix/native-windows-foundation` es la fuente del HEAD operativo.
+- Los SHA dentro de esta bitácora representan checkpoints históricos, no el HEAD actual.
+- Antes de tocar código se debe leer el branch actual y luego revisar esta bitácora.
+- Después de tocar código se actualiza el historial de esta bitácora solo cuando existe una decisión, prueba, bug o cambio de gate relevante.
+- No crear commits solo para refrescar un SHA sin información nueva.
+
+### Estado de trabajo
+**Avance global:** 60%.
+
+### NO REPETIR
+Todo lo listado como IMPLEMENTADO/VERIFICADO en las entradas anteriores permanece vigente y debe corregirse in-place ante bugs. No se crean segundas implementaciones para timing, retry, clasificación de output, captura principal, compositor de referencia ni seguridad Electron.
+
+### Siguiente gate
+P0 continúa siendo obtener ejecución real de Windows CI con steps/logs y validar `cari-ffmpeg-named-pipe-e2e-smoke`. Después:
+P1 compositor GPU D3D11;
+P2 transporte temporal explícito;
+P3 cámara/Audio drift/lip-sync;
+P4 RTMP real + hardware;
+P5 packaging/release.
