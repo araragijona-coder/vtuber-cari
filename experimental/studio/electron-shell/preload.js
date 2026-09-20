@@ -15,13 +15,24 @@ contextBridge.exposeInMainWorld("cari", {
       setScene: sceneName => ipcRenderer.invoke("obs:set-scene", sceneName),
       status: () => ipcRenderer.invoke("obs:status")
     },
+    twitch: {
+      connect: options => ipcRenderer.invoke("twitch:connect", options),
+      disconnect: () => ipcRenderer.invoke("twitch:disconnect"),
+      sendChat: message => ipcRenderer.invoke("twitch:send-chat", message),
+      status: () => ipcRenderer.invoke("twitch:status")
+    },
+    avatar: {
+      setState: state => ipcRenderer.invoke("avatar:set-state", state),
+      chooseModel: () => ipcRenderer.invoke("avatar:choose-model"),
+      overlay: {
+        show: () => ipcRenderer.invoke("avatar:overlay-show"),
+        hide: () => ipcRenderer.invoke("avatar:overlay-hide")
+      }
+    },
     onEvent: callback => {
       const listener = (_, payload) => callback(payload);
       ipcRenderer.on("native:event", listener);
       return () => ipcRenderer.removeListener("native:event", listener);
-    },
-    avatar: {
-      setState: state => ipcRenderer.invoke("avatar:set-state", state)
     }
   }
 });
