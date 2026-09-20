@@ -50,6 +50,7 @@ private:
     mutable AudioTimelineMixer timeline_mixer_;
 
     mutable std::mutex mixer_mutex_;
+    VoiceEffectProcessor microphone_effect_;
     mutable std::mutex error_mutex_;
     std::wstring last_error_;
 
