@@ -22,6 +22,7 @@ add_executable(cari-studio-native WIN32
     audio_timeline_mixer.cpp
     voice_effects.cpp
     camera_sources.cpp
+    media_foundation_camera.cpp
     capture_engine.cpp
     compositor_bridge.cpp
     d3d11_compositor.cpp
@@ -325,6 +326,30 @@ add_executable(cari-media-scheduler-smoke
     ../core/media_scheduler_smoke.cpp
 )
 
+add_executable(cari-media-foundation-camera-smoke
+    media_foundation_camera_smoke.cpp
+    media_foundation_camera.cpp
+)
+
+target_include_directories(cari-media-foundation-camera-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
+target_compile_definitions(cari-media-foundation-camera-smoke PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+target_link_libraries(cari-media-foundation-camera-smoke PRIVATE
+    ole32
+    mf
+    mfplat
+    mfreadwrite
+    mfuuid
+)
+
 add_executable(cari-output-retry-smoke
     ../core/output_retry_smoke.cpp
 )
@@ -385,6 +410,7 @@ add_test(NAME cari-raw-pipe-smoke COMMAND cari-raw-pipe-smoke)
 add_test(NAME cari-av-sync-smoke COMMAND cari-av-sync-smoke)
 add_test(NAME cari-media-clock-smoke COMMAND cari-media-clock-smoke)
 add_test(NAME cari-media-scheduler-smoke COMMAND cari-media-scheduler-smoke)
+add_test(NAME cari-media-foundation-camera-smoke COMMAND cari-media-foundation-camera-smoke)
 add_test(NAME cari-output-retry-smoke COMMAND cari-output-retry-smoke)
 add_test(NAME cari-output-diagnostics-smoke COMMAND cari-output-diagnostics-smoke)
 add_test(NAME cari-control-protocol-smoke COMMAND cari-control-protocol-smoke)
