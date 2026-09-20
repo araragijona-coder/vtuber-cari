@@ -50,10 +50,12 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Mezclador temporal de audio para micrófono + sistema + futuras pistas como TTS.
 - [x] Normalización inicial de canales y sample rate en el mezclador.
 - [x] Gate de formato de entrada: sample rate/canales no pueden cambiar silenciosamente durante una salida.
+- [x] Estimator de drift basado en PTS vs frames con smoothing y clamp implementado como módulo independiente.
 - [ ] Drift correction / resampling de producción basado en relojes de dispositivos.
 - [x] D3D11 compositor GPU experimental con overlay RGBA y output texture.
 - [x] Readback de captura CPU lazy: diagnóstico/fallback solamente.
 - [x] Smoke D3D11 compositor con WARP.
+- [x] Ruta experimental directa libavcodec/libavformat con PTS explícitos.
 - [ ] Encoder real conectado.
   - FFmpeg recibe actualmente el frame final de la ruta experimental; falta validación sostenida y eliminación del readback CPU para producción.
 - [ ] Mux/record real sostenido en Windows.
@@ -125,6 +127,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Alimentación sostenida de ambos canales durante ejecución real.
 - [ ] Verificación sostenida de que el pacing mantiene A/V estable con FFmpeg real.
 - [x] Prueba local de contrato FFmpeg con archivo de salida sintético.
+- [x] Smoke experimental de output Libav con dos streams y timebases explícitas implementado; requiere kit de desarrollo FFmpeg para ejecutarse.
 - [ ] Prueba Windows sostenida en CI/hardware con FFmpeg + named pipes.
 - [ ] Verificación de sincronización A/V sostenida y drift/resampling.
 
@@ -209,7 +212,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~62%.**
+**Estimación global de ingeniería: ~63%.**
 
 El 62% refleja que la ruta principal y varios componentes experimentales ya están implementados, mientras permanecen abiertos los gates de validación Windows/hardware, PTS extremo a extremo, compositor de producción, cámara, drift, RTMP sostenido y distribución.
 
