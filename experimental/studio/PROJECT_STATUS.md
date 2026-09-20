@@ -15,6 +15,8 @@
 - [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
+- [x] Política de retry RTMP con backoff exponencial acotado y clasificación de errores.
+- [x] Bitácora maestra con ledger de trabajo realizado, descartado y pendiente.
 - [x] Smoke test nativo para contratos core.
 - [ ] CI Windows verde sobre el head actual (los runs recientes fallan con `steps=null` antes de registrar steps; requiere nueva evidencia del runner).
 
