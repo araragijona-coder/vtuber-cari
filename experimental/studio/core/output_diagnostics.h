@@ -28,8 +28,10 @@ enum class OutputFailureCategory {
         contains("Connection timed out") ||
         contains("Network is unreachable") ||
         contains("Could not resolve host") ||
+        contains("Failed to resolve hostname") ||
         contains("Name or service not known") ||
-        contains("Broken pipe") ||
+        contains("Connection reset by peer") ||
+        contains("No route to host") ||
         contains("TLS handshake failed") ||
         contains("Network error")) {
         return OutputFailureCategory::network;
