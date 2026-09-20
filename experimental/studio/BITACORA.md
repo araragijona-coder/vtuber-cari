@@ -1017,3 +1017,106 @@ P5 -> Game Capture + multistream + installer/redistribución.
 
 ### Regla de continuidad
 Antes de modificar un componente: revisar BITACORA.md, PROJECT_STATUS.md y AUDIT_MATRIX.md. Si la pieza ya está IMPLEMENTADA, corregirla in-place; no crear una segunda implementación paralela.
+
+## 036 — Continuidad canónica y corte de trabajo — 2026-09-20
+**Estado:** CANÓNICO / ACTUALIZADO
+
+**HEAD de referencia al iniciar esta revisión:** `f8f05f1d30f0f39913db5f88cd98f2bc1956e3d6`  
+**PR:** #2 — `fix: harden native Windows foundation`  
+**Avance global vigente:** **62%**
+
+### Trabajo ya existente que NO se debe rehacer
+- Windows Graphics Capture para ventana + pantalla primaria.
+- D3D11 device/frame path y recuperación de device loss.
+- WASAPI micrófono + loopback.
+- AudioTimelineMixer + VoiceEffectProcessor.
+- MediaClock + RealtimePacer + MediaInterleaver global.
+- Bounded queues + backpressure + presupuesto máximo de eventos por polling.
+- RawPipe OVERLAPPED con dos canales: BGRA8 y PCM float32 LE.
+- FFmpeg supervisor + EOF/flush + stderr limitado.
+- OutputFailureCategory + OutputRetryPolicy; retry únicamente RTMP/network.
+- D3D11Compositor experimental + AvatarGpuOverlay.
+- Lazy CPU readback de captura; el readback GPU→CPU final para FFmpeg sigue siendo una limitación conocida.
+- `ffmpeg_named_pipe_e2e_smoke.cpp` ya existe y está registrado.
+- Lip-sync local por amplitud ya existe como fallback.
+- MediaPipe Face Landmarker + guard de timestamps monótonos + bridge de tracking.
+- Three.js + glTF/GLB + placeholder avatar y contrato neutral.
+- Electron security foundation y OBS WebSocket opcional.
+- Workflows CI preparados para rama de desarrollo y dispatch manual.
+
+### Evidencia disponible
+**VERIFICADO**
+- contratos MediaClock/RealtimePacer/MediaInterleaver;
+- retry/backoff;
+- clasificación de errores;
+- smoke de contratos de avatar/sesión previamente existente;
+- prueba FFmpeg sintética BGRA + PCM float32 → H.264/AAC → Matroska.
+
+**IMPLEMENTADO, PERO NO VALIDADO EN WINDOWS**
+- named-pipe E2E;
+- compositor D3D11 en hardware real;
+- captura sostenida;
+- FFmpeg sostenido con named pipes;
+- grabación prolongada;
+- RTMP/reconnect real;
+- rendimiento de tracking/render;
+- device-loss real en hardware.
+
+**BLOQUEADO POR INFRAESTRUCTURA**
+- GitHub Actions recientes siguen creando jobs que terminan antes de registrar steps/logs (`steps=null`). No se usa ese fallo como evidencia contra el código ni como evidencia de éxito.
+
+### Registro de intentos descartados
+- Las pruebas con dos FIFOs Linux no se utilizan como sustituto de la validación Windows OVERLAPPED.
+- No se creará un segundo named-pipe E2E.
+- No se creará un segundo compositor GPU.
+- No se creará un segundo retry/backoff.
+- No se sustituirá Windows Graphics Capture por OpenCV para la captura principal sin evidencia nueva.
+- No se usará `capturePage()` como transporte de vídeo.
+- No se distribuirá Live2D runtime propietario sin resolver licencia.
+- No se aumentará el porcentaje por scaffolding, documentación o líneas de código.
+
+### Próxima cola obligatoria
+**P0 — evidencia Windows**
+1. Conseguir una ejecución Windows observable.
+2. Ejecutar el E2E existente.
+3. Decodificar/inspeccionar el archivo generado.
+4. Medir pérdidas, duración y sincronización.
+
+**P1 — GPU**
+1. eliminar el readback GPU→CPU final;
+2. mantener una frontera de encoder/sink que acepte textura D3D11 o equivalente;
+3. medir CPU/GPU/latencia.
+
+**P2 — tiempo**
+- decidir e implementar transporte temporal explícito sin duplicar el transporte existente;
+- conservar timestamps de audio/video hasta la frontera de encoder.
+
+**P3 — fuentes reales**
+- cámara Media Foundation;
+- Game Capture;
+- drift correction;
+- lip-sync/tracking final.
+
+**P4 — streaming**
+- endpoint RTMP real;
+- pérdida/reconexión;
+- agotamiento de retry;
+- estado visible.
+
+**P5 — producto**
+- FFmpeg/codec redistribution;
+- instalador;
+- logs de usuario;
+- presets/assets;
+- hardware gate;
+- release candidate.
+
+### Regla permanente
+Antes de tocar cualquier componente:
+1. revisar `BITACORA.md`;
+2. revisar `PROJECT_STATUS.md`;
+3. revisar `AUDIT_MATRIX.md`;
+4. comprobar el HEAD real;
+5. trabajar únicamente sobre el siguiente gate pendiente.
+
+Una tarea ya marcada IMPLEMENTADA o VERIFICADA solo se reabre con evidencia nueva, regresión o requisito nuevo documentado.
