@@ -12,6 +12,7 @@ const files = [
   "avatar/face-tracker.js",
   "avatar/face-tracking-bridge.js",
   "avatar/three-avatar.js",
+  "avatar/action-store.js",
   "avatar/overlay-main.js",
   "renderer/main.js"
 ];
