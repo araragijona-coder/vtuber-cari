@@ -140,7 +140,7 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 This section is the canonical handoff record. Before implementing a feature, check the ledger and the audit matrix to avoid repeating completed work.
 
 ### Current engineering state
-- Overall estimate: **60%**. This is a coarse engineering-progress estimate, not a claim of production readiness.
+- Overall estimate: **59%**. This is a coarse engineering-progress estimate, not a claim of production readiness.
 - Native capture/audio foundation: implemented; target-hardware validation remains.
 - Timing/pacing/interleaving: implemented and smoke-tested; original PTS are still not preserved through raw pipes.
 - FFmpeg boundary: implemented; synthetic codec/mux verification passed; sustained Windows verification remains.
@@ -172,4 +172,4 @@ This section is the canonical handoff record. Before implementing a feature, che
 
 ## Bitácora de continuidad
 
-La bitácora persistente de implementación, validación, decisiones y tareas pendientes está en [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md). Antes de abrir una tarea ya trabajada, debe revisarse ese registro para evitar repetir implementaciones.
+La bitácora persistente de implementación, validación, decisiones y tareas pendientes está en `experimental/studio/BITACORA_CARI_STUDIO.md`. Antes de abrir una tarea ya trabajada, debe revisarse ese registro para evitar repetir implementaciones.
