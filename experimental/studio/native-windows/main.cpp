@@ -183,7 +183,11 @@ std::wstring BuildCaptureStatus() {
 
 void RefreshStatus(HWND hwnd);
 
-bool StartOutput(HWND hwnd, const std::string& output_profile, const std::string& target);
+bool StartOutput(
+    HWND hwnd,
+    const std::string& output_profile,
+    const std::string& target,
+    bool reset_retry_on_success = true);
 
 const char* OutputFailureCategoryName(cari::studio::core::OutputFailureCategory category) {
     switch (category) {
@@ -282,7 +286,7 @@ void PollMediaGraph(HWND hwnd) {
         g_output_retry.pending() &&
         g_output_retry.ready(cari::studio::core::MediaClock::monotonic_now())) {
         g_output_retry.consume_attempt();
-        if (!StartOutput(hwnd, g_last_output_profile, g_last_output_target)) {
+        if (!StartOutput(hwnd, g_last_output_profile, g_last_output_target, false)) {
             const std::string diagnostic =
                 g_media_graph.last_error() + "\n" + g_media_graph.stderr_text();
             const auto category =
@@ -389,7 +393,8 @@ std::wstring configured_ffmpeg_executable() {
 bool StartOutput(
     HWND hwnd,
     const std::string& output_profile,
-    const std::string& target) {
+    const std::string& target,
+    bool reset_retry_on_success) {
     bool started_capture = false;
     bool started_audio = false;
 
@@ -458,6 +463,9 @@ bool StartOutput(
     g_last_output_profile = output_profile;
     g_last_output_target = resolved_target;
     g_output_started_at = cari::studio::core::MediaClock::monotonic_now();
+    if (reset_retry_on_success) {
+        ResetOutputRetry();
+    }
     g_media_enabled.store(true, std::memory_order_relaxed);
     return true;
 }
@@ -727,8 +735,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
         final_frame.sequence = captured.sequence;
 
         std::shared_ptr<std::vector<std::uint8_t>> final_pixels;
-        bool gpu_output_ready = false;
-
         std::wstring error;
         cari::native::BridgedFrame diagnostic_bridged;
 
@@ -865,7 +871,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
                                         DXGI_FORMAT_B8G8R8A8_UNORM);
                                 final_frame.sequence = captured.sequence;
                                 final_frame.pts = captured.timestamp;
-                                gpu_output_ready = true;
                                 g_gpu_compositor_error.clear();
                             } else {
                                 g_gpu_compositor_error.assign(
@@ -891,8 +896,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
                 g_media_graph.submit_video(final_frame, final_pixels);
             }
         }
-
-        (void)gpu_output_ready;
     });
 
     const bool capture_supported =
