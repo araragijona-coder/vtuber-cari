@@ -6,6 +6,7 @@ const { NativeEngine } = require("./runtime/native-engine");
 const { ObsService } = require("./runtime/obs-service");
 
 const engineEvents = ["message", "log", "error", "exit"];
+let avatarOverlayWindow = null;
 const subscribers = new Set();
 
 function resolveNativeExecutable() {
@@ -39,6 +40,54 @@ for (const eventName of engineEvents) {
     else if (eventName === "log") publish({ type: "log", message: payload });
     else if (eventName === "exit") publish({ type: "exit", ...payload });
   });
+}
+
+function createAvatarOverlayWindow() {
+  const win = new BrowserWindow({
+    width: 420,
+    height: 420,
+    x: 32,
+    y: 32,
+    frame: false,
+    transparent: true,
+    backgroundColor: "#00000000",
+    hasShadow: false,
+    resizable: false,
+    focusable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "avatar-overlay-preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  win.setIgnoreMouseEvents(true);
+
+  const localUrl = pathToFileURL(
+    path.join(__dirname, "avatar", "overlay.html")
+  ).href;
+
+  win.loadURL(localUrl);
+  win.once("ready-to-show", () => {
+    if (!win.isDestroyed()) win.showInactive();
+  });
+
+  win.webContents.on("will-navigate", event => {
+    event.preventDefault();
+  });
+
+  win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+
+  win.on("closed", () => {
+    if (avatarOverlayWindow === win) avatarOverlayWindow = null;
+  });
+
+  avatarOverlayWindow = win;
+  return win;
 }
 
 function createWindow() {
@@ -95,7 +144,35 @@ ipcMain.handle("native:start", event => {
 });
 ipcMain.handle("native:send", (event, command) => {
   requireTrustedSender(event);
-  return engine.send(command);
+
+  const payload = { ...command };
+  if (payload.type === "output.start" && avatarOverlayWindow && !avatarOverlayWindow.isDestroyed()) {
+    const handle = avatarOverlayWindow.getNativeWindowHandle();
+    if (handle?.length) {
+      const handleValue = process.platform === "win32"
+        ? handle.readBigUInt64LE(0).toString()
+        : "";
+      if (handleValue) payload.avatar_hwnd = handleValue;
+    }
+  }
+
+  return engine.send(payload);
+});
+
+ipcMain.handle("avatar:set-state", (event, state) => {
+  requireTrustedSender(event);
+  if (!avatarOverlayWindow || avatarOverlayWindow.isDestroyed()) return { ok: false };
+  avatarOverlayWindow.webContents.send("avatar:state", state);
+  return { ok: true };
+});
+
+ipcMain.handle("avatar:config", event => {
+  requireTrustedSender(event);
+  return {
+    avatarModelPath: process.env.CARI_AVATAR_MODEL_PATH
+      ? pathToFileURL(path.resolve(process.env.CARI_AVATAR_MODEL_PATH)).href
+      : null
+  };
 });
 ipcMain.handle("native:stop", event => {
   requireTrustedSender(event);
@@ -153,6 +230,7 @@ app.whenReady().then(() => {
     callback(isLocalRenderer && permission === "media");
   });
 
+  createAvatarOverlayWindow();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
