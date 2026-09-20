@@ -32,6 +32,13 @@ jobs:
       - name: Configure CMake
         run: cmake -S . -B build -A x64
 
+      - name: Install FFmpeg for native A/V E2E
+        shell: pwsh
+        run: |
+          winget install --id Gyan.FFmpeg -e --accept-source-agreements --accept-package-agreements --disable-interactivity
+          $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
+          ffmpeg -version
+
       - name: Build native targets
         run: cmake --build build --config Release --parallel
 
@@ -40,6 +47,9 @@ jobs:
 
       - name: Run FFmpeg supervisor smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-supervisor-smoke
+
+      - name: Run FFmpeg named-pipe A/V E2E smoke
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-named-pipe-e2e-smoke
 
       - name: Run FFmpeg A/V output smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-av-output-smoke
