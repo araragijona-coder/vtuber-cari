@@ -929,3 +929,40 @@ Las tareas anteriores se consideran cerradas como **arquitectura**. Las próxima
 
 ### Regla
 Antes de tocar un componente, buscar su entrada aquí. Si está IMPLEMENTADO/VERIFICADO, corregir in-place. Solo crear algo nuevo cuando el ledger indique PENDIENTE y exista una razón técnica/evidencia que lo justifique.
+
+## 035 — P1 lazy readback + continuidad de retry — 2026-09-20
+**Estado:** IMPLEMENTADO / VERIFICACIÓN WINDOWS PENDIENTE
+
+### Trabajo realizado
+- Se revisó la bitácora canónica antes de tocar el código y se mantuvieron los componentes existentes; no se creó una segunda arquitectura de captura, compositor, E2E, MediaClock o retry.
+- El callback de CaptureEngine dejó de ejecutar FrameBridge::copy_to_cpu() obligatoriamente en cada frame. El readback de captura ahora es lazy: ocurre solo en muestras de diagnóstico o como fallback cuando la ruta GPU no produce el frame requerido por la frontera FFmpeg actual.
+- El compositor D3D11 sigue siendo el único compositor GPU experimental. Su readback final GPU->CPU permanece porque el output FFmpeg vigente recibe bytes BGRA; eliminar ese último readback requiere una frontera de encoder/salida compatible con textura GPU.
+- Se corrigió el ciclo de vida de OutputRetryPolicy: una nueva sesión RTMP manual puede reiniciar su contador de retry, mientras una reconexión automática conserva los intentos acumulados hasta alcanzar estabilidad.
+- output_retry_smoke.cpp verifica que después de resetear una sesión se pueda programar una nueva secuencia de retry.
+- Se eliminó el estado local gpu_output_ready sin uso del callback.
+
+### Evidencia
+- El smoke de retry cubre backoff y reset entre sesiones.
+- El lazy readback está integrado en el único callback nativo existente.
+- GitHub Actions sigue sin producir steps/logs útiles en los últimos runs; por tanto no se marca Windows como VERIFICADO.
+
+### NO REPETIR
+- No crear otro FrameBridge.
+- No crear otro compositor D3D11.
+- No crear otro retry/backoff.
+- No crear otro named-pipe E2E.
+- No crear otra bitácora.
+- No volver a convertir el readback CPU de captura en parte obligatoria del camino GPU.
+- No declarar P1 cerrado mientras el frame GPU final siga cruzando a CPU para el output FFmpeg actual.
+- No usar FFmpeg Linux como sustituto de la validación Windows.
+
+### Próxima cola
+1. P0: obtener ejecución Windows observable y PASS del E2E ya existente.
+2. P1: eliminar el readback GPU->CPU final mediante una frontera de encoder compatible con textura D3D11 o una salida equivalente.
+3. P2: transporte temporal explícito y PTS extremo a extremo sin crear un segundo named-pipe E2E.
+4. P3: cámara Media Foundation + drift correction + lip-sync/tracking.
+5. P4: RTMP real/reconnect/hardware.
+6. P5: packaging/installer/redistribución legal.
+
+### Avance
+**62%**. No sube porque el readback final y la validación Windows siguen abiertos.
