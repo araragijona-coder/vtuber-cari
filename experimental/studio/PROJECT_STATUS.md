@@ -4,6 +4,8 @@
 
 - [x] Superficie de Studio de escritorio estilo plataforma de streaming.
 - [x] Navegación por En vivo, Panel, VTuber, Escenas, Chat, Eventos, Assets y Configuración.
+- [x] Menú modular ampliado con Producción, Tracking, Avatar, Expresiones, Twitch Center, OBS Center y Hotkeys.
+- [x] Catálogo visual de capacidades Twitch/OBS/VTuber con estados connected/prepared/planned.
 - [x] Editor VTuber visible dentro de la aplicación.
 - [x] Sistema de acciones con `＋ Nueva acción` y acciones iniciales Feliz/Triste/Hablar/Callar/Neutral/Enojada.
 - [x] Assets de imagen por acción, múltiples frames, drag-and-drop, orden, loop y parámetros visuales.
@@ -31,6 +33,7 @@
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
 - [x] Bitácora técnica versionada con inventario de trabajo realizado, evidencia y lista NO REPETIR.
+- [x] Test de coherencia UI para menú, vistas e IDs HTML.
 - [x] Latest-frame worker fuera del callback WGC: el callback solo encola/reemplaza frames pendientes; el procesamiento pesado queda desacoplado del hilo de captura.
 - [x] Diagnóstico y retry RTMP acotado por categoría de fallo.
 - [x] Smoke end-to-end Windows de FFmpeg + named pipes implementado en código; **PENDIENTE DE VERIFICACIÓN** porque GitHub Actions no expone steps/logs ejecutados.
