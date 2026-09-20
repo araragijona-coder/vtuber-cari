@@ -469,7 +469,7 @@ document.querySelector("#model-pick").onclick = async () => {
   try {
     const result = await window.cari.native.avatar.chooseModel();
     if (result?.canceled) return;
-    await renderer.load(result.url);
+    await renderer.load(result.dataUrl || result.url);
     ui.model.textContent = result.name || "GLB model loaded";
     renderer.render();
     showStatus("Avatar loaded: " + (result.name || "model"));
