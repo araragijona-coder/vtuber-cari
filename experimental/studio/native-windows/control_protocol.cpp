@@ -119,12 +119,14 @@ ControlCommand parse_control_command(const std::string& line) noexcept {
 
     if (has(compact, "\"source\":\"screen\"")) command.source = "screen";
     else if (has(compact, "\"source\":\"window\"")) command.source = "window";
+    else if (has(compact, "\"source\":\"camera\"")) command.source = "camera";
     if (has(compact, "\"profile\":\"local-record\"")) command.profile = "local-record";
     if (has(compact, "\"profile\":\"rtmp\"")) command.profile = "rtmp";
     if (has(compact, "\"effect\":\"anime-bright\"")) command.effect = "anime-bright";
     if (has(compact, "\"effect\":\"off\"")) command.effect = "off";
     command.target = read_string_field(compact, "target");
     command.window_index = read_int_field(compact, "window_index");
+    command.camera_index = read_int_field(compact, "camera_index");
     command.request_id = read_string_field(compact, "id");
     return command;
 }
