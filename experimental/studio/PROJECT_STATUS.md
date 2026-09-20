@@ -69,6 +69,7 @@
 - [x] Estimator independiente de drift de reloj de audio implementado.
   - [ ] Corrección/resampling de producción con relojes físicos.
 - [ ] Verificación sostenida del pacing A/V con FFmpeg real.
+  - E2E sintético de named pipes reforzado a 5 s y listo para CI; la validación sigue bloqueada mientras Actions no ejecute steps.
 - [ ] Verificación Windows del E2E named-pipe y del compositor D3D11.
 - [x] Ruta Libav experimental para preservar PTS explícitos.
   - [ ] Compilación/verificación con kit de desarrollo FFmpeg en Windows.
