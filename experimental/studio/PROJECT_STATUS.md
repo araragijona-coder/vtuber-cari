@@ -14,8 +14,10 @@
 - [x] Emisión raw temporizada por PTS con `RealtimePacer` y colas acotadas.
 - [x] Interleaver A/V global por PTS con prioridad determinista de audio en empate.
 - [x] Compositor D3D11 experimental conectado al frame final mediante readback BGRA.
+- [x] Readback de captura CPU lazy: solo diagnóstico/fallback; no se ejecuta antes de cada composición GPU.
 - [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
 - [x] Retry/backoff RTMP restringido a errores de red y métricas de categoría.
+- [x] Reset de contador de retry para nuevas sesiones manuales con continuidad de intentos en reconexiones automáticas.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
 - [x] Diagnóstico y retry RTMP acotado por categoría de fallo.
