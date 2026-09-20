@@ -8,9 +8,10 @@ const {
 } = require("./twitch-api");
 
 class TwitchChatService extends EventEmitter {
-  constructor({ auth } = {}) {
+  constructor({ auth, WebSocketImpl = WebSocket } = {}) {
     super();
     this.auth = auth;
+    this.WebSocketImpl = WebSocketImpl;
     this.clientId = "";
     this.token = "";
     this.user = null;
@@ -117,39 +118,82 @@ class TwitchChatService extends EventEmitter {
     return result;
   }
 
-  async #openWebSocket(url = "wss://eventsub.wss.twitch.tv/ws") {
+  async #openWebSocket(
+    url = "wss://eventsub.wss.twitch.tv/ws",
+    { transfer = false } = {}
+  ) {
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
-    if (this.socket) {
-      try { this.socket.close(); } catch {}
+
+    const previous = this.socket;
+    if (previous && !transfer) {
+      try { previous.close(1000, "replacing EventSub connection"); } catch {}
+      this.socket = null;
     }
 
-    const socket = new WebSocket(url);
-    this.socket = socket;
+    const socket = new this.WebSocketImpl(url);
+    socket.__cariFreshSession = !transfer;
     const generation = ++this.generation;
 
     await new Promise((resolve, reject) => {
+      let opened = false;
+      let welcomed = false;
       let settled = false;
 
-      socket.once("open", () => {
+      const finish = (callback, value) => {
+        if (settled) return;
         settled = true;
-        resolve();
+        callback(value);
+      };
+
+      socket.once("open", () => {
+        opened = true;
+        if (welcomed) {
+          finish(resolve);
+        }
       });
 
       socket.once("error", error => {
-        if (!settled) {
-          settled = true;
-          reject(error);
+        if (!opened || !welcomed) {
+          finish(reject, error);
         } else {
           this.emit("error", error);
         }
       });
 
       socket.on("message", raw => {
+        let payload;
+        try {
+          payload = JSON.parse(raw.toString());
+        } catch (error) {
+          this.emit("error", error);
+          return;
+        }
+
+        const messageType = payload?.metadata?.message_type;
+        if (messageType === "session_welcome") {
+          welcomed = true;
+          if (transfer) {
+            this.socket = socket;
+            if (previous && previous !== socket) {
+              try { previous.close(1000, "EventSub session transferred"); } catch {}
+            }
+          } else {
+            this.socket = socket;
+          }
+          this.emit("status", this.status);
+          if (opened) finish(resolve);
+        }
+
         this.#handleMessage(generation, raw).catch(error => this.emit("error", error));
       });
 
       socket.on("close", () => {
+        if (settled && this.socket !== socket) return;
+        if (!settled) {
+          finish(reject, new Error("Twitch EventSub socket closed before welcome."));
+          return;
+        }
         if (this.socket !== socket || this.manualDisconnect) return;
         this.socket = null;
         this.emit("status", this.status);
@@ -169,13 +213,17 @@ class TwitchChatService extends EventEmitter {
       const sessionId = message.payload?.session?.id;
       if (!sessionId) throw new Error("Twitch welcome message did not contain a session id.");
 
-      await subscribeChat(
-        this.clientId,
-        this.token,
-        sessionId,
-        this.broadcaster.id,
-        this.user.id
-      );
+      const shouldResubscribe = generation === this.generation && this.socket?.__cariFreshSession === true;
+      if (shouldResubscribe) {
+        await subscribeChat(
+          this.clientId,
+          this.token,
+          sessionId,
+          this.broadcaster.id,
+          this.user.id
+        );
+        delete this.socket.__cariFreshSession;
+      }
 
       this.emit("eventsub:welcome", {
         generation,
@@ -193,7 +241,7 @@ class TwitchChatService extends EventEmitter {
 
     if (type === "session_reconnect") {
       const reconnectUrl = message.payload?.session?.reconnect_url;
-      if (reconnectUrl) await this.#openWebSocket(reconnectUrl);
+      if (reconnectUrl) await this.#openWebSocket(reconnectUrl, { transfer: true });
       return;
     }
 
