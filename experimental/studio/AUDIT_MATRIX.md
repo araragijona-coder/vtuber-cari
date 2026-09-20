@@ -90,9 +90,11 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Raw video producer connected to FFmpeg A/V output.
 - [x] Mixed raw audio producer connected to FFmpeg A/V output.
 - [x] Temporal audio mixer implemented before the single FFmpeg audio pipe.
+- [x] Output failure classification for network/encoder/input/mux/permission/unknown.
 - [ ] Output stderr classification / structured diagnostics.
   - Estado/código de salida ya están expuestos; queda pendiente clasificar mensajes de stderr en categorías estables.
-- [ ] Automatic output reconnect/backoff policy.
+- [x] Automatic output reconnect/backoff policy skeleton with bounded attempts for RTMP network failures.
+  - Integration remains subject to real Windows/RTMP validation; non-network failures are intentionally not retried.
 
 ### Raw media transport
 
@@ -184,7 +186,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~58%.**
+**Estimación global de ingeniería: ~59%.**
 
 El incremento es pequeño porque el mezclador temporal cierra una pieza importante del diseño de audio, pero todavía no conecta productores reales al output. El mayor bloque pendiente continúa siendo la unión sostenida de captura BGRA + audio mezclado → FFmpeg, encoder/mux real, RTMP/reconexión y validación en hardware.
 
@@ -199,3 +201,7 @@ No convertir **"la API existe"** en **"la integración está completa"**.
 No convertir **"una frase funciona"** en **"la personalidad está definida"**.
 
 Cada pendiente debe indicar qué evidencia falta antes de pasar a `[x]`.
+
+## Bitácora
+
+La bitácora maestra de continuidad está en `experimental/studio/BITACORA_CARI_STUDIO.md` y debe consultarse antes de implementar un punto ya auditado.
