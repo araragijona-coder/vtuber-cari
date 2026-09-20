@@ -13,7 +13,9 @@
 - [x] Cola temporal A/V con reloj maestro lógico de audio.
 - [x] Emisión raw temporizada por PTS con `RealtimePacer` y colas acotadas.
 - [x] Interleaver A/V global por PTS con prioridad determinista de audio en empate.
+- [x] Compositor D3D11 experimental conectado al frame final mediante readback BGRA.
 - [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
+- [x] Retry/backoff RTMP restringido a errores de red y métricas de categoría.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
 - [x] Diagnóstico y retry RTMP acotado por categoría de fallo.
@@ -63,6 +65,7 @@
   - El gate de verificación real sigue abierto: archivo/RTMP sostenido, sincronización, reconexión y hardware.
 - [ ] Drift correction / resampling de producción.
 - [ ] Verificación sostenida del pacing A/V con FFmpeg real.
+- [ ] Verificación Windows real del named-pipe E2E.
   - Existe ahora un smoke Windows que ejerce ambos named pipes durante una sesión sintética y vuelve a decodificar el archivo resultante.
   - La planificación ahora interleavea globalmente por PTS; el transporte raw todavía no conserva los PTS originales.
 
@@ -126,7 +129,7 @@
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~60%.**
+**Estimación global de ingeniería: ~62%.**
 
 Este porcentaje mide avance de ingeniería respecto del objetivo completo. No equivale a validación en hardware ni a porcentaje de código que pueda considerarse producción.
 
@@ -150,7 +153,7 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 This section is the canonical handoff record. Before implementing a feature, check the ledger and the audit matrix to avoid repeating completed work.
 
 ### Current engineering state
-- Overall estimate: **60%**. This is a coarse engineering-progress estimate, not a claim of production readiness.
+- Overall estimate: **62%**. This is a coarse engineering-progress estimate, not a claim of production readiness.
 - Native capture/audio foundation: implemented; target-hardware validation remains.
 - Timing/pacing/interleaving: implemented and smoke-tested; original PTS are still not preserved through raw pipes.
 - FFmpeg boundary: implemented; synthetic codec/mux verification passed; sustained Windows verification remains.
