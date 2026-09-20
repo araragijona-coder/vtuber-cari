@@ -3,8 +3,8 @@
 > **Fuente canónica única de continuidad.**
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
-**Última auditoría:** 20/09/2026 14:35 ART
-**HEAD canónico:** d272442776dbc501cc46a4a035194749d5bb0b53
+**Última auditoría:** 20/09/2026 14:47 ART
+**HEAD canónico:** 2b4a092c85db23d9a3725f5a11800b015cd70400
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
@@ -248,7 +248,6 @@ El 62% no significa 62% de código ni disponibilidad para producción. La ruta p
 - FFmpeg sintético BGRA raw + PCM float32 -> H.264/AAC -> Matroska: PASS;
 - D3D11 compositor smoke con WARP: PASS, según el estado registrado en `PROJECT_STATUS.md`;
 - E2E Windows named-pipe -> FFmpeg -> decode: IMPLEMENTADO EN CÓDIGO, todavía no VERIFIED por ausencia de steps/logs observables en Actions.### No repetir
-
 - no volver a implementar captura de escritorio con OpenCV;
 - no convertir `capturePage()` en transporte de vídeo;
 - no crear otro `RawPipe`, mixer, scheduler, retry policy, compositor D3D11, tracker MediaPipe o renderer Three.js;
@@ -349,7 +348,7 @@ P4 — streaming/release: RTMP prolongado + caída de red + validación del retr
 Regla: trabajar únicamente sobre el primer gate no cerrado; no abrir nuevamente componentes ya marcados como IMPLEMENTADO/VERIFICADO sin evidencia de regresión.
 ## 11. Cierre de continuidad — 20/09/2026 13:24 ART
 
-**HEAD canónico:** d272442776dbc501cc46a4a035194749d5bb0b53
+**HEAD canónico:** 2b4a092c85db23d9a3725f5a11800b015cd70400
 **PR #2:** abierto / draft / no mergeable.
 **Avance canónico:** **62%**. No se incrementa por parches menores que no cierren un gate.
 
@@ -497,8 +496,7 @@ Primero P01/P02. Después P04/P05/P06. Luego P07/P08/P09. Después P10/P11. Al f
 | Cámara + MediaPipe + avatar | PENDIENTE | conectar frames de cámara al tracker | no crear segundo tracker |
 ### Regla de trabajo vigente
 El siguiente trabajo debe atacar exclusivamente un gate PENDIENTE. Una pieza marcada IMPLEMENTADO/VERIFICADO se conserva y solo se modifica ante una regresión concreta.
-### CI
-Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese resultado para afirmar que la cámara compila en Windows. La verificación real del módulo queda condicionada a un runner Windows observable.
+### CILos runs continúan fallando antes de registrar steps/logs_url; no se usa ese resultado para afirmar que la cámara compila en Windows. La verificación real del módulo queda condicionada a un runner Windows observable.
 ## 12. Cierre de esta iteración — 20/09/2026 13:46 ART
 
 - Se mantuvieron intactos los componentes que la bitácora ya marca IMPLEMENTADO/VERIFICADO.
@@ -747,8 +745,7 @@ Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese re
 - No crear otro renderer Three.js.
 - No crear otro tracker MediaPipe.
 - No crear otro compositor D3D11.
-- No crear otro RawPipe.
-- No usar `capturePage()` como transporte de vídeo.
+- No crear otro RawPipe.- No usar `capturePage()` como transporte de vídeo.
 - No sustituir WGC por OpenCV.
 - No marcar P06 como VERIFIED hasta ejecutar el flujo real en Windows.
 
@@ -806,3 +803,32 @@ El workflow diagnóstico mínimo reproduce el mismo patrón. No se modifica C++/
 3. P07/P08/P09: validación de cámara, relojes de dispositivos, drift y voz integrada.
 4. P10/P11: RTMP sostenido, caída de red y reconexión EventSub real.
 5. P12/P13/P14: Game Capture, distribución y multistream real.
+
+## 23. P01/P02 — harness único de validación Windows (20/09/2026 14:47 ART)
+
+### Trabajo realizado
+- Se añadió `experimental/studio/native-windows/validate-windows.ps1` como único entrypoint de validación local para no depender exclusivamente de Actions.
+- El script registra HEAD, rama, versión de Windows/PowerShell/CMake/CTest y resolución de FFmpeg.
+- Verifica que `cmake.exe`, `ctest.exe` y FFmpeg estén disponibles antes de iniciar.
+- Ejecuta configure + build Release x64 del proyecto nativo existente.
+- Comprueba que `cari-studio-native.exe` exista y copia una evidencia del ejecutable.
+- Ejecuta `ctest --output-on-failure` sobre todos los smoke registrados y vuelve a ejecutar explícitamente `cari-ffmpeg-named-pipe-e2e-smoke` como gate dedicado.
+- Ejecuta `npm ci`/`npm install`, `npm run check` y `npm test` del Electron shell, salvo que se use `-SkipElectron`.
+- Guarda cada salida en `validation-evidence/` para permitir auditoría reproducible.
+
+### Estado
+| Gate | Estado | Motivo |
+|---|---|---|
+| Harness Windows local | IMPLEMENTADO | script integrado |
+| Build Windows real | PENDIENTE DE EJECUCIÓN | esta sesión no dispone del PC Windows objetivo |
+| E2E Windows observable | PENDIENTE DE EJECUCIÓN | requiere Windows + FFmpeg + named pipes |
+| CI Windows | PENDIENTE | Actions sigue creando jobs sin steps/logs |
+
+### No repetir
+- No crear otro script de validación para el mismo flujo.
+- No duplicar los smoke tests existentes dentro del script; el harness solo los orquesta.
+- No marcar P01/P02 como VERIFIED porque el harness exista.
+
+### Porcentaje
+**Avance canónico: 63/100 = 63%.**
+El harness reduce el riesgo operativo y evita reconstruir pruebas, pero no suma puntos hasta ejecutar y observar sus resultados.
