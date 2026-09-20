@@ -173,3 +173,6 @@ This section is the canonical handoff record. Before implementing a feature, che
 ## Bitácora de continuidad
 
 La bitácora persistente de implementación, validación, decisiones y tareas pendientes está en `experimental/studio/BITACORA_CARI_STUDIO.md`. Antes de abrir una tarea ya trabajada, debe revisarse ese registro para evitar repetir implementaciones.
+
+
+Head documentado en la bitácora: `c1b3dd6afea5363f0bd095473dd3c01d7ccf0ff0`.
