@@ -89,6 +89,8 @@ async function refresh() {
       "Video " + formatBytes(metrics.video_bytes) + " · " +
       "Audio " + formatBytes(metrics.audio_bytes) + " · " +
       "Output " + (metrics.output_state ?? "unknown") + " (" + (metrics.output_exit_code ?? 0) + ") · " +
+      "Retry " + (metrics.output_retry_attempts ?? 0) + "/" + (metrics.output_retry_pending ? "pending" : "idle") + " · " +
+      "Failure " + (metrics.output_failure_category ?? "none") + " · " +
       "Drops V/A " + (metrics.video_dropped ?? 0) + "/" + (metrics.audio_dropped ?? 0) + " · " +
       "Late/Cadence " + (metrics.video_dropped_late ?? 0) + "/" + (metrics.video_dropped_cadence ?? 0) + " · " +
       "A/V format " + (metrics.video_dropped_format ?? 0) + "/" + (metrics.audio_dropped_format ?? 0) + " · " +
