@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <memory>
