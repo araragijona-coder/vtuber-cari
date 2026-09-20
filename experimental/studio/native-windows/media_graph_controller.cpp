@@ -249,6 +249,16 @@ bool MediaGraphController::connected() const noexcept {
     return output_.connected();
 }
 
+FfmpegAvOutputState MediaGraphController::output_state() const noexcept {
+    std::lock_guard lock(mutex_);
+    return output_.state();
+}
+
+unsigned long MediaGraphController::output_exit_code() const noexcept {
+    std::lock_guard lock(mutex_);
+    return output_.exit_code();
+}
+
 std::string MediaGraphController::last_error() const {
     std::lock_guard lock(mutex_);
     return last_error_;
