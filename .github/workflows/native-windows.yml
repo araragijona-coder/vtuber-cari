@@ -9,7 +9,8 @@ on:
       - 'experimental/studio/electron-shell/**'
       - '.github/workflows/native-windows.yml'
   push:
-    branches: [main]
+    branches: [main, "fix/native-windows-foundation"]
+  workflow_dispatch:
     paths:
       - 'experimental/studio/native-windows/**'
       - 'experimental/studio/core/**'
