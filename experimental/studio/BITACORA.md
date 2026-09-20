@@ -8,7 +8,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
-- Último HEAD registrado en esta entrada: `f834649b1a074acedccb9c3037b239482aa085c1`.
+- Último HEAD registrado en esta entrada: `b38373dd1e2530f35aee2c15041bd239da8df3a8`.
 - Estado: experimental; todavía no se promueve a producción.
 - Avance de ingeniería: **60%**.
 
@@ -440,3 +440,48 @@ La siguiente sesión debe comenzar leyendo:
 y luego trabajar solo sobre el primer gate P0/P1 que siga sin evidencia.
 
 El porcentaje no aumenta por agregar scaffolding o duplicar componentes; aumenta solo cuando un gate nuevo tiene implementación y evidencia proporcional.
+
+
+## 022 — Punto de continuidad actual — 2026-09-20
+**Estado:** CANÓNICO / NO REPETIR
+
+**HEAD revisado:** `b38373dd1e2530f35aee2c15041bd239da8df3a8`  
+**Avance global:** **60%**
+
+### Comprobado en el repositorio
+- `BITACORA.md` es la única fuente canónica de continuidad.
+- `PROJECT_STATUS.md` y `AUDIT_MATRIX.md` remiten a ella.
+- Existe un único pipeline nativo Windows basado en WGC/D3D11 + WASAPI + FFmpeg.
+- Existe un único sistema de timing basado en MediaClock + RealtimePacer + MediaInterleaver.
+- Existe un único sistema de resiliencia de output basado en OutputFailureCategory + OutputRetryPolicy.
+- Existe el E2E Windows `named-pipe -> FFmpeg -> archivo`, instalado/registrado en el workflow.
+- El avatar/tracking ya tiene contrato, MediaPipe y renderer Three.js/glTF; falta el compositor nativo final.
+
+### Estado CI más reciente
+Para el HEAD revisado se generaron ejecuciones de:
+- Native Windows Build;
+- Character Runtime Tests;
+- CI.
+
+Las ejecuciones anteriores siguen terminando sin steps/logs útiles. Las nuevas ejecuciones quedan como evidencia pendiente hasta que completen o produzcan logs.
+
+### NO REPETIR
+- No crear otro sistema de retry.
+- No crear otro sistema de timestamps/pacing.
+- No crear otro transporte raw paralelo.
+- No volver a diseñar la captura principal.
+- No sustituir el compositor pendiente por `capturePage()`.
+- No declarar producción por compilación sintética.
+- No declarar CI verde sin steps/logs.
+- No subir el porcentaje mientras los siguientes gates no tengan evidencia nueva.
+
+### Siguiente trabajo
+**P0:** CI Windows + E2E named-pipe.  
+**P1:** compositor GPU D3D11 + avatar/overlays.  
+**P2:** timestamps explícitos/transporte temporal.  
+**P3:** cámara Media Foundation + drift correction + lip-sync.  
+**P4:** RTMP/reconnect real + hardware.  
+**P5:** packaging/release.
+
+### Regla anti-repetición
+Toda nueva tarea debe citar aquí el componente que reutiliza y el gate que pretende cerrar. Si no existe un gate nuevo o evidencia nueva, no se implementa otra versión del mismo componente.
