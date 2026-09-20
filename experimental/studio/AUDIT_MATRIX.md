@@ -212,3 +212,8 @@ Cada pendiente debe indicar qué evidencia falta antes de pasar a `[x]`.
 ## Bitácora
 
 La bitácora maestra de continuidad está en `experimental/studio/BITACORA_CARI_STUDIO.md` y debe consultarse antes de implementar un punto ya auditado.
+
+
+## Continuidad
+
+La bitácora maestra de continuidad es `experimental/studio/BITACORA_CARI_STUDIO.md`. Los estados IMPLEMENTADO/VERIFICADO/VALIDADO EN HARDWARE deben mantenerse separados.
