@@ -533,7 +533,7 @@ bool StartOutput(
         .audio_bitrate_kbps = 160,
         .video_codec = "libx264",
         .audio_codec = "aac",
-   
+    };
 
     if (streaming &&
         profile.target.rfind("rtmp://", 0) != 0 &&
