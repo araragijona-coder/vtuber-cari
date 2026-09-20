@@ -612,3 +612,36 @@ Comenzar desde este ledger y tocar solamente el primer gate sin evidencia. Las s
 
 ### Siguiente gate
 Tras P0: **P1 compositor GPU D3D11 + captura/avatar/overlays → frame final**.
+## 026 — Evidencia P0 consolidada — 2026-09-20 10:09 ART
+**Estado:** CANÓNICO / P0 IMPLEMENTADO, VERIFICACIÓN WINDOWS BLOQUEADA
+
+### Evidencia nueva
+- `ffmpeg_named_pipe_e2e_smoke.cpp` existe en el branch y está registrado como target CMake/CTest.
+- El smoke usa `FfmpegAvOutput`, dos named pipes independientes, FFmpeg real, 30 frames BGRA, 50 paquetes PCM float32, espera de writes completados, cierre por EOF y validación posterior del archivo con un segundo FFmpeg.
+- El smoke utiliza checks explícitos y por tanto mantiene sus verificaciones en Release.
+- El workflow Windows instala FFmpeg para el entorno de CI solamente; la redistribución al usuario sigue siendo P5.
+- Retry/diagnostics smoke también están incluidos en el workflow Windows.
+
+### Verificación local disponible
+- `OutputRetryPolicy` compila y pasa smoke portable con C++20, `-Wall -Wextra -Werror`.
+- `OutputFailureCategory` compila y pasa smoke portable con C++20, `-Wall -Wextra -Werror`.
+
+### CI actual
+Los runs más recientes sobre el HEAD operativo terminan con:
+- Native Windows Build: failure, jobs sin `steps` ni `logs_url`.
+- CI: failure/cancelled, jobs sin `steps` ni `logs_url`.
+- Character Runtime Tests: failure/cancelled, jobs sin `steps` ni `logs_url`.
+
+Esto ocurre antes de una ejecución observable del build/test. No se atribuye a `ffmpeg_named_pipe_e2e_smoke` ni a otro archivo del proyecto.
+
+### NO REPETIR
+- No crear otra prueba E2E equivalente.
+- No volver a intentar el mismo diagnóstico de runner sin nueva evidencia.
+- No sustituir el E2E Windows por una prueba Linux.
+- No subir el porcentaje por tener el E2E implementado; P0 exige ejecución real.
+- No crear otra bitácora; `BITACORA.md` es la única canónica.
+
+### Próximo paso oficial
+**P0:** obtener un runner Windows que ejecute steps/logs reales y ejecutar `cari-ffmpeg-named-pipe-e2e-smoke`.
+Después de P0:
+**P1:** compositor GPU D3D11 + captura/avatar/overlays -> frame final.
