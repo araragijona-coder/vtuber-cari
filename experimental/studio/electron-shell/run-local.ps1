@@ -1,13 +1,14 @@
 $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
+$StudioRoot = $Root
 $Native = $env:CARI_NATIVE_EXECUTABLE
 
 if (-not $Native) {
     $candidates = @(
-        (Join-Path $Root "..\native-windows\build\Release\cari-studio-native.exe"),
-        (Join-Path $Root "..\native\cari-studio-native.exe"),
-        (Join-Path $Root "..\native\CariStudio.exe")
+        (Join-Path $StudioRoot "native-windows\build\Release\cari-studio-native.exe"),
+        (Join-Path $StudioRoot "native\cari-studio-native.exe"),
+        (Join-Path $StudioRoot "native\CariStudio.exe")
     )
     $Native = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 }
