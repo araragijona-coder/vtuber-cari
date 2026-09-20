@@ -123,6 +123,11 @@ void MultiStreamOutput::schedule_retry(Destination& destination) noexcept {
 bool MultiStreamOutput::submit_video(
     const cari::studio::core::Frame& frame,
     const std::shared_ptr<std::vector<std::uint8_t>>& bgra) noexcept {
+    if (!bgra || bgra->empty() || frame.width == 0 || frame.height == 0 ||
+        bgra->size() != static_cast<std::size_t>(frame.width) * frame.height * 4u) {
+        ++stats_.submit_failures;
+        return false;
+    }
     bool any_success = false;
     ++stats_.video_frames_submitted;
     for (auto& destination : destinations_) {
