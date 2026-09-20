@@ -17,6 +17,7 @@
 - PR: #2 — `fix: harden native Windows foundation`
 - Estado PR: abierto, draft.
 - Avance global: **60% de ingeniería**.
+- Última comprobación de esta iteración: contratos retry/diagnostics portables pasan con C++20 `-Wall -Wextra -Werror`.
 - Último HEAD comprobado: `2fec7c39fb1870ff2707f6975dff691806e95d52`.
 - Interpretación del porcentaje: avance frente al producto completo; **no** equivale a validación de hardware ni a CI verde.
 - Regla de promoción: mantener la implementación en `experimental/` hasta cerrar los gates.
@@ -467,3 +468,75 @@ Antes de tocar una función:
 - P1: cámara Media Foundation + Game Capture.
 - P2: drift correction, lip-sync y backends reales de acciones.
 - P3: multistream, EventSub reconnect, distribución FFmpeg/codec, installer y release validation.
+
+
+---
+
+## Registro de iteración — 2026-09-20 (corte actual)
+
+**HEAD:** `2fec7c39fb1870ff2707f6975dff691806e95d52`  
+**Avance:** **60% de ingeniería**.
+
+### Cambios hechos
+- Se agregó `OutputRetryPolicy` reutilizable para backoff exponencial acotado.
+- Se agregó `OutputFailureCategory` para separar fallos de red, encoder, input, mux, permisos y desconocidos.
+- El output nativo integra retry solo para RTMP + categoría network.
+- Se añadió límite de stderr de FFmpeg a 256 KiB.
+- Se añadieron `output_state`, `output_exit_code`, `output_retry_pending`, `output_retry_attempts`, `output_failure_category`.
+- Se agregó límite de 8 eventos A/V por polling.
+- Se reforzó backpressure de inicio de audio.
+- Se reforzaron invariantes contra cambios de captura/audio durante output.
+- CI ahora se dispara en la rama de desarrollo y admite ejecución manual.
+- La UI ya muestra estado de output y métricas de pacing.
+
+### Pruebas ejecutadas en este corte
+- `output_retry_smoke.cpp`: **PASS** con C++20 + `-Wall -Wextra -Werror`.
+- `output_diagnostics_smoke.cpp`: **PASS** con C++20 + `-Wall -Wextra -Werror`.
+- MediaClock/RealtimePacer/MediaInterleaver: evidencia previa **PASS**.
+- AudioTimelineMixer: evidencia previa **PASS**.
+- FFmpeg sintético BGRA + PCM float32 → H.264/AAC → Matroska: evidencia previa **PASS**.
+- Electron session/avatar: evidencia previa **PASS**.
+
+### Pruebas que NO están cerradas
+- Build CMake/Windows del head actual.
+- CTest Windows.
+- named pipes + FFmpeg sostenido en Windows.
+- grabación prolongada.
+- sincronización A/V sostenida.
+- RTMP real/reconexión.
+- cámara Media Foundation.
+- Game Capture.
+- avatar integrado al frame final nativo.
+- drift correction y hardware target.
+
+### Errores que ya fueron resueltos
+- FIFO/handshake de prueba inicial bloqueado.
+- YAML `workflow_dispatch` inicial mal estructurado.
+- Anchors de parche que no coincidieron; los intentos fallidos no escribieron cambios.
+- `output` vacío en status.
+- clasificación de red demasiado amplia.
+- stderr de FFmpeg sin límite.
+- audio consumido antes de handshake.
+- despacho A/V separado por tipo.
+- ráfagas de recuperación en un solo tick.
+- divergencia administrativa 59%/60% en documentación.
+
+### NO REPETIR
+- Scheduler PTS paralelo.
+- Segundo interleaver A/V.
+- Segundo RawPipe.
+- Segundo supervisor FFmpeg.
+- Segunda política retry.
+- Segundo clasificador de output.
+- Segunda bitácora.
+- `capturePage()` como compositor de producción.
+- OpenCV dentro del core sin necesidad concreta.
+- OBS como dependencia.
+- Declarar A/V sincronizado sin evidencia temporal extremo a extremo.
+- Declarar CI verde con `steps=null`.
+
+### Próximo trabajo autorizado
+P0: conseguir ejecución real de Windows Actions con steps/logs, cerrar el smoke named-pipe e2e y realizar medición sostenida de A/V.  
+P1: compositor GPU D3D11 + transporte temporal explícito/equivalente + composición de avatar/overlays.  
+P2: cámara/Game Capture/lip-sync/backends de acciones.  
+P3: multistream/EventSub reconnect/distribución FFmpeg/installer/release validation.
