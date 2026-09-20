@@ -794,10 +794,11 @@ window.cari.native.onEvent(event => {
   if (event.type === "twitch.eventsub.keepalive") { addEvent("EventSub keepalive"); return; }
   if (event.type === "twitch.eventsub.reconnect") { addEvent("EventSub reconnecting"); return; }
   if (event.type === "obs.status") {
-    if (event.connected) {
-      $("#service-obs-text").textContent = "connected";
-      $("#obs-status-pill").textContent = "connected";
-    }
+    const connected = event.connected === true;
+    $("#service-obs-text").textContent = connected ? "connected" : "offline";
+    $("#obs-status-pill").textContent = connected ? "connected" : "offline";
+    $("#obs-chip").innerHTML = "OBS <b>" + (connected ? "ON" : "OFF") + "</b>";
+    $("#service-obs-dot").classList.toggle("on", connected);
     return;
   }
   if (event.type === "obs.event") {
