@@ -351,20 +351,21 @@ P4 — streaming/release: RTMP prolongado + caída de red + validación del retr
 Regla: trabajar únicamente sobre el primer gate no cerrado; no abrir nuevamente componentes ya marcados como IMPLEMENTADO/VERIFICADO sin evidencia de regresión.
 ## 11. Cierre de continuidad — 20/09/2026 13:24 ART
 
-**HEAD observado en GitHub:** 8866c265eb65c13709fd9c15bd21de97e55ac7a9
+**HEAD observado en GitHub:** 306dcdd344e4f53946d4696380778b0de3ffcf18
 **PR #2:** abierto / draft / no mergeable.
 **Avance canónico:** **62%**. No se incrementa por parches menores que no cierren un gate.
 
 ### Cambios de esta iteración
 - Se auditó nuevamente el árbol real antes de tocar módulos.
-- Se confirmó que el compositor D3D11 experimental, el overlay GPU y el E2E Windows de named pipes ya existen; no se creó una segunda implementación.
+- Se confirmó que compositor D3D11 experimental, overlay GPU y E2E Windows de named pipes ya existen; no se creó una segunda implementación.
 - Se confirmó OutputRetryPolicy + clasificación de fallos y su integración condicionada a RTMP/network.
 - Se corrigió la serialización del estado output.
-- Se endureció el límite de despacho A/V por polling y se expone la métrica pacing_budget_exhausted.
+- Se endureció el límite de despacho A/V por polling y se expone pacing_budget_exhausted.
 - Se añadió backpressure de arranque para no drenar audio antes de conectar ambos pipes.
 - Se endurecieron invariantes de sesión para impedir cambios de captura/audio durante una salida.
-- Los workflows de CI quedaron preparados para ejecutarse en la rama de desarrollo y mediante workflow_dispatch.
-- La bitácora canónica quedó reafirmada como fuente única de continuidad; los logs históricos no deben recibir nuevas entradas.
+- Los workflows CI quedaron preparados para ejecutarse en la rama de desarrollo y mediante workflow_dispatch.
+- Se agregaron y documentaron los smoke tests de retry/clasificación.
+- Se actualizó la bitácora como fuente única de continuidad y anti-repetición.
 
 ### Hallazgos que NO deben reabrirse
 - No sustituir Windows Graphics Capture por OpenCV: WGC sigue siendo el backend principal de captura Windows.
@@ -395,3 +396,10 @@ Regla: trabajar únicamente sobre el primer gate no cerrado; no abrir nuevamente
 ### Regla de transferencia
 La próxima sesión debe empezar leyendo BITACORA.md → AUDIT_MATRIX.md → PROJECT_STATUS.md → estado vivo del PR #2.
 Después se trabaja únicamente sobre el primer gate pendiente que tenga evidencia nueva disponible.
+
+### Estado vivo al cierre
+- PR #2 HEAD: 306dcdd344e4f53946d4696380778b0de3ffcf18
+- Commits del PR: 754
+- Archivos modificados: 172
+- Avance canónico: **62%**
+- CI: todavía sin steps/logs observables en los runs recientes; no declarar verde.
