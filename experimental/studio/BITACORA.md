@@ -680,3 +680,15 @@ Los runs del HEAD actual `e4c1040e5cc88fc76a985bbcfd21d462ecc93de2`:
 `IMPLEMENTADO → VERIFICADO → WINDOWS CI → HARDWARE REAL → SESIÓN PROLONGADA → STREAM/RECORD REAL → AUDITORÍA FINAL → RELEASE`.
 
 No subir el porcentaje por cantidad de archivos. Solo subirlo cuando se cierre una etapa funcional o de validación claramente identificable.
+
+
+---
+
+## Reconciliación de continuidad — HEAD 7371c8
+
+- HEAD real observado al cerrar esta revisión: `7371c8abd8c6700b0da9af27cec6c933b5c7edfc`.
+- Avance global mantenido en **60%**: no se incrementa por documentación ni por scaffolding; los grandes gates P0 siguen abiertos.
+- PR #2 sigue abierto y draft; `mergeable=false`.
+- La bitácora canónica no reemplaza `AUDIT_MATRIX.md` ni `PROJECT_STATUS.md`; los tres documentos deben permanecer coherentes.
+- Los workflows recientes sobre el HEAD consultado siguen terminando sin steps/logs útiles, por lo que CI continúa bloqueado como evidencia.
+- La cola activa no cambia: Windows CI observable → named-pipe E2E → grabación/A-V sostenidos → RTMP real/reconexión → compositor GPU/avatar.
