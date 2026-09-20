@@ -3,11 +3,11 @@
 > **Fuente canónica única de continuidad.**
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
-**Última auditoría:** 20/09/2026 13:05 ART  
-**HEAD canónico:** consultar siempre el HEAD actual del PR #2; no fijarlo aquí.
+**Última auditoría:** 20/09/2026 13:30 ART
+**HEAD canónico:** 366c2c693439e8e4a0f656435d00a00aa99c199d
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
-**Avance global de ingeniería:** **62%**  
+**Avance global de ingeniería:** **62%**
 **Readiness:** experimental; **NO listo para producción**.
 
 ## 1. Estados de evidencia
@@ -209,3 +209,70 @@ Estos resultados verifican contratos core portables; no sustituyen Windows CI ni
 El 62% no significa 62% de código ni disponibilidad para producción. La ruta principal está construida, pero quedan gates de validación Windows/hardware, transporte PTS explícito, composición de avatar final, cámara, drift, RTMP sostenido, Game Capture, multistream y distribución.
 
 **Producto: NO listo para producción.**
+
+## 10. Continuación — 20/09/2026
+
+### Cambios confirmados en esta iteración
+
+| Cambio | Estado | Evidencia | NO REPETIR |
+|---|---|---|---|
+| Retry/backoff RTMP integrado en el runtime nativo | IMPLEMENTADO | main.cpp + output_retry.h | No crear otra policy |
+| Retry restringido a fallos clasificados como red | IMPLEMENTADO | output_diagnostics.h | No reintentar encoder/mux/input a ciegas |
+| Serialización correcta de output en status | IMPLEMENTADO | BuildControlStatusMessage() | No reabrir salvo regresión |
+| Diagnóstico output_state / exit code | IMPLEMENTADO | native + renderer | No crear otro canal de status |
+| stderr FFmpeg acotado | IMPLEMENTADO | ffmpeg_av_output.* | No volver a buffering ilimitado |
+| Backpressure de handshake | IMPLEMENTADO | PollMediaGraph() | No drenar mixer antes de pipes conectados |
+| Budget de 8 eventos A/V por tick | IMPLEMENTADO | MediaGraphController | No quitar sin benchmark |
+| Workflows ejecutables sobre branch de desarrollo | IMPLEMENTADO | .github/workflows/* | No volver a depender solo de push a main |
+| Smoke retry policy portable | VERIFICADO | C++20 + -Wall -Wextra -Werror | No repetir sin modificar policy |
+| Smoke error classification portable | VERIFICADO | C++20 + -Wall -Wextra -Werror | No repetir sin nuevos casos reales |
+
+### CI — estado no verificable
+
+Los workflows ya generan ejecuciones en la rama fix/native-windows-foundation, pero los jobs disponibles siguen terminando antes de registrar steps/logs (steps=null, logs_url=null). Esto se conserva como un bloqueo de infraestructura, no como un defecto atribuido al código.
+
+### No repetir
+
+1. No reconstruir MediaClock, RealtimePacer, MediaInterleaver, RawPipe, AudioTimelineMixer, FfmpegAvOutput, OutputRetryPolicy ni el compositor D3D11 desde cero.
+2. No usar OpenCV para sustituir Windows Graphics Capture; OpenCV queda como posible herramienta auxiliar de procesamiento, no como backend principal de captura de escritorio.
+3. No usar capturePage() como transporte de vídeo.
+4. No cerrar todavía el gate de producción solo porque el smoke sintético de FFmpeg pasa.
+5. No promover la ruta D3D11 a producción mientras dependa del readback CPU.
+6. No implementar multistream antes de demostrar estabilidad del single-output RTMP.
+7. No reescribir historia de Git para resolver la divergencia de 2 commits sin una necesidad concreta.
+
+### Próximo trabajo obligatorio
+
+**P0**
+- Conseguir una ejecución Windows observable.
+- Ejecutar ffmpeg_named_pipe_e2e_smoke y guardar sus métricas.
+
+**P1**
+- Diseñar transporte PTS explícito o un mecanismo equivalente que conserve timing de extremo a extremo.
+- Eliminar readback CPU del camino final.
+- Conectar avatar real/neutral al compositor D3D11.
+
+**P2**
+- Media Foundation camera streaming.
+- Device clocks + drift correction.
+- Lip-sync avanzado.
+
+**P3**
+- RTMP real prolongado, caída/recuperación de red y validación de la policy existente.
+- Twitch/YouTube reales.
+- Multistream posterior al single-output gate.
+
+**P4**
+- Game Capture.
+- Installer.
+- Redistribución FFmpeg/codec.
+- Logging/rollback de usuario.
+- Asset packaging y hardware validation.
+
+### Estado canónico actualizado
+
+HEAD: 366c2c693439e8e4a0f656435d00a00aa99c199d
+
+Avance: **62% de ingeniería**
+
+Producto: NO listo para producción.
