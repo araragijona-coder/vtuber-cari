@@ -94,6 +94,28 @@ test("session manager sends the selected native window index", async () => {
   assert.equal(captureCall[1].window_index, 4);
 });
 
+test("session manager routes a native camera source and keeps its index separate", async () => {
+  const native = makeNative({
+    "capture.start:camera": { ok: true, message: "capture=started" }
+  });
+  const session = new StudioSessionManager(native);
+
+  const result = await session.captureStart("camera", 2);
+  assert.equal(result.ok, true);
+  assert.equal(session.snapshot().source, "camera");
+  assert.equal(session.snapshot().cameraIndex, 2);
+  assert.equal(session.snapshot().windowIndex, 0);
+
+  const captureCall = native.calls.find(call =>
+    call[0] === "send" && call[1].type === "capture.start"
+  );
+  assert.ok(captureCall);
+  assert.equal(captureCall[1].source, "camera");
+  assert.equal(captureCall[1].camera_index, 2);
+  assert.equal(captureCall[1].window_index, -1);
+});
+
+
 test("session manager sends the selected native camera index", async () => {
   const native = makeNative({
     "capture.start:camera": { ok: true, message: "capture=started" }
