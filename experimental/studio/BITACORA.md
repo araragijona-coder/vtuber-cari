@@ -8,7 +8,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
-- Último HEAD registrado en esta entrada: `4293bd1063da2dd9f049fe79a30e095bdb0c6df3`.
+- Último HEAD registrado en esta entrada: `47d94620836bae7b640e488ca8ea5cc78e873ecf`.
 - Estado: experimental; todavía no se promueve a producción.
 - Avance de ingeniería: **60%**.
 
@@ -272,7 +272,7 @@ Hasta que esas fronteras tengan evidencia, no mover el runtime fuera de `experim
 ## 018 — Sincronización canónica de continuidad — 2026-09-20
 **Estado:** IMPLEMENTADO / ACTUALIZADO
 
-**HEAD canónico:** `4293bd1063da2dd9f049fe79a30e095bdb0c6df3`  
+**HEAD canónico:** `47d94620836bae7b640e488ca8ea5cc78e873ecf`  
 **PR:** #2 — `fix: harden native Windows foundation`  
 **Avance global vigente:** **60%**
 
