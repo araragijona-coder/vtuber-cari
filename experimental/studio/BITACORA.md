@@ -573,3 +573,72 @@ Antes de modificar una función/componente:
 5. añadir aquí cualquier nuevo hallazgo antes de abrir otra línea de trabajo.
 
 **No crear una nueva bitácora para Cari Studio.**
+
+## CHECKPOINT OPERATIVO MÁS RECIENTE — 20/09/2026 12:58 ART
+
+HEAD: 4f105f3d66a057078eb10cb2ab5eb988aa80888e8
+Avance: 62% de ingeniería
+Readiness: NO listo para producción.
+
+### Cambios registrados después del checkpoint anterior
+- La bitácora se consolidó como fuente única y regla anti-repetición.
+- El retry/backoff de RTMP quedó integrado y limitado a errores de red.
+- Se añadieron smoke tests de policy de retry y clasificación de errores.
+- Se corrigió la serialización de output en el estado nativo.
+- Se añadió límite de 8 eventos A/V por polling y métrica pacing_budget_exhausted.
+- Se reforzó el backpressure de arranque del audio.
+- Se añadieron invariantes para impedir cambios de captura/audio mientras el output está activo.
+- El renderer muestra métricas de retry/pacing/output.
+- Existe compositor D3D11 experimental y E2E named-pipe -> FFmpeg -> decode en código.
+- Los workflows se habilitaron para la rama de desarrollo y workflow_dispatch.
+
+### CI — evidencia actual
+Runs sobre heads recientes:
+- Native Windows Build: failure, jobs con steps=null, sin logs_url.
+- CI: failure, jobs con steps=null, sin logs_url.
+- Character Runtime Tests: failure, jobs con steps=null, sin logs_url.
+
+Interpretación: no existe evidencia observable de que el runner haya ejecutado checkout, configuración, compilación o tests. No marcar CI como verde y no atribuir el fallo a un archivo concreto.
+
+### NO REPETIR — bloque consolidado
+- WGC ventana/pantalla.
+- WASAPI mic/loopback.
+- AudioTimelineMixer básico.
+- MediaClock.
+- RealtimePacer.
+- Interleaver global A/V.
+- RawPipe.
+- FFmpeg supervisor/lifecycle.
+- Retry policy.
+- Clasificación de errores base.
+- Three.js/glTF renderer básico.
+- MediaPipe Face Landmarker + guard monotónico.
+- Compositor D3D11 base.
+- OpenCV como sustituto de WGC.
+- capturePage() como transporte de vídeo.
+- Workflows CI paralelos para el mismo problema.
+- Force-rebase automático de la divergencia histórica.
+
+### P0 inmediato
+1. Obtener una ejecución Windows con steps/logs observables.
+2. Ejecutar E2E named-pipe -> FFmpeg -> archivo -> decode.
+3. Registrar commit, FFmpeg, resolución, FPS, sample-rate, canales, duración, bytes y errores.
+
+### P1
+1. Transporte explícito de PTS extremo a extremo.
+2. Eliminar readback CPU del compositor de producción.
+3. Conectar avatar real/neutral al compositor.
+4. Mantener estable el contrato Frame/PTS.
+
+### P2/P3/P4
+- Cámara Media Foundation.
+- Drift correction.
+- Lip-sync avanzado.
+- RTMP real y caída de red.
+- Game Capture.
+- Multistream.
+- Installer/FFmpeg redistribution/logs/asset packaging.
+- Validación final del PC objetivo.
+
+### Regla
+No repetir un trabajo marcado IMPLEMENTADO/VERIFICADO salvo regresión reproducible o evidencia nueva. No elevar a VERIFICADO por existencia de código o workflow.
