@@ -44,6 +44,7 @@ bool AudioCoreBridge::start() {
     samples_.store(0);
     errors_.store(0);
     peak_.store(0.0f);
+    current_mix_level_.store(0.0f);
     timeline_mixer_.clear();
     {
         std::lock_guard lock(error_mutex_);
@@ -166,7 +167,17 @@ std::vector<float> AudioCoreBridge::mixed_samples(std::size_t sample_count) cons
 
 bool AudioCoreBridge::pop_mixed_audio(cari::studio::core::AudioPacket& output) {
     std::lock_guard lock(mixer_mutex_);
-    return timeline_mixer_.pop(output);
+    if (!timeline_mixer_.pop(output)) {
+        current_mix_level_.store(0.0f, std::memory_order_relaxed);
+        return false;
+    }
+
+    float level = 0.0f;
+    for (const auto sample : output.samples) {
+        level = std::max(level, std::fabs(sample));
+    }
+    current_mix_level_.store(std::clamp(level, 0.0f, 1.0f), std::memory_order_relaxed);
+    return true;
 }
 
 std::wstring AudioCoreBridge::last_error() const {
