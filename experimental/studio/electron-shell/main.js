@@ -294,6 +294,74 @@ ipcMain.handle("obs:status", async event => {
   requireTrustedSender(event);
   return obs.getStatus();
 });
+ipcMain.handle("obs:scenes", async event => {
+  requireTrustedSender(event);
+  return obs.getSceneList();
+});
+ipcMain.handle("obs:inputs", async event => {
+  requireTrustedSender(event);
+  return obs.getInputList();
+});
+ipcMain.handle("obs:input-kinds", async event => {
+  requireTrustedSender(event);
+  return obs.getInputKindList();
+});
+ipcMain.handle("obs:stats", async event => {
+  requireTrustedSender(event);
+  return obs.getStats();
+});
+ipcMain.handle("obs:record-status", async event => {
+  requireTrustedSender(event);
+  return obs.getRecordStatus();
+});
+ipcMain.handle("obs:start-record", async event => {
+  requireTrustedSender(event);
+  return obs.startRecord();
+});
+ipcMain.handle("obs:stop-record", async event => {
+  requireTrustedSender(event);
+  return obs.stopRecord();
+});
+ipcMain.handle("obs:start-virtual-camera", async event => {
+  requireTrustedSender(event);
+  return obs.startVirtualCamera();
+});
+ipcMain.handle("obs:stop-virtual-camera", async event => {
+  requireTrustedSender(event);
+  return obs.stopVirtualCamera();
+});
+ipcMain.handle("obs:virtual-camera-status", async event => {
+  requireTrustedSender(event);
+  return obs.getVirtualCamStatus();
+});
+ipcMain.handle("obs:studio-mode", async event => {
+  requireTrustedSender(event);
+  return obs.getStudioModeEnabled();
+});
+ipcMain.handle("obs:set-preview-scene", async (event, sceneName) => {
+  requireTrustedSender(event);
+  return obs.setPreviewScene(sceneName);
+});
+ipcMain.handle("obs:studio-transition", async event => {
+  requireTrustedSender(event);
+  return obs.triggerStudioTransition();
+});
+ipcMain.handle("obs:profiles", async event => {
+  requireTrustedSender(event);
+  return obs.getProfileList();
+});
+ipcMain.handle("obs:scene-collections", async event => {
+  requireTrustedSender(event);
+  return obs.getSceneCollectionList();
+});
+ipcMain.handle("obs:set-profile", async (event, profileName) => {
+  requireTrustedSender(event);
+  return obs.setCurrentProfile(profileName);
+});
+ipcMain.handle("obs:set-scene-collection", async (event, sceneCollectionName) => {
+  requireTrustedSender(event);
+  return obs.setCurrentSceneCollection(sceneCollectionName);
+});
 
 ipcMain.handle("app:config", event => {
   requireTrustedSender(event);
