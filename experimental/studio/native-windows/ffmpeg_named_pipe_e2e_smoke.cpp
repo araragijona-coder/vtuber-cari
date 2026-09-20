@@ -5,7 +5,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include <cassert>
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
@@ -14,6 +13,13 @@
 #include <vector>
 
 namespace {
+
+bool check(bool condition, const char* message) {
+    if (condition) return true;
+    std::cerr << "ffmpeg-named-pipe-e2e: " << message << std::endl;
+    return false;
+}
+
 std::wstring ffmpeg_path() {
     wchar_t buffer[4096]{};
     const DWORD length = GetEnvironmentVariableW(
@@ -100,11 +106,21 @@ int main() {
     };
 
     FfmpegAvOutput output;
-    assert(output.start(profile, sample_rate, channels,
-                        4u * 1024u * 1024u, 2u * 1024u * 1024u,
-                        ffmpeg_path()));
-    assert(wait_connected(output));
-    assert(output.state() == FfmpegAvOutputState::running);
+    if (!check(output.start(profile, sample_rate, channels,
+                            4u * 1024u * 1024u, 2u * 1024u * 1024u,
+                            ffmpeg_path()),
+               "FFmpeg output start failed")) {
+        return 1;
+    }
+    if (!check(wait_connected(output), "named pipes did not connect")) {
+        output.stop();
+        return 1;
+    }
+    if (!check(output.state() == FfmpegAvOutputState::running,
+               "output did not reach running state")) {
+        output.stop();
+        return 1;
+    }
 
     const std::size_t video_bytes =
         static_cast<std::size_t>(width) * height * 4u;
@@ -126,27 +142,54 @@ int main() {
 
     for (std::size_t i = 0; i < video_frames || i < audio_packets; ++i) {
         if (i < video_frames) {
-            assert(output.write_video(video.data(), video.size()));
+            if (!check(output.write_video(video.data(), video.size()), "video write failed")) { output.stop(); return 1; }
         }
         if (i < audio_packets) {
-            assert(output.write_audio(
-                reinterpret_cast<const std::uint8_t*>(audio.data()),
-                audio.size() * sizeof(float)));
+            if (!check(output.write_audio(
+                    reinterpret_cast<const std::uint8_t*>(audio.data()),
+                    audio.size() * sizeof(float)),
+                    "audio write failed")) {
+                output.stop();
+                return 1;
+            }
         }
-        assert(pump(output));
+        if (!check(pump(output), "FFmpeg polling failed")) { output.stop(); return 1; }
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 
-    assert(wait_writes(output, video_frames, audio_packets));
+    if (!check(wait_writes(output, video_frames, audio_packets),
+               "raw pipe writes did not complete")) {
+        output.stop();
+        return 1;
+    }
     const auto before_stop = output.metrics();
-    assert(before_stop.video.writes_completed == video_frames);
-    assert(before_stop.audio.writes_completed == audio_packets);
+    if (!check(before_stop.video.writes_completed == video_frames,
+               "unexpected completed video writes")) {
+        output.stop();
+        return 1;
+    }
+    if (!check(before_stop.audio.writes_completed == audio_packets,
+               "unexpected completed audio writes")) {
+        output.stop();
+        return 1;
+    }
 
     output.stop();
-    assert(!output.running());
-    assert(std::filesystem::exists(target));
-    assert(std::filesystem::file_size(target) > 0);
-    assert(verify_output(ffmpeg_path(), target));
+    if (!check(!output.running(), "output still running after stop")) {
+        return 1;
+    }
+    if (!check(std::filesystem::exists(target),
+               "FFmpeg did not create the output file")) {
+        return 1;
+    }
+    if (!check(std::filesystem::file_size(target) > 0,
+               "FFmpeg output file is empty")) {
+        return 1;
+    }
+    if (!check(verify_output(ffmpeg_path(), target),
+               "FFmpeg verifier rejected output")) {
+        return 1;
+    }
 
     std::cout << "FFmpeg named-pipe A/V E2E smoke: PASS" << std::endl;
     std::filesystem::remove(target, error);
