@@ -15,6 +15,26 @@
 
 namespace {
 
+std::string utf8_from_wide(const std::wstring& value) {
+    if (value.empty()) {
+        return {};
+    }
+    const int required = WideCharToMultiByte(
+        CP_UTF8, WC_ERR_INVALID_CHARS, value.data(),
+        static_cast<int>(value.size()), nullptr, 0, nullptr, nullptr);
+    if (required <= 0) {
+        return {};
+    }
+    std::string result(static_cast<std::size_t>(required), '\0');
+    if (WideCharToMultiByte(
+            CP_UTF8, WC_ERR_INVALID_CHARS, value.data(),
+            static_cast<int>(value.size()), result.data(), required,
+            nullptr, nullptr) != required) {
+        return {};
+    }
+    return result;
+}
+
 std::wstring temp_output_path() {
     wchar_t temp_path[MAX_PATH]{};
     const DWORD length = GetTempPathW(MAX_PATH, temp_path);
@@ -105,7 +125,7 @@ int main() {
     OutputProfile profile{
         .id = "windows-named-pipe-e2e",
         .kind = OutputKind::file,
-        .target = std::filesystem::path(target).u8string(),
+        .target = utf8_from_wide(target),
         .width = width,
         .height = height,
         .fps = fps,
