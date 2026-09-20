@@ -852,3 +852,51 @@ Con P0 bloqueado externamente, el siguiente trabajo técnico debe continuar en P
 
 ### Avance
 **62%**. La cifra no sube por cambios de infraestructura no verificables.
+
+
+## 033 — Continuación autónoma: continuidad + lip-sync local — 2026-09-20
+**Estado:** IMPLEMENTADO / VERIFICACIÓN WINDOWS PENDIENTE
+
+### Trabajo realizado
+- Se auditó el estado real del repositorio antes de modificar componentes, respetando el ledger existente.
+- Se confirmó que P0/P1 y sus implementaciones canónicas ya existen: `ffmpeg_named_pipe_e2e_smoke.cpp`, compositor D3D11 experimental, retry/backoff, classifier de output, MediaClock, interleaver y bridge MediaPipe→avatar.
+- Se corrigió un bug de compilación del audio: `AudioCoreBridge.cpp` utilizaba `microphone_effect_` sin declararlo en `audio_core_bridge.h`. El miembro ahora pertenece al componente existente.
+- Se añadió medición del nivel instantáneo del bloque de audio mezclado sin cambiar el contrato del mixer.
+- Se añadió `audio-lipsync.js`, que transforma amplitud local en `mouthOpen` con floor/gain y ataque/liberación suavizados.
+- El renderer actualiza el lip-sync cada 250 ms solo cuando MediaPipe no está conduciendo la boca; cuando MediaPipe está activo se conserva el `jawOpen` facial.
+- Se añadieron tests del contrato de lip-sync al test existente de sesión/avatar.
+- No se creó ningún segundo bridge de avatar ni un segundo sistema de audio.
+
+### Evidencia
+- La cobertura portable existente de MediaClock/RealtimePacer/Interleaver, retry y diagnostics permanece PASS.
+- La integración de lip-sync queda con test JavaScript dentro del archivo de contratos existente.
+- CI Windows continúa sin producir evidencia de steps/logs útiles; por eso no se marca la integración Windows como VERIFICADA.
+
+### NO REPETIR — lista canónica solicitada
+- No crear otro named-pipe E2E.
+- No crear otro compositor D3D11.
+- No crear otro retry/backoff.
+- No crear otro clasificador de output.
+- No crear otra bitácora.
+- No crear otra arquitectura de captura.
+- No crear otro MediaClock.
+- No crear otro interleaver A/V.
+- No crear otro bridge MediaPipe→avatar.
+- No reemplazar WGC por OpenCV como captura principal sin evidencia nueva.
+- No usar FFmpeg Linux como sustituto de la validación Windows.
+- No promover `experimental/` a producción sin gates.
+- No inflar el porcentaje por scaffolding o documentación.
+
+### Siguiente cola
+1. P0: ejecución observable del E2E Windows y build completo.
+2. P1: eliminar readback GPU→CPU por frame y definir frontera de textura/encoder compatible con el hardware objetivo.
+3. P2: resolver transporte de timestamps explícitos extremo a extremo sin romper backpressure.
+4. P3: cámara Media Foundation real, drift correction y unión de lip-sync/tracking para el avatar final.
+5. P4: RTMP real, pérdida de red, agotamiento de retry y validación de hardware.
+6. P5: multistream, installer y redistribución legal de FFmpeg/codecs.
+
+### HEAD de esta entrada
+`c15e1189dd91c6bda55e1c025744585b01685705`
+
+### Regla de continuidad
+Las tareas anteriores se consideran cerradas como **arquitectura**. Las próximas sesiones deben modificar los componentes existentes in-place cuando aparezca evidencia nueva, no comenzar implementaciones paralelas.
