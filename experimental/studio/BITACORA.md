@@ -441,3 +441,21 @@ La única fuente para decidir el siguiente trabajo es:
 - Live2D propietario embebido sin resolver runtime/licencia.
 - IA como dependencia del streamer.
 - Retry automático indiscriminado de cualquier error FFmpeg.
+
+
+## CI / Runner checkpoint — 2026-09-20
+
+Últimos runs observados sobre el HEAD del branch:
+- Native Windows Build: run 369, `failure`, jobs con `steps=null`.
+- CI: jobs con `failure`/cancelación y `steps=null`.
+- Character Runtime Tests: jobs con `failure` y `steps=null`.
+- Actions Runner Diagnostic: job `probe` con `failure`, `steps=null`, `logs_url=null`.
+
+Conclusión de auditoría:
+- BLOQUEADO por infraestructura/runner.
+- No hay evidencia de que CMake, npm, CTest o el smoke E2E hayan comenzado a ejecutar.
+- No atribuir estos estados a una regresión concreta del código hasta disponer de logs/steps observables.
+
+No repetir:
+- No reestructurar código para “arreglar” estos failures sin una línea de log que lo justifique.
+- No marcar build/CI como VERIFICADO por la mera existencia del workflow.
