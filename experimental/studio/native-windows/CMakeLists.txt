@@ -181,6 +181,29 @@ target_link_libraries(cari-ffmpeg-named-pipe-e2e-smoke PRIVATE
     user32
 )
 
+add_executable(cari-multi-stream-output-smoke
+    multi_stream_output_smoke.cpp
+    multi_stream_output.cpp
+    ffmpeg_av_output.cpp
+    process_runner.cpp
+    raw_pipe.cpp
+)
+
+target_include_directories(cari-multi-stream-output-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
+target_compile_definitions(cari-multi-stream-output-smoke PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+target_link_libraries(cari-multi-stream-output-smoke PRIVATE
+    user32
+)
+
 add_executable(cari-native-media-output-bridge-smoke
     native_media_output_bridge_smoke.cpp
     native_media_output_bridge.cpp
@@ -467,6 +490,7 @@ add_test(NAME cari-ffmpeg-supervisor-smoke COMMAND cari-ffmpeg-supervisor-smoke)
 add_test(NAME cari-ffmpeg-av-output-smoke COMMAND cari-ffmpeg-av-output-smoke)
 add_test(NAME cari-raw-media-adapter-smoke COMMAND cari-raw-media-adapter-smoke)
 add_test(NAME cari-native-media-output-bridge-smoke COMMAND cari-native-media-output-bridge-smoke)
+add_test(NAME cari-multi-stream-output-smoke COMMAND cari-multi-stream-output-smoke)
 add_test(NAME cari-ffmpeg-named-pipe-e2e-smoke COMMAND cari-ffmpeg-named-pipe-e2e-smoke)
 add_test(NAME cari-frame-bridge-smoke COMMAND cari-frame-bridge-smoke)
 add_test(NAME cari-d3d11-compositor-smoke COMMAND cari-d3d11-compositor-smoke)
