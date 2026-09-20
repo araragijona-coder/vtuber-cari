@@ -1436,3 +1436,31 @@ No promover/fusionar los componentes experimentales a `main` por cantidad de có
 - Validar P0-02/P0-05 en Windows real.
 - Resolver transporte PTS explícito y retirar `use_wallclock_as_timestamps=1` como solución definitiva.
 - Optimizar readback/overlay y conectar avatar real al compositor.
+
+
+## 32. Cierre de continuidad de esta ronda — 20/09/2026 15:45 ART
+
+**HEAD final observado:** 8cfb6479616c557f018b93e69a0058aa0336f027
+**Avance global:** **63%**
+**Readiness:** NO listo para producción.
+
+### Confirmado y no repetir
+- Arquitectura Electron + Native Windows C++ existente.
+- WGC ventana/pantalla y WASAPI mic/loopback existentes.
+- LatestItemQueue/worker WGC y recuperación de device ya implementados en el historial canónico.
+- D3D11 compositor existente; no crear otro compositor.
+- MediaClock/RealtimePacer/MediaInterleaver existentes y verificados en smoke.
+- RawPipe/FFmpeg supervisor existentes; no crear otro transporte.
+- OutputRetryPolicy y OutputFailureCategory integrados; retry solo RTMP/network.
+- Bitácora única trasladada a la raíz; la copia duplicada en `experimental/studio/BITACORA.md` fue eliminada.
+
+### Pendiente operativo prioritario
+- Obtener ejecución observable de Windows CI.
+- Ejecutar `validate-windows.ps1` en Windows y conservar `validation-evidence`.
+- Validar E2E named-pipe -> FFmpeg -> archivo -> decode.
+- Validar device-loss/compositor y latest-frame worker en hardware Windows.
+- Cerrar transporte PTS explícito y eliminar la dependencia de wallclock timestamps.
+- Optimizar readback CPU/overlay y conectar avatar real al frame final.
+
+### Regla de promoción
+Todo lo anterior permanece experimental hasta que los gates de verificación correspondientes estén cerrados. No convertir implementación en validación por conteo de commits.
