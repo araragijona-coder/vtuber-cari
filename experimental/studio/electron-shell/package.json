@@ -7,14 +7,56 @@
   "scripts": {
     "start": "electron .",
     "check": "node --check main.js && node --check runtime/native-engine.js && node --check runtime/obs-service.js && node --check avatar-overlay-preload.js && node scripts/check-esm.cjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "dist": "electron-builder --win nsis",
+    "build": "npm run check && npm test && npm run dist"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.0.1",
     "obs-websocket-js": "5.0.8",
-    "three": "0.186.0"
+    "three": "0.186.0",
+    "ws": "8.18.3"
   },
   "devDependencies": {
-    "electron": "44.4.2"
+    "electron": "44.4.2",
+    "electron-builder": "27.0.0"
+  },
+  "build": {
+    "appId": "com.cari.studio",
+    "productName": "Cari Studio",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!test{,/**}",
+      "!scripts{,/**}"
+    ],
+    "extraResources": [
+      {
+        "from": "native",
+        "to": "native"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Cari-Studio-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Cari Studio",
+      "runAfterFinish": true,
+      "perMachine": false
+    }
   }
 }
