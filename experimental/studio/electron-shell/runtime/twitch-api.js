@@ -56,6 +56,17 @@ async function sendChatMessage(clientId, token, broadcasterId, senderId, message
 }
 
 async function subscribeChat(clientId, token, sessionId, broadcasterId, userId) {
+  return subscribeEventSub(clientId, token, sessionId, {
+    type: "channel.chat.message",
+    version: "1",
+    condition: {
+      broadcaster_user_id: broadcasterId,
+      user_id: userId
+    }
+  });
+}
+
+async function subscribeEventSub(clientId, token, sessionId, subscription) {
   return twitchFetch("https://api.twitch.tv/helix/eventsub/subscriptions", {
     method: "POST",
     headers: {
@@ -63,12 +74,7 @@ async function subscribeChat(clientId, token, sessionId, broadcasterId, userId) 
       "Client-Id": clientId
     },
     body: JSON.stringify({
-      type: "channel.chat.message",
-      version: "1",
-      condition: {
-        broadcaster_user_id: broadcasterId,
-        user_id: userId
-      },
+      ...subscription,
       transport: {
         method: "websocket",
         session_id: sessionId
@@ -82,5 +88,6 @@ module.exports = {
   validateToken,
   getUser,
   sendChatMessage,
-  subscribeChat
+  subscribeChat,
+  subscribeEventSub
 };
