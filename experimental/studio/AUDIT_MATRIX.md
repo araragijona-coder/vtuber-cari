@@ -51,11 +51,13 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Normalización inicial de canales y sample rate en el mezclador.
 - [x] Gate de formato de entrada: sample rate/canales no pueden cambiar silenciosamente durante una salida.
 - [x] Estimator de drift basado en PTS vs frames con smoothing y clamp implementado como módulo independiente.
+- [x] P08: estimador independiente de drift implementado y testeable.
 - [ ] Drift correction / resampling de producción basado en relojes de dispositivos.
 - [x] D3D11 compositor GPU experimental con overlay RGBA y output texture.
 - [x] Readback de captura CPU lazy: diagnóstico/fallback solamente.
 - [x] Smoke D3D11 compositor con WARP.
 - [x] Ruta experimental directa libavcodec/libavformat con PTS explícitos.
+- [x] P04: ruta experimental Libav con PTS explícitos.
 - [ ] Encoder real conectado.
   - FFmpeg recibe actualmente el frame final de la ruta experimental; falta validación sostenida y eliminación del readback CPU para producción.
 - [ ] Mux/record real sostenido en Windows.
