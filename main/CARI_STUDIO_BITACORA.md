@@ -3,6 +3,7 @@
 
 Fecha: 20/09/2026
 Distribución: main/
+HEAD de main: dc893865055948697c0b82c35ca0bcfb954df869
 Origen: fix/native-windows-foundation
 PR: #2
 Avance: 63%
