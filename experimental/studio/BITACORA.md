@@ -403,3 +403,73 @@ Después se trabaja únicamente sobre el primer gate pendiente que tenga evidenc
 - Archivos modificados: 172
 - Avance canónico: **62%**
 - CI: todavía sin steps/logs observables en los runs recientes; no declarar verde.
+
+
+## 11. BLOQUEO DEL PORCENTAJE — MODELO PERMANENTE
+
+### Regla matemática canónica
+
+El avance global se calcula con 100 puntos de cierre de ingeniería, repartidos una sola vez entre gates. No se recalcula por cantidad de archivos, líneas, commits ni sensación de avance.
+
+**Avance canónico actual: 62/100 = 62%.**
+
+Un gate suma sus puntos una sola vez al pasar a VERIFICADO o VALIDADO EN HARDWARE, según corresponda. No pierde puntos por añadir código nuevo. No se considera cerrado porque exista una interfaz. No vuelve a abrirse salvo regresión reproducible. Una prueba sintética no sustituye una validación Windows/hardware cuando el gate la exige.
+
+### Los 38 puntos que actualmente impiden llegar al 100%
+
+| ID | Gate que falta | Puntos | Evidencia necesaria para cerrar | No confundir con |
+|---|---|---:|---|---|
+| P01 | CI Windows observable | 3 | Job Windows con steps/logs reales y build/smoke PASS sobre el HEAD | Un run failure con steps=null |
+| P02 | E2E Windows named-pipe -> FFmpeg -> archivo -> decode | 4 | Ejecución Windows observable, archivo válido y verificación de streams | El smoke existe en código |
+| P03 | A/V sostenido con FFmpeg real | 4 | Sesión prolongada con audio+video, sin fallos de pipe y métricas estables | Prueba sintética Linux |
+| P04 | PTS explícitos extremo a extremo | 4 | Transporte que conserve timestamps de captura hasta el muxer/encoder con contrato probado | Pacing por reloj antes del pipe |
+| P05 | Compositor GPU de producción sin readback CPU | 3 | Ruta final captura/overlay/avatar -> texture GPU -> encoder sin readback por frame | Compositor D3D11 experimental/WARP |
+| P06 | Avatar real integrado al frame final | 4 | Modelo real permitido + estado de actuación + composición en el frame que llega al encoder | Placeholder procedural / Three.js aislado |
+| P07 | Cámara Media Foundation en streaming | 3 | Captura real de cámara, formato/cadencia, lifecycle y reconexión en Windows | Enumerar cámaras |
+| P08 | Drift correction de relojes físicos | 3 | Medición de relojes de dispositivos y corrección/resampling sostenido | Mixer y normalización inicial |
+| P09 | Voz de producción | 2 | Procesamiento local con baja latencia y medición estable | anime-bright DSP básico |
+| P10 | RTMP/RTMPS sostenido + reconexión real | 3 | Sesión prolongada + caída de red controlada + recuperación correcta | Retry policy y clasificación de errores |
+| P11 | Twitch reconnection/re-subscription | 1 | Test real del ciclo welcome/keepalive/reconnect y restauración de suscripciones | EventSub normal funcionando |
+| P12 | Game Capture dedicado | 1 | Backend específico validado contra una aplicación/juego real | Windows Graphics Capture |
+| P13 | Distribución Windows completa | 2 | Decisión FFmpeg/codec, bundle legal, instalador y logs/rollback de usuario | ZIP portable de CI |
+| P14 | Multistream real | 1 | Más de un destino real, límites, backpressure y fallo independiente por destino | Fan-out conceptual |
+
+**Total pendiente: 38 puntos.**
+
+### Por qué el porcentaje no puede cerrarse todavía
+
+1. P01 + P02: falta evidencia observable del build/E2E Windows. Los runners recientes terminan antes de steps/logs.
+2. P03 + P04: el scheduler usa PTS antes del transporte, pero el protocolo raw todavía no conserva los PTS originales.
+3. P05 + P06: existe compositor D3D11 experimental y placeholder GPU, pero la ruta de producción aún requiere avatar real y eliminación del readback CPU por frame.
+4. P07 + P08: enumerar cámara y mezclar audio no equivale a streaming de cámara ni a corregir drift entre relojes físicos.
+5. P09 + P10: existe DSP local básico y retry policy, pero falta comportamiento sostenido y validado con hardware/endpoint real.
+6. P11 + P12 + P13 + P14: son gates independientes de integración/distribución; no se cierran por tener interfaces o esqueletos.
+
+### Regla anti-reinicio
+
+- Un componente IMPLEMENTADO no vuelve a cero.
+- Un componente VERIFICADO no se vuelve a probar sin una causa nueva.
+- Un componente VALIDADO EN HARDWARE solo se reabre por regresión.
+- Los nuevos commits solo modifican el gate abierto, salvo una regresión demostrable.
+- El 62% solo cambia cuando uno de los 38 puntos cambia de estado con evidencia.
+
+## 12. Snapshot de continuidad actual
+
+- PR #2: fix/native-windows-foundation.
+- Rama: fix/native-windows-foundation.
+- Estado: abierto, draft, no mergeable.
+- Avance canónico: 62%.
+- E2E Windows named-pipe -> FFmpeg -> decode: implementado en código, pendiente de ejecución observable.
+- D3D11 compositor: implementado experimentalmente, smoke WARP registrado.
+- MediaPipe: integrado como único tracker facial; no crear un segundo tracker.
+- Three.js: renderer base existente; no rehacerlo.
+- RawPipe: transporte único; no crear otro.
+- AudioTimelineMixer: mixer único; no crear otro.
+- MediaClock/RealtimePacer/MediaInterleaver: reloj/scheduler únicos.
+- OutputRetryPolicy: policy única para reconexión.
+
+### Lista exacta de trabajo nuevo
+
+Primero P01/P02. Después P04/P05/P06. Luego P07/P08/P09. Después P10/P11. Al final P12/P13/P14.
+
+**Objetivo de la bitácora:** evitar que una nueva sesión vuelva a analizar o implementar de nuevo componentes ya cerrados.
