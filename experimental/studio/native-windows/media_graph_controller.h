@@ -61,6 +61,8 @@ public:
 
     [[nodiscard]] bool running() const noexcept;
     [[nodiscard]] bool connected() const noexcept;
+    [[nodiscard]] FfmpegAvOutputState output_state() const noexcept;
+    [[nodiscard]] unsigned long output_exit_code() const noexcept;
     [[nodiscard]] std::string last_error() const;
     [[nodiscard]] std::string stderr_text() const;
     [[nodiscard]] MediaGraphStats stats() const noexcept;
