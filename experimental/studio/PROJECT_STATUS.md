@@ -139,12 +139,13 @@
 - [x] Paquete portable x64 generado por CI como artifact.
 - [ ] Bundle de assets de producción y modelo artístico final.
 - [ ] FFmpeg/codec legalmente redistribuible elegido.
-- [ ] Instalador Windows.
+- [x] Configuración del instalador NSIS x64.
+- [ ] Validación del instalador Windows en máquina/CI y firma.
 - [ ] Diagnóstico/rollback y logs de usuario.
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~63%.**
+**Estimación global de ingeniería: ~65%.**
 
 Este porcentaje mide cierre de requisitos de ingeniería; no equivale a porcentaje de código ni a disponibilidad para producción.
 
@@ -168,11 +169,12 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 La única fuente canónica de continuidad y anti-repetición es `BITACORA.md`.
 
 - HEAD canónico: consultar el HEAD actual del PR #2 y `BITACORA.md`
-- Avance global vigente: **63%**.
+- Avance de ingeniería vigente: **65%**.
+- Avance de producto usable vigente: **50%**.
 - Los checkpoints anteriores son históricos y no deben usarse para decidir trabajo nuevo.
 
 ### Regla
-Antes de modificar un componente, buscarlo en `CARI_STUDIO_BITACORA.md`. Si está IMPLEMENTADO/VERIFICADO, trabajar sobre su gate restante o sobre una regresión reproducible; no crear un reemplazo paralelo.
+Antes de modificar un componente, buscarlo en `BITACORA.md`. Si está IMPLEMENTADO/VERIFICADO, trabajar sobre su gate restante o sobre una regresión reproducible; no crear un reemplazo paralelo.
 
 ## Readiness
 
@@ -192,8 +194,8 @@ El proyecto tiene un build experimental con los componentes principales implemen
 
 El porcentaje de ingeniería y el porcentaje de producto listo para uso real se separan para evitar confundir infraestructura con experiencia de usuario.
 
-- **Ingeniería implementada: ~63%**.
-- **Producto usable/end-user: ~48%**.
+- **Ingeniería implementada: ~65%**.
+- **Producto usable/end-user: ~50%**.
 
 Producto usable todavía requiere: prueba Windows real, Twitch real, RTMP sostenido, modelo artístico final, composición avatar→encoder, cámara final, Game Capture, drift correction, lip-sync, distribución FFmpeg y validación del PC objetivo.
 
