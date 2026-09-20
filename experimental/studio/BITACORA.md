@@ -678,3 +678,24 @@ Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese re
 ### Porcentaje
 - Avance canónico: 63%.
 - P11 no suma su punto hasta disponer de evidencia real de reconexión/resuscripción.
+## 18. P02/P03 — E2E sostenido por named pipes (20/09/2026)
+
+### Cambios
+- No se creó un segundo E2E: se reforzó `ffmpeg_named_pipe_e2e_smoke.cpp`, que ya era el harness correcto.
+- La prueba pasó de 1 s aproximado a 5 s: 150 frames de vídeo a 30 FPS y 250 bloques de audio de 20 ms.
+- El productor sintético se pacea con espera cercana al tiempo real y luego espera a que todos los writes overlapped terminen.
+- El verificador existente usa FFmpeg real para decodificar ambos streams del archivo producido.
+
+### Estado
+| Gate | Estado | Evidencia faltante |
+|---|---|---|
+| Named pipes reales | IMPLEMENTADO | runner Windows observable |
+| FFmpeg real + H.264/AAC + Matroska | IMPLEMENTADO | runner Windows observable |
+| E2E 5 s paced | IMPLEMENTADO | runner Windows observable |
+| Validación sostenida en CI | PENDIENTE | GitHub Actions debe ejecutar steps |
+| A/V sostenido con hardware real | PENDIENTE | Windows + captura/audio reales |
+
+### No repetir
+- No crear otro harness de named pipes.
+- No volver a validar solamente que el archivo exista; este smoke ya verifica decodificación de vídeo y audio.
+- No confundir este E2E sintético con validación de WGC/WASAPI real.
