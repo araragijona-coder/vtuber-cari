@@ -176,8 +176,10 @@ function trackingLoop(timestamp) {
 }
 
 acting.subscribe(state => {
-  renderer.apply(acting.toRenderParameters());
+  const renderParameters = acting.toRenderParameters();
+  renderer.apply(renderParameters);
   renderer.render();
+  window.cari.native.avatar.setState(renderParameters).catch(() => undefined);
   ui.render.textContent = state.expression;
 });
 
