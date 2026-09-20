@@ -90,7 +90,8 @@
 - [x] Lip-sync local por amplitud del audio mezclado cuando MediaPipe no está conduciendo `mouthOpen`.
 - [ ] Tracking/cámara final.
   - MediaPipe Face Landmarker está integrado como adaptador local; falta validación final de rendimiento y modelo real.
-- [ ] Procesamiento de voz local de baja latencia.
+- [x] Cadena de voz local de baja latencia: HPF + presencia + compresión + saturación suave + limitador.
+  - [ ] Validación integrada en Windows y medición sostenida.
 
 ## Streaming / eventos
 
