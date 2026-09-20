@@ -17,10 +17,12 @@
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
 - [x] Diagnóstico y retry RTMP acotado por categoría de fallo.
-- [x] Smoke end-to-end Windows de FFmpeg + named pipes con vídeo BGRA y audio PCM, cierre por EOF/flush y verificación posterior de decodificación.
+- [ ] Smoke end-to-end Windows de FFmpeg + named pipes con vídeo BGRA y audio PCM, cierre por EOF/flush y verificación posterior de decodificación.
+  - Implementado; ejecución en runner Windows pendiente porque CI termina antes de los steps.
 - [x] Política de retry RTMP con backoff exponencial acotado y clasificación de errores.
 - [x] Bitácora maestra con ledger de trabajo realizado, descartado y pendiente.
 - [x] Auditoría de licencias de dependencias runtime fijadas.
+  - No habilita por sí sola redistribución de FFmpeg/codec; esa decisión sigue pendiente.
 - [x] Smoke test nativo para contratos core.
 - [ ] CI Windows verde sobre el head actual (los últimos runs siguen fallando antes de registrar steps; el nuevo workflow ya incluye instalación de FFmpeg y gates e2e para cuando el runner ejecute jobs normalmente).
 
@@ -183,4 +185,4 @@ Debe revisarse antes de implementar o auditar cualquier componente ya registrado
 
 ## Continuidad
 
-`BITACORA.md` es la fuente canónica de continuidad y no-repetición. HEAD de referencia: `47d94620836bae7b640e488ca8ea5cc78e873ecf`.
+`BITACORA.md` es la fuente canónica de continuidad y no-repetición. No se fija un SHA aquí para evitar punteros obsoletos; el HEAD canónico vigente está en la entrada más reciente de `BITACORA.md`.
