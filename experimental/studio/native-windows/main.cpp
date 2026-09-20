@@ -151,6 +151,22 @@ std::wstring BuildCaptureStatus() {
 
 void RefreshStatus(HWND hwnd);
 
+const char* MediaOutputStateName(cari::native::FfmpegAvOutputState state) {
+    switch (state) {
+    case cari::native::FfmpegAvOutputState::starting:
+        return "starting";
+    case cari::native::FfmpegAvOutputState::running:
+        return "running";
+    case cari::native::FfmpegAvOutputState::exited:
+        return "exited";
+    case cari::native::FfmpegAvOutputState::failed:
+        return "failed";
+    case cari::native::FfmpegAvOutputState::stopped:
+    default:
+        return "stopped";
+    }
+}
+
 std::string BuildControlStatusMessage() {
     const auto capture = g_capture.stats();
     const auto audio = g_audio_bridge.stats();
@@ -171,6 +187,8 @@ std::string BuildControlStatusMessage() {
         ? "anime-bright"
         : "off";
     result += ";output=";
+    result += ";output_state=" + MediaOutputStateName(g_media_graph.output_state());
+    result += ";output_exit_code=" + std::to_string(g_media_graph.output_exit_code());
     const output_running =
         g_media_enabled.load(std::memory_order_relaxed) && g_media_graph.running();
     result += output_running ? "running" : "stopped";
