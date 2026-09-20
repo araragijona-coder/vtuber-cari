@@ -52,6 +52,10 @@ public:
         std::shared_ptr<std::vector<std::uint8_t>>& pixels,
         std::wstring& error);
 
+    [[nodiscard]] ID3D11Device* device() const noexcept {
+        return device_.Get();
+    }
+
     [[nodiscard]] ID3D11Texture2D* output_texture() const noexcept {
         return output_texture_.Get();
     }
