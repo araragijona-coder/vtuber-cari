@@ -206,6 +206,23 @@ ipcMain.handle("avatar:choose-model", async event => {
   };
 });
 
+ipcMain.handle("avatar:overlay-show", event => {
+  requireTrustedSender(event);
+  if (!avatarOverlayWindow || avatarOverlayWindow.isDestroyed()) {
+    createAvatarOverlayWindow();
+  } else {
+    avatarOverlayWindow.showInactive();
+  }
+  return { ok: true };
+});
+ipcMain.handle("avatar:overlay-hide", event => {
+  requireTrustedSender(event);
+  if (avatarOverlayWindow && !avatarOverlayWindow.isDestroyed()) {
+    avatarOverlayWindow.hide();
+  }
+  return { ok: true };
+});
+
 ipcMain.handle("avatar:config", event => {
   requireTrustedSender(event);
   return {
