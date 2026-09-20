@@ -559,3 +559,36 @@ Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese re
 - Avance canónico: 63%.
 - P07 permanece abierto hasta observar captura/cadencia/lifecycle/reconexión en Windows.
 - No sumar puntos por la misma implementación dos veces.
+
+## 14. Hardening de la integración de cámara nativa (20/09/2026)
+
+### Cambios
+- Corregida la negociación Media Foundation para usar los atributos de tamaño y framerate con sus helpers oficiales.
+- El smoke de cámara ahora intenta captura cuando existe dispositivo y puede exigir frames con CARI_CAMERA_SMOKE_REQUIRED.
+- capture.start acepta source=camera y camera_index, manteniendo window_index separado.
+- StudioSessionManager y la UI distinguen cámara nativa de la cámara de tracking.
+- El output principal acepta la cámara como fuente y toma su resolución/FPS negociados.
+- Seleccionar una cámara diferente mientras otra está activa ahora reinicia correctamente la fuente.
+- Añadida cobertura de sesión para source=camera.
+- El workflow Windows ejecutará el smoke de Media Foundation cuando el runner sea operativo.
+
+### Estados
+| Gate | Estado | Evidencia faltante |
+|---|---|---|
+| Implementación Media Foundation | IMPLEMENTADO | ninguna adicional de código en este bloque |
+| Cámara como fuente del output | IMPLEMENTADO | E2E Windows sostenido |
+| Smoke de cámara | IMPLEMENTADO | ejecución Windows observable |
+| Cámara real/reconexión | PENDIENTE | hardware/runner Windows |
+| Cámara → MediaPipe → avatar | PENDIENTE | integración con tracker existente |
+
+### No repetir
+- No crear otro backend Media Foundation.
+- No reemplazar WGC.
+- No crear otro tracker MediaPipe.
+- No crear otro transporte RawPipe.
+- No volver a escribir el control plane.
+
+### Continuidad
+- El avance canónico permanece en 63%; P07 no suma los 3 puntos hasta obtener la evidencia Windows requerida.
+- PR #2 HEAD observado al cierre: 106a18c4a56f2052907ced0d17b932603cd58080.
+- El PR sigue abierto/draft/no mergeable.
