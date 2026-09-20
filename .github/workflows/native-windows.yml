@@ -82,13 +82,6 @@ jobs:
       - name: Run output diagnostics smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-output-diagnostics-smoke
 
-
-      - name: Run output retry policy smoke
-        run: ctest --test-dir build -C Release --output-on-failure -R cari-output-retry-smoke
-
-      - name: Run output diagnostics smoke
-        run: ctest --test-dir build -C Release --output-on-failure -R cari-output-diagnostics-smoke
-
       - name: Run control protocol smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-control-protocol-smoke
 
