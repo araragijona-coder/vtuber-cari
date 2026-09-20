@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace cari::native {
@@ -141,6 +142,31 @@ bool FfmpegAvOutput::start_pipes(
     return true;
 }
 
+bool FfmpegAvOutput::append_stderr(std::string_view chunk) noexcept {
+    if (chunk.empty()) {
+        return true;
+    }
+
+    try {
+        if (chunk.size() >= kMaxStderrBytes) {
+            stderr_text_.assign(
+                chunk.data() + (chunk.size() - kMaxStderrBytes),
+                kMaxStderrBytes);
+            return true;
+        }
+
+        const auto required = stderr_text_.size() + chunk.size();
+        if (required > kMaxStderrBytes) {
+            const auto remove = required - kMaxStderrBytes;
+            stderr_text_.erase(0, remove);
+        }
+        stderr_text_.append(chunk.data(), chunk.size());
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 bool FfmpegAvOutput::poll() noexcept {
     if (state_ != FfmpegAvOutputState::starting &&
         state_ != FfmpegAvOutputState::running) {
@@ -166,14 +192,20 @@ bool FfmpegAvOutput::poll() noexcept {
         state_ = FfmpegAvOutputState::failed;
         return false;
     }
-    stderr_text_.append(chunk);
+    if (!append_stderr(chunk)) {
+        state_ = FfmpegAvOutputState::failed;
+        return false;
+    }
 
     const auto result = process_.wait(0);
     if (result.exited) {
         exit_code_ = result.exit_code;
         std::string final_chunk;
         if (process_.drain_stderr(final_chunk)) {
-            stderr_text_.append(final_chunk);
+            if (!append_stderr(final_chunk)) {
+                state_ = FfmpegAvOutputState::failed;
+                return true;
+            }
         }
         state_ = (exit_code_ == 0)
             ? FfmpegAvOutputState::exited
@@ -227,7 +259,7 @@ void FfmpegAvOutput::stop() noexcept {
 
     std::string final_chunk;
     if (process_.captures_stderr() && process_.drain_stderr(final_chunk)) {
-        stderr_text_.append(final_chunk);
+        append_stderr(final_chunk);
     }
 
     if (state_ == FfmpegAvOutputState::running ||
