@@ -1,3 +1,6 @@
+> HISTÓRICO — No usar para nuevas entradas. La bitácora canónica es `experimental/studio/BITACORA.md`.
+> Este archivo se conserva para contexto histórico.
+
 # Cari Studio — Bitácora de arquitectura y auditoría
 
 Última actualización: 2026-09-20
