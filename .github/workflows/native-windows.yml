@@ -55,6 +55,9 @@ jobs:
 
       - name: Run frame bridge smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-frame-bridge-smoke
+      - name: Run D3D11 compositor smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-d3d11-compositor-smoke
+
 
       - name: Run audio timeline mixer smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-audio-timeline-mixer-smoke
