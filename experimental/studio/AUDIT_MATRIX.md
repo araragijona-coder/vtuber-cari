@@ -177,6 +177,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Evidencia actual
 
+- Existe `ffmpeg_named_pipe_e2e_smoke.cpp` conectado a CMake y al workflow Windows; queda clasificado como IMPLEMENTADO pero no VERIFICADO mientras el runner no ejecute los steps.
+
 - `FfmpegAvOutput::stop()` cierra primero los named pipes para permitir EOF/flush del muxer y solo fuerza la terminación si FFmpeg no sale dentro de un plazo acotado.
 - `PollMediaGraph()` ya desactiva el estado lógico de salida cuando FFmpeg termina o el polling falla, evitando reportar un output fantasma.
 - `MediaGraphController::poll()` ahora selecciona siempre el evento A/V con menor PTS entre las dos colas; el empate favorece audio y la decisión `late` de audio se contabiliza sin descartarlo para evitar huecos audibles.
@@ -222,4 +224,4 @@ Fuente canónica de trabajo: `experimental/studio/BITACORA.md`. Consultarla ante
 
 ## Continuidad canónica
 
-Consultar `experimental/studio/BITACORA.md` antes de reabrir una tarea. HEAD de referencia: `47d94620836bae7b640e488ca8ea5cc78e873ecf`.
+Consultar `experimental/studio/BITACORA.md` antes de reabrir una tarea. El HEAD canónico vigente está en la entrada más reciente de `BITACORA.md`.
