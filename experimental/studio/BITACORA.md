@@ -360,3 +360,115 @@ La próxima iteración debe comenzar leyendo esta bitácora y continuar en P0/P1
 
 No marcar un gate como verificado por la existencia del archivo o del workflow. Debe existir ejecución observable y reproducible.
 
+
+
+---
+
+## CHECKPOINT CANÓNICO VIGENTE — 20/09/2026 12:55 ART
+
+> Este bloque es la referencia operativa para la siguiente iteración. Los checkpoints anteriores son **históricos**; no usar sus HEAD ni porcentajes para decidir trabajo nuevo.
+
+**HEAD actual del PR:** 7326046089f7dff7db1621010ee61a1ddf86913b  
+**PR:** #2 — `fix/native-windows-foundation`  
+**Estado:** abierto / draft / no mergeable  
+**Avance global vigente:** **62% de ingeniería**  
+**Readiness:** experimental; **NO listo para producción**.
+
+### Trabajo realizado y no repetir
+
+| Bloque | Estado vigente | Evidencia | Regla |
+|---|---|---|---|
+| Electron security + preload/contextIsolation/sandbox | VERIFICADO/IMPLEMENTADO | `electron-shell/main.js`, `preload.js`, tests | NO rehacer la base |
+| NativeEngine + JSONL request correlation | IMPLEMENTADO + VERIFICADO | runtime/tests | Solo corregir regresiones |
+| Windows Graphics Capture ventana/pantalla | IMPLEMENTADO | `capture_engine.*` | NO sustituir WGC |
+| Enumeración/selección de ventanas | IMPLEMENTADO + VERIFICADO | `window_sources.*`, smoke | NO rehacer |
+| WASAPI mic + loopback | IMPLEMENTADO | `wasapi_capture.*`, bridge | NO rehacer captura base |
+| AudioTimelineMixer + normalización | IMPLEMENTADO + VERIFICADO | mixer smoke | NO rehacer mixer básico |
+| Voice anime-bright | IMPLEMENTADO | `voice_effects.*` | No confundir con pitch/formant |
+| MediaClock | IMPLEMENTADO + VERIFICADO | smoke | NO crear otro reloj |
+| RealtimePacer | IMPLEMENTADO + VERIFICADO | smoke | NO crear otro scheduler |
+| Global A/V interleaver | IMPLEMENTADO + VERIFICADO | scheduler smoke | NO separar audio/video por bloques |
+| Dispatch budget | IMPLEMENTADO | `MediaGraphController` | Mantener límite 8 hasta benchmark |
+| RawPipe Windows | IMPLEMENTADO + smoke existente | `raw_pipe.*` | NO crear otro transporte raw |
+| FFmpeg supervisor/output | IMPLEMENTADO + VERIFICADO parcialmente | `ffmpeg_av_output.*` | Solo ampliar validación |
+| stderr bounded 256 KiB | IMPLEMENTADO | FFmpeg output | NO volver a buffer ilimitado |
+| Output failure classification | IMPLEMENTADO + VERIFICADO | diagnostics smoke | Ampliar solo con evidencia |
+| RTMP retry/backoff | IMPLEMENTADO + VERIFICADO (policy) | `output_retry.*` | NO crear otra policy |
+| Retry solo network | IMPLEMENTADO | `main.cpp` | No reintentar encoder/mux/input ciegamente |
+| D3D11 compositor | IMPLEMENTADO experimental | `d3d11_compositor.*` + WARP smoke | NO reconstruir compositor base |
+| Procedural avatar overlay | IMPLEMENTADO experimental | `avatar_gpu_overlay.*` | No sustituye avatar real |
+| Alpha overlay GPU | VERIFICADO en WARP | compositor smoke | Falta hardware |
+| Lip-sync por amplitud | IMPLEMENTADO | runtime/avatar | NO declararlo como viseme/phoneme |
+| MediaPipe Face Landmarker | IMPLEMENTADO | `face-tracker.js` | NO rehacer tracker base |
+| Monotonic timestamp guard | IMPLEMENTADO | `face-tracker.js` | NO duplicar guard |
+| FaceTrackingBridge | IMPLEMENTADO | `face-tracking-bridge.js` | Solo extender mapping |
+| Three.js/glTF/GLB | IMPLEMENTADO | `three-avatar.js` | NO rehacer renderer básico |
+| OBS WebSocket | IMPLEMENTADO opcional | `obs-service.js` | NO convertir OBS en dependencia |
+| E2E named-pipe → FFmpeg → decode | IMPLEMENTADO en código | `ffmpeg_named_pipe_e2e_smoke.cpp` | **NO marcar VERIFIED sin logs reales** |
+| CI branch trigger | IMPLEMENTADO | workflows | NO crear workflow paralelo |
+| CI manual trigger | IMPLEMENTADO | workflows | NO duplicar pipeline |
+
+### Cola P0 — primero
+
+1. **CI Windows observable:** conseguir una ejecución con steps/logs reales.
+2. **Named-pipe E2E Windows:** ejecutar `ffmpeg_named_pipe_e2e_smoke`, generar MKV, verificar streams y decode.
+3. **Persistencia de evidencia:** guardar versión/commit, FFmpeg detectado, duración, FPS, sample-rate, streams y errores.
+
+### Cola P1 — después de P0
+
+1. Transporte temporal explícito extremo a extremo, evitando depender únicamente de `-use_wallclock_as_timestamps`.
+2. Compositor D3D11 conectado al frame real de salida.
+3. Eliminar el readback CPU del camino de producción.
+4. Sustituir placeholder por fuente de avatar neutral/real sin assets propietarios.
+5. Mantener `Frame`/timestamp contract estable.
+
+### Cola P2
+
+1. Media Foundation camera source.
+2. Medición de reloj de dispositivos.
+3. Drift correction / resampling.
+4. Lip-sync de mayor precisión.
+
+### Cola P3
+
+1. RTMP/RTMPS real prolongado.
+2. Prueba de caída de red.
+3. Reconexión usando la policy existente.
+4. Twitch/YouTube reales.
+5. Multistream **solo** cuando single-output esté estable.
+
+### Cola P4
+
+1. Game Capture.
+2. Instalador.
+3. política de distribución de FFmpeg/codec.
+4. logs/diagnóstico de usuario.
+5. asset packaging.
+6. validación final en hardware objetivo.
+
+### Intentos fallidos / enfoques descartados — NO repetir
+
+- No volver a usar `capturePage()` como transporte de vídeo principal.
+- No reemplazar WGC por OpenCV.
+- No crear otro mixer/scheduler/retry/supervisor/compositor/renderer/tracker para “empezar limpio”.
+- No interpretar una prueba Linux de FFmpeg como validación Windows.
+- No interpretar un smoke WARP como validación de hardware.
+- No interpretar la existencia del E2E Windows como ejecución E2E.
+- No declarar CI verde con jobs `steps=null`.
+- No crear workflows paralelos para el mismo problema CI.
+- No hacer force-rebase para resolver la divergencia histórica de 2 commits sin evidencia de que sea necesario.
+
+### Evidencia CI vigente
+
+Los runs recientes se disparan sobre la rama de desarrollo, pero siguen terminando antes de exponer steps/logs observables. La evidencia actual no permite atribuir una falla a una línea concreta del código.
+
+**Conclusión:** P0 permanece abierto.
+
+### Regla de continuidad
+
+Antes de tocar cualquier módulo, buscarlo aquí.  
+Si está marcado **IMPLEMENTADO**, trabajar sobre su gate pendiente.  
+Si está marcado **VERIFICADO**, no repetir la misma prueba sin nueva evidencia.  
+Si está marcado **VALIDADO EN HARDWARE**, no reabrir salvo regresión real.  
+Si aparece un nuevo hallazgo, registrar primero el hallazgo y después el cambio.
+
