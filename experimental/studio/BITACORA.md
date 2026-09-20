@@ -10,7 +10,8 @@
 - PR: #2 — `fix: harden native Windows foundation`
 - HEAD operativo: consultar siempre el ref actual de `fix/native-windows-foundation`; los SHA de las entradas son checkpoints históricos.
 - Estado: experimental; todavía no se promueve a producción.
-- Avance de ingeniería: **60%**.
+- Avance de ingeniería: **62%**.
+- Estado de uso: **NO listo para producción; sí sirve como build experimental sujeto a validación Windows.**
 
 ## Leyenda de estados
 
@@ -1120,3 +1121,85 @@ Antes de tocar cualquier componente:
 5. trabajar únicamente sobre el siguiente gate pendiente.
 
 Una tarea ya marcada IMPLEMENTADA o VERIFICADA solo se reabre con evidencia nueva, regresión o requisito nuevo documentado.
+
+## 037 — Snapshot canónico actual + criterio de uso — 2026-09-20
+**Estado:** CANÓNICO / CONTINUIDAD
+
+**HEAD al comenzar esta actualización:**  baafa97a3d7a066e3698ccadf3cbc906ddcb542d
+**Avance global vigente:** **62%**
+
+### Estado real
+**IMPLEMENTADO**
+- Windows Graphics Capture para ventana y pantalla primaria.
+- D3D11 capture/device path y recuperación de device-loss.
+- WASAPI micrófono + system loopback.
+- AudioTimelineMixer + VoiceEffectProcessor.
+- MediaClock + RealtimePacer + interleaver global A/V.
+- RawPipe OVERLAPPED para BGRA8 + PCM float32.
+- FFmpeg supervisor, EOF/flush, stderr limitado y diagnostics.
+- OutputFailureCategory + retry RTMP/network con backoff y límites.
+- D3D11 compositor experimental + overlay procedural.
+- Lazy readback de captura; el readback final hacia el output FFmpeg sigue presente.
+- Smoke E2E Windows named-pipe -> FFmpeg -> archivo ya implementado y registrado.
+- MediaPipe Face Landmarker + guard de timestamp + bridge de tracking.
+- Lip-sync local por amplitud como fallback.
+- Three.js/glTF/GLB + avatar placeholder + contrato neutral.
+- Electron security foundation y OBS WebSocket opcional.
+- Workflows CI con branch trigger y dispatch manual.
+- Bitácora/matriz de auditoría persistentes.
+
+**VERIFICADO**
+- MediaClock / RealtimePacer / MediaInterleaver mediante smoke C++20 estricto.
+- Retry/backoff.
+- Clasificación de errores.
+- Contratos avatar/sesión existentes.
+- FFmpeg sintético BGRA + PCM float32 -> H.264/AAC -> Matroska en Linux.
+
+**IMPLEMENTADO PERO NO VALIDADO EN WINDOWS**
+- Build nativo completo.
+- E2E named pipes con FFmpeg.
+- Captura sostenida.
+- Audio sostenido.
+- Compositor D3D11 sobre hardware real.
+- Grabación prolongada.
+- RTMP real/reconexión.
+- Tracking/render sostenido.
+- Device-loss real.
+- Cámara Media Foundation.
+- Game Capture.
+- Drift correction.
+- Hardware objetivo.
+
+**BLOQUEADO**
+- GitHub Actions: los jobs recientes terminan con failure, steps=null y logs_url=null; por tanto no hay evidencia de ejecución de compilación/test.
+- El porcentaje no se incrementa por documentación ni por más scaffolding.
+
+### Criterio de uso
+**NO está listo como programa de streaming/VTuber de producción.**
+
+Puede considerarse un **build experimental de desarrollo** porque ya existen captura, audio, compositor, avatar/tracking, output FFmpeg y UI de control. No debe usarse todavía como herramienta de streaming prolongado del día a día hasta superar los gates de Windows/hardware.
+
+### NO REPETIR
+- No crear otro named-pipe E2E.
+- No crear otro compositor D3D11.
+- No crear otro retry/backoff.
+- No crear otro clasificador de errores.
+- No crear otra arquitectura de captura.
+- No crear otro MediaClock/interleaver.
+- No crear otro bridge MediaPipe->avatar.
+- No reemplazar WGC por OpenCV como captura principal sin evidencia nueva.
+- No usar FFmpeg Linux como sustituto de validación Windows.
+- No usar capturePage() como compositor de vídeo.
+- No declarar CI verde sin steps/logs.
+- No promover experimental/ a producción por compilación o scaffolding.
+
+### Siguiente trabajo obligatorio
+**P0:** recuperar evidencia ejecutable de Windows y pasar el E2E existente.
+**P1:** eliminar el readback GPU->CPU final o introducir un sink/encoder D3D11 compatible.
+**P2:** preservar PTS explícitos hasta la frontera de encoder.
+**P3:** cámara Media Foundation + drift correction + tracking/lip-sync final.
+**P4:** RTMP/reconnect/hardware real.
+**P5:** Game Capture, multistream, installer y redistribución legal de FFmpeg/codecs.
+
+### Regla
+Esta entrada es un snapshot de continuidad, no un cierre de producción. Todo trabajo futuro debe partir del HEAD real de la rama y de esta bitácora.
