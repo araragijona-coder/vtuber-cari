@@ -1234,3 +1234,29 @@ Esto sigue siendo evidencia de **CI no verificable**, no de una regresión espec
 **P1-30/P1-31:** corregir timeline y selección de sample-rate Libav.
 
 No avanzar a multistream ni a más funciones de plataforma hasta cerrar P0-02, P0-04 y P0-06.
+
+
+## 27. Estado vivo posterior a la auditoría — 20/09/2026 15:04 ART
+
+**HEAD vivo:** 54bd68e9928384cf88fed404dd114075054d3de4  
+**PR:** #2 — abierto / draft / no mergeable  
+**Avance global:** **63%**  
+**Producto:** NO listo para producción.
+
+### Estado de P0
+- **P0-02:** CONFIRMADO — callback WGC sobrecargado con composición y readback.
+- **P0-04:** CONFIRMADO — raw transport no conserva PTS y `use_wallclock_as_timestamps=1` no es solución de sincronización permanente.
+- **P0-05:** CONFIRMADO — compositor D3D11 no invalida recursos al cambiar el `ID3D11Device` después de device-loss recovery.
+- **P0-03:** mantener como riesgo de ownership/threading; no tratar como carrera concurrente confirmada sin evidencia adicional.
+
+### CI
+Se generaron nuevas ejecuciones para este HEAD:
+- Native Windows Build: queued.
+- CI: queued.
+- Character Runtime Tests: queued.
+- Actions Runner Diagnostic: queued.
+
+No inferir resultados hasta que existan steps/logs observables.
+
+### Próxima ejecución
+Trabajar exclusivamente sobre P0-02/P0-05/P0-04. No agregar features de plataforma, multistream o nuevos backends mientras esos tres gates sigan abiertos.
