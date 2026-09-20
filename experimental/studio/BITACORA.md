@@ -4,7 +4,7 @@
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
 **Última auditoría:** 20/09/2026 15:20 ART
-**HEAD canónico:** 9292beeaa0cf72dd9ff8f67e58a33a263f4b72a9
+**HEAD canónico:** 0b5510cae7a9f5a2730b0d683eeeca2d5a0b43ba
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
@@ -137,6 +137,26 @@
 | Smoke retry/diagnostics portable | PASS | No repetir salvo cambio de policy |
 | OpenCV como sustituto de WGC | descartado | NO reintroducir como backend principal |
 | `capturePage()` como transporte de vídeo | descartado | NO reintroducir |
+
+## 5. Incidente de clonación local
+
+El error de PowerShell:
+`remote: Repository not found` + `fatal: repository ... not found`
+no demuestra que el repositorio haya sido borrado. La verificación de GitHub confirma que `araragijona-coder/vtuber-cari` existe, es **privado** y la conexión de GitHub usada por la auditoría tiene permisos `admin/pull/push`.
+
+Diagnóstico: la sesión Git local de Windows no tiene credenciales válidas para esa cuenta privada, o está usando credenciales de otra cuenta.
+
+Procedimiento canónico de recuperación:
+1. `gh auth login -h github.com -p https -w`
+2. `gh auth status` — debe mostrar la cuenta con acceso al repo.
+3. `gh auth setup-git`
+4. Desde `C:\Users\USER`: `git clone -b fix/native-windows-foundation https://github.com/araragijona-coder/vtuber-cari.git`
+5. `cd vtuber-cari`
+
+Alternativa SSH ya configurada:
+`git clone -b fix/native-windows-foundation git@github.com:araragijona-coder/vtuber-cari.git`
+
+NO crear otro repositorio ni cambiar el nombre. NO volver a empezar la aplicación por este error.
 
 ## 5. CI vigente
 
