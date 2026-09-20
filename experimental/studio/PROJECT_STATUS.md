@@ -116,7 +116,7 @@
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~59%.**
+**Estimación global de ingeniería: ~60%.**
 
 Este porcentaje mide avance de ingeniería respecto del objetivo completo. No equivale a validación en hardware ni a porcentaje de código que pueda considerarse producción.
 
@@ -168,3 +168,8 @@ This section is the canonical handoff record. Before implementing a feature, che
 7. Drift correction/lip-sync.
 8. Multistream.
 9. Packaging/installer/runtime FFmpeg distribution.
+
+
+## Bitácora de continuidad
+
+La bitácora persistente de implementación, validación, decisiones y tareas pendientes está en [`DEVELOPMENT_LOG.md`](./DEVELOPMENT_LOG.md). Antes de abrir una tarea ya trabajada, debe revisarse ese registro para evitar repetir implementaciones.
