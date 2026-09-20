@@ -21,7 +21,9 @@ TTS local
 respuesta escrita en Twitch
 ```
 
-La implementación usa TwitchIO 3 y EventSub WebSocket, no el IRC antiguo. TwitchIO documenta `channel.chat.message` como la suscripción para recibir mensajes y `message.respond()` como vía para responder autenticadamente. La autorización requiere los scopes de chat correspondientes.
+La implementación usa TwitchIO 3 y EventSub WebSocket, no el IRC antiguo.
+
+TwitchIO gestiona la reconexión del WebSocket y la recreación de suscripciones. Cari añade un ledger local que observa cada `session_welcome`, registra la generación del socket y verifica que las suscripciones esperadas siguen activas; no implementa un segundo gestor de sockets. La documentación de Twitch exige volver a suscribirse tras perder una sesión y TwitchIO realiza esa lógica internamente. citeturn720701search0turn404085view0 TwitchIO documenta `channel.chat.message` como la suscripción para recibir mensajes y `message.respond()` como vía para responder autenticadamente. La autorización requiere los scopes de chat correspondientes.
 
 ## Instalación lenta / verificable
 
@@ -54,3 +56,8 @@ La primera autorización se hace mediante Device Code Flow. Esto evita meter el 
 ## Importante
 
 Esto no elimina la autenticación de Twitch. No existe una puerta trasera legítima que permita enviar mensajes a un canal sin autorización. La idea de Cari es eliminar la dependencia de APIs de IA, no saltarse la seguridad de Twitch.
+
+
+## Prueba local de continuidad
+
+`test_continuity.py` prueba de forma determinista el cambio de generación de WebSocket y la auditoría de suscripciones. La simulación no sustituye una prueba real con Twitch CLI/una cuenta de canal.
