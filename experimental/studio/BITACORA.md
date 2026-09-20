@@ -3,7 +3,7 @@
 > Última actualización: 2026-09-20
 > Rama: `fix/native-windows-foundation`
 > PR: #2
-> HEAD canónico al cierre: `ead361f716628a5b73aa84592702170864c34b56`
+> HEAD canónico al cierre: `c9e75775698814359aeb3ccab59c25efc2aa10e3`
 
 Esta es la fuente única de continuidad para Cari Studio. Su objetivo es impedir que el mismo componente se rediseñe o implemente repetidamente.
 
@@ -323,3 +323,60 @@ Pendientes críticos que impiden producción:
 - IMPLEMENTADO — workflow adicional de diagnóstico de runner.
 - OBSERVADO — Native Windows Build, CI, Character Runtime Tests y Actions Runner Diagnostic siguen terminando antes de steps/logs útiles.
 - NO REPETIR — mientras `steps=null` y `logs_url=null`, no atribuir la falla a una línea del código.
+
+## 2026-09-20 — Checkpoint actual
+
+HEAD verificado del PR #2: `c9e75775698814359aeb3ccab59c25efc2aa10e3`.
+
+### Capacidades añadidas desde el ledger histórico
+
+- IMPLEMENTADO — captura de cámara mediante Media Foundation y source `camera` en el runtime; VALIDACIÓN EN HARDWARE pendiente.
+- IMPLEMENTADO — compositor D3D11 experimental para captura + overlays + placeholder de avatar con alpha; readback CPU queda como fallback/diagnóstico, no como ruta de producción.
+- IMPLEMENTADO — worker `LatestItemQueue` para desacoplar procesamiento pesado del callback de Windows Graphics Capture y conservar el último frame.
+- IMPLEMENTADO — estimador independiente de drift de reloj de audio; corrección/resampling continua sigue pendiente.
+- IMPLEMENTADO — ruta experimental Libav con PTS explícitos; compilación/verificación con kit FFmpeg de Windows sigue pendiente.
+- IMPLEMENTADO — smoke E2E de named pipes + FFmpeg que genera 5 s sintéticos, cierra por EOF y vuelve a validar el archivo; CI/hardware siguen pendientes porque los runners actuales no ejecutan steps observables.
+- IMPLEMENTADO — supervisor multistream experimental con retry independiente por destino; validación con varios endpoints reales sigue pendiente.
+- IMPLEMENTADO — editor visual de acciones del VTuber, ActionStore, persistencia/export/import y activación desde chat/UI.
+- IMPLEMENTADO — UI Twitch OAuth/EventSub/chat, selector de GLB/glTF, overlay y lectura local.
+- IMPLEMENTADO — configuración de instalador NSIS x64; validación release/firma/redistribución FFmpeg siguen pendientes.
+- IMPLEMENTADO — workflows con ejecución en la rama de desarrollo, instalación temporal de FFmpeg y gates E2E.
+- CORREGIDO — compositor D3D11: conversión correcta de mensajes de error de `D3DBlob` a `std::wstring`.
+
+### Verificación que NO debe sobredeclararse
+
+- BLOQUEADO — GitHub Actions actuales siguen terminando antes de steps/logs útiles; no usar su `failure` para atribuir un error de compilación sin logs.
+- BLOQUEADO — el E2E named-pipe está implementado pero no pasa a estado VERIFICADO mientras no exista una ejecución Windows observable.
+- BLOQUEADO — el compositor D3D11 está integrado experimentalmente pero no se considera producción por readback CPU y falta de validación sostenida.
+- BLOQUEADO — Libav/PTS explícitos requiere kit de desarrollo FFmpeg y validación Windows.
+- PENDIENTE — hardware real, cámara real, Game Capture, drift correction, RTMP real, EventSub reconnect real y modelo artístico definitivo.
+
+### Estado cuantitativo vigente
+
+- Ingeniería implementada: **~65%**.
+- Producto usable/end-user: **~50%**.
+- No usar checkpoints anteriores (58/60) para decidir trabajo nuevo.
+
+### Próximo trabajo permitido
+
+1. Resolver evidencia de CI/runner y ejecutar el harness Windows.
+2. Cerrar E2E named-pipe + FFmpeg observable.
+3. Validar compositor D3D11 sostenido y medir coste del readback.
+4. Conectar modelo/avatar real sin crear un nuevo renderer paralelo.
+5. Completar PTS extremo a extremo y drift correction.
+6. Validar RTMP/reconnect y luego multistream real.
+7. Cerrar hardware gate y distribución.
+
+### Anti-repetición
+
+No volver a crear:
+- otro scheduler A/V;
+- otro mixer temporal;
+- otro supervisor FFmpeg;
+- otro transporte raw;
+- otro renderer Three.js base;
+- otro ActionStore;
+- otro puente Twitch;
+- otro instalador paralelo.
+
+Mejorar el componente existente solamente ante una regresión reproducible, evidencia nueva o un gate pendiente documentado.
