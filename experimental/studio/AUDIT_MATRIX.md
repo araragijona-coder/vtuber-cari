@@ -42,9 +42,11 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Encoder boundary.
 - [x] Interleave temporal A/V con reloj maestro lógico de audio.
 - [x] Pacing de emisión raw por PTS mediante un reloj monotónico compartido y colas acotadas.
+- [x] Interleaver global de audio/video por PTS con empate determinista a favor de audio.
 - [x] Smoke tests de orden, tolerancia y late-drop.
 - [x] Mezclador temporal de audio para micrófono + sistema + futuras pistas como TTS.
 - [x] Normalización inicial de canales y sample rate en el mezclador.
+- [x] Gate de formato de entrada: sample rate/canales no pueden cambiar silenciosamente durante una salida.
 - [ ] Drift correction / resampling de producción basado en relojes de dispositivos.
 - [ ] Encoder real conectado.
 - [ ] Mux/record real.
@@ -161,8 +163,10 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 - `FfmpegAvOutput::stop()` cierra primero los named pipes para permitir EOF/flush del muxer y solo fuerza la terminación si FFmpeg no sale dentro de un plazo acotado.
 - `PollMediaGraph()` ya desactiva el estado lógico de salida cuando FFmpeg termina o el polling falla, evitando reportar un output fantasma.
+- `MediaGraphController::poll()` ahora selecciona siempre el evento A/V con menor PTS entre las dos colas; el empate favorece audio y la decisión `late` de audio se contabiliza sin descartarlo para evitar huecos audibles.
+- `MediaGraphController` rechaza cambios de sample rate/canales respecto del contrato FFmpeg y los expone como `audio_dropped_format`.
 
-- El head de trabajo actual de esta auditoría es **46c8e112b0a475db46b9fce80e73af90e44bbf89** en `fix/native-windows-foundation`.
+- El head de trabajo actual se actualiza en cada modificación de esta continuación; el último commit debe verificarse de nuevo antes de marcar CI como verde.
 - Se corrigió previamente el timestamp WASAPI para usar el `QPCPosition` ya convertido por Windows a 100 ns. Microsoft documenta explícitamente esa unidad; no debe volver a tratarse como ticks QPC crudos. citeturn0search0
 - `AudioTimelineMixer` introduce una frontera temporal única para micrófono, audio del sistema y futuras pistas como TTS. Normaliza canales/sample-rate, conserva PTS, produce bloques de 20 ms y mantiene métricas de rechazo, resampling, mezcla y underrun.
 - El smoke de `AudioTimelineMixer` verifica mezcla de micrófono + sistema, avance monotónico de PTS, resampling de una pista de 44.1 kHz y rechazo de paquetes malformados.
@@ -174,7 +178,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~54%.**
+**Estimación global de ingeniería: ~56%.**
 
 El incremento es pequeño porque el mezclador temporal cierra una pieza importante del diseño de audio, pero todavía no conecta productores reales al output. El mayor bloque pendiente continúa siendo la unión sostenida de captura BGRA + audio mezclado → FFmpeg, encoder/mux real, RTMP/reconexión y validación en hardware.
 
