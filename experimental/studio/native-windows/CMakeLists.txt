@@ -10,6 +10,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(CARI_ENABLE_LIBAV_OUTPUT
+    "Build experimental direct libavcodec/libavformat timestamped output"
+    OFF
+)
+set(CARI_FFMPEG_ROOT
+    "$ENV{CARI_FFMPEG_ROOT}"
+    CACHE PATH
+    "FFmpeg development root containing include/ and lib/"
+)
+
 if(MSVC)
     add_compile_options(/W4 /WX /permissive-)
 endif()
@@ -326,6 +336,55 @@ add_executable(cari-media-scheduler-smoke
     ../core/media_scheduler_smoke.cpp
 )
 
+if(CARI_ENABLE_LIBAV_OUTPUT)
+    find_path(CARI_LIBAV_INCLUDE_DIR
+        NAMES libavcodec/avcodec.h
+        PATHS
+            ${CARI_FFMPEG_ROOT}/include
+    )
+
+    find_library(CARI_AVCODEC_LIBRARY NAMES avcodec PATHS ${CARI_FFMPEG_ROOT}/lib)
+    find_library(CARI_AVFORMAT_LIBRARY NAMES avformat PATHS ${CARI_FFMPEG_ROOT}/lib)
+    find_library(CARI_AVUTIL_LIBRARY NAMES avutil PATHS ${CARI_FFMPEG_ROOT}/lib)
+    find_library(CARI_SWSCALE_LIBRARY NAMES swscale PATHS ${CARI_FFMPEG_ROOT}/lib)
+    find_library(CARI_SWRESAMPLE_LIBRARY NAMES swresample PATHS ${CARI_FFMPEG_ROOT}/lib)
+
+    if(NOT CARI_LIBAV_INCLUDE_DIR OR
+       NOT CARI_AVCODEC_LIBRARY OR
+       NOT CARI_AVFORMAT_LIBRARY OR
+       NOT CARI_AVUTIL_LIBRARY OR
+       NOT CARI_SWSCALE_LIBRARY OR
+       NOT CARI_SWRESAMPLE_LIBRARY)
+        message(FATAL_ERROR
+            "CARI_ENABLE_LIBAV_OUTPUT=ON requires FFmpeg development headers and libraries.")
+    endif()
+
+    add_executable(cari-libav-pts-smoke
+        libav_media_output_smoke.cpp
+        libav_media_output.cpp
+    )
+
+    target_include_directories(cari-libav-pts-smoke PRIVATE
+        ${CARI_LIBAV_INCLUDE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../core
+    )
+
+    target_compile_definitions(cari-libav-pts-smoke PRIVATE
+        UNICODE
+        _UNICODE
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+    )
+
+    target_link_libraries(cari-libav-pts-smoke PRIVATE
+        ${CARI_AVCODEC_LIBRARY}
+        ${CARI_AVFORMAT_LIBRARY}
+        ${CARI_AVUTIL_LIBRARY}
+        ${CARI_SWSCALE_LIBRARY}
+        ${CARI_SWRESAMPLE_LIBRARY}
+    )
+endif()
+
 add_executable(cari-media-foundation-camera-smoke
     media_foundation_camera_smoke.cpp
     media_foundation_camera.cpp
@@ -410,6 +469,9 @@ add_test(NAME cari-raw-pipe-smoke COMMAND cari-raw-pipe-smoke)
 add_test(NAME cari-av-sync-smoke COMMAND cari-av-sync-smoke)
 add_test(NAME cari-media-clock-smoke COMMAND cari-media-clock-smoke)
 add_test(NAME cari-media-scheduler-smoke COMMAND cari-media-scheduler-smoke)
+if(CARI_ENABLE_LIBAV_OUTPUT)
+    add_test(NAME cari-libav-pts-smoke COMMAND cari-libav-pts-smoke)
+endif()
 add_test(NAME cari-media-foundation-camera-smoke COMMAND cari-media-foundation-camera-smoke)
 add_test(NAME cari-output-retry-smoke COMMAND cari-output-retry-smoke)
 add_test(NAME cari-output-diagnostics-smoke COMMAND cari-output-diagnostics-smoke)
