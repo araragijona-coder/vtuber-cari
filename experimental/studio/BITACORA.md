@@ -17,7 +17,7 @@
 - PR: #2 — `fix: harden native Windows foundation`
 - Estado PR: abierto, draft.
 - Avance global: **60% de ingeniería**.
-- Último HEAD comprobado: `547c0a41996be00d0b738fcd6cfd17d6f545d2ecee8`.
+- Último HEAD comprobado: `20ef3cf319daa0e4a3bd0ecea2f82cd09956e293`.
 - Interpretación del porcentaje: avance frente al producto completo; **no** equivale a validación de hardware ni a CI verde.
 - Regla de promoción: mantener la implementación en `experimental/` hasta cerrar los gates.
 
@@ -385,7 +385,7 @@ Regla de continuidad: antes de implementar, buscar el componente en BITACORA.md,
 - No crear otra bitácora; este archivo es el canónico.
 
 ## Snapshot de continuidad — 2026-09-20 09:11 ART
-- HEAD comprobado: `547c0a41996be00d0b738fcd6cfd17d6f545d2ecee8`.
+- HEAD comprobado: `20ef3cf319daa0e4a3bd0ecea2f82cd09956e293`.
 - Avance global: **60% de ingeniería**.
 - PR #2: abierto, draft, `mergeable=false`.
 - P0: evidencia Windows ejecutable, named-pipe e2e, grabación sostenida, A/V sync sostenido y RTMP real.
