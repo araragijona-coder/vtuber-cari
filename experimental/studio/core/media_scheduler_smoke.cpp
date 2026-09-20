@@ -17,11 +17,25 @@ int main() {
     assert(pacer.decide(t0 + 330'000, wall0 + 330'000) == RealtimePaceDecision::emit);
     assert(pacer.decide(t0 + 330'000, wall0 + 2'000'000) == RealtimePaceDecision::late);
 
-    // Backward media PTS are clamped so a malformed source cannot move the
-    // scheduling timeline backwards.
+    // A/V streams have independent packet timelines, so the pacer must not
+    // enforce a single global monotonic PTS across both stream types.
     assert(pacer.decide(t0 + 100'000, wall0 + 100'000)
            != RealtimePaceDecision::wait);
 
-    std::cout << "Realtime media scheduler smoke: PASS\n";
+    assert(MediaInterleaver::select(false, 0, false, 0)
+           == MediaStreamKind::none);
+    assert(MediaInterleaver::select(true, 100, false, 0)
+           == MediaStreamKind::audio);
+    assert(MediaInterleaver::select(false, 0, true, 100)
+           == MediaStreamKind::video);
+    assert(MediaInterleaver::select(true, 100, true, 200)
+           == MediaStreamKind::audio);
+    assert(MediaInterleaver::select(true, 300, true, 200)
+           == MediaStreamKind::video);
+    // Equal PTS deliberately prefer audio to avoid starving the audio clock.
+    assert(MediaInterleaver::select(true, 200, true, 200)
+           == MediaStreamKind::audio);
+
+    std::cout << "Realtime media scheduler/interleaver smoke: PASS\n";
     return 0;
 }
