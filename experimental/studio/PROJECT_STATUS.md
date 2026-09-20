@@ -195,3 +195,15 @@ Debe revisarse antes de implementar o auditar cualquier componente ya registrado
 ## Continuidad
 
 `BITACORA.md` es la fuente canónica de continuidad y no-repetición. No se fija un SHA aquí para evitar punteros obsoletos; el HEAD canónico vigente está en la entrada más reciente de `BITACORA.md`.
+
+## Readiness
+
+**Estado de uso actual: NO listo para producción.**
+
+El proyecto tiene un build experimental con los componentes principales implementados, pero la validación Windows/hardware sigue abierta. La ausencia de jobs con steps/logs en GitHub Actions impide marcar el build nativo como verificado en CI.
+
+**Build de desarrollo:** sí, una vez compilado en Windows y usado bajo prueba controlada.
+
+**Streamer/VTuber estable para uso diario:** todavía no.
+
+**Gate inmediato:** ejecutar y obtener PASS del E2E Windows named-pipe -> FFmpeg -> archivo y del build completo; después medir estabilidad sostenida y sincronización.
