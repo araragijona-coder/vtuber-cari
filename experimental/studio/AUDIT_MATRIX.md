@@ -43,6 +43,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Interleave temporal A/V con reloj maestro lógico de audio.
 - [x] Pacing de emisión raw por PTS mediante un reloj monotónico compartido y colas acotadas.
 - [x] Interleaver global de audio/video por PTS con empate determinista a favor de audio.
+- [x] Límite de eventos despachados por polling para acotar ráfagas durante recuperación de atraso.
 - [x] Smoke tests de orden, tolerancia y late-drop.
 - [x] Mezclador temporal de audio para micrófono + sistema + futuras pistas como TTS.
 - [x] Normalización inicial de canales y sample rate en el mezclador.
@@ -169,6 +170,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - `MediaGraphController` rechaza cambios de sample rate/canales respecto del contrato FFmpeg y los expone como `audio_dropped_format`.
 - `FfmpegAvOutput` mantiene únicamente los últimos 256 KiB de stderr y expone estado/código de salida para diagnóstico sin crecimiento indefinido.
 - La entrada de audio solo se extrae del mixer cuando ambos named pipes están conectados; esto evita consumir la cola durante el handshake inicial.
+- Cada polling del media graph despacha como máximo 8 eventos A/V; si se alcanza el presupuesto, queda una métrica pacing_budget_exhausted para diagnóstico.
 
 - El head de trabajo se actualiza en cada modificación de esta continuación; el último head registrado es **0b3e70335e67327a4a6e0fe50e96e4cebd6c7f43**.
 - Se corrigió previamente el timestamp WASAPI para usar el `QPCPosition` ya convertido por Windows a 100 ns. Microsoft documenta explícitamente esa unidad; no debe volver a tratarse como ticks QPC crudos. citeturn0search0
@@ -182,7 +184,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~57%.**
+**Estimación global de ingeniería: ~58%.**
 
 El incremento es pequeño porque el mezclador temporal cierra una pieza importante del diseño de audio, pero todavía no conecta productores reales al output. El mayor bloque pendiente continúa siendo la unión sostenida de captura BGRA + audio mezclado → FFmpeg, encoder/mux real, RTMP/reconexión y validación en hardware.
 
