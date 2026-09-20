@@ -220,3 +220,12 @@ Una tarjeta del menú no convierte una capacidad en una función terminada.
 6. Twitch EventSub avanzado con scopes/endpoints.
 7. OBS scene/source/filter actions ampliadas.
 8. Hardware, instalador y release.
+
+## Actualización 2026-09-20 — cierre de auditoría de botones
+
+- Centro Twitch: el botón Conectar alterna conexión/desconexión según el estado real.
+- El estado de conexión se refleja en el Centro Twitch.
+- Se mantiene un único TwitchChatService/EventSub WebSocket.
+- El test UI↔OBS↔botones cubre botones con ID y botones declarativos.
+- PROJECT_STATUS.md se sincronizó a un porcentaje global de **60%**.
+- Referencia de seguimiento: ingeniería 66%, producto usable 52%, porcentaje global 60%.
