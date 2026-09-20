@@ -217,10 +217,12 @@ void PollMediaGraph() {
         return;
     }
 
-    cari::studio::core::AudioPacket packet;
-    while (g_audio_bridge.pop_mixed_audio(packet)) {
-        if (!g_media_graph.submit_audio(packet)) {
-            break;
+    if (g_media_graph.connected()) {
+        cari::studio::core::AudioPacket packet;
+        while (g_audio_bridge.pop_mixed_audio(packet)) {
+            if (!g_media_graph.submit_audio(packet)) {
+                break;
+            }
         }
     }
 
