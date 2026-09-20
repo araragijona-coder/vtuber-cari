@@ -25,6 +25,11 @@ bool MediaGraphController::start(
     pending_video_.clear();
     pending_audio_.clear();
     pacer_.reset();
+    output_width_ = profile.width;
+    output_height_ = profile.height;
+    output_fps_ = profile.fps;
+    last_video_pts_ = 0;
+    have_last_video_pts_ = false;
 
     if (!output_.start(
             profile,
@@ -47,6 +52,13 @@ bool MediaGraphController::submit_video(
     if (!output_.running() || !bgra) {
         ++stats_.video_dropped;
         last_error_ = "video submitted while output is not running";
+        return false;
+    }
+
+    if (frame.width != output_width_ || frame.height != output_height_) {
+        ++stats_.video_dropped_format;
+        ++stats_.video_dropped;
+        last_error_ = "video resolution changed; restart output to adopt the new capture size";
         return false;
     }
 
@@ -150,6 +162,19 @@ bool MediaGraphController::poll() noexcept {
             continue;
         }
 
+        auto& queued_frame = pending_video_.front().frame;
+        if (have_last_video_pts_ && output_fps_ > 0) {
+            const auto period = static_cast<cari::studio::core::Timestamp>(
+                cari::studio::core::MediaClock::kTicksPerSecond /
+                output_fps_);
+            if (queued_frame.pts < last_video_pts_ + period) {
+                pending_video_.pop_front();
+                ++stats_.video_dropped_cadence;
+                ++stats_.video_dropped;
+                continue;
+            }
+        }
+
         auto video = std::move(pending_video_.front());
         pending_video_.pop_front();
         if (!output_.submit_video(video.frame, video.bgra)) {
@@ -158,6 +183,8 @@ bool MediaGraphController::poll() noexcept {
             break;
         }
         ++stats_.video_submitted;
+        last_video_pts_ = video.frame.pts;
+        have_last_video_pts_ = true;
     }
 
     return true;
@@ -168,6 +195,11 @@ void MediaGraphController::stop() noexcept {
     pending_video_.clear();
     pending_audio_.clear();
     pacer_.reset();
+    output_width_ = 0;
+    output_height_ = 0;
+    output_fps_ = 0;
+    last_video_pts_ = 0;
+    have_last_video_pts_ = false;
     output_.stop();
 }
 
