@@ -65,6 +65,7 @@
   - El gate de verificación real sigue abierto: archivo/RTMP sostenido, sincronización, reconexión y hardware.
 - [ ] Drift correction / resampling de producción.
 - [ ] Verificación sostenida del pacing A/V con FFmpeg real.
+- [ ] Verificación Windows del E2E named-pipe y del compositor D3D11.
 - [ ] Verificación Windows real del named-pipe E2E.
   - Existe ahora un smoke Windows que ejerce ambos named pipes durante una sesión sintética y vuelve a decodificar el archivo resultante.
   - La planificación ahora interleavea globalmente por PTS; el transporte raw todavía no conserva los PTS originales.
@@ -158,7 +159,7 @@ This section is the canonical handoff record. Before implementing a feature, che
 - Timing/pacing/interleaving: implemented and smoke-tested; original PTS are still not preserved through raw pipes.
 - FFmpeg boundary: implemented; synthetic codec/mux verification passed; sustained Windows verification remains.
 - RTMP: implemented as an output profile; guarded network-only retry/backoff added; real endpoint validation remains.
-- Avatar/tracking: MediaPipe + Three.js/glTF adapter implemented; final native compositor integration remains.
+- Avatar/tracking: MediaPipe + Three.js/glTF adapter implemented; experimental D3D11 compositor now reaches the final encoded frame via readback, while real-avatar texture integration and zero-readback production path remain.
 - OBS: optional control integration; not a core runtime dependency.
 - CI: workflows exist, but recent runner failures with no executable steps must not be counted as green validation.
 
