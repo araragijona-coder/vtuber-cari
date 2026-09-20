@@ -672,3 +672,41 @@ P0: ejecución observable del runner Windows y PASS del named-pipe E2E. Si P0 co
 
 ### Avance global
 **60%**. La limpieza de CI/continuidad no se contabiliza como cierre de un gate funcional.
+
+
+## 028 — P1: compositor D3D11 experimental — 2026-09-20
+**Estado:** IMPLEMENTADO / VERIFICACIÓN WINDOWS PENDIENTE
+
+### Trabajo realizado
+- Se añadió `d3d11_compositor.h/.cpp` como backend GPU reutilizable.
+- El compositor recibe la textura D3D11 de captura directamente y produce otra textura GPU BGRA8.
+- La composición de overlays usa vertex/pixel shaders HLSL, input layout persistente, sampler linear y alpha blending.
+- Se añadió `avatar_gpu_overlay.h/.cpp` con un avatar-placeholder procedural RGBA; no contiene assets propietarios.
+- El callback nativo ejerce el compositor sobre muestras de captura y registra métricas.
+- Se añadió `d3d11_compositor_smoke.cpp` usando `D3D_DRIVER_TYPE_WARP` para validar el pipeline sin depender de una GPU física.
+- CMake/CTest y el workflow Windows incluyen este smoke.
+
+### Límite explícito
+- Esta ruta GPU todavía es experimental y paralela al camino CPU/FrameBridge que alimenta el encoder actual.
+- Por tanto P1 no está cerrado: falta sustituir el readback/camino CPU del encoder por la textura GPU final y conectar avatar real/overlays reales.
+- El avatar procedural solo demuestra la frontera de composición; no representa el modelo final de Three.js/VRM.
+
+### Evidencia
+- Implementación integrada en la rama.
+- Smoke D3D11/WARP integrado, pero pendiente de ejecución observable en Windows CI.
+- No se eleva el estado a VERIFICADO hasta obtener steps/logs y PASS del runner.
+
+### NO REPETIR
+- No crear otro compositor D3D11 paralelo.
+- No crear un segundo shader pipeline para el mismo contrato.
+- No sustituir este backend por `capturePage()` como compositor de vídeo.
+- No declarar que Three.js ya está dentro del frame nativo solo porque existe el placeholder GPU.
+- No conectar el encoder a un readback CPU y llamarlo compositor GPU de producción.
+
+### Siguiente trabajo
+P0: ejecutar el E2E named-pipe cuando el runner Windows produzca steps/logs reales.
+P1: conectar la textura GPU final al encoder y definir la frontera de avatar real/overlay sin readback por frame.
+P2: diseñar timestamps explícitos extremo a extremo sobre el transporte local.
+
+### Avance global
+**60%**. Se mantiene la cifra porque P0 sigue sin evidencia Windows y P1 todavía no es el camino de encoding final.
