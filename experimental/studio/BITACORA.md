@@ -8,7 +8,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
-- Último HEAD conocido al cerrar esta entrada: se actualizará automáticamente con el último commit de esta continuación.
+- Último HEAD registrado en esta entrada: `aba837096ecf9c221be2d07bf800d1517223de1b`.
 - Estado: experimental; todavía no se promueve a producción.
 - Avance de ingeniería: **59%**.
 
@@ -218,3 +218,52 @@ Antes de tocar captura, audio, FFmpeg, tracking o avatar:
 5. modificar solo el siguiente gate que tenga evidencia insuficiente.
 
 La bitácora debe registrar cualquier nueva prueba, bug, decisión o rechazo de enfoque antes de pasar al siguiente bloque.
+
+
+## 015 — Continuación 2026-09-20: resiliencia de output
+**Estado:** IMPLEMENTADO / PARCIALMENTE VERIFICADO
+
+Se incorporaron cuatro piezas:
+- `OutputFailureCategory` para clasificar fallos del output;
+- `OutputRetryPolicy` con backoff 1 s → 30 s y hasta 5 intentos;
+- reintento restringido a perfiles RTMP y errores clasificados como network;
+- métricas/UI para retry pendiente, intentos y categoría.
+
+También se añadió un límite de 8 eventos A/V por polling para impedir ráfagas largas de recuperación.
+
+**Verificado localmente:**
+- smoke de retry: PASS;
+- smoke de diagnóstico: PASS.
+
+**PENDIENTE:**
+- prueba contra endpoint RTMP real;
+- verificar semántica de agotamiento de intentos durante fallos consecutivos;
+- verificar que reconectar no pierda el estado que corresponda del broadcaster.
+
+**NO REPETIR:** la base de política/backoff ya existe; las siguientes sesiones deben probarla o corregirla con evidencia, no crear otra política paralela.
+
+## 016 — CI de rama de desarrollo
+**Estado:** IMPLEMENTADO / PENDIENTE INFRA
+
+Los workflows `CI`, `Native Windows Build` y `Character Runtime Tests` ahora disparan en `fix/native-windows-foundation` y aceptan `workflow_dispatch`.
+
+Los runs del 20-09-2026 siguen terminando antes de registrar steps (`steps=null`). No se marca CI como verde.
+
+**NO REPETIR:** no volver a diagnosticar esto como “fallo del build” mientras GitHub no entregue steps/logs.
+
+## 017 — Estado de avance consolidado
+**Estado:** ACTUALIZADO
+
+El repositorio mantiene **60%** como estimación global de ingeniería en `PROJECT_STATUS.md` y `AUDIT_MATRIX.md`.
+
+La cifra subió por completar resiliencia/diagnóstico y la infraestructura de bitácora/CI, no porque se haya validado hardware real.
+
+### Próxima frontera obligatoria
+
+Prioridad 1: transporte con timestamps explícitos.  
+Prioridad 2: compositor GPU D3D11 que una captura + avatar + overlays en el frame final.  
+Prioridad 3: cámara Media Foundation real.  
+Prioridad 4: lip-sync local.  
+Prioridad 5: RTMP/hardware sostenidos y multistream.
+
+Hasta que esas fronteras tengan evidencia, no mover el runtime fuera de `experimental/`.
