@@ -92,6 +92,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] CI smoke for FFmpeg supervisor failure/validation path.
 - [x] Native FFmpeg A/V output boundary with independent video/audio named pipes.
 - [x] Retención acotada de stderr FFmpeg (256 KiB) para sesiones prolongadas.
+- [x] `OutputRetryPolicy` con backoff exponencial, máximo de intentos y tope de demora.
 - [x] Explicit FFmpeg two-input `-map 0:v:0 -map 1:a:0` contract.
 - [ ] FFmpeg binary discovery policy.
   - CI usa instalación temporal; la política de redistribución del producto sigue pendiente.
