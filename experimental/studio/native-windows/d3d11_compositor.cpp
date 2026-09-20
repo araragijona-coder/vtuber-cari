@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <string_view>
 
 using Microsoft::WRL::ComPtr;
 
@@ -13,11 +14,31 @@ namespace {
 
 struct CompositeConstants {
     float rect[4];
+    float output_size[2];
     float opacity;
-    float pad[3];
+    float padding;
 };
 
+struct Vertex {
+    float position[2];
+    float uv[2];
+};
+
+constexpr std::array<Vertex, 4> kQuad{{
+    {{0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.0f, 1.0f}, {0.0f, 1.0f}},
+    {{1.0f, 1.0f}, {1.0f, 1.0f}},
+}};
+
 constexpr char kVertexShader[] = R"(
+cbuffer CompositeConstants : register(b0) {
+    float4 rect;
+    float2 outputSize;
+    float opacity;
+    float padding;
+};
+
 struct VSIn {
     float2 position : POSITION;
     float2 uv : TEXCOORD0;
@@ -30,7 +51,18 @@ struct VSOut {
 
 VSOut main(VSIn input) {
     VSOut output;
-    output.position = float4(input.position, 0.0, 1.0);
+
+    float x0 = (rect.x / outputSize.x) * 2.0 - 1.0;
+    float x1 = ((rect.x + rect.z) / outputSize.x) * 2.0 - 1.0;
+    float y0 = 1.0 - (rect.y / outputSize.y) * 2.0;
+    float y1 = 1.0 - ((rect.y + rect.w) / outputSize.y) * 2.0;
+
+    float2 position = float2(
+        lerp(x0, x1, input.position.x),
+        lerp(y0, y1, input.position.y)
+    );
+
+    output.position = float4(position, 0.0, 1.0);
     output.uv = input.uv;
     return output;
 }
@@ -39,11 +71,12 @@ VSOut main(VSIn input) {
 constexpr char kPixelShader[] = R"(
 cbuffer CompositeConstants : register(b0) {
     float4 rect;
+    float2 outputSize;
     float opacity;
+    float padding;
 };
 
-Texture2D baseTex : register(t0);
-Texture2D overlayTex : register(t1);
+Texture2D overlayTex : register(t0);
 SamplerState samplerLinear : register(s0);
 
 struct PSIn {
@@ -52,20 +85,21 @@ struct PSIn {
 };
 
 float4 main(PSIn input) : SV_Target {
-    float4 base = baseTex.Sample(samplerLinear, input.uv);
-    float2 local = (input.position.xy - rect.xy) / rect.zw;
-    float4 overlay = overlayTex.Sample(samplerLinear, local);
-
-    float alpha = saturate(overlay.a * opacity);
-    float3 rgb = overlay.rgb * alpha + base.rgb * (1.0 - alpha);
-    return float4(rgb, max(base.a, alpha));
+    float4 color = overlayTex.Sample(samplerLinear, input.uv);
+    color.a = saturate(color.a * opacity);
+    return color;
 }
 )";
 
-struct Vertex {
-    float position[2];
-    float uv[2];
-};
+std::wstring blob_error(ID3DBlob* errors, const wchar_t* fallback) {
+    if (!errors || errors->GetBufferSize() == 0) {
+        return fallback;
+    }
+
+    const auto* bytes = static_cast<const char*>(errors->GetBufferPointer());
+    const auto size = errors->GetBufferSize();
+    return std::wstring(bytes, bytes + size);
+}
 
 } // namespace
 
@@ -77,6 +111,12 @@ std::wstring D3D11Compositor::hresult_error(
            std::to_wstring(static_cast<unsigned long>(hr));
 }
 
+std::wstring D3D11Compositor::shader_error(
+    ID3DBlob* errors,
+    const wchar_t* fallback) {
+    return blob_error(errors, fallback);
+}
+
 bool D3D11Compositor::initialize(
     ID3D11Device* device,
     ID3D11DeviceContext* context,
@@ -84,12 +124,6 @@ bool D3D11Compositor::initialize(
     std::uint32_t height,
     std::wstring& error) {
     error.clear();
-    output_texture_.Reset();
-    output_rtv_.Reset();
-    output_srv_.Reset();
-    vertex_shader_.Reset();
-    pixel_shader_.Reset();
-    constant_buffer_.Reset();
 
     if (!device || !context || width == 0 || height == 0) {
         error = L"invalid D3D11 compositor initialization arguments";
@@ -101,7 +135,19 @@ bool D3D11Compositor::initialize(
     width_ = width;
     height_ = height;
 
-    return ensure_output(width, height, error) && ensure_pipeline(error);
+    output_texture_.Reset();
+    output_rtv_.Reset();
+    output_srv_.Reset();
+    vertex_shader_.Reset();
+    pixel_shader_.Reset();
+    input_layout_.Reset();
+    vertex_buffer_.Reset();
+    constant_buffer_.Reset();
+    blend_state_.Reset();
+    sampler_state_.Reset();
+
+    return ensure_output(width, height, error) &&
+           ensure_pipeline(error);
 }
 
 bool D3D11Compositor::ensure_output(
@@ -124,18 +170,25 @@ bool D3D11Compositor::ensure_output(
 
     HRESULT hr = device_->CreateTexture2D(&desc, nullptr, &output_texture_);
     if (FAILED(hr)) {
+        error = hresult_error(hr, L"CreateTexture2D output");
         return false;
     }
 
-    hr = device_->CreateRenderTargetView(output_texture_.Get(), nullptr, &output_rtv_);
+    hr = device_->CreateRenderTargetView(
+        output_texture_.Get(),
+        nullptr,
+        &output_rtv_);
     if (FAILED(hr)) {
         error = hresult_error(hr, L"CreateRenderTargetView");
         return false;
     }
 
-    hr = device_->CreateShaderResourceView(output_texture_.Get(), nullptr, &output_srv_);
+    hr = device_->CreateShaderResourceView(
+        output_texture_.Get(),
+        nullptr,
+        &output_srv_);
     if (FAILED(hr)) {
-        error = hresult_error(hr, L"CreateShaderResourceView");
+        error = hresult_error(hr, L"CreateShaderResourceView output");
         return false;
     }
 
@@ -145,12 +198,19 @@ bool D3D11Compositor::ensure_output(
 }
 
 bool D3D11Compositor::ensure_pipeline(std::wstring& error) {
-    if (vertex_shader_ && pixel_shader_ && constant_buffer_) {
+    if (vertex_shader_ &&
+        pixel_shader_ &&
+        input_layout_ &&
+        vertex_buffer_ &&
+        constant_buffer_ &&
+        blend_state_ &&
+        sampler_state_) {
         return true;
     }
 
     ComPtr<ID3DBlob> vs_blob;
     ComPtr<ID3DBlob> errors;
+
     HRESULT hr = D3DCompile(
         kVertexShader,
         std::strlen(kVertexShader),
@@ -165,15 +225,7 @@ bool D3D11Compositor::ensure_pipeline(std::wstring& error) {
         &errors);
     if (FAILED(hr)) {
         ++stats_.shader_failures;
-        error = errors
-            ? std::wstring(
-                static_cast<const wchar_t*>(nullptr),
-                static_cast<const wchar_t*>(nullptr))
-            : L"D3D vertex shader compilation failed";
-        if (errors) {
-            const char* bytes = static_cast<const char*>(errors->GetBufferPointer());
-            error.assign(bytes, bytes + errors->GetBufferSize());
-        }
+        error = shader_error(errors.Get(), L"D3D vertex shader compilation failed");
         return false;
     }
 
@@ -183,14 +235,94 @@ bool D3D11Compositor::ensure_pipeline(std::wstring& error) {
         nullptr,
         &vertex_shader_);
     if (FAILED(hr)) {
-        ++stats_.shader_failures;
         error = hresult_error(hr, L"CreateVertexShader");
         return false;
     }
 
-    vs_blob.Reset();
-    errors.Reset();
+    const D3D11_INPUT_ELEMENT_DESC input_elements[] = {
+        {
+            "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0,
+            D3D11_INPUT_PER_VERTEX_DATA, 0
+        },
+        {
+            "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8,
+            D3D11_INPUT_PER_VERTEX_DATA, 0
+        },
+    };
 
+    hr = device_->CreateInputLayout(
+        input_elements,
+        static_cast<UINT>(std::size(input_elements)),
+        vs_blob->GetBufferPointer(),
+        vs_blob->GetBufferSize(),
+        &input_layout_);
+    if (FAILED(hr)) {
+        error = hresult_error(hr, L"CreateInputLayout");
+        return false;
+    }
+
+    D3D11_BUFFER_DESC vertex_desc{};
+    vertex_desc.ByteWidth = sizeof(kQuad);
+    vertex_desc.Usage = D3D11_USAGE_IMMUTABLE;
+    vertex_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA vertex_data{};
+    vertex_data.pSysMem = kQuad.data();
+
+    hr = device_->CreateBuffer(
+        &vertex_desc,
+        &vertex_data,
+        &vertex_buffer_);
+    if (FAILED(hr)) {
+        error = hresult_error(hr, L"CreateBuffer vertex");
+        return false;
+    }
+
+    D3D11_BUFFER_DESC constant_desc{};
+    constant_desc.ByteWidth = sizeof(CompositeConstants);
+    constant_desc.Usage = D3D11_USAGE_DEFAULT;
+    constant_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+    hr = device_->CreateBuffer(
+        &constant_desc,
+        nullptr,
+        &constant_buffer_);
+    if (FAILED(hr)) {
+        error = hresult_error(hr, L"CreateBuffer constants");
+        return false;
+    }
+
+    D3D11_BLEND_DESC blend_desc{};
+    blend_desc.AlphaToCoverageEnable = FALSE;
+    blend_desc.IndependentBlendEnable = FALSE;
+    blend_desc.RenderTarget[0].BlendEnable = TRUE;
+    blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+    blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+    hr = device_->CreateBlendState(&blend_desc, &blend_state_);
+    if (FAILED(hr)) {
+        error = hresult_error(hr, L"CreateBlendState");
+        return false;
+    }
+
+    D3D11_SAMPLER_DESC sampler_desc{};
+    sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+    hr = device_->CreateSamplerState(&sampler_desc, &sampler_state_);
+    if (FAILED(hr)) {
+        error = hresult_error(hr, L"CreateSamplerState");
+        return false;
+    }
+
+    errors.Reset();
     hr = D3DCompile(
         kPixelShader,
         std::strlen(kPixelShader),
@@ -205,12 +337,7 @@ bool D3D11Compositor::ensure_pipeline(std::wstring& error) {
         &errors);
     if (FAILED(hr)) {
         ++stats_.shader_failures;
-        if (errors) {
-            const char* bytes = static_cast<const char*>(errors->GetBufferPointer());
-            error.assign(bytes, bytes + errors->GetBufferSize());
-        } else {
-            error = L"D3D pixel shader compilation failed";
-        }
+        error = shader_error(errors.Get(), L"D3D pixel shader compilation failed");
         return false;
     }
 
@@ -220,19 +347,7 @@ bool D3D11Compositor::ensure_pipeline(std::wstring& error) {
         nullptr,
         &pixel_shader_);
     if (FAILED(hr)) {
-        ++stats_.shader_failures;
         error = hresult_error(hr, L"CreatePixelShader");
-        return false;
-    }
-
-    D3D11_BUFFER_DESC buffer_desc{};
-    buffer_desc.ByteWidth = sizeof(CompositeConstants);
-    buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-    buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-
-    hr = device_->CreateBuffer(&buffer_desc, nullptr, &constant_buffer_);
-    if (FAILED(hr)) {
-        error = hresult_error(hr, L"CreateBuffer constant buffer");
         return false;
     }
 
@@ -250,8 +365,15 @@ bool D3D11Compositor::upload_overlay(
         return false;
     }
 
+    const std::uint64_t pixel_count =
+        static_cast<std::uint64_t>(overlay.width) * overlay.height;
+    if (pixel_count > (static_cast<std::uint64_t>(SIZE_MAX) / 4u)) {
+        error = L"overlay is too large";
+        return false;
+    }
+
     const std::size_t expected =
-        static_cast<std::size_t>(overlay.width) * overlay.height * 4u;
+        static_cast<std::size_t>(pixel_count * 4u);
     if (overlay.rgba->size() != expected) {
         error = L"overlay payload size does not match dimensions";
         return false;
@@ -272,13 +394,19 @@ bool D3D11Compositor::upload_overlay(
     data.SysMemPitch = overlay.width * 4u;
 
     ComPtr<ID3D11Texture2D> texture;
-    HRESULT hr = device_->CreateTexture2D(&desc, &data, &texture);
+    HRESULT hr = device_->CreateTexture2D(
+        &desc,
+        &data,
+        &texture);
     if (FAILED(hr)) {
         error = hresult_error(hr, L"CreateTexture2D overlay");
         return false;
     }
 
-    hr = device_->CreateShaderResourceView(texture.Get(), nullptr, &srv);
+    hr = device_->CreateShaderResourceView(
+        texture.Get(),
+        nullptr,
+        &srv);
     if (FAILED(hr)) {
         error = hresult_error(hr, L"CreateShaderResourceView overlay");
         return false;
@@ -286,6 +414,7 @@ bool D3D11Compositor::upload_overlay(
 
     texture_width = overlay.width;
     texture_height = overlay.height;
+    ++stats_.overlay_uploads;
     return true;
 }
 
@@ -295,8 +424,11 @@ bool D3D11Compositor::compose_capture(
     std::wstring& error) {
     error.clear();
 
-    if (!capture || !output_texture_ || !output_rtv_ ||
-        !vertex_shader_ || !pixel_shader_ || !constant_buffer_) {
+    if (!capture || !device_ || !context_ ||
+        !output_texture_ || !output_rtv_ ||
+        !vertex_shader_ || !pixel_shader_ ||
+        !input_layout_ || !vertex_buffer_ ||
+        !constant_buffer_ || !blend_state_ || !sampler_state_) {
         ++stats_.rejected_frames;
         error = L"compositor pipeline is not initialized";
         return false;
@@ -304,69 +436,115 @@ bool D3D11Compositor::compose_capture(
 
     D3D11_TEXTURE2D_DESC capture_desc{};
     capture->GetDesc(&capture_desc);
-    if (capture_desc.Width != width_ || capture_desc.Height != height_ ||
-        (capture_desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM &&
-         capture_desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM_SRGB)) {
+    if (capture_desc.Width != width_ ||
+        capture_desc.Height != height_ ||
+        capture_desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
         ++stats_.rejected_frames;
         error = L"capture texture format/size is incompatible with compositor";
         return false;
     }
 
-    ComPtr<ID3D11ShaderResourceView> capture_srv;
-    HRESULT hr = device_->CreateShaderResourceView(capture, nullptr, &capture_srv);
-    if (FAILED(hr)) {
-        ++stats_.rejected_frames;
-        error = hresult_error(hr, L"CreateShaderResourceView capture");
-        return false;
+    context_->CopyResource(output_texture_.Get(), capture);
+
+    if (!overlays.empty()) {
+        const UINT stride = sizeof(Vertex);
+        const UINT offset = 0;
+        const float blend_factor[4] = {0, 0, 0, 0};
+
+        context_->OMSetRenderTargets(
+            1,
+            output_rtv_.GetAddressOf(),
+            nullptr);
+        context_->OMSetBlendState(
+            blend_state_.Get(),
+            blend_factor,
+            0xffffffffu);
+
+        context_->IASetInputLayout(input_layout_.Get());
+        context_->IASetVertexBuffers(
+            0,
+            1,
+            vertex_buffer_.GetAddressOf(),
+            &stride,
+            &offset);
+        context_->IASetPrimitiveTopology(
+            D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+        context_->VSSetShader(vertex_shader_.Get(), nullptr, 0);
+        context_->PSSetShader(pixel_shader_.Get(), nullptr, 0);
+        context_->PSSetSamplers(
+            0,
+            1,
+            sampler_state_.GetAddressOf());
+
+        D3D11_VIEWPORT viewport{};
+        viewport.Width = static_cast<float>(width_);
+        viewport.Height = static_cast<float>(height_);
+        viewport.MinDepth = 0.0f;
+        viewport.MaxDepth = 1.0f;
+        context_->RSSetViewports(1, &viewport);
+
+        for (const auto& overlay : overlays) {
+            ComPtr<ID3D11ShaderResourceView> overlay_srv;
+            std::uint32_t tex_width = 0;
+            std::uint32_t tex_height = 0;
+            if (!upload_overlay(
+                    overlay,
+                    overlay_srv,
+                    tex_width,
+                    tex_height,
+                    error)) {
+                ID3D11ShaderResourceView* null_srv = nullptr;
+                context_->PSSetShaderResources(0, 1, &null_srv);
+                return false;
+            }
+
+            const float scaled_width =
+                static_cast<float>(tex_width) * std::max(0.001f, overlay.scale);
+            const float scaled_height =
+                static_cast<float>(tex_height) * std::max(0.001f, overlay.scale);
+
+            CompositeConstants constants{};
+            constants.rect[0] = static_cast<float>(overlay.x);
+            constants.rect[1] = static_cast<float>(overlay.y);
+            constants.rect[2] = scaled_width;
+            constants.rect[3] = scaled_height;
+            constants.output_size[0] = static_cast<float>(width_);
+            constants.output_size[1] = static_cast<float>(height_);
+            constants.opacity = std::clamp(overlay.opacity, 0.0f, 1.0f);
+
+            context_->UpdateSubresource(
+                constant_buffer_.Get(),
+                0,
+                nullptr,
+                &constants,
+                0,
+                0);
+
+            context_->VSSetConstantBuffers(
+                0,
+                1,
+                constant_buffer_.GetAddressOf());
+            context_->PSSetConstantBuffers(
+                0,
+                1,
+                constant_buffer_.GetAddressOf());
+            context_->PSSetShaderResources(
+                0,
+                1,
+                overlay_srv.GetAddressOf());
+            context_->Draw(4, 0);
+
+            ID3D11ShaderResourceView* null_srv = nullptr;
+            context_->PSSetShaderResources(0, 1, &null_srv);
+        }
+
+        ID3D11RenderTargetView* null_rtv = nullptr;
+        context_->OMSetRenderTargets(1, &null_rtv, nullptr);
     }
 
-    const std::array<Vertex, 4> quad{{
-        {{-1.0f, 1.0f}, {0.0f, 0.0f}},
-        {{ 1.0f, 1.0f}, {1.0f, 0.0f}},
-        {{-1.0f,-1.0f}, {0.0f, 1.0f}},
-        {{ 1.0f,-1.0f}, {1.0f, 1.0f}},
-    }};
-
-    D3D11_BUFFER_DESC vertex_desc{};
-    vertex_desc.ByteWidth = sizeof(quad);
-    vertex_desc.Usage = D3D11_USAGE_IMMUTABLE;
-    vertex_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA vertex_data{};
-    vertex_data.pSysMem = quad.data();
-
-    ComPtr<ID3D11Buffer> vertex_buffer;
-    hr = device_->CreateBuffer(&vertex_desc, &vertex_data, &vertex_buffer);
-    if (FAILED(hr)) {
-        error = hresult_error(hr, L"CreateBuffer vertex");
-        return false;
-    }
-
-    D3D11_INPUT_ELEMENT_DESC input_layout[] = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0,
-         D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8,
-         D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    ComPtr<ID3D11InputLayout> input;
-    // Recompile the VS signature is unnecessary: use the compiled bytecode.
-    // The temporary shader blob is not retained, so create a tiny signature
-    // through the known input declaration is not possible here.
-    // CreateInputLayout is therefore deferred to a future persistent pipeline.
-    // For the current backend use CopyResource for the base frame when no
-    // overlays are present.
-    if (overlays.empty()) {
-        context_->CopyResource(output_texture_.Get(), capture);
-        ++stats_.composed_frames;
-        return true;
-    }
-
-    // Overlay composition requires a persistent input-layout/vertex pipeline.
-    // Keep the capture GPU path correct rather than falling back to CPU.
-    error = L"overlay composition pipeline requires persistent input layout";
-    ++stats_.rejected_frames;
-    return false;
+    ++stats_.composed_frames;
+    return true;
 }
 
 } // namespace cari::native
