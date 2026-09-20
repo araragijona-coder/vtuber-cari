@@ -41,7 +41,7 @@ bool has(const std::string& line, const char* token) {
 }
 
 std::int32_t read_int_field(const std::string& compact, const char* field) {
-    const std::string prefix = std::string(""") + field + "":";
+    const std::string prefix = std::string("\"") + field + "\":";
     const auto begin = compact.find(prefix);
     if (begin == std::string::npos) {
         return -1;
