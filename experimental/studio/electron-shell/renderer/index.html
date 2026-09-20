@@ -1,132 +1,241 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Cari Studio</title>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self' ws://127.0.0.1:4455 wss://eventsub.wss.twitch.tv; font-src 'self';">
-  <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; background:#0e1015; color:#f5f7fb; font:14px system-ui,-apple-system,Segoe UI,sans-serif; }
-    body { display:grid; grid-template-columns:290px minmax(480px,1fr) 380px; grid-template-rows:minmax(0,1fr) 46px; overflow:hidden; }
-    aside { min-height:0; overflow:auto; padding:16px; background:#171a21; border-right:1px solid #2b303b; }
-    #right { border-right:0; border-left:1px solid #2b303b; }
-    main { min-width:0; min-height:0; padding:12px; display:grid; grid-template-rows:minmax(0,1fr) 155px; gap:10px; background:#0b0d11; }
-    #avatar { width:100%; height:100%; min-height:0; background:radial-gradient(circle at 50% 35%,#20283a 0,#090b10 65%); border:1px solid #303644; border-radius:10px; }
-    #camera { width:100%; height:100%; object-fit:cover; background:#07080b; border:1px solid #303644; border-radius:10px; }
-    .panel { background:#1b1f28; border:1px solid #2b303b; border-radius:9px; padding:12px; margin-bottom:12px; }
-    h1,h2,h3 { margin:0 0 9px; } h1{font-size:20px} h2{font-size:16px} h3{font-size:14px}
-    button,input { width:100%; margin:4px 0; padding:9px; border-radius:7px; border:1px solid #3a414f; background:#222733; color:#fff; }
-    button:hover { background:#2c3341; cursor:pointer; }
-    button.primary { background:#355bb3; border-color:#466ed0; } button.danger{background:#7d2e38}
-    input::placeholder{color:#7f8796}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-    .tiny{font-size:12px;color:#9ea7b7;line-height:1.35}
-    .metric{padding:9px;background:#141820;border-radius:7px;margin-top:7px;overflow-wrap:anywhere}
-    .pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#252b38;color:#bfc8d8;font-size:11px}
-    #chat-log{height:330px;overflow:auto;background:#10131a;border:1px solid #2c323f;border-radius:7px;padding:8px}
-    .chat-line{padding:5px 3px;border-bottom:1px solid #1d222c;overflow-wrap:anywhere}
-    .chat-name{font-weight:700}
-    #event-log{height:145px;overflow:auto;background:#10131a;border:1px solid #2c323f;border-radius:7px;padding:8px;font-size:12px}
-    .event-line{padding:3px 2px;border-bottom:1px solid #1d222c}
-    #status{grid-column:1/4;padding:12px 17px;background:#0c0f14;border-top:1px solid #2b303b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .ok{color:#7ee787}.warn{color:#f2cc60}.bad{color:#ff7b72}
-  </style>
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <aside>
-    <h1>Cari Studio</h1>
-    <div class="tiny">Windows-first local studio. AI is not required for capture, avatar, chat or streaming.</div>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand">
+        <div class="brand-mark">C</div>
+        <div>
+          <div class="brand-title">Cari Studio</div>
+          <div class="small muted">Streaming + VTuber Studio</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="live-indicator" id="live-state"><span class="dot"></span><span>OFFLINE</span></div>
+        <button id="header-start" class="primary">Iniciar motor</button>
+        <button id="header-stream" class="ghost">Transmitir</button>
+      </div>
+    </header>
 
-    <div class="panel">
-      <h3>Engine</h3>
-      <button id="start" class="primary">Start Cari Engine</button>
-      <button id="stop">Stop Engine</button>
-      <div class="metric" id="engine">offline</div>
-    </div>
+    <aside id="sidebar">
+      <div class="nav-group">
+        <div class="nav-label">Studio</div>
+        <button class="nav-item active" data-view="live"><span class="nav-icon">●</span>En vivo</button>
+        <button class="nav-item" data-view="dashboard"><span class="nav-icon">▦</span>Panel</button>
+        <button class="nav-item" data-view="vtuber"><span class="nav-icon">✦</span>VTuber</button>
+        <button class="nav-item" data-view="scenes"><span class="nav-icon">▤</span>Escenas</button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Comunidad</div>
+        <button class="nav-item" data-view="chat"><span class="nav-icon">☷</span>Chat</button>
+        <button class="nav-item" data-view="events"><span class="nav-icon">⚡</span>Eventos</button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Recursos</div>
+        <button class="nav-item" data-view="assets"><span class="nav-icon">▧</span>Assets</button>
+        <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span>Configuración</button>
+      </div>
+      <div class="sidebar-footer">
+        <div class="small">Modo local</div>
+        <div class="small muted">Sin IA obligatoria · Sin nube para operar</div>
+      </div>
+    </aside>
 
-    <div class="panel">
-      <h3>Capture</h3>
-      <label class="tiny">Window number</label>
-      <input id="window-index" type="number" min="1" value="1">
-      <div class="row"><button id="capture-window">Window</button><button id="capture-screen">Screen</button></div>
-      <label class="tiny">Camera number</label>
-      <input id="camera-source-index" type="number" min="1" value="1">
-      <button id="capture-camera">Native Camera</button>
-      <button id="capture-stop">Stop Capture</button>
-    </div>
+    <section id="workspace">
+      <section class="view active" data-view-panel="live">
+        <div class="view-header">
+          <div><div class="view-title">En vivo</div><div class="muted small">Vista de emisión y control rápido</div></div>
+          <div class="toolbar">
+            <button id="live-record">Grabar</button>
+            <button id="live-stream" class="primary">Iniciar directo</button>
+          </div>
+        </div>
+        <div class="live-grid">
+          <div class="card preview-card">
+            <div class="section-title"><h3>Preview</h3><span class="pill" id="preview-action">Neutral</span></div>
+            <div class="preview-stage">
+              <canvas id="avatar"></canvas>
+              <img id="action-overlay" alt="" aria-hidden="true">
+              <div class="camera-box"><video id="camera" autoplay muted playsinline></video></div>
+              <div class="action-badge" id="tracking-badge">tracking idle</div>
+            </div>
+            <div class="stat-row" style="margin-top:10px">
+              <div class="stat"><div class="label">Motor</div><div class="value" id="engine">offline</div></div>
+              <div class="stat"><div class="label">FPS</div><div class="value" id="stat-fps">0</div></div>
+              <div class="stat"><div class="label">Audio</div><div class="value" id="stat-audio">0</div></div>
+              <div class="stat"><div class="label">Salida</div><div class="value" id="stat-output">offline</div></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="section-title"><h3>Acciones rápidas</h3><button id="goto-vtuber" class="ghost small">Editar</button></div>
+              <div id="live-action-bar" class="preset-row"></div>
+            </div>
+            <div class="card">
+              <div class="section-title"><h3>Captura</h3><span class="pill" id="capture-state">stopped</span></div>
+              <div class="form-row"><label>Ventana</label><div class="form-grid"><input id="window-index" type="number" min="1" value="1"><button id="capture-window">Capturar ventana</button></div></div>
+              <div class="form-grid"><button id="capture-screen">Pantalla</button><button id="capture-stop">Detener</button></div>
+              <div class="small muted" style="margin-top:8px">La cámara de tracking funciona aparte del capturador nativo.</div>
+            </div>
+            <div class="card">
+              <div class="section-title"><h3>Voz</h3></div>
+              <div class="form-grid"><button id="voice-off">Normal</button><button id="voice-anime">Anime Bright</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <div class="panel">
-      <h3>Output</h3>
-      <button id="record" class="primary">Record Local MKV</button>
-      <input id="rtmp-target" placeholder="rtmps://server/live/stream-key">
-      <button id="stream-start" class="primary">Start Direct RTMP</button>
-      <button id="stream-stop">Stop Output</button>
-    </div>
+      <section class="view" data-view-panel="dashboard">
+        <div class="view-header"><div><div class="view-title">Panel</div><div class="muted small">Resumen operativo de Cari Studio</div></div></div>
+        <div class="stat-row">
+          <div class="stat"><div class="label">Motor nativo</div><div class="value" id="dash-engine">offline</div></div>
+          <div class="stat"><div class="label">Captura</div><div class="value" id="dash-capture">stopped</div></div>
+          <div class="stat"><div class="label">Audio</div><div class="value" id="dash-audio">stopped</div></div>
+          <div class="stat"><div class="label">Output</div><div class="value" id="dash-output">stopped</div></div>
+        </div>
+        <div class="card">
+          <div class="section-title"><h3>Pipeline</h3><span class="pill">Windows Native</span></div>
+          <div class="list-card"><span>Windows Graphics Capture</span><span class="pill">local</span></div>
+          <div class="list-card"><span>WASAPI mic + system audio</span><span class="pill">local</span></div>
+          <div class="list-card"><span>MediaPipe / Three.js</span><span class="pill">VTuber</span></div>
+          <div class="list-card"><span>FFmpeg</span><span class="pill">output</span></div>
+        </div>
+        <div class="card">
+          <div class="section-title"><h3>Diagnóstico</h3></div>
+          <div id="metrics" class="small muted">native engine offline</div>
+        </div>
+      </section>
 
-    <div class="panel">
-      <h3>Voice</h3>
-      <div class="row"><button id="voice-off">Off</button><button id="voice-anime">Anime Bright</button></div>
-      <div class="tiny">Local DSP effect. It is not pitch/formant synthesis.</div>
-    </div>
+      <section class="view" data-view-panel="vtuber">
+        <div class="view-header">
+          <div><div class="view-title">Editor VTuber</div><div class="muted small">Creá acciones y asignales imágenes/PNG. Todo se guarda localmente.</div></div>
+          <div class="toolbar">
+            <button id="action-import">Importar preset</button>
+            <button id="action-export">Exportar preset</button>
+            <button id="action-add" class="primary">＋ Nueva acción</button>
+          </div>
+        </div>
+        <div class="action-editor">
+          <div class="editor-left">
+            <div class="card action-stage-card">
+              <div class="section-title"><h3 id="editor-action-title">Neutral</h3><span class="pill" id="editor-frame-count">0 imágenes</span></div>
+              <div class="action-stage">
+                <canvas id="editor-avatar"></canvas>
+                <img id="editor-overlay" alt="" aria-hidden="true">
+                <div class="action-badge">Preview del action</div>
+              </div>
+              <div style="margin-top:12px">
+                <div class="section-title"><h3>Acciones</h3><span class="small muted">clic para probar</span></div>
+                <div id="action-grid" class="action-grid"></div>
+              </div>
+            </div>
+          </div>
+          <div class="editor-right">
+            <div class="card">
+              <div class="section-title"><h3>Propiedades</h3></div>
+              <div id="inspector-content"></div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <div class="panel">
-      <h3>Avatar Source</h3>
-      <button id="model-pick" class="primary">Load GLB / glTF Model</button>
-      <div class="metric" id="model">Built-in full-body demo rig</div>
-      <div class="row"><button id="overlay-show">Show Overlay</button><button id="overlay-hide">Hide Overlay</button></div>
-      <div class="tiny">The bundled rig is a technical demo, not a proprietary final Cari character asset.</div>
-    </div>
-  </aside>
+      <section class="view" data-view-panel="scenes">
+        <div class="view-header"><div><div class="view-title">Escenas</div><div class="muted small">Base para layouts de streaming</div></div><button id="scene-add">＋ Nueva escena</button></div>
+        <div id="scene-list"></div>
+      </section>
 
-  <main>
-    <canvas id="avatar" aria-label="VTuber avatar renderer"></canvas>
-    <video id="camera" autoplay muted playsinline aria-label="Local camera preview"></video>
-  </main>
+      <section class="view" data-view-panel="chat">
+        <div class="view-header"><div><div class="view-title">Chat</div><div class="muted small">Twitch conectado desde el control plane local</div></div></div>
+        <div class="card">
+          <div class="form-grid"><input id="twitch-client-id" autocomplete="off" placeholder="Twitch Client ID"><input id="twitch-channel" autocomplete="off" placeholder="Canal"></div>
+          <div class="toolbar" style="margin-top:8px"><button id="twitch-connect" class="primary">Conectar Twitch</button><button id="twitch-disconnect">Desconectar</button><button id="chat-read">Leer chat: Off</button></div>
+          <div class="metric" id="twitch-status">Disconnected</div>
+        </div>
+        <div class="card">
+          <div id="chat-log" class="chat-log"></div>
+          <div class="form-grid" style="margin-top:8px"><input id="chat-input" maxlength="500" placeholder="Escribí un mensaje…"><button id="chat-send" class="primary">Enviar</button></div>
+        </div>
+      </section>
 
-  <aside id="right">
-    <div class="panel">
-      <h2>Twitch</h2>
-      <div class="tiny">1) Create a Twitch app. 2) Set redirect URL to <b>http://127.0.0.1:37845/oauth/callback</b>. 3) Paste the Client ID here.</div>
-      <input id="twitch-client-id" autocomplete="off" placeholder="Twitch Client ID">
-      <input id="twitch-channel" autocomplete="off" placeholder="Channel login, e.g. mi_canal">
-      <div class="row"><button id="twitch-connect" class="primary">Connect Twitch</button><button id="twitch-disconnect">Disconnect</button></div>
-      <div class="metric" id="twitch-status">Disconnected</div>
-    </div>
+      <section class="view" data-view-panel="events">
+        <div class="view-header"><div><div class="view-title">Eventos</div><div class="muted small">Actividad de Twitch y acciones del Studio</div></div></div>
+        <div class="card"><div id="event-log" class="event-log"></div></div>
+      </section>
 
-    <div class="panel">
-      <h2>Chat</h2>
-      <div id="chat-log"></div>
-      <label class="tiny">Message</label>
-      <input id="chat-input" maxlength="500" placeholder="Write in Twitch chat…">
-      <div class="row"><button id="chat-send" class="primary">Send Chat</button><button id="chat-read">Read Chat: Off</button></div>
-      <div class="tiny">Deterministic local reactions: !happy, !angry and !neutral change the avatar.</div>
-    </div>
+      <section class="view" data-view-panel="assets">
+        <div class="view-header"><div><div class="view-title">Assets</div><div class="muted small">Las imágenes se asignan directamente desde el editor VTuber.</div></div><button id="assets-open-editor" class="primary">Abrir editor</button></div>
+        <div class="card">
+          <h3>Biblioteca de acciones</h3>
+          <p class="muted small" style="margin-top:5px">Cada acción puede tener hasta 24 frames PNG/JPG/WebP y persistirse como preset JSON.</p>
+          <div id="asset-summary" style="margin-top:12px"></div>
+        </div>
+      </section>
 
-    <div class="panel">
-      <h2>Avatar Controls</h2>
-      <div class="row"><button id="neutral">Neutral</button><button id="happy">Happy</button></div>
-      <button id="angry">Angry</button>
-      <div class="metric" id="render">neutral</div>
-      <div class="row"><button id="camera-start">Camera On</button><button id="camera-stop">Camera Off</button></div>
-<div class="metric" id="tracking">tracking idle</div>
-    </div>
+      <section class="view" data-view-panel="settings">
+        <div class="view-header"><div><div class="view-title">Configuración</div><div class="muted small">Rutas y controles de runtime</div></div></div>
+        <div class="card">
+          <h3>Native Runtime</h3>
+          <div class="small muted" style="margin-top:5px">CARI_NATIVE_EXECUTABLE</div>
+          <div class="metric" id="native-path">resuelto por Electron</div>
+          <div class="small muted" style="margin-top:10px">MediaPipe y avatar se configuran mediante variables locales del runtime.</div>
+        </div>
+        <div class="card">
+          <h3>OBS (opcional)</h3>
+          <div class="toolbar"><button id="obs-connect">Conectar</button><button id="obs-start">Stream On</button><button id="obs-stop">Stream Off</button></div>
+          <div class="small muted" style="margin-top:8px">Cari Studio funciona sin OBS; esta integración controla un OBS existente mediante obs-websocket 5.x.</div>
+        </div>
+      </section>
+    </section>
 
-    <div class="panel">
-      <h2>Events / Diagnostics</h2>
-      <div id="event-log"></div>
-      <div class="metric" id="metrics">native engine offline</div>
-    </div>
+    <aside id="inspector">
+      <div class="card">
+        <div class="section-title"><h3>Control rápido</h3><span class="pill">Studio</span></div>
+        <div class="preset-row">
+          <button data-quick-action="neutral">Neutral</button>
+          <button data-quick-action="happy">Feliz</button>
+          <button data-quick-action="sad">Triste</button>
+          <button data-quick-action="talking">Hablar</button>
+          <button data-quick-action="silent">Callar</button>
+          <button data-quick-action="angry">Enojada</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Stream</h3>
+        <input id="rtmp-target" placeholder="rtmps://servidor/live/key">
+        <button id="stream-start" class="primary">Iniciar RTMP</button>
+        <button id="stream-stop">Detener salida</button>
+        <button id="record" class="ghost">Grabar MKV local</button>
+      </div>
+      <div class="card">
+        <h3>Avatar</h3>
+        <button id="model-pick">Cargar GLB / glTF</button>
+        <div class="metric" id="model">placeholder técnico</div>
+        <div class="form-grid"><button id="camera-start">Tracking On</button><button id="camera-stop">Tracking Off</button></div>
+        <button id="overlay-show">Mostrar overlay</button>
+        <button id="overlay-hide">Ocultar overlay</button>
+        <div class="metric" id="tracking">tracking idle</div>
+      </div>
+      <div class="card">
+        <h3>Diagnóstico</h3>
+        <div class="small muted" id="side-diagnostics">Esperando motor…</div>
+      </div>
+    </aside>
 
-    <div class="panel">
-      <h3>OBS (optional)</h3>
-      <div class="row"><button id="obs-connect">Connect</button><button id="obs-start">Stream On</button></div>
-      <button id="obs-stop">Stream Off</button>
-    </div>
-  </aside>
+    <footer id="statusbar">
+      <span id="status">Listo — control local.</span>
+      <span id="workspace-state">VTuber actions: local</span>
+    </footer>
+  </div>
 
-  <div id="status">Ready — local control plane.</div>
+  <input id="action-file-input" class="hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+  <input id="action-preset-input" class="hidden" type="file" accept="application/json,.json">
 
   <script type="importmap">
   {
