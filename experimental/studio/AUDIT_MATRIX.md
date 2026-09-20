@@ -184,7 +184,6 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - La entrada de audio solo se extrae del mixer cuando ambos named pipes están conectados; esto evita consumir la cola durante el handshake inicial.
 - Cada polling del media graph despacha como máximo 8 eventos A/V; si se alcanza el presupuesto, queda una métrica pacing_budget_exhausted para diagnóstico.
 
-- El head de trabajo se actualiza en cada modificación de esta continuación; el último head de referencia de esta bitácora es **75e62403561b04e4d70cc79ffd84028f8b9c4ef4**.
 - Se corrigió previamente el timestamp WASAPI para usar el `QPCPosition` ya convertido por Windows a 100 ns. Microsoft documenta explícitamente esa unidad; no debe volver a tratarse como ticks QPC crudos. citeturn0search0
 - `AudioTimelineMixer` introduce una frontera temporal única para micrófono, audio del sistema y futuras pistas como TTS. Normaliza canales/sample-rate, conserva PTS, produce bloques de 20 ms y mantiene métricas de rechazo, resampling, mezcla y underrun.
 - El smoke de `AudioTimelineMixer` verifica mezcla de micrófono + sistema, avance monotónico de PTS, resampling de una pista de 44.1 kHz y rechazo de paquetes malformados.
@@ -214,9 +213,4 @@ Cada pendiente debe indicar qué evidencia falta antes de pasar a `[x]`.
 
 ## Bitácora
 
-La bitácora maestra de continuidad está en `experimental/studio/BITACORA_CARI_STUDIO.md` y debe consultarse antes de implementar un punto ya auditado.
-
-
-## Continuidad
-
-La bitácora maestra de continuidad es `experimental/studio/BITACORA_CARI_STUDIO.md`. Los estados IMPLEMENTADO/VERIFICADO/VALIDADO EN HARDWARE deben mantenerse separados.
+La fuente canónica de continuidad es `experimental/studio/BITACORA.md`.
