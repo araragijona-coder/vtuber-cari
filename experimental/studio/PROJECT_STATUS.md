@@ -32,6 +32,8 @@
 - [x] Reset de retry por nueva sesión manual, conservando intentos durante reconexiones automáticas.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
+- [x] Auditoría de botones renderer y alineación de handlers OBS/Twitch/VTuber.
+- [x] Test contractual UI→IPC→ObsService para evitar regresiones de botones y API.
 - [x] Bitácora técnica versionada con inventario de trabajo realizado, evidencia y lista NO REPETIR.
 - [x] Test de coherencia UI para menú, vistas e IDs HTML.
 - [x] Latest-frame worker fuera del callback WGC: el callback solo encola/reemplaza frames pendientes; el procesamiento pesado queda desacoplado del hilo de captura.
@@ -114,6 +116,7 @@
 ## Streaming / eventos
 
 - [x] Arquitectura de salida desacoplada de plataformas.
+- [x] Controles de chat Twitch conectados a acciones locales del avatar y botones OBS conectados a su servicio real.
 - [ ] Adaptador Twitch RTMP probado en máquina real.
 - [ ] Adaptador YouTube RTMP probado en máquina real.
 - [ ] Adaptadores adicionales.
