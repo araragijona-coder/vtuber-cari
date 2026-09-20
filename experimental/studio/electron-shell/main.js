@@ -198,11 +198,21 @@ ipcMain.handle("avatar:choose-model", async event => {
     ]
   });
   if (result.canceled || result.filePaths.length === 0) return { canceled: true };
+  const selectedPath = result.filePaths[0];
+  const extension = path.extname(selectedPath).toLowerCase();
+  let dataUrl = null;
+  if (extension === ".glb") {
+    const bytes = fs.readFileSync(selectedPath);
+    if (bytes.length <= 32 * 1024 * 1024) {
+      dataUrl = "data:model/gltf-binary;base64," + bytes.toString("base64");
+    }
+  }
   return {
     canceled: false,
-    path: result.filePaths[0],
-    url: pathToFileURL(result.filePaths[0]).href,
-    name: path.basename(result.filePaths[0])
+    path: selectedPath,
+    url: pathToFileURL(selectedPath).href,
+    dataUrl,
+    name: path.basename(selectedPath)
   };
 });
 
