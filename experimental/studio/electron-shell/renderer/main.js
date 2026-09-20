@@ -3,6 +3,7 @@ import { FaceTracker } from "../avatar/face-tracker.js";
 import { FaceTrackingBridge } from "../avatar/face-tracking-bridge.js";
 import { ThreeAvatarRenderer } from "../avatar/three-avatar.js";
 import { AvatarActingBridge } from "../avatar/acting-bridge.js";
+import { AudioLipSync } from "../avatar/audio-lipsync.js";
 
 const ui = {
   canvas: document.querySelector("#avatar"),
@@ -19,6 +20,7 @@ const session = new StudioSessionManager(window.cari.native);
 const acting = new AvatarActingBridge();
 const renderer = new ThreeAvatarRenderer(ui.canvas);
 const trackingBridge = new FaceTrackingBridge(acting);
+const audioLipSync = new AudioLipSync(acting);
 
 let faceTracker = null;
 let cameraStream = null;
@@ -78,6 +80,7 @@ async function refresh() {
     }
 
     const metrics = parseStatus(result.native.message);
+    if (!faceTracker) audioLipSync.update(metrics.audio_level ?? 0);
     ui.metrics.textContent =
       "Capture " + (metrics.frames ?? 0) +
       " frames @ " + Number(metrics.fps ?? 0).toFixed(1) + " FPS · " +
@@ -300,5 +303,5 @@ trackingLoop(performance.now());
 await refresh();
 setInterval(() => {
   refresh().catch(error => showStatus("Status error: " + error.message));
-}, 1000);
+}, 250);
 renderer.render();
