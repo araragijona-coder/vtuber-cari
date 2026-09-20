@@ -17,6 +17,7 @@
 - PR: #2 — `fix: harden native Windows foundation`
 - Estado PR: abierto, draft.
 - Avance global: **60% de ingeniería**.
+- Último HEAD comprobado: `e2509f6fad84a437a2d49550b97d0c8fa71cd950`.
 - Interpretación del porcentaje: avance frente al producto completo; **no** equivale a validación de hardware ni a CI verde.
 - Regla de promoción: mantener la implementación en `experimental/` hasta cerrar los gates.
 
@@ -254,3 +255,26 @@ Al reabrirlo, registrar primero **motivo + evidencia nueva**.
 **Avance global: 60% de ingeniería.**
 
 El siguiente trabajo debe cerrar gates de producción, no duplicar infraestructura existente.
+
+## Próximo bloque de trabajo
+
+### P0 — ejecutar, no rediseñar
+1. Recuperar evidencia real de GitHub Actions con steps/logs.
+2. Ejecutar y estabilizar `ffmpeg_named_pipe_e2e_smoke.cpp` en Windows.
+3. Medir grabación sostenida y A/V drift.
+4. Probar RTMP contra endpoint controlado y validar el retry/backoff.
+
+### P1 — después de P0
+1. Diseñar el transporte PTS explícito.
+2. Implementar compositor GPU D3D11.
+3. Integrar avatar/tracking/captura/overlays en el frame final.
+4. Implementar cámara Media Foundation y Game Capture.
+
+### P2/P3
+- lip-sync;
+- acciones `studio_*` con backends reales;
+- EventSub reconnect;
+- multistream;
+- packaging, licencias, FFmpeg redistribution, installer y release validation.
+
+**Regla:** no abrir una implementación paralela de ningún componente listado en IMPLEMENTADO/NO REPETIR. Ampliar el componente existente o registrar primero por qué una nueva arquitectura es necesaria.
