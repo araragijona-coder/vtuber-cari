@@ -11,6 +11,8 @@
 #include "media_graph_controller.h"
 #include "control_protocol.h"
 #include "../core/output_profile.h"
+#include "../core/output_retry.h"
+#include "../core/output_diagnostics.h"
 
 #include <algorithm>
 #include <atomic>
@@ -50,6 +52,10 @@ std::atomic<std::uint64_t> g_compositor_bytes{0};
 std::atomic<std::uint64_t> g_last_composited_sequence{0};
 cari::native::MediaGraphController g_media_graph;
 std::atomic<bool> g_media_enabled{false};
+cari::studio::core::OutputRetryPolicy g_output_retry{};
+std::string g_last_output_profile;
+std::string g_last_output_target;
+std::string g_last_output_category = "none";
 
 std::wstring BuildAudioStatus() {
     const auto endpoints = cari::native::enumerate_audio_endpoints();
@@ -151,6 +157,35 @@ std::wstring BuildCaptureStatus() {
 
 void RefreshStatus(HWND hwnd);
 
+bool StartOutput(HWND hwnd, const std::string& output_profile, const std::string& target);
+
+const char* OutputFailureCategoryName(cari::studio::core::OutputFailureCategory category) {
+    switch (category) {
+    case cari::studio::core::OutputFailureCategory::network: return "network";
+    case cari::studio::core::OutputFailureCategory::encoder: return "encoder";
+    case cari::studio::core::OutputFailureCategory::input: return "input";
+    case cari::studio::core::OutputFailureCategory::mux: return "mux";
+    case cari::studio::core::OutputFailureCategory::permission: return "permission";
+    case cari::studio::core::OutputFailureCategory::unknown: return "unknown";
+    case cari::studio::core::OutputFailureCategory::none: default: return "none";
+    }
+}
+
+void ResetOutputRetry() {
+    g_output_retry.on_success();
+    g_last_output_category = "none";
+}
+
+bool ScheduleOutputRetryIfEligible() {
+    if (g_last_output_profile != "rtmp") return false;
+    const std::string diagnostic =
+        g_media_graph.last_error() + "\n" + g_media_graph.stderr_text();
+    const auto category = cari::studio::core::classify_output_failure(diagnostic);
+    g_last_output_category = OutputFailureCategoryName(category);
+    if (category != cari::studio::core::OutputFailureCategory::network) return false;
+    return g_output_retry.schedule_failure(cari::studio::core::MediaClock::monotonic_now());
+}
+
 const char* MediaOutputStateName(cari::native::FfmpegAvOutputState state) {
     switch (state) {
     case cari::native::FfmpegAvOutputState::starting:
@@ -189,6 +224,9 @@ std::string BuildControlStatusMessage() {
     result += ";output=";
     result += ";output_state=" + MediaOutputStateName(g_media_graph.output_state());
     result += ";output_exit_code=" + std::to_string(g_media_graph.output_exit_code());
+    result += ";output_retry_pending=" + std::string(g_output_retry.pending() ? "true" : "false");
+    result += ";output_retry_attempts=" + std::to_string(g_output_retry.attempts());
+    result += ";output_failure_category=" + g_last_output_category;
     const output_running =
         g_media_enabled.load(std::memory_order_relaxed) && g_media_graph.running();
     result += output_running ? "running" : "stopped";
@@ -213,7 +251,24 @@ std::string BuildControlStatusMessage() {
     return result;
 }
 
-void PollMediaGraph() {
+void PollMediaGraph(HWND hwnd) {
+    if (!g_media_enabled.load(std::memory_order_relaxed) &&
+        g_output_retry.pending() &&
+        g_output_retry.ready(cari::studio::core::MediaClock::monotonic_now())) {
+        g_output_retry.consume_attempt();
+        if (!StartOutput(hwnd, g_last_output_profile, g_last_output_target)) {
+            const std::string diagnostic =
+                g_media_graph.last_error() + "\n" + g_media_graph.stderr_text();
+            const auto category =
+                cari::studio::core::classify_output_failure(diagnostic);
+            g_last_output_category = OutputFailureCategoryName(category);
+            if (category == cari::studio::core::OutputFailureCategory::network) {
+                ScheduleOutputRetryIfEligible();
+            }
+        }
+        return;
+    }
+
     if (!g_media_enabled.load(std::memory_order_relaxed)) {
         return;
     }
@@ -228,19 +283,24 @@ void PollMediaGraph() {
     }
 
     if (!g_media_graph.poll()) {
+        const bool retry = ScheduleOutputRetryIfEligible();
         g_media_enabled.store(false, std::memory_order_relaxed);
         g_media_graph.stop();
+        if (retry) {
+            RefreshStatus(hwnd);
+        }
         return;
     }
 
     if (!g_media_graph.running()) {
-        // FFmpeg exited without a control-plane stop. Release the output
-        // resources immediately while keeping capture/audio alive.
+        const bool retry = ScheduleOutputRetryIfEligible();
         g_media_enabled.store(false, std::memory_order_relaxed);
         g_media_graph.stop();
+        if (retry) {
+            RefreshStatus(hwnd);
+        }
         return;
     }
-
 }
 
 bool StartCaptureSource(HWND hwnd, const std::string& source, std::int32_t requested_window_index = -1) {
@@ -362,6 +422,9 @@ bool StartOutput(
         return false;
     }
 
+    g_last_output_profile = output_profile;
+    g_last_output_target = resolved_target;
+    ResetOutputRetry();
     g_media_enabled.store(true, std::memory_order_relaxed);
     return true;
 }
@@ -449,6 +512,7 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "output=started", command.request_id);
     case cari::native::ControlCommandType::output_stop:
+        ResetOutputRetry();
         g_media_graph.stop();
         g_media_enabled.store(false, std::memory_order_relaxed);
         RefreshStatus(hwnd);
@@ -527,7 +591,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         if (wparam == kStatusTimerId) {
             RefreshStatus(hwnd);
         } else if (wparam == kMediaTimerId) {
-            PollMediaGraph();
+            PollMediaGraph(hwnd);
         }
         return 0;
 
