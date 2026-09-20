@@ -6,12 +6,16 @@ class ObsService extends EventEmitter {
     super();
     this.client = new OBSWebSocket();
     this.connected = false;
+    this.url = "";
 
     this.client.on("ConnectionClosed", error => {
       this.connected = false;
       this.emit("connection-closed", error);
     });
-    this.client.on("ConnectionError", error => this.emit("connection-error", error));
+    this.client.on("ConnectionError", error => {
+      this.connected = false;
+      this.emit("connection-error", error);
+    });
   }
 
   async connect({
@@ -25,6 +29,8 @@ class ObsService extends EventEmitter {
 
     const result = await this.client.connect(url, password);
     this.connected = true;
+    this.url = url;
+    this.emit("status", await this.status());
     return result;
   }
 
@@ -32,6 +38,7 @@ class ObsService extends EventEmitter {
     if (!this.connected) return { ok: true };
     await this.client.disconnect();
     this.connected = false;
+    this.emit("status", await this.status());
     return { ok: true };
   }
 
@@ -45,6 +52,21 @@ class ObsService extends EventEmitter {
     return this.client.call("StopStream");
   }
 
+  async startRecord() {
+    this.#requireConnection();
+    return this.client.call("StartRecord");
+  }
+
+  async stopRecord() {
+    this.#requireConnection();
+    return this.client.call("StopRecord");
+  }
+
+  async toggleRecord() {
+    this.#requireConnection();
+    return this.client.call("ToggleRecord");
+  }
+
   async setScene(sceneName) {
     this.#requireConnection();
     const normalized = String(sceneName || "").trim();
@@ -52,9 +74,107 @@ class ObsService extends EventEmitter {
     return this.client.call("SetCurrentProgramScene", { sceneName: normalized });
   }
 
-  async getStatus() {
+  async setPreviewScene(sceneName) {
+    this.#requireConnection();
+    const normalized = String(sceneName || "").trim();
+    if (!normalized) throw new Error("sceneName is required");
+    return this.client.call("SetCurrentPreviewScene", { sceneName: normalized });
+  }
+
+  async triggerStudioTransition() {
+    this.#requireConnection();
+    return this.client.call("TriggerStudioModeTransition");
+  }
+
+  async startVirtualCamera() {
+    this.#requireConnection();
+    return this.client.call("StartVirtualCam");
+  }
+
+  async stopVirtualCamera() {
+    this.#requireConnection();
+    return this.client.call("StopVirtualCam");
+  }
+
+  async getSceneList() {
+    this.#requireConnection();
+    return this.client.call("GetSceneList");
+  }
+
+  async getCurrentProgramScene() {
+    this.#requireConnection();
+    return this.client.call("GetCurrentProgramScene");
+  }
+
+  async getCurrentPreviewScene() {
+    this.#requireConnection();
+    return this.client.call("GetCurrentPreviewScene");
+  }
+
+  async getInputList() {
+    this.#requireConnection();
+    return this.client.call("GetInputList");
+  }
+
+  async getInputKindList() {
+    this.#requireConnection();
+    return this.client.call("GetInputKindList");
+  }
+
+  async getStats() {
+    this.#requireConnection();
+    return this.client.call("GetStats");
+  }
+
+  async getStreamStatus() {
     this.#requireConnection();
     return this.client.call("GetStreamStatus");
+  }
+
+  async getRecordStatus() {
+    this.#requireConnection();
+    return this.client.call("GetRecordStatus");
+  }
+
+  async getVirtualCamStatus() {
+    this.#requireConnection();
+    return this.client.call("GetVirtualCamStatus");
+  }
+
+  async getStudioModeEnabled() {
+    this.#requireConnection();
+    return this.client.call("GetStudioModeEnabled");
+  }
+
+  async setCurrentProfile(profileName) {
+    this.#requireConnection();
+    const normalized = String(profileName || "").trim();
+    if (!normalized) throw new Error("profileName is required");
+    return this.client.call("SetCurrentProfile", { profileName: normalized });
+  }
+
+  async setCurrentSceneCollection(sceneCollectionName) {
+    this.#requireConnection();
+    const normalized = String(sceneCollectionName || "").trim();
+    if (!normalized) throw new Error("sceneCollectionName is required");
+    return this.client.call("SetCurrentSceneCollection", { sceneCollectionName: normalized });
+  }
+
+  async getSceneCollectionList() {
+    this.#requireConnection();
+    return this.client.call("GetSceneCollectionList");
+  }
+
+  async getProfileList() {
+    this.#requireConnection();
+    return this.client.call("GetProfileList");
+  }
+
+  async status() {
+    return {
+      connected: this.connected,
+      url: this.url,
+    };
   }
 
   #requireConnection() {
