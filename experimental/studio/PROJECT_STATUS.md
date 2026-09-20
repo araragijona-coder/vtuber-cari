@@ -86,7 +86,8 @@
 - [x] Accesorios con ancla, posición, escala, rotación y color.
 - [x] Selección aleatoria reproducible de accesorios.
 - [x] Renderer VRM experimental web existente.
-- [ ] Render VRM integrado al compositor nativo.
+- [x] Overlay Three.js/glTF integrado experimentalmente al compositor nativo mediante la ventana transparente capturada con WGC.
+- [ ] Integración de avatar de producción sin readback CPU.
 - [x] Lip-sync local por amplitud del audio mezclado cuando MediaPipe no está conduciendo `mouthOpen`.
 - [ ] Tracking/cámara final.
   - MediaPipe Face Landmarker está integrado como adaptador local; falta validación final de rendimiento y modelo real.
