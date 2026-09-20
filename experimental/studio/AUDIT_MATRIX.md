@@ -77,6 +77,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Windows process lifecycle management.
 - [x] Argument quoting.
 - [x] CMake integration.
+- [x] Smoke e2e Windows registrado: genera BGRA/PCM, usa dos named pipes, cierra por EOF y verifica decodificación con FFmpeg.
 - [x] Native smoke test for process execution.
 - [x] Process stderr capture and draining.
 - [x] Graceful FFmpeg input close before bounded forced termination.
@@ -86,6 +87,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Retención acotada de stderr FFmpeg (256 KiB) para sesiones prolongadas.
 - [x] Explicit FFmpeg two-input `-map 0:v:0 -map 1:a:0` contract.
 - [ ] FFmpeg binary discovery policy.
+  - CI instala FFmpeg para pruebas, pero la distribución de producto continúa sin decidir.
 - [ ] FFmpeg legal redistribution decision.
 - [x] Raw video producer connected to FFmpeg A/V output.
 - [x] Mixed raw audio producer connected to FFmpeg A/V output.
@@ -110,7 +112,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Integración de AudioTimelineMixer → canal PCM float.
 - [ ] Alimentación sostenida de ambos canales durante ejecución real.
 - [ ] Verificación sostenida de que el pacing mantiene A/V estable con FFmpeg real.
-- [ ] Prueba local con FFmpeg real y archivo de salida.
+- [x] Prueba local de contrato FFmpeg con archivo de salida sintético.
+- [ ] Prueba Windows sostenida en CI/hardware con FFmpeg + named pipes.
 - [ ] Verificación de sincronización A/V sostenida y drift/resampling.
 
 ### Twitch
