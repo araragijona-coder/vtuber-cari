@@ -22,11 +22,11 @@
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
 - [x] Diagnóstico y retry RTMP acotado por categoría de fallo.
-- [ ] Smoke end-to-end Windows de FFmpeg + named pipes con vídeo BGRA y audio PCM, cierre por EOF/flush y verificación posterior de decodificación.
-  - Implementado; ejecución en runner Windows pendiente porque CI termina antes de los steps.
+- [x] Smoke end-to-end Windows de FFmpeg + named pipes implementado en código; **PENDIENTE DE VERIFICACIÓN** porque GitHub Actions no expone steps/logs ejecutados.
 - [x] Política de retry RTMP con backoff exponencial acotado y clasificación de errores.
 - [x] Bitácora maestra con ledger de trabajo realizado, descartado y pendiente.
 - [x] Auditoría de licencias de dependencias runtime fijadas.
+ de dependencias runtime fijadas.
   - No habilita por sí sola redistribución de FFmpeg/codec; esa decisión sigue pendiente.
 - [x] Smoke test nativo para contratos core.
 - [x] Smoke D3D11 compositor con WARP, incluyendo composición alpha de overlay.
@@ -135,7 +135,7 @@
 
 **Estimación global de ingeniería: ~62%.**
 
-Este porcentaje mide avance de ingeniería respecto del objetivo completo. No equivale a validación en hardware ni a porcentaje de código que pueda considerarse producción.
+Este porcentaje mide cierre de requisitos de ingeniería; no equivale a porcentaje de código ni a disponibilidad para producción.
 
 ## Criterio de cierre
 
@@ -152,49 +152,16 @@ Un componente no se marca como completo por tener una interfaz. Debe:
 Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus licencias y límites de distribución sean compatibles. Para código con licencia incompatible, se adopta el patrón arquitectónico y se implementa una versión propia.
 
 
-## Continuity / work ledger
+## Continuidad / bitácora
 
-This section is the canonical handoff record. Before implementing a feature, check the ledger and the audit matrix to avoid repeating completed work.
+La única fuente canónica de continuidad y anti-repetición es `experimental/studio/BITACORA.md`.
 
-### Current engineering state
-- Overall estimate: **62%**. This is a coarse engineering-progress estimate, not a claim of production readiness.
-- Native capture/audio foundation: implemented; target-hardware validation remains.
-- Timing/pacing/interleaving: implemented and smoke-tested; original PTS are still not preserved through raw pipes.
-- FFmpeg boundary: implemented; synthetic codec/mux verification passed; sustained Windows verification remains.
-- RTMP: implemented as an output profile; guarded network-only retry/backoff added; real endpoint validation remains.
-- Avatar/tracking: MediaPipe + Three.js/glTF adapter implemented; experimental D3D11 compositor now reaches the final encoded frame via readback, while real-avatar texture integration and zero-readback production path remain.
-- OBS: optional control integration; not a core runtime dependency.
-- CI: workflows exist, but recent runner failures with no executable steps must not be counted as green validation.
+- HEAD canónico: `06bc51a98585f4d48c546ad4df3430698ba0e3c8`
+- Avance global vigente: **62%**.
+- Los checkpoints anteriores son históricos y no deben usarse para decidir trabajo nuevo.
 
-### Do not redo
-- Desktop/window capture architecture: already selected as Windows Graphics Capture + D3D11.
-- Audio architecture: already selected as WASAPI mic + loopback + timeline mixer.
-- Timing architecture: MediaClock + RealtimePacer + global A/V interleaver already exists.
-- Electron security boundary: context isolation/preload/local-file permission boundary already exists.
-- MediaPipe timestamp monotonicity guard already exists.
-- Three.js/glTF placeholder avatar path already exists.
-- Output retry policy must remain network-only; do not broaden it to encoder/mux/input failures.
-
-### Next validation gates
-1. Make Windows CI execute and report real build/test results.
-2. End-to-end raw media timestamp strategy.
-3. GPU-native avatar compositor.
-4. Sustained Windows recording/capture/audio.
-5. Real RTMP reconnect test.
-6. Camera + Game Capture.
-7. Drift correction/lip-sync.
-8. Multistream.
-9. Packaging/installer/runtime FFmpeg distribution.
-
-
-## Bitácora
-
-La bitácora canónica y única de continuidad es `experimental/studio/BITACORA.md`. El checkpoint vigente se sincroniza con el HEAD del PR antes de cada nueva iteración.
-Debe revisarse antes de implementar o auditar cualquier componente ya registrado.
-
-## Continuidad
-
-`BITACORA.md` es la fuente canónica de continuidad y no-repetición. No se fija un SHA aquí para evitar punteros obsoletos; el HEAD canónico vigente está en la entrada más reciente de `BITACORA.md`.
+### Regla
+Antes de modificar un componente, buscarlo en `BITACORA.md`. Si está IMPLEMENTADO/VERIFICADO, trabajar sobre su gate restante o sobre una regresión reproducible; no crear un reemplazo paralelo.
 
 ## Readiness
 
