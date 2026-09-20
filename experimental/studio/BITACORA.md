@@ -249,46 +249,85 @@ No se modifica el porcentaje de avance por este incidente. El código E2E ya est
 **NO REPETIR:** no volver a crear workflows paralelos para el mismo propósito hasta disponer de evidencia nueva del runner o de una causa reproducible distinta.
 
 
-## Checkpoint de continuidad — 20/09/2026
 
-### HEAD actual
-**2a04caf11601769534a2742c32cd06429474f20d**
+## Checkpoint canónico — 20/09/2026
 
-### Cambios realizados en esta sesión
-- Reutilizado el compositor D3D11 existente; no se reconstruyó.
-- Reutilizado el E2E Windows existente `ffmpeg_named_pipe_e2e_smoke.cpp`; no se reconstruyó.
-- Verificado que el workflow Windows ya instala FFmpeg temporalmente y ejecuta el E2E named-pipe.
-- Añadida y mantenida la política `OutputRetryPolicy` con backoff exponencial acotado.
-- Añadida clasificación de fallos de output y retry únicamente para fallos de red.
-- Corregida la serialización del campo `output` en el status nativo.
-- Añadido límite de despacho A/V por polling y métrica `pacing_budget_exhausted`.
-- Añadidas invariantes para no modificar captura/audio mientras una salida está activa.
-- Añadida bitácora maestra como documento canónico de continuidad.
-- Los workflows de CI quedaron habilitados también para la rama de desarrollo y `workflow_dispatch`.
-- Los matrices Python de CI se cambiaron a `fail-fast: false` para no ocultar evidencia de un runner al cancelar el otro job.
+**HEAD actual del PR:** 58a00459cc9b33606551ba2696880545f9d45d11  
+**Avance global vigente:** **62%**  
+**Estado:** experimental / no listo para producción
 
-### Estado de las pruebas
-- PASS: smoke C++ portable C++20 con `-Wall -Wextra -Werror` para reloj/pacing/interleaving.
-- PASS: prueba sintética FFmpeg 7.1.5 en Linux con BGRA + PCM -> H.264/AAC -> Matroska.
-- IMPLEMENTADO, NO VERIFICADO: E2E Windows con dos named pipes + FFmpeg + decodificación posterior.
-- CI actual: los runs recientes siguen terminando antes de registrar steps (`steps=null`, sin logs observables).
+### Hecho en esta continuación
+- Política `OutputRetryPolicy` con backoff exponencial acotado.
+- Clasificación de fallos de output.
+- Retry automático **solo** para fallos clasificados como red.
+- Estado/código de salida FFmpeg expuestos.
+- stderr FFmpeg limitado a 256 KiB.
+- Interleaver A/V global por PTS.
+- Máximo 8 eventos multimedia por polling.
+- Backpressure de audio hasta conectar ambos pipes.
+- Bloqueo de cambios de captura/audio mientras existe output activo.
+- Protección contra cambio de sample-rate/canales durante una sesión.
+- Métricas de pacing/output visibles en la UI.
+- Workflows CI habilitados para la rama de desarrollo y `workflow_dispatch`.
+- E2E Windows named-pipe → FFmpeg → decode ya existe en código y está conectado al workflow.
+- Compositor D3D11 experimental + alpha overlay ya existe.
+- Lip-sync por amplitud ya existe.
+- Auditoría de licencias runtime ya existe.
+- Esta bitácora consolidada pasa a ser el registro maestro de continuidad.
+
+### Evidencia verificada
+- Smoke C++ portable C++20 con `-Wall -Wextra -Werror`: PASS.
+- MediaClock / RealtimePacer / MediaInterleaver: PASS.
+- OutputRetryPolicy: PASS.
+- OutputFailureCategory: PASS.
+- FFmpeg 7.1.5 sintético en Linux, BGRA + PCM float32 → H.264/AAC → Matroska: PASS.
+
+### Evidencia NO verificada todavía
+- Build completo Windows en CI.
+- E2E named-pipe en runner Windows.
+- Captura sostenida WGC + WASAPI en hardware.
+- Compositor D3D11 sostenido conectado a encoder sin readback de producción.
+- RTMP real y recuperación de red real.
+- Drift correction de relojes físicos.
+
+### Problema CI actual
+Los workflows se están disparando sobre la rama de desarrollo, pero los jobs recientes siguen terminando antes de registrar steps/logs observables (`steps=null`, sin `logs_url`). No contar esto como PASS de código.
 
 ### NO REPETIR
-- No volver a crear otro compositor D3D11 base.
-- No volver a crear otro E2E named-pipe; solo diagnosticar/mejorar el existente cuando aparezca evidencia.
-- No volver a crear otro sistema de retry/backoff.
-- No rehacer MediaPipe, Three.js, WGC, WASAPI, MediaClock, RealtimePacer, MediaInterleaver o FFmpeg supervisor sin un bug reproducible distinto.
+- No rehacer WGC.
+- No rehacer WASAPI mic/loopback.
+- No crear otro mixer temporal básico.
+- No crear otro MediaClock.
+- No crear otro RealtimePacer.
+- No crear otro interleaver.
+- No crear otra política de retry.
+- No crear otro supervisor FFmpeg.
+- No crear otro renderer Three.js/glTF básico.
+- No crear otro tracker MediaPipe básico.
+- No crear otro compositor D3D11 base.
+- No crear workflows paralelos para resolver el mismo problema CI.
 
-### Siguiente foco obligatorio
-1. Obtener una ejecución real de CI Windows con steps/logs.
-2. Ejecutar/validar el E2E named-pipe Windows.
-3. Resolver timestamps explícitos extremo a extremo.
-4. Quitar el readback CPU por frame del camino de producción del compositor.
-5. Integrar modelo/avatar real al compositor.
-6. Implementar cámara Media Foundation streaming.
-7. Validar drift de audio y RTMP real.
-8. Game Capture, multistream y distribución.
+### Próximo foco obligatorio
+1. Conseguir una ejecución Windows con steps/logs reales.
+2. Validar el E2E named-pipe → FFmpeg → archivo → decode.
+3. Definir y transportar timestamps explícitos extremo a extremo.
+4. Eliminar el readback CPU del camino de producción.
+5. Integrar avatar real al compositor D3D11.
+6. Completar cámara Media Foundation.
+7. Medir/corregir drift de audio.
+8. Probar RTMP real y reconexión.
+9. Completar Game Capture.
+10. Multistream y distribución.
 
-## Porcentaje vigente
+### Criterio de evidencia
+`IMPLEMENTADO` = código integrado.  
+`VERIFICADO` = prueba observable pasada.  
+`VALIDADO EN HARDWARE` = prueba en Windows/PC objetivo.
 
-**62%** — corresponde al estado más reciente de `PROJECT_STATUS.md` en el HEAD actual. No implica disponibilidad para producción.
+No subir de estado por documentación o por la simple existencia del código.
+
+### Estado de producto
+**62% de ingeniería.**  
+No equivale a 62% de tiempo ni a 62% de disponibilidad para producción.
+
+**Readiness actual: NO listo para uso diario de streaming.**
