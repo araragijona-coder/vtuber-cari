@@ -15,6 +15,9 @@ struct VoiceEffectConfig {
     float drive = 1.25f;
     float presence = 0.22f;
     float output_gain = 0.96f;
+    float compressor_threshold = 0.62f;
+    float compressor_ratio = 3.5f;
+    float limiter_ceiling = 0.98f;
 };
 
 class VoiceEffectProcessor final {
