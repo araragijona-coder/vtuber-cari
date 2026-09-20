@@ -731,31 +731,41 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
         g_last_bridge_sequence.store(bridged.frame.sequence, std::memory_order_relaxed);
 
         if (diagnostic_sample) {
-        cari::studio::core::SoftwareCompositor compositor(
-            static_cast<std::uint32_t>(captured.width),
-            static_cast<std::uint32_t>(captured.height));
-        cari::studio::core::RgbaImage composited;
-        if (!cari::native::CompositorBridge::compose_reference(
-                bridged, compositor, composited, error)) {
-            g_compositor_failures.fetch_add(1, std::memory_order_relaxed);
-            return;
+            cari::studio::core::SoftwareCompositor compositor(
+                static_cast<std::uint32_t>(captured.width),
+                static_cast<std::uint32_t>(captured.height));
+            cari::studio::core::RgbaImage composited;
+            if (!cari::native::CompositorBridge::compose_reference(
+                    bridged, compositor, composited, error)) {
+                g_compositor_failures.fetch_add(1, std::memory_order_relaxed);
+                return;
+            }
+
+            g_compositor_successes.fetch_add(1, std::memory_order_relaxed);
+            g_compositor_bytes.fetch_add(
+                static_cast<std::uint64_t>(composited.pixels.size()),
+                std::memory_order_relaxed);
+            g_last_composited_sequence.store(
+                bridged.frame.sequence, std::memory_order_relaxed);
         }
 
-        g_compositor_successes.fetch_add(1, std::memory_order_relaxed);
-        g_compositor_bytes.fetch_add(
-            static_cast<std::uint64_t>(composited.pixels.size()),
-            std::memory_order_relaxed);
-        g_last_composited_sequence.store(
-            bridged.frame.sequence, std::memory_order_relaxed);
-        }
+        auto final_pixels = bridged.pixels;
+        auto final_frame = bridged.frame;
 
-        if (diagnostic_sample) {
+        // GPU composition is the preferred path. It uses a procedural placeholder
+        // avatar until the renderer supplies real model pixels. The resulting
+        // GPU texture is read back only because the current FFmpeg boundary
+        // accepts CPU BGRA bytes; this is functional but remains an optimization
+        // gate before promotion out of experimental/.
+        if (captured.surface) {
             ComPtr<ID3D11Texture2D> capture_texture;
-            if (captured.surface && SUCCEEDED(captured.surface.As(&capture_texture)) && capture_texture) {
+            if (SUCCEEDED(captured.surface.As(&capture_texture)) && capture_texture) {
                 ComPtr<ID3D11Device> device;
                 capture_texture->GetDevice(&device);
                 ComPtr<ID3D11DeviceContext> context;
-                if (device) device->GetImmediateContext(&context);
+                if (device) {
+                    device->GetImmediateContext(&context);
+                }
 
                 if (device && context) {
                     std::lock_guard gpu_lock(g_gpu_compositor_mutex);
@@ -771,41 +781,66 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
                         g_gpu_compositor.output_texture() == nullptr ||
                         desc.Width != static_cast<UINT>(captured.width) ||
                         desc.Height != static_cast<UINT>(captured.height);
-                    std::wstring gpu_error;
 
-                    if (needs_init) {
-                        if (!g_gpu_compositor.initialize(
-                                device.Get(),
-                                context.Get(),
-                                static_cast<std::uint32_t>(desc.Width),
-                                static_cast<std::uint32_t>(desc.Height),
-                                gpu_error)) {
-                            g_gpu_compositor_error.assign(gpu_error.begin(), gpu_error.end());
-                        } else {
-                            g_gpu_compositor_error.clear();
-                        }
+                    std::wstring gpu_error;
+                    if (needs_init &&
+                        !g_gpu_compositor.initialize(
+                            device.Get(),
+                            context.Get(),
+                            static_cast<std::uint32_t>(desc.Width),
+                            static_cast<std::uint32_t>(desc.Height),
+                            gpu_error)) {
+                        g_gpu_compositor_error.assign(
+                            gpu_error.begin(),
+                            gpu_error.end());
                     }
 
                     if (g_gpu_compositor.output_texture()) {
+                        const std::int32_t overlay_x =
+                            static_cast<std::int32_t>(
+                                desc.Width > 220 ? desc.Width - 210 : 8);
+                        const std::int32_t overlay_y =
+                            static_cast<std::int32_t>(
+                                desc.Height > 210 ? desc.Height - 210 : 8);
+
                         cari::native::GpuOverlay avatar_overlay{
                             .width = 192,
                             .height = 192,
                             .rgba = g_gpu_avatar_placeholder,
                             .opacity = 0.92f,
-                            .x = static_cast<std::int32_t>(
-                                desc.Width > 220 ? desc.Width - 210 : 8),
-                            .y = static_cast<std::int32_t>(
-                                desc.Height > 210 ? desc.Height - 210 : 8),
+                            .x = overlay_x,
+                            .y = overlay_y,
                             .scale = 1.0f,
                         };
 
-                        if (!g_gpu_compositor.compose_capture(
+                        if (g_gpu_compositor.compose_capture(
                                 capture_texture.Get(),
                                 std::vector<cari::native::GpuOverlay>{avatar_overlay},
                                 gpu_error)) {
-                            g_gpu_compositor_error.assign(gpu_error.begin(), gpu_error.end());
+                            std::shared_ptr<std::vector<std::uint8_t>> gpu_pixels;
+                            if (g_gpu_compositor.copy_output_to_cpu(
+                                    gpu_pixels,
+                                    gpu_error) && gpu_pixels) {
+                                final_pixels = std::move(gpu_pixels);
+                                final_frame.width =
+                                    static_cast<std::uint32_t>(desc.Width);
+                                final_frame.height =
+                                    static_cast<std::uint32_t>(desc.Height);
+                                final_frame.stride =
+                                    static_cast<std::uint32_t>(desc.Width * 4u);
+                                final_frame.format =
+                                    static_cast<std::uint32_t>(
+                                        DXGI_FORMAT_B8G8R8A8_UNORM);
+                                g_gpu_compositor_error.clear();
+                            } else {
+                                g_gpu_compositor_error.assign(
+                                    gpu_error.begin(),
+                                    gpu_error.end());
+                            }
                         } else {
-                            g_gpu_compositor_error.clear();
+                            g_gpu_compositor_error.assign(
+                                gpu_error.begin(),
+                                gpu_error.end());
                         }
                     }
                 }
@@ -813,8 +848,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
         }
 
         if (g_media_enabled.load(std::memory_order_relaxed) &&
-            g_media_graph.connected() && bridged.pixels) {
-            g_media_graph.submit_video(bridged.frame, bridged.pixels);
+            g_media_graph.connected() && final_pixels) {
+            g_media_graph.submit_video(final_frame, final_pixels);
         }
     });
 
