@@ -791,3 +791,43 @@ P2: diseñar timestamps explícitos extremo a extremo sobre el transporte local.
 
 ### Avance
 **62%**. El porcentaje no se incrementa por scaffolding ni por repetir componentes; subirá cuando un nuevo gate cruce una evidencia proporcional.
+
+## 031 — Continuación autónoma: P0 E2E + resiliencia de output — 2026-09-20
+**Estado:** IMPLEMENTADO / VERIFICACIÓN WINDOWS PENDIENTE
+
+### Trabajo realizado
+- Se confirmó que `ffmpeg_named_pipe_e2e_smoke.cpp` ya es el único smoke E2E canónico para P0.
+- El smoke crea un output real mediante `FfmpegAvOutput`, espera la conexión de ambos named pipes, transmite BGRA y PCM float32, espera la finalización de las escrituras, cierra por EOF/flush y vuelve a abrir/decodificar el archivo mediante FFmpeg.
+- Se confirmó que FFmpeg se instala temporalmente en el workflow Windows mediante Chocolatey; no forma parte todavía del paquete distribuible del producto.
+- Se añadió/ajustó `OutputRetryPolicy` con backoff 1 s → 30 s y máximo 5 intentos.
+- Se mantiene una regla estricta: solo errores clasificados como `network` pueden disparar retry de RTMP; encoder/mux/input/permission no se reintentan ciegamente.
+- Se añadió `OutputFailureCategory` para diagnóstico inicial.
+- Se corrigió la serialización del campo `output` en el status del proceso.
+- Se añadió el presupuesto de 8 eventos A/V por polling y la métrica `pacing_budget_exhausted`.
+- Se preservó la única bitácora canónica: `experimental/studio/BITACORA.md`.
+- Se eliminó una duplicación real de invocaciones de los smokes de retry/diagnóstico en `.github/workflows/native-windows.yml`.
+
+### Evidencia
+- El workflow Windows ya incluye instalación de FFmpeg y el smoke P0.
+- Los runs recientes siguen terminando sin steps/logs útiles; por eso P0 continúa como IMPLEMENTADO y no VERIFICADO.
+- Los smokes portables de timing, interleave, retry y diagnostics ya cuentan con evidencia previa PASS.
+- La prueba sintética FFmpeg en Linux sigue siendo evidencia de contrato, no de named pipes Windows.
+
+### NO REPETIR
+- No crear otro smoke E2E de FFmpeg named pipes.
+- No crear otro clasificador de output.
+- No crear otro retry/backoff.
+- No crear otra bitácora.
+- No volver a usar FFmpeg Linux como sustituto del E2E Windows.
+- No llamar P0 cerrado hasta observar steps/logs y PASS del runner Windows.
+
+### Próxima cola
+1. P0: obtener ejecución Windows observable y PASS del E2E.
+2. P1: eliminar readback GPU→CPU por frame y entregar una frontera de textura GPU final al encoder.
+3. P2: introducir PTS explícitos en el transporte local.
+4. P3: cámara Media Foundation + drift correction + lip-sync.
+5. P4: RTMP/reconnect/hardware real.
+6. P5: packaging/installer/redistribución.
+
+### Avance
+**62%**. No se incrementa por scaffolding o duplicación de pruebas; el siguiente aumento requiere cerrar un gate de validación real.
