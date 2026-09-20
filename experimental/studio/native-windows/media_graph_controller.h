@@ -23,6 +23,8 @@ struct MediaGraphStats {
     std::uint64_t video_dropped = 0;
     std::uint64_t video_dropped_late = 0;
     std::uint64_t video_dropped_overflow = 0;
+    std::uint64_t video_dropped_cadence = 0;
+    std::uint64_t video_dropped_format = 0;
     std::uint64_t audio_queued = 0;
     std::uint64_t audio_submitted = 0;
     std::uint64_t audio_dropped = 0;
@@ -76,6 +78,11 @@ private:
     std::deque<PendingVideo> pending_video_;
     std::deque<cari::studio::core::AudioPacket> pending_audio_;
     cari::studio::core::RealtimePacer pacer_{};
+    std::uint32_t output_width_ = 0;
+    std::uint32_t output_height_ = 0;
+    std::uint32_t output_fps_ = 0;
+    cari::studio::core::Timestamp last_video_pts_ = 0;
+    bool have_last_video_pts_ = false;
     MediaGraphStats stats_{};
     std::string last_error_;
 };
