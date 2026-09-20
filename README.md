@@ -236,3 +236,25 @@ These cannot honestly be marked green from repository CI alone because they requ
 ## Cari Studio
 
 El estado y la bitácora de continuidad de la aplicación están en [`CARI_STUDIO_BITACORA.md`](CARI_STUDIO_BITACORA.md). Los componentes que todavía no tienen validación suficiente permanecen en la única zona `experimental/`.
+
+
+## Cari Studio — Windows
+
+La distribución principal de Cari Studio está en [`main/`](main/).
+
+Instalación Windows:
+
+```powershell
+cd .\main
+Set-ExecutionPolicy -Scope Process Bypass
+.\INSTALL_WINDOWS.ps1
+```
+
+Ejecución posterior:
+
+```powershell
+cd .\main
+.\RUN_CARI_STUDIO.ps1
+```
+
+**Estado actual de Cari Studio: 63% de ingeniería.** La distribución es un self-build reproducible para Windows, no un instalador MSI/EXE firmado todavía. La bitácora canónica está en [`main/CARI_STUDIO_BITACORA.md`](main/CARI_STUDIO_BITACORA.md).
