@@ -98,3 +98,8 @@ Aún requiere validación real:
 - Twitch chat subscription type: https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/
 - Electron Builder Windows/NSIS: https://www.electron.build/docs/win/
 - Three.js GLTFLoader: https://threejs.org/docs/pages/GLTFLoader.html
+## Editor VTuber
+
+La interfaz incluye un editor de acciones persistentes. Cada acción puede tener una o varias imágenes PNG/JPG/WebP, orden de frames, duración, loop, escala, opacidad y posición. `＋ Nueva acción` crea una acción nueva y los presets se exportan/importan como JSON.
+
+El editor pertenece al control plane local y todavía no significa que el asset 2D esté compuesto dentro de la señal FFmpeg final; ese es un gate multimedia separado.
