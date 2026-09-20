@@ -473,3 +473,33 @@ Un gate suma sus puntos una sola vez al pasar a VERIFICADO o VALIDADO EN HARDWAR
 Primero P01/P02. Después P04/P05/P06. Luego P07/P08/P09. Después P10/P11. Al final P12/P13/P14.
 
 **Objetivo de la bitácora:** evitar que una nueva sesión vuelva a analizar o implementar de nuevo componentes ya cerrados.
+## 11. Continuación actual — foco exclusivo en pendientes (20/09/2026)
+
+### Trabajo realizado
+- No se reabrieron WGC, WASAPI, MediaClock, RealtimePacer, interleaver, compositor D3D11 base, Three.js renderer base, MediaPipe tracker base ni las políticas ya marcadas como cerradas.
+- Se implementó MediaFoundationCamera como nueva fuente nativa independiente:
+  - enumeración de dispositivos de vídeo mediante Media Foundation;
+  - activación por índice;
+  - solicitud de RGB32/BGRA8;
+  - fallback al formato nativo con conversión RGB32;
+  - IMFSample → buffer BGRA;
+  - PTS de Media Foundation en el dominio de 100 ns;
+  - estadísticas de frames/samples/formato/errores;
+  - worker con ciclo de vida start/stop.
+- Se agregó media_foundation_camera_smoke.cpp.
+- Se registró la fuente en el ejecutable nativo y su smoke en CMake.
+- Se corrigió la enumeración del worker para exigir MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID.
+
+### Estado exacto
+| Elemento | Estado | Próximo gate | NO REPETIR |
+|---|---|---|---|
+| MediaFoundationCamera módulo | IMPLEMENTADO | integración al runtime/UI | no crear otra fuente MF |
+| MF camera enumeration smoke | IMPLEMENTADO + VERIFICACIÓN PENDIENTE EN WINDOWS | ejecutar en runner Windows con cámara/no-camera | no duplicar smoke |
+| Cámara como fuente del output principal | PENDIENTE | extender control/runtime sin reabrir WGC | no reemplazar WGC |
+| Cámara + MediaPipe + avatar | PENDIENTE | conectar frames de cámara al tracker | no crear segundo tracker |
+
+### Regla de trabajo vigente
+El siguiente trabajo debe atacar exclusivamente un gate PENDIENTE. Una pieza marcada IMPLEMENTADO/VERIFICADO se conserva y solo se modifica ante una regresión concreta.
+
+### CI
+Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese resultado para afirmar que la cámara compila en Windows. La verificación real del módulo queda condicionada a un runner Windows observable.
