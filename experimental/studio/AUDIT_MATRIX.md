@@ -36,6 +36,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Bounded queues con descarte medible.
 - [x] Scene/layers.
 - [x] Software compositor de referencia.
+- [x] D3D11 compositor experimental con avatar placeholder y alpha blending.
 - [x] D3D11 compositor experimental con placeholder GPU y frame final BGRA.
 - [x] Output interface.
 - [x] Fan-out output.
@@ -53,6 +54,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] D3D11 compositor GPU experimental con overlay RGBA y output texture.
 - [x] Smoke D3D11 compositor con WARP.
 - [ ] Encoder real conectado.
+  - FFmpeg recibe el frame final compuesto; validación sostenida Windows sigue pendiente.
   - La frontera FFmpeg ya recibe el frame compuesto; la validación sostenida en Windows sigue pendiente.
 - [ ] Mux/record real.
 - [ ] RTMP real desde el pipeline.
