@@ -645,3 +645,30 @@ Esto ocurre antes de una ejecución observable del build/test. No se atribuye a 
 **P0:** obtener un runner Windows que ejecute steps/logs reales y ejecutar `cari-ffmpeg-named-pipe-e2e-smoke`.
 Después de P0:
 **P1:** compositor GPU D3D11 + captura/avatar/overlays -> frame final.
+
+
+## 027 — Limpieza P0/CI y continuidad — 2026-09-20
+**Estado:** CANÓNICO / NO REPETIR
+
+### Cambios realizados
+- Se confirmó que experimental/studio/BITACORA.md ya existía; desde este punto no se crea otra bitácora.
+- El workflow native-windows.yml se simplificó: FFmpeg se instala una sola vez con Chocolatey.
+- Se eliminó la ejecución duplicada de cari-ffmpeg-named-pipe-e2e-smoke.
+- El job nativo Windows se fija a windows-2022 para reducir la variabilidad del alias windows-latest y mantener una imagen oficialmente soportada.
+- Se mantienen push sobre fix/native-windows-foundation y workflow_dispatch.
+
+### Evidencia
+- GitHub documenta windows-2022 como runner estándar soportado para repositorios privados y públicos. citeturn216621search0turn216621search1
+- El E2E ffmpeg_named_pipe_e2e_smoke.cpp sigue IMPLEMENTADO pero no VERIFICADO: los runs anteriores terminan antes de registrar steps/logs.
+
+### NO REPETIR
+- No instalar FFmpeg dos veces en el workflow.
+- No ejecutar el mismo CTest E2E dos veces en el mismo job.
+- No crear otra bitácora.
+- No declarar P0 cerrado hasta que el runner ejecute realmente el E2E y produzca evidencia.
+
+### Próximo gate
+P0: ejecución observable del runner Windows y PASS del named-pipe E2E. Si P0 continúa bloqueado por infraestructura, seguir con P1 sin duplicar el trabajo de P0.
+
+### Avance global
+**60%**. La limpieza de CI/continuidad no se contabiliza como cierre de un gate funcional.
