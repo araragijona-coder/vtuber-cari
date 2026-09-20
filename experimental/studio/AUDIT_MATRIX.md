@@ -82,6 +82,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Supervised FFmpeg process boundary: validation, launch, poll, stderr and exit state.
 - [x] CI smoke for FFmpeg supervisor failure/validation path.
 - [x] Native FFmpeg A/V output boundary with independent video/audio named pipes.
+- [x] Retención acotada de stderr FFmpeg (256 KiB) para sesiones prolongadas.
 - [x] Explicit FFmpeg two-input `-map 0:v:0 -map 1:a:0` contract.
 - [ ] FFmpeg binary discovery policy.
 - [ ] FFmpeg legal redistribution decision.
@@ -89,6 +90,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Mixed raw audio producer connected to FFmpeg A/V output.
 - [x] Temporal audio mixer implemented before the single FFmpeg audio pipe.
 - [ ] Output stderr classification / structured diagnostics.
+  - Estado/código de salida ya están expuestos; queda pendiente clasificar mensajes de stderr en categorías estables.
 - [ ] Automatic output reconnect/backoff policy.
 
 ### Raw media transport
@@ -165,8 +167,9 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - `PollMediaGraph()` ya desactiva el estado lógico de salida cuando FFmpeg termina o el polling falla, evitando reportar un output fantasma.
 - `MediaGraphController::poll()` ahora selecciona siempre el evento A/V con menor PTS entre las dos colas; el empate favorece audio y la decisión `late` de audio se contabiliza sin descartarlo para evitar huecos audibles.
 - `MediaGraphController` rechaza cambios de sample rate/canales respecto del contrato FFmpeg y los expone como `audio_dropped_format`.
+- `FfmpegAvOutput` mantiene únicamente los últimos 256 KiB de stderr y expone estado/código de salida para diagnóstico sin crecimiento indefinido.
 
-- El head de trabajo actual se actualiza en cada modificación de esta continuación; el último commit debe verificarse de nuevo antes de marcar CI como verde.
+- El head de trabajo se actualiza en cada modificación de esta continuación; el último head registrado es **0b3e70335e67327a4a6e0fe50e96e4cebd6c7f43**.
 - Se corrigió previamente el timestamp WASAPI para usar el `QPCPosition` ya convertido por Windows a 100 ns. Microsoft documenta explícitamente esa unidad; no debe volver a tratarse como ticks QPC crudos. citeturn0search0
 - `AudioTimelineMixer` introduce una frontera temporal única para micrófono, audio del sistema y futuras pistas como TTS. Normaliza canales/sample-rate, conserva PTS, produce bloques de 20 ms y mantiene métricas de rechazo, resampling, mezcla y underrun.
 - El smoke de `AudioTimelineMixer` verifica mezcla de micrófono + sistema, avance monotónico de PTS, resampling de una pista de 44.1 kHz y rechazo de paquetes malformados.
