@@ -80,7 +80,7 @@
 - [x] Selección aleatoria reproducible de accesorios.
 - [x] Renderer VRM experimental web existente.
 - [ ] Render VRM integrado al compositor nativo.
-- [ ] Lip-sync alimentado por audio real.
+- [x] Lip-sync local por amplitud del audio mezclado cuando MediaPipe no está conduciendo `mouthOpen`.
 - [ ] Tracking/cámara final.
   - MediaPipe Face Landmarker está integrado como adaptador local; falta validación final de rendimiento y modelo real.
 - [ ] Procesamiento de voz local de baja latencia.
