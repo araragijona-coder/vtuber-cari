@@ -336,6 +336,14 @@ add_executable(cari-media-scheduler-smoke
     ../core/media_scheduler_smoke.cpp
 )
 
+add_executable(cari-audio-clock-drift-smoke
+    ../core/audio_clock_drift_smoke.cpp
+)
+
+target_include_directories(cari-audio-clock-drift-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
 if(CARI_ENABLE_LIBAV_OUTPUT)
     find_path(CARI_LIBAV_INCLUDE_DIR
         NAMES libavcodec/avcodec.h
@@ -469,6 +477,7 @@ add_test(NAME cari-raw-pipe-smoke COMMAND cari-raw-pipe-smoke)
 add_test(NAME cari-av-sync-smoke COMMAND cari-av-sync-smoke)
 add_test(NAME cari-media-clock-smoke COMMAND cari-media-clock-smoke)
 add_test(NAME cari-media-scheduler-smoke COMMAND cari-media-scheduler-smoke)
+add_test(NAME cari-audio-clock-drift-smoke COMMAND cari-audio-clock-drift-smoke)
 if(CARI_ENABLE_LIBAV_OUTPUT)
     add_test(NAME cari-libav-pts-smoke COMMAND cari-libav-pts-smoke)
 endif()
