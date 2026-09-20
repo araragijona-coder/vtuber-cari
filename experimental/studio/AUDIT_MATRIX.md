@@ -247,3 +247,9 @@ La fuente canónica de continuidad y anti-repetición es `experimental/studio/BI
 - **Verificación Windows:** pendiente mientras Actions no ejecute steps/logs observables.
 - **Uso diario estable:** pendiente de captura/audio/FFmpeg/RTMP/hardware sostenidos.
 - **Promoción fuera de experimental:** bloqueada hasta cerrar P0 + P1 + P2 y el hardware gate.
+
+
+### Instrumentación de validación P01/P02
+
+- **Harness local Windows `validate-windows.ps1`: IMPLEMENTADO.** Ejecuta configure/build CMake, todos los CTest registrados, el E2E FFmpeg named-pipe y los checks/tests del Electron shell; guarda `environment.txt`, salidas de cada fase y `SUMMARY.txt`.
+- El harness no cambia el estado de ningún gate: P01/P02 siguen pendientes hasta disponer de una ejecución Windows observable con resultados PASS.
