@@ -5,6 +5,7 @@
 ## Estado actual
 
 - Fecha de corte: 2026-09-20
+- Último head comprobado: `5f44fc39306e44e225d7490fdb7db4f1d15ddd54`
 - Repositorio: `araragijona-coder/vtuber-cari`
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
@@ -282,3 +283,32 @@ Al reabrirla hay que registrar primero el motivo y la prueba nueva.
 **59% — ingeniería.**
 
 El siguiente avance debe venir de cerrar gates de producción, no de duplicar la infraestructura ya implementada.
+
+## Registro de esta continuación
+
+### Output resilience
+**IMPLEMENTADO**
+- `OutputRetryPolicy`: 1 s → 2 s → 4 s ... con tope de 30 s y máximo de 5 intentos.
+- Clasificación inicial de errores: network/encoder/input/mux/permission/unknown.
+- Retry integrado solo para fallos clasificados como network en RTMP.
+- Métricas de retry visibles.
+- stderr limitado a 256 KiB.
+- Estado/exit code FFmpeg visibles.
+
+### CI
+**IMPLEMENTADO**
+- Push sobre la rama de desarrollo.
+- `workflow_dispatch`.
+- Native Windows ejecuta también media scheduler, retry y diagnostics smokes.
+
+**VERIFICADO LOCALMENTE**
+- `media_scheduler_smoke`: PASS.
+- `output_retry_smoke`: PASS.
+- `output_diagnostics_smoke`: PASS.
+
+**NO VERIFICADO POR CI**
+- Los últimos runs del head actual fallan con `steps=null` y `logs_url=null` antes de iniciar steps.
+
+### Continuidad
+- Este ledger es la fuente maestra para impedir repetir trabajo ya cerrado.
+- `DEPENDENCY_LICENSE_AUDIT.md` registra licencias de runtime y separa esa cuestión de las licencias de modelos/assets.
