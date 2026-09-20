@@ -290,3 +290,10 @@ Estas capacidades ahora tienen UI/acción accesible, pero siguen separadas de la
 - NSIS installer workflow → packaged native engine.
 
 La existencia de botón, módulo o workflow no equivale por sí sola a validación de servicio/hardware.
+
+## Continuidad viva — 2026-09-20
+
+- Checkpoint de HEAD observado antes de esta entrada: `c8b44f1107408897ad837ff5a343d3ba3cfd5820`.
+- No usar este SHA como HEAD permanente; consultar el PR #2 para el estado vivo.
+- Ingeniería vigente: ~65%; producto usable/end-user: ~50%.
+- Bitácora canónica: `experimental/studio/BITACORA.md`.
