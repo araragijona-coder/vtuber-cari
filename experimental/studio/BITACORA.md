@@ -160,8 +160,9 @@ Una tarjeta del menú no convierte una capacidad en una función terminada.
 
 ### Estado de continuidad
 
-- Ingeniería vigente: 65%.
-- Producto usable vigente: 50%.
+- Ingeniería vigente: 66%.
+- Producto usable vigente: 52%.
+- Porcentaje global reportado: 60%.
 - Esta iteración mejora superficie y control, pero no cierra validación Windows/hardware.
 - Próximo trabajo debe comenzar en los gates listados en este archivo y no volver a diseñar la navegación.
 
@@ -177,3 +178,45 @@ Una tarjeta del menú no convierte una capacidad en una función terminada.
 - No crear un segundo Centro OBS.
 - No duplicar el Action Store/editor.
 - No convertir el catálogo de capacidades en backend ficticio.
+
+
+## Actualización 2026-09-20 — botones, acciones y puente Twitch/OBS/VTuber
+
+### Hecho
+
+- Se auditó la relación entre los 57 botones con ID del renderer y sus handlers.
+- Se corrigieron los dos huecos encontrados: se eliminó el handler fantasma de `header-stream` y se conectaron `overlay-show-side` / `overlay-hide-side`.
+- Se auditó Electron Main contra `ObsService`: el handler `obs:status` estaba llamando a un método inexistente (`getStatus`) y quedó alineado con `status()`; el resto de handlers OBS fue contrastado contra el servicio.
+- Se añadió `test/ui-obs-contract.test.mjs` para detectar botones sin handler y llamadas OBS desalineadas.
+- El botón Twitch conecta mediante el único servicio `TwitchChatService`; no se creó un segundo WebSocket.
+- El chat Twitch ya puede disparar acciones locales del avatar con `!happy`, `!sad`, `!talk`, `!silent`, `!angry` y `!neutral`.
+- OBS mantiene control de stream, grabación, virtual camera, escenas, inputs, Studio Mode, perfiles, scene collections y estadísticas.
+- El overlay del avatar se puede activar/desactivar desde el panel lateral y desde la vista Avatar.
+- El control de salida nativa continúa desacoplado de OBS: Cari puede grabar/emitir directamente por FFmpeg.
+
+### Evidencia
+
+- Auditoría estática: 57 botones con ID; únicamente quedaron los dos casos laterales sin handler y el handler fantasma, todos corregidos.
+- Comparación renderer/main/ObsService: no quedan llamadas directas a métodos inexistentes del servicio OBS.
+- El test contractual queda incluido en `npm test`.
+- CI todavía no ejecuta steps en los runs recientes, por lo que esta capa se considera implementada y preparada para verificación, no verificada por CI.
+
+### No repetir
+
+- No rehacer la navegación.
+- No crear otro `ObsService`.
+- No crear otro `TwitchChatService` ni otro WebSocket EventSub.
+- No volver a usar nombres `getStatus/getSceneList/getInputList` en Electron Main cuando el servicio expone `status/getSceneList/getInputList`; mantener el contrato existente.
+- No declarar las tarjetas de capacidades Twitch como backend implementado; siguen separadas de la superficie funcional real.
+- No mover el compositor del avatar a producción hasta integrar el frame final.
+
+### Siguiente foco
+
+1. Transporte A/V con timestamps explícitos.
+2. Compositor GPU D3D11: avatar + captura -> frame final.
+3. FFmpeg/named pipes sostenidos en Windows.
+4. Drift correction WASAPI.
+5. Cámara Media Foundation y Game Capture.
+6. Twitch EventSub avanzado con scopes/endpoints.
+7. OBS scene/source/filter actions ampliadas.
+8. Hardware, instalador y release.
