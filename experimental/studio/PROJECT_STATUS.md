@@ -66,9 +66,12 @@
   - El cierre intenta primero EOF/flush antes de escalar a terminación forzada.
   - El estado nativo se reconcilia si FFmpeg termina inesperadamente.
   - El gate de verificación real sigue abierto: archivo/RTMP sostenido, sincronización, reconexión y hardware.
-- [ ] Drift correction / resampling de producción.
+- [x] Estimator independiente de drift de reloj de audio implementado.
+  - [ ] Corrección/resampling de producción con relojes físicos.
 - [ ] Verificación sostenida del pacing A/V con FFmpeg real.
 - [ ] Verificación Windows del E2E named-pipe y del compositor D3D11.
+- [x] Ruta Libav experimental para preservar PTS explícitos.
+  - [ ] Compilación/verificación con kit de desarrollo FFmpeg en Windows.
 - [ ] Verificación Windows real del named-pipe E2E.
   - Existe ahora un smoke Windows que ejerce ambos named pipes durante una sesión sintética y vuelve a decodificar el archivo resultante.
   - La planificación ahora interleavea globalmente por PTS; el transporte raw todavía no conserva los PTS originales.
@@ -107,7 +110,8 @@
 - [x] `StudioRuntimeBindings` permite registrar backends locales con métricas y aislamiento de errores.
 - [x] Acciones desconocidas generan `automation_action_unhandled` para auditoría.
 - [ ] Ejecutar realmente `studio_chat_requested`, `studio_sound_requested`, `studio_scene_requested` y equivalentes con los backends nativos.
-- [ ] Multi-stream real con límites y reconexión.
+- [x] Supervisor multi-stream experimental con hasta 4 destinos y retry independiente por destino.
+  - [ ] Validación con múltiples endpoints RTMP reales.
 - [ ] Reconexión EventSub explícita auditada contra el ciclo welcome/keepalive/reconnect de Twitch.
 
 ## Avatar Studio
