@@ -391,6 +391,10 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "capture=started", command.request_id);
     case cari::native::ControlCommandType::capture_stop:
+        if (g_media_enabled.load(std::memory_order_relaxed)) {
+            return cari::native::control_response(
+                false, "capture=busy-output-active", command.request_id);
+        }
         g_capture.stop();
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "capture=stopped", command.request_id);
@@ -402,6 +406,10 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
             g_audio_bridge.running() ? "audio=started" : "audio=start-failed",
             command.request_id);
     case cari::native::ControlCommandType::audio_stop:
+        if (g_media_enabled.load(std::memory_order_relaxed)) {
+            return cari::native::control_response(
+                false, "audio=busy-output-active", command.request_id);
+        }
         g_audio_bridge.stop();
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "audio=stopped", command.request_id);
@@ -468,6 +476,10 @@ void RefreshStatus(HWND hwnd) {
 }
 
 void SelectWindow(HWND hwnd, std::size_t index) {
+    if (g_media_enabled.load(std::memory_order_relaxed)) {
+        RefreshStatus(hwnd);
+        return;
+    }
     RefreshStatus(hwnd);
     if (index >= g_windows.size()) {
         return;
@@ -532,6 +544,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             return 0;
         }
         if (wparam == 'A') {
+            if (g_media_enabled.load(std::memory_order_relaxed)) {
+                RefreshStatus(hwnd);
+                return 0;
+            }
             if (g_audio_bridge.running()) {
                 g_audio_bridge.stop();
             } else {
@@ -541,6 +557,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             return 0;
         }
         if (wparam == VK_SPACE) {
+            if (g_media_enabled.load(std::memory_order_relaxed)) {
+                RefreshStatus(hwnd);
+                return 0;
+            }
             if (g_capture.is_running()) {
                 g_capture.stop();
             } else if (!StartCaptureSource(hwnd, g_capture_source)) {
