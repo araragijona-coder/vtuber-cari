@@ -23,6 +23,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install FFmpeg
+        shell: pwsh
+        run: |
+          choco install ffmpeg -y --no-progress
+          ffmpeg -version
+
       - name: Configure CMake
         run: cmake -S . -B build -A x64
 
@@ -37,6 +43,9 @@ jobs:
 
       - name: Run FFmpeg A/V output smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-av-output-smoke
+
+      - name: Run Windows named-pipe FFmpeg end-to-end smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-named-pipe-e2e-smoke
 
       - name: Run raw media adapter smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-raw-media-adapter-smoke
