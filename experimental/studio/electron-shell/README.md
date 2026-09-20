@@ -32,7 +32,7 @@ This directory is intentionally **experimental**. It is the desktop control/UI l
 │  Windows Graphics Capture → FrameBridge → MediaGraph            │
 │  WASAPI → AudioTimelineMixer ───────────────────────┐           │
 │  software compositor (reference validation)         │           │
-│  RawPipe → FFmpeg A/V output                        │           │
+│  RealtimePacer → RawPipe → FFmpeg A/V output                        │           │
 │                                                     ▼           │
 │                                              local recording    │
 └─────────────────────────────────────────────────────────────────┘
@@ -120,7 +120,7 @@ npm test
 
 ## What is deliberately not production-ready
 
-1. **A/V timestamp fidelity.** The native FFmpeg path currently transports raw video/audio bytes. It does not encode the original capture PTS into the subprocess protocol, so the current output timestamp strategy must not be described as preserving capture timestamps.
+1. **A/V timestamp fidelity.** The native FFmpeg path currently transports raw video/audio bytes. It does not encode the original capture PTS into the subprocess protocol; instead, `MediaGraphController` uses the PTS to pace emission against one monotonic wall clock. This improves real-time timing without claiming that the raw pipe preserves timestamps.
 2. **Compositor output.** The software compositor is still a reference/diagnostic stage. The encoded video path currently receives the captured BGRA frame bridge directly.
 3. **Live2D.** The architecture has an adapter boundary, but no Live2D runtime is bundled.
 4. **Hardware validation.** Capture-device recovery, microphone permissions and FFmpeg execution still need validation on the target Windows machine.
