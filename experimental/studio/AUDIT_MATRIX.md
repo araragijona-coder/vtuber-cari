@@ -160,7 +160,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Character behavior engine consuming personality/value/state layers.
 - [x] Neutral avatar contract consumed by the Three.js renderer.
 
-- [ ] Native VRM renderer.
+- [x] Overlay Three.js/glTF capturable e integrado experimentalmente al compositor D3D11 existente.
+- [ ] Native VRM renderer de producción sin readback CPU.
 - [x] Lip-sync de amplitud local conectado al `AudioCoreBridge` y al `AvatarActingBridge` como fallback cuando tracking facial no está activo.
 - [ ] Final tracking.
 - [x] Procesamiento de voz local: HPF + presencia + compresión + saturación + limitador.
