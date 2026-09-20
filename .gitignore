@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Cari Studio Windows local artifacts
+main/native/*.exe
+main/INSTALL_SUMMARY.txt
+main/native-windows/build-validation/
+main/native-windows/validation-evidence/
+main/native-windows/build/
+main/electron-shell/node_modules/
