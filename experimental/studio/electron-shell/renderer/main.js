@@ -569,8 +569,6 @@ async function command(action) {
   }
 }
 
-$("#start").onclick = () => command(session.start());
-$("#stop").onclick = async () => { await session.stop(); stopCamera(); await refresh(); };
 $("#header-start").onclick = async () => {
   if (session.snapshot().engine) { await session.stop(); stopCamera(); }
   else await session.start();
