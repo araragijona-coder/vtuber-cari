@@ -573,7 +573,21 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
                 false, "capture=busy-output-active", command.request_id);
         }
         if (CaptureIsRunning()) {
-            if (g_capture_source == command.source) {
+            const bool same_window =
+                command.source == "window" &&
+                g_capture_source == "window" &&
+                (command.window_index < 0 ||
+                 static_cast<std::size_t>(command.window_index) == g_selected_window_index);
+            const bool same_camera =
+                command.source == "camera" &&
+                g_capture_source == "camera" &&
+                (command.camera_index < 0 ||
+                 static_cast<std::size_t>(command.camera_index) == g_selected_camera_index);
+            const bool same_source =
+                command.source == "screen"
+                    ? g_capture_source == "screen"
+                    : (same_window || same_camera);
+            if (same_source) {
                 return cari::native::control_response(
                     true, "capture=running", command.request_id);
             }
