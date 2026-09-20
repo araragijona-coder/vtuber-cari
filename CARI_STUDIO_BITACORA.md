@@ -292,7 +292,7 @@ El runtime nativo Windows completo **no** se promovió todavía porque sus gates
 ### Estado de integración
 - PR #2 continúa abierto/draft y GitHub rechaza mergearlo mientras siga en draft.
 - No se hizo force-push ni reescritura de `main`.
-- HEAD de `main` después de la promoción: `14c938a8712a5aaadae51e867c91ddd01a44f8a2`.
+- HEAD de `main` después de la promoción: `6b94b90d8558ab024c397014e85ca990de1c4bba`.
 - HEAD de la rama de trabajo durante esta actualización: `581cb2944326c9c27312c139230167eb5310ffae`.
 
 ### NO REPETIR
