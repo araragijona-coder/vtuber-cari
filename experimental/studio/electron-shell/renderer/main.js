@@ -19,7 +19,7 @@ const ui = {
   settingsAvatar: $("#avatar-settings-preview"),
   menuSearch: $("#menu-search"),
   status: $("#status"),
-  engine: $("#engine"),
+  engine: $("#engine-chip"),
   metrics: $("#metrics"),
   tracking: $("#tracking"),
   trackingBadge: $("#tracking-badge"),
@@ -791,6 +791,42 @@ window.cari.native.onEvent(event => {
     return;
   }
   if (event.type === "twitch.eventsub.welcome") { addEvent("EventSub connected"); return; }
+  if (event.type === "twitch.eventsub.keepalive") { addEvent("EventSub keepalive"); return; }
+  if (event.type === "twitch.eventsub.reconnect") { addEvent("EventSub reconnecting"); return; }
+  if (event.type === "twitch.event") {
+    const type = String(event.eventType || event.typeName || "unknown");
+    const payload = event.payload || {};
+    const viewer = payload.user_name || payload.user_login || payload.from_broadcaster_user_name || "";
+    addEvent("Twitch event: " + type + (viewer ? " · " + viewer : ""));
+    const actionByEvent = {
+      "channel.raid": "happy",
+      "stream.online": "happy",
+      "stream.offline": "silent",
+      "channel.update": "neutral",
+      "channel.shared_chat.begin": "happy",
+      "channel.shared_chat.update": "talking",
+      "channel.shared_chat.end": "neutral"
+    };
+    const action = actionByEvent[type];
+    if (action) setActionByIdOrLabel(action);
+    if (twitchRead && "speechSynthesis" in window && action) {
+      const names = {
+        "channel.raid": "¡Raid recibido!",
+        "stream.online": "El stream está en línea.",
+        "stream.offline": "El stream terminó.",
+        "channel.update": payload.title ? "Canal actualizado: " + payload.title : "Canal actualizado.",
+        "channel.shared_chat.begin": "Shared Chat iniciado.",
+        "channel.shared_chat.update": "Shared Chat actualizado.",
+        "channel.shared_chat.end": "Shared Chat terminado."
+      };
+      const speech = new SpeechSynthesisUtterance(names[type] || "Evento de Twitch.");
+      speech.rate = 1.05;
+      speech.pitch = 1.15;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(speech);
+    }
+    return;
+  }
   if (event.type === "twitch.error") { addEvent("Twitch error: " + event.message); return; }
   session.handleNativeEvent(event);
   if (event.type === "error") showStatus("Native error: " + event.message);
