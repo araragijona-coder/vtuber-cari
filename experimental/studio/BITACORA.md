@@ -472,3 +472,104 @@ Si está marcado **VERIFICADO**, no repetir la misma prueba sin nueva evidencia.
 Si está marcado **VALIDADO EN HARDWARE**, no reabrir salvo regresión real.  
 Si aparece un nuevo hallazgo, registrar primero el hallazgo y después el cambio.
 
+
+## CHECKPOINT CANÓNICO VIGENTE — 20/09/2026 12:58 ART
+
+> Este bloque es la única referencia operativa para continuar. Los checkpoints anteriores son históricos.
+
+**HEAD:** 26c4c166ca5225cbf28504aedfee01891fe1c3f1  
+**PR:** #2 — `fix/native-windows-foundation`  
+**Estado PR:** abierto / draft / no mergeable  
+**Avance global:** **62% de ingeniería**  
+**Readiness:** experimental; **NO listo para producción**.
+
+### Trabajo realizado desde el checkpoint anterior
+
+- Se consolidó la bitácora como fuente única de continuidad.
+- Se incorporó una política `OutputRetryPolicy` con backoff exponencial acotado.
+- El retry automático quedó restringido a fallos clasificados como red; encoder/mux/input/permission no se reintentan ciegamente.
+- Se añadieron smoke tests de retry y clasificación de errores.
+- Se conectaron métricas de retry/categoría/estado de output a la UI.
+- El stderr de FFmpeg está limitado a 256 KiB.
+- Se implementó backpressure de arranque: el mixer no drena audio hasta que ambos pipes están conectados.
+- Se limitó el dispatch multimedia a 8 eventos por polling y se registra `pacing_budget_exhausted`.
+- Se impiden cambios peligrosos de captura/audio mientras un output está activo.
+- Existe compositor D3D11 experimental con overlay procedural/placeholder y camino de readback para diagnóstico.
+- Existe E2E Windows named-pipe → FFmpeg → archivo → decode en código y CMake, pero sigue sin ser VERIFIED mientras Actions no muestre steps/logs ejecutados.
+- Se habilitaron workflows sobre la rama de desarrollo y `workflow_dispatch`.
+
+### Estados que no deben retroceder
+
+| Componente | Estado | No repetir |
+|---|---|---|
+| Windows Graphics Capture | IMPLEMENTADO | NO sustituir por OpenCV ni rehacer |
+| WASAPI mic/loopback | IMPLEMENTADO | NO rehacer captura base |
+| AudioTimelineMixer | IMPLEMENTADO + VERIFICADO | NO rehacer mixer básico |
+| MediaClock | IMPLEMENTADO + VERIFICADO | NO crear otro reloj |
+| RealtimePacer | IMPLEMENTADO + VERIFICADO | NO crear otro scheduler |
+| Global A/V interleaver | IMPLEMENTADO + VERIFICADO | NO volver al despacho por bloques |
+| RawPipe | IMPLEMENTADO + smoke | NO crear otro transporte raw |
+| FFmpeg supervisor | IMPLEMENTADO + VERIFICADO parcial | ampliar pruebas, no rehacer lifecycle |
+| Retry/backoff | IMPLEMENTADO + VERIFICADO (policy) | NO crear otra policy |
+| Error classification | IMPLEMENTADO + VERIFICADO | ampliar solo con evidencia FFmpeg real |
+| Three.js/glTF renderer | IMPLEMENTADO | NO rehacer carga/modelo básica |
+| MediaPipe Face Landmarker | IMPLEMENTADO | NO crear otro tracker básico |
+| D3D11 compositor | IMPLEMENTADO experimental | NO reconstruir base; eliminar readback posteriormente |
+| E2E named-pipe FFmpeg | IMPLEMENTADO, PENDIENTE VERIFICACIÓN | no marcarlo PASS sin ejecución Windows observable |
+
+### Intentos ya registrados — NO REPETIR
+
+- FFmpeg sintético con archivos raw: ya validó formato/mapping/encoder/mux en Linux.
+- Primer ensayo con dos FIFOs: expiró durante el handshake; no usarlo como diagnóstico de encoder.
+- Reintentos de GitHub Actions previos: fallaron antes de registrar steps.
+- Cambiar workflows para rama de desarrollo y `workflow_dispatch`: ya realizado.
+- No hacer force-rebase para resolver la divergencia histórica de 2 commits sin evidencia adicional.
+- No usar `capturePage()` como transporte de vídeo.
+- No tratar éxito Linux, smoke WARP o existencia del workflow como validación del PC Windows.
+
+### P0 — siguiente entrada obligatoria
+
+1. Obtener ejecución observable de Native Windows Build con steps/logs.
+2. Ejecutar el E2E named-pipe → FFmpeg → archivo → decode.
+3. Registrar como evidencia: commit, versión de FFmpeg, resolución, FPS, sample-rate, canales, duración, tamaños y errores.
+
+### P1
+
+1. Diseñar transporte temporal explícito para PTS extremo a extremo.
+2. Llevar el compositor D3D11 a frame final sin readback CPU.
+3. Sustituir placeholder por fuente de avatar real/neutral sin assets propietarios.
+4. Mantener contrato `Frame`/PTS estable.
+
+### P2
+
+1. Cámara Media Foundation.
+2. Medición de relojes WASAPI.
+3. Drift correction/resampling.
+4. Lip-sync avanzado.
+
+### P3
+
+1. RTMP real prolongado.
+2. Simular caída de red y comprobar retry existente.
+3. Twitch/YouTube reales.
+4. Multistream solo después del single-output gate.
+
+### P4
+
+1. Game Capture.
+2. Installer.
+3. Redistribución FFmpeg/codec.
+4. Logs y rollback de usuario.
+5. Asset packaging.
+6. Validación final en hardware.
+
+### Regla de continuidad
+
+Antes de modificar una función/componente:
+1. buscarla en esta bitácora;
+2. si está IMPLEMENTADO, trabajar sobre su gate;
+3. si está VERIFICADO, no repetir la misma prueba sin evidencia nueva;
+4. si está pendiente, continuar desde el punto exacto registrado;
+5. añadir aquí cualquier nuevo hallazgo antes de abrir otra línea de trabajo.
+
+**No crear una nueva bitácora para Cari Studio.**
