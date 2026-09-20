@@ -3,7 +3,7 @@
 > Última actualización: 2026-09-20
 > Rama: `fix/native-windows-foundation`
 > PR: #2
-> HEAD canónico se actualiza en cada cierre de sesión de trabajo.
+> HEAD canónico al cierre: `aca3649cfa5630f47d50c89403faf910423ec83c`
 
 Esta es la fuente única de continuidad para Cari Studio. Su objetivo es impedir que el mismo componente se rediseñe o implemente repetidamente.
 
@@ -275,7 +275,7 @@ No se aumenta por cantidad de archivos. El porcentaje solo sube cuando una capac
 
 ### Medición correcta
 - Ingeniería implementada: ~63%.
-- Producto usable de extremo a extremo: ~48%.
+- Producto usable de extremo a extremo: ~50%.
 - El segundo porcentaje es el indicador que debe mostrarse al usuario hasta que Windows/Twitch/RTMP/modelo/hardware estén validados.
 
 ### NO REPETIR
