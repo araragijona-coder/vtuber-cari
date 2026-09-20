@@ -61,6 +61,14 @@ jobs:
 
       - name: Run media clock smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-media-clock-smoke
+      - name: Run media scheduler smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-media-scheduler-smoke
+
+      - name: Run output retry smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-output-retry-smoke
+
+      - name: Run output diagnostics smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-output-diagnostics-smoke
 
       - name: Run control protocol smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-control-protocol-smoke
