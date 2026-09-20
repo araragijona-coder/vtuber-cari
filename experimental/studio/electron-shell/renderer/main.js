@@ -87,7 +87,8 @@ async function refresh() {
       "Audio " + formatBytes(metrics.audio_bytes) + " · " +
       "Drops V/A " + (metrics.video_dropped ?? 0) + "/" + (metrics.audio_dropped ?? 0) + " · " +
       "Late/Cadence " + (metrics.video_dropped_late ?? 0) + "/" + (metrics.video_dropped_cadence ?? 0) + " · " +
-      "Format " + (metrics.video_dropped_format ?? 0) + " · " +
+      "A/V format " + (metrics.video_dropped_format ?? 0) + "/" + (metrics.audio_dropped_format ?? 0) + " · " +
+      "Audio late " + (metrics.audio_late ?? 0) + " · " +
       "Voice " + (metrics.voice_effect ?? "off");
   } catch (error) {
     showStatus("Status error: " + error.message);
