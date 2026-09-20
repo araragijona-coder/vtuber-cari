@@ -10,6 +10,7 @@
 - [x] Frontera de encoder y salida.
 - [x] Monitoring y clasificación de salud.
 - [x] Cola temporal A/V con reloj maestro lógico de audio.
+- [x] Emisión raw temporizada por PTS con `RealtimePacer` y colas acotadas.
 - [x] Smoke test nativo para contratos core.
 - [ ] CI Windows verde sobre el head actual (los runs recientes fallan con `steps=null` antes de registrar steps; requiere nueva evidencia del runner).
 
@@ -43,6 +44,7 @@
   - El estado nativo se reconcilia si FFmpeg termina inesperadamente.
   - El gate de verificación real sigue abierto: archivo/RTMP sostenido, sincronización, reconexión y hardware.
 - [ ] Drift correction / resampling de producción.
+- [ ] Verificación sostenida del pacing A/V con FFmpeg real.
 
 ## VTuber / cámara / voz
 
