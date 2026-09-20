@@ -55,10 +55,9 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Readback de captura CPU lazy: diagnóstico/fallback solamente.
 - [x] Smoke D3D11 compositor con WARP.
 - [ ] Encoder real conectado.
-  - FFmpeg recibe el frame final compuesto; validación sostenida Windows sigue pendiente.
-  - La frontera FFmpeg ya recibe el frame compuesto; la validación sostenida en Windows sigue pendiente.
-- [ ] Mux/record real.
-- [ ] RTMP real desde el pipeline.
+  - FFmpeg recibe actualmente el frame final de la ruta experimental; falta validación sostenida y eliminación del readback CPU para producción.
+- [ ] Mux/record real sostenido en Windows.
+- [ ] RTMP real sostenido desde el pipeline.
 
 ### Windows
 
