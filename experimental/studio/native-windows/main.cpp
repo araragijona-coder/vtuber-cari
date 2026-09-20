@@ -716,48 +716,76 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
 
     g_capture.set_frame_callback([](const cari::native::CapturedFrame& captured) {
         const bool diagnostic_sample = (captured.sequence % kBridgeSampleEvery) == 0;
-        g_bridge_attempts.fetch_add(1, std::memory_order_relaxed);
 
-        cari::native::BridgedFrame bridged;
+        cari::studio::core::Frame final_frame{};
+        final_frame.pts = captured.timestamp;
+        final_frame.width = static_cast<std::uint32_t>(captured.width);
+        final_frame.height = static_cast<std::uint32_t>(captured.height);
+        final_frame.stride = static_cast<std::uint32_t>(captured.width * 4);
+        final_frame.format = static_cast<std::uint32_t>(
+            DXGI_FORMAT_B8G8R8A8_UNORM);
+        final_frame.sequence = captured.sequence;
+
+        std::shared_ptr<std::vector<std::uint8_t>> final_pixels;
+        bool gpu_output_ready = false;
+
         std::wstring error;
-        if (!cari::native::FrameBridge::copy_to_cpu(captured, bridged, error)) {
-            g_bridge_failures.fetch_add(1, std::memory_order_relaxed);
-            return;
-        }
+        cari::native::BridgedFrame diagnostic_bridged;
 
-        g_bridge_successes.fetch_add(1, std::memory_order_relaxed);
-        g_bridge_bytes.fetch_add(
-            bridged.pixels ? static_cast<std::uint64_t>(bridged.pixels->size()) : 0,
-            std::memory_order_relaxed);
-        g_last_bridge_sequence.store(bridged.frame.sequence, std::memory_order_relaxed);
+        // CPU readback is now lazy. It is used only for sampled diagnostics or
+        // when the GPU composition path cannot provide the final frame required
+        // by the current CPU-byte FFmpeg boundary.
+        auto ensure_cpu_frame = [&]() -> bool {
+            if (final_pixels) {
+                return true;
+            }
 
-        if (diagnostic_sample) {
+            ++g_bridge_attempts;
+            if (!cari::native::FrameBridge::copy_to_cpu(
+                    captured, diagnostic_bridged, error)) {
+                g_bridge_failures.fetch_add(1, std::memory_order_relaxed);
+                return false;
+            }
+
+            final_pixels = diagnostic_bridged.pixels;
+            final_frame = diagnostic_bridged.frame;
+
+            g_bridge_successes.fetch_add(1, std::memory_order_relaxed);
+            g_bridge_bytes.fetch_add(
+                final_pixels
+                    ? static_cast<std::uint64_t>(final_pixels->size())
+                    : 0,
+                std::memory_order_relaxed);
+            g_last_bridge_sequence.store(
+                final_frame.sequence,
+                std::memory_order_relaxed);
+            return true;
+        };
+
+        if (diagnostic_sample && ensure_cpu_frame() && diagnostic_bridged.pixels) {
             cari::studio::core::SoftwareCompositor compositor(
                 static_cast<std::uint32_t>(captured.width),
                 static_cast<std::uint32_t>(captured.height));
             cari::studio::core::RgbaImage composited;
             if (!cari::native::CompositorBridge::compose_reference(
-                    bridged, compositor, composited, error)) {
+                    diagnostic_bridged, compositor, composited, error)) {
                 g_compositor_failures.fetch_add(1, std::memory_order_relaxed);
-                return;
+            } else {
+                g_compositor_successes.fetch_add(1, std::memory_order_relaxed);
+                g_compositor_bytes.fetch_add(
+                    static_cast<std::uint64_t>(composited.pixels.size()),
+                    std::memory_order_relaxed);
+                g_last_composited_sequence.store(
+                    diagnostic_bridged.frame.sequence,
+                    std::memory_order_relaxed);
             }
-
-            g_compositor_successes.fetch_add(1, std::memory_order_relaxed);
-            g_compositor_bytes.fetch_add(
-                static_cast<std::uint64_t>(composited.pixels.size()),
-                std::memory_order_relaxed);
-            g_last_composited_sequence.store(
-                bridged.frame.sequence, std::memory_order_relaxed);
         }
 
-        auto final_pixels = bridged.pixels;
-        auto final_frame = bridged.frame;
-
-        // GPU composition is the preferred path. It uses a procedural placeholder
-        // avatar until the renderer supplies real model pixels. The resulting
-        // GPU texture is read back only because the current FFmpeg boundary
-        // accepts CPU BGRA bytes; this is functional but remains an optimization
-        // gate before promotion out of experimental/.
+        // GPU composition is preferred. The current placeholder is procedural
+        // and deliberately contains no proprietary avatar asset. The final
+        // GPU texture still requires a CPU readback because the current FFmpeg
+        // boundary accepts BGRA bytes; removing that final readback is a separate
+        // encoder-boundary task.
         if (captured.surface) {
             ComPtr<ID3D11Texture2D> capture_texture;
             if (SUCCEEDED(captured.surface.As(&capture_texture)) && capture_texture) {
@@ -816,12 +844,15 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
 
                         if (g_gpu_compositor.compose_capture(
                                 capture_texture.Get(),
-                                std::vector<cari::native::GpuOverlay>{avatar_overlay},
+                                std::vector<cari::native::GpuOverlay>{
+                                    avatar_overlay
+                                },
                                 gpu_error)) {
                             std::shared_ptr<std::vector<std::uint8_t>> gpu_pixels;
                             if (g_gpu_compositor.copy_output_to_cpu(
                                     gpu_pixels,
-                                    gpu_error) && gpu_pixels) {
+                                    gpu_error) &&
+                                gpu_pixels) {
                                 final_pixels = std::move(gpu_pixels);
                                 final_frame.width =
                                     static_cast<std::uint32_t>(desc.Width);
@@ -832,6 +863,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
                                 final_frame.format =
                                     static_cast<std::uint32_t>(
                                         DXGI_FORMAT_B8G8R8A8_UNORM);
+                                final_frame.sequence = captured.sequence;
+                                final_frame.pts = captured.timestamp;
+                                gpu_output_ready = true;
                                 g_gpu_compositor_error.clear();
                             } else {
                                 g_gpu_compositor_error.assign(
@@ -849,9 +883,16 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
         }
 
         if (g_media_enabled.load(std::memory_order_relaxed) &&
-            g_media_graph.connected() && final_pixels) {
-            g_media_graph.submit_video(final_frame, final_pixels);
+            g_media_graph.connected()) {
+            if (!final_pixels && !ensure_cpu_frame()) {
+                return;
+            }
+            if (final_pixels) {
+                g_media_graph.submit_video(final_frame, final_pixels);
+            }
         }
+
+        (void)gpu_output_ready;
     });
 
     const bool capture_supported =
