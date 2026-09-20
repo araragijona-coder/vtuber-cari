@@ -4,7 +4,7 @@
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
 **Última auditoría:** 20/09/2026 13:05 ART  
-**HEAD canónico:** 06bc51a98585f4d48c546ad4df3430698ba0e3c8  
+**HEAD canónico:** consultar siempre el HEAD actual del PR #2; no fijarlo aquí.
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **62%**  
@@ -123,7 +123,7 @@
 7. El workflow CI fue preparado para la rama de desarrollo y `workflow_dispatch`.
 8. El backpressure inicial, límite de 8 eventos/tick e invariantes de sesión quedaron documentados.
 9. Se consolidaron los pendientes para impedir volver a abrir componentes terminados.
-10. Esta bitácora fue normalizada para eliminar checkpoints históricos contradictorios.
+10. Esta bitácora fue normalizada para eliminar checkpoints históricos contradictorios y usar el PR como referencia viva del HEAD.
 
 ## 4. Intentos y pruebas que NO deben repetirse a ciegas
 
