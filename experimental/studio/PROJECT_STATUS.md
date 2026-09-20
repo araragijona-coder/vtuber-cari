@@ -17,6 +17,7 @@
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
 - [x] Política de retry RTMP con backoff exponencial acotado y clasificación de errores.
 - [x] Bitácora maestra con ledger de trabajo realizado, descartado y pendiente.
+- [x] Auditoría de licencias de dependencias runtime fijadas.
 - [x] Smoke test nativo para contratos core.
 - [ ] CI Windows verde sobre el head actual (los runs recientes fallan con `steps=null` antes de registrar steps; requiere nueva evidencia del runner).
 
