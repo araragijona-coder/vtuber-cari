@@ -5,11 +5,18 @@ from urllib.parse import urlencode
 
 
 DEFAULT_REDIRECT_URI = "http://localhost:4343/oauth/callback"
+# Baseline chat scopes plus EventSub scopes used by Cari automations.
 DEFAULT_SCOPES = (
     "user:read:chat",
     "user:write:chat",
     "user:bot",
     "channel:bot",
+    "moderator:read:followers",
+    "channel:read:subscriptions",
+    "channel:read:redemptions",
+    "channel:read:polls",
+    "channel:read:predictions",
+    "bits:read",
 )
 
 
