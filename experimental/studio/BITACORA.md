@@ -684,9 +684,9 @@ No subir el porcentaje por cantidad de archivos. Solo subirlo cuando se cierre u
 
 ---
 
-## Reconciliación de continuidad — HEAD 7371c8
+## Reconciliación de continuidad — HEAD f0a4665
 
-- HEAD real observado al cerrar esta revisión: `7371c8abd8c6700b0da9af27cec6c933b5c7edfc`.
+- HEAD real observado al cerrar esta revisión: `f0a466510fd02e92a7ba1454f6196b87195b2bc3`.
 - Avance global mantenido en **60%**: no se incrementa por documentación ni por scaffolding; los grandes gates P0 siguen abiertos.
 - PR #2 sigue abierto y draft; `mergeable=false`.
 - La bitácora canónica no reemplaza `AUDIT_MATRIX.md` ni `PROJECT_STATUS.md`; los tres documentos deben permanecer coherentes.
