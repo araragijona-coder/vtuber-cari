@@ -280,7 +280,7 @@ Al reabrirla hay que registrar primero el motivo y la prueba nueva.
 
 ## Snapshot
 
-**59% — ingeniería.**
+**60% — ingeniería.**
 
 El siguiente avance debe venir de cerrar gates de producción, no de duplicar la infraestructura ya implementada.
 
@@ -347,3 +347,28 @@ El siguiente avance debe venir de cerrar gates de producción, no de duplicar la
 
 ### Siguiente trabajo
 P0 -> recuperar CI real -> prueba Windows sostenida -> A/V/PTS/drift -> RTMP real/reconnect -> compositor GPU/avatar.
+
+
+## Registro de continuidad — 2026-09-20 (segunda consolidación)
+
+### IMPLEMENTADO
+- Bitácora persistente confirmada como fuente canónica.
+- Política de retry RTMP permanece limitada a fallos de red.
+- Estado nativo expone output, estado FFmpeg, exit code, retry pendiente, intentos y categoría.
+- Pacing budget continúa expuesto para diagnóstico.
+- CMake registra retry y diagnostics smoke.
+
+### VERIFICADO
+- Las pruebas portables previamente registradas siguen siendo la evidencia válida.
+- No se agrega una afirmación de CI verde sin steps/logs reales.
+
+### PENDIENTE
+- Validar compilación Windows del head actual.
+- Validar named pipes + FFmpeg sostenidos.
+- Validar RTMP y reconexión real.
+- Completar compositor GPU y avatar -> output.
+- Validar cámara/Game Capture.
+- Resolver PTS extremo a extremo, drift y lip-sync.
+
+### REGLA DE CONTINUIDAD
+El próximo trabajo debe atacar P0/P1 de arriba. No se debe volver a implementar componentes listados en NO REPETIR salvo que una nueva evidencia abra formalmente la tarea.
