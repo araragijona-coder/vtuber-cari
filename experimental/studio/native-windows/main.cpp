@@ -242,6 +242,7 @@ std::string BuildControlStatusMessage() {
     result += ";audio_packets=" + std::to_string(audio.packets);
     result += ";audio_samples=" + std::to_string(audio.samples);
     result += ";audio_peak=" + std::to_string(audio.peak);
+    result += ";audio_level=" + std::to_string(g_audio_bridge.current_mix_level());
     result += ";voice_effect=";
     const auto voice_style = g_audio_bridge.voice_effect().style;
     result += voice_style == cari::native::VoiceEffectStyle::anime_bright
