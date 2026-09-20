@@ -12,6 +12,7 @@
 - [x] Cola temporal A/V con reloj maestro lógico de audio.
 - [x] Emisión raw temporizada por PTS con `RealtimePacer` y colas acotadas.
 - [x] Interleaver A/V global por PTS con prioridad determinista de audio en empate.
+- [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
 - [x] Smoke test nativo para contratos core.
 - [ ] CI Windows verde sobre el head actual (los runs recientes fallan con `steps=null` antes de registrar steps; requiere nueva evidencia del runner).
 
@@ -41,6 +42,8 @@
 - [ ] Encoder hardware/software real conectado al pipeline.
 - [ ] Muxer/recorder de producción.
 - [x] Proceso FFmpeg administrado por Cari y conectado a las salidas.
+  - El diagnóstico stderr queda limitado a 256 KiB para impedir crecimiento indefinido durante sesiones largas.
+  - El estado/código de salida del proceso se publica en las métricas nativas y en la UI.
   - El cierre intenta primero EOF/flush antes de escalar a terminación forzada.
   - El estado nativo se reconcilia si FFmpeg termina inesperadamente.
   - El gate de verificación real sigue abierto: archivo/RTMP sostenido, sincronización, reconexión y hardware.
