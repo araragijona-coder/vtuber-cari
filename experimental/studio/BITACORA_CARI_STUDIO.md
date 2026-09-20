@@ -4,13 +4,22 @@
 
 ## Estado actual
 
+- Fecha de corte: 2026-09-20
 - Repositorio: `araragijona-coder/vtuber-cari`
-- Rama de trabajo: `fix/native-windows-foundation`
+- Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
 - Estado PR: abierto, draft.
 - Avance global estimado: **59% de ingeniería**.
-- Regla de interpretación: porcentaje de ingeniería respecto del producto objetivo; no significa que el 59% esté validado en hardware.
-- Regla principal: un componente no pasa a producción solo porque compile o exista una API.
+- Interpretación: mide avance frente al producto objetivo completo; no equivale a validación en hardware.
+- Regla de promoción: mantener en `experimental/` hasta cerrar los gates correspondientes.
+
+## Estados usados
+
+- **IMPLEMENTADO**: código/contrato integrado.
+- **VERIFICADO**: prueba reproducible ejecutada y pasada.
+- **VALIDADO EN HARDWARE**: prueba realizada en Windows/PC objetivo o servicio externo real.
+- **PENDIENTE**: falta implementación o evidencia.
+- **NO REPETIR**: ya realizado; solo reabrir por regresión, nueva evidencia o cambio de requisito.
 
 ## Arquitectura consolidada
 
@@ -44,188 +53,232 @@ Native Windows C++
         +--> RTMP/RTMPS
 ```
 
-## Implementado y no debe rehacerse
+## IMPLEMENTADO — no rehacer
 
-### Captura
-- Windows Graphics Capture para ventana.
+### Captura Windows
+- Win32 host.
+- D3D11.
+- Windows Graphics Capture para ventanas.
 - Windows Graphics Capture para pantalla primaria.
 - `CreateForMonitor` para pantalla primaria.
 - Enumeración de ventanas capturables.
-- Selección explícita de ventana por índice.
+- Selección explícita por índice.
 - Frame callback con superficie DXGI.
-- Recreación de frame pool ante resize.
+- Recreate del frame pool ante resize.
 - Recuperación de D3D11 device removed/reset/hung.
-- Puente BGRA a la capa multimedia.
+- FrameBridge BGRA hacia el pipeline.
 
 ### Audio
 - WASAPI microphone.
 - WASAPI system loopback.
-- `AudioTimelineMixer`.
-- Normalización inicial de sample-rate y canales.
-- PTS temporal compartido.
-- Bloques de mezcla de 20 ms.
-- Voice DSP local `anime-bright`.
-- El efecto de voz actual NO es pitch/formant shifting.
-- Se rechazan cambios de sample-rate/canales durante una sesión de salida.
+- VoiceEffectProcessor local.
+- Perfil `anime-bright`.
+- AudioTimelineMixer.
+- Normalización inicial de sample rate/canales.
+- Bloques de mezcla.
+- PTS/timeline común.
+- Métricas de mezcla/underrun/rechazo.
+- Rechazo de cambios de sample-rate/canales durante una salida.
 
-### Multimedia / timing
+### Timing A/V
 - `MediaClock` en ticks de 100 ns.
-- `RealtimePacer` contra reloj monotónico.
-- Colas A/V acotadas.
-- Descarte medible de video tardío/overflow/cadencia.
+- `RealtimePacer`.
 - `MediaInterleaver` global por PTS.
-- Empates A/V resueltos a favor de audio.
-- Máximo de 8 eventos multimedia despachados por polling.
-- Backpressure de arranque: el mixer no drena audio hasta que ambos pipes estén conectados.
+- Empates a favor de audio.
+- Colas acotadas.
+- Late-drop y cadence-drop de video.
+- Límite de 8 eventos por polling.
+- Métricas `audio_late`, `pacing_budget_exhausted`.
+- Backpressure de arranque: audio no se drena antes de conectar ambos pipes.
 
-### FFmpeg
+### FFmpeg/output
 - `ProcessRunner` Windows con `CreateProcessW`.
 - Quoting de argumentos.
-- Captura y drenaje de stderr.
+- stderr capture/drain.
 - `FfmpegSupervisor`.
 - `FfmpegAvOutput`.
-- Dos named pipes independientes para video/audio.
-- Cierre por EOF/flush antes de terminación forzada.
-- Estado/código de salida expuestos.
-- stderr acotado a 256 KiB.
-- Perfil local-record y RTMP/RTMPS.
-- Variables `CARI_FFMPEG_EXECUTABLE`.
-
-### Resiliencia de output
+- `NativeMediaOutputBridge`.
+- Named pipes independientes para video BGRA8/audio PCM float32.
+- Mapping explícito `0:v:0` y `1:a:0`.
+- Grabación Matroska.
+- RTMP/RTMPS directo.
+- EOF/flush antes de terminación forzada.
+- Estado y exit code expuestos.
+- stderr limitado a 256 KiB.
 - `OutputFailureCategory`.
-- Clasificación de network/encoder/input/mux/permission/unknown.
-- `OutputRetryPolicy`.
-- Backoff exponencial acotado.
-- Máximo de 5 intentos con configuración actual.
-- Solo se reintentan fallos clasificados como de red.
-- Fallos de encoder/mux/input/permiso no se reintentan ciegamente.
-- Estado de retry visible en métricas/UI.
+- `OutputRetryPolicy` con backoff acotado para fallos de red RTMP.
+- Error de encoder/mux/input/permission no se reintenta ciegamente.
 
 ### Sesión y seguridad
 - `StudioSessionManager`.
-- Serialización de cambios.
-- Rollback al fallar el arranque.
-- Stop-only seguro.
-- No se permite cambiar fuente mientras output está activo.
-- No se permite detener captura/audio mientras output está activo.
-- Electron: `contextIsolation=true`, `nodeIntegration=false`, `sandbox=true`.
+- Serialización.
+- Rollback.
+- Stop-only.
+- No cambiar fuente durante output.
+- No detener captura/audio durante output.
+- Electron `contextIsolation=true`.
+- Electron `nodeIntegration=false`.
+- Electron `sandbox=true`.
 - Renderer local `file://`.
-- Permiso de cámara limitado al renderer local.
-- `pathToFileURL` para rutas Windows.
+- Permiso de cámara restringido al renderer local.
+- `pathToFileURL`.
+- Renderer no lanza procesos.
 
-### Avatar / tracking
+### Avatar/tracking
 - Contrato neutral de avatar.
-- Estado de actuación independiente de apariencia.
-- FaceTrackingBridge.
+- ActingBridge independiente de apariencia.
 - MediaPipe Face Landmarker.
-- Guardia contra timestamps no crecientes en modo VIDEO.
-- Three.js WebGL renderer.
-- GLTF/GLB mediante GLTFLoader.
-- Avatar geométrico de prueba.
-- Live2D permanece adapter-only y no se distribuye runtime propietario.
-- No se distribuyen assets propietarios de Cari.
+- Guard de timestamps no crecientes en modo VIDEO.
+- FaceTrackingBridge.
+- Three.js.
+- GLTFLoader.
+- GLTF/GLB.
+- Placeholder geométrico.
+- Morph aliases básicos.
+- Presets/appearance/accessories.
+- Live2D adapter-only.
 
-### UI / control
-- Renderer de tres columnas.
-- Captura, ventana, screen, output, voice, camera/tracking, avatar y métricas.
-- Request IDs.
-- Respuestas JSONL.
-- OBS WebSocket opcional; OBS no es dependencia del motor.
+### UI/OBS/eventos
+- UI local en tres columnas.
+- Capture/output/voice/camera/tracking/avatar/metrics.
+- Request IDs y JSONL.
+- OBS WebSocket opcional.
+- Infraestructura de chat/EventSub/AutomationEngine existente.
+- Acciones locales desacopladas de IA.
 
-## Evidencia de pruebas ya obtenida
+## VERIFICADO
 
-- Smoke C++ portable con C++20 + `-Wall -Wextra -Werror`.
-- `MediaClock` + `RealtimePacer` + `MediaInterleaver`.
+- Smoke C++20 con `-Wall -Wextra -Werror` para MediaClock/RealtimePacer/MediaInterleaver.
+- Smoke de mixer: mezcla mic/system, PTS monotónico, resampling y rechazos.
 - Tests portables de sesión/avatar.
 - Selección de ventana por índice.
-- Prueba sintética de FFmpeg 7.1.5:
-  BGRA raw + PCM float32 stereo -> H.264 + AAC -> Matroska.
-- La prueba sintética FFmpeg valida formato/mapping/encoder/mux, pero NO sustituye Windows real, named pipes reales, captura/hardware, RTMP sostenido ni drift correction.
+- Prueba FFmpeg 7.1.5: BGRA raw + PCM float32 -> H.264/AAC -> Matroska.
+- Smoke de política de retry.
+- Smoke de clasificación de errores.
+- CMake registra los nuevos smoke tests.
+- Workflow Windows incluye scheduler/retry/diagnostics smokes.
 
-## CI: estado y aprendizaje
+## PENDIENTE — no marcar como completo
 
-- Los workflows se configuraron para ejecutar también sobre `fix/native-windows-foundation`.
-- Se añadió `workflow_dispatch`.
-- Esto permitió demostrar que los jobs llegan a crearse en la rama.
-- Los runs recientes siguen terminando antes de registrar steps: `steps=null`, `logs_url=null`.
-- Los reintentos también reprodujeron el fallo previo a steps.
-- Por tanto, NO marcar CI como verde.
-- No atribuir esos fallos a una línea concreta del código hasta disponer de logs/steps.
-- Los workflows históricos que sí terminaron correctamente siguen siendo evidencia histórica, no evidencia del head actual.
-
-## Intentos que NO deben repetirse
-
-1. Prueba inicial con dos FIFOs que expiró por el handshake/bloqueo de pipes. No constituye una regresión funcional demostrada.
-2. Primer intento automático de integrar retry en `main.cpp` que no coincidió con los anchors; la escritura se abortó antes de aplicar ese cambio.
-3. Intentos de arreglar la divergencia de historia de main mediante reescritura forzada. Se decidió preservar la historia.
-4. Declarar CI verde basándose en runs con `steps=null`. No hacerlo.
-5. Convertir el compositor software de referencia en compositor de producción. Sigue siendo referencia/diagnóstico.
-6. Tratar el scheduler PTS como garantía de timestamps extremo a extremo. El transporte raw todavía no conserva los PTS originales.
-7. Añadir OpenCV solo por añadirlo. La captura nativa Windows + MediaPipe ya cubren el núcleo; OpenCV queda opcional para preprocessing futuro.
-8. Distribuir Live2D/runtime propietario dentro del repositorio. Mantener adapter-only.
-
-## Pendientes prioritarios
-
-### Bloque A — salida multimedia
-- Transporte con timestamps explícitos o mecanismo equivalente.
-- Validación sostenida con FFmpeg real y named pipes en Windows.
-- Mux/record prolongado.
+### Multimedia
+- Transporte que preserve PTS explícitos extremo a extremo o sustitución de la frontera raw por un mecanismo equivalente.
+- FFmpeg + named pipes sostenidos en Windows.
+- Grabación prolongada.
 - RTMP real.
-- Reconexión/backoff validado en Windows.
-- Clasificación de stderr más completa.
-
-### Bloque B — composición VTuber
-- Compositor GPU D3D11.
-- Integrar el estado/avatar renderizado en el frame final.
-- Evitar `capturePage`/snapshots como ruta de producción.
-- Resolver textura/surface sharing sin readback innecesario.
-- Lip-sync con audio real.
-
-### Bloque C — Windows
-- Streaming de cámara Media Foundation.
-- Game Capture dedicada.
-- Validación de device-loss/reconnect.
-- Pruebas reales sobre hardware objetivo.
-
-### Bloque D — sincronización
-- Observación de relojes físicos.
 - Drift correction.
-- Resampling adaptativo.
-- Validación de A/V prolongada.
+- Resampling adaptativo basado en relojes físicos.
+- Clasificación de stderr más exhaustiva.
 
-### Bloque E — producto
-- Multistream real.
-- Editor visual de avatar.
-- Presets UI.
-- Diagnóstico/logs de usuario.
-- Bundle legal de FFmpeg/codecs.
-- Instalador Windows.
+### Compositor/VTuber
+- Compositor GPU D3D11 de producción.
+- Avatar + captura + overlays dentro del frame final.
+- Evitar CPU readback por frame en la ruta final.
+- Lip-sync de audio real.
+- Validación de performance de tracking.
+- Modelo/avatar final.
+- Live2D real bajo licencia/runtime auditados.
 
-## Decisiones de arquitectura que siguen vigentes
+### Windows
+- Camera streaming mediante Media Foundation.
+- Game Capture dedicada.
+- Validación de device-loss/reconnect en hardware real.
+- Prueba integral sobre PC objetivo.
 
-- Core local; IA/cloud no obligatorios.
-- OBS opcional.
-- Electron = control plane; C++ nativo = media plane.
-- Captura y audio no viven en el renderer.
-- El renderer no lanza procesos.
-- Código incierto permanece en `experimental/`.
-- No promover a producción sin evidencia.
-- No copiar código de proyectos con licencia incompatible; sí estudiar patrones.
-- Mantener interfaces pequeñas y contratos testeables.
+### Streaming/eventos
+- Reconexión RTMP real comprobada.
+- Ejecución real de acciones studio_* contra backends nativos.
+- Multi-stream real.
+- Reconexión EventSub verificada con ciclo real.
 
-## Regla de trabajo para próximas iteraciones
+### Distribución
+- Política de descubrimiento de FFmpeg.
+- Decisión legal de redistribución FFmpeg/codecs.
+- Installer.
+- Logs/diagnóstico de usuario.
+- Asset/model license audit.
 
-Antes de implementar algo nuevo:
-1. revisar esta bitácora;
-2. buscar si existe ya en el repositorio;
-3. revisar `PROJECT_STATUS.md`;
-4. revisar `AUDIT_MATRIX.md`;
-5. verificar qué evidencia existe;
-6. modificar solo el hueco real;
-7. añadir prueba;
-8. actualizar esta bitácora;
-9. actualizar el porcentaje solo cuando el nuevo bloque represente progreso real.
+## CI — estado real
 
-## Último objetivo alcanzado
+- Los workflows ahora aceptan push sobre la rama de desarrollo y `workflow_dispatch`.
+- Los runs recientes todavía fallan antes de registrar steps: `steps=null`, `logs_url=null`.
+- Esto significa que no hay evidencia del build/test del código en esos runs.
+- No atribuir ese fallo a una línea concreta del código.
+- No marcar CI como verde.
 
-La base de output ya no solo tiene pacing/interleave: también tiene diagnóstico categorizado y política de retry con backoff restringida a fallos de red. El siguiente salto grande debe concentrarse en **timestamp explícito extremo a extremo + compositor/avatar dentro de la señal final**, no en repetir la construcción básica del motor.
+## Intentos descartados / no repetir
+
+1. Prueba con dos FIFOs que expiró por handshake/bloqueo. Se repitió con archivos raw para aislar encoder/mapping/mux.
+2. Primer intento de `workflow_dispatch` con YAML incorrecto. Corregido: `workflow_dispatch` ya no lleva el bloque `paths`.
+3. Intentos automáticos de integrar retry con anchors que no coincidían. Se abortaron antes de escribir el cambio.
+4. Reescritura forzada de historial para eliminar la divergencia de main. No se hace; se preserva historia.
+5. Tratar scheduler como preservación de PTS extremo a extremo. No lo es.
+6. Promocionar SoftwareCompositor/FrameBridge CPU a producción. Son referencia/diagnóstico.
+7. Añadir OpenCV solo por añadirlo. Captura nativa + MediaPipe cubren el núcleo; OpenCV queda opcional para preprocessing.
+8. Distribuir runtime/asset propietario de Live2D sin auditoría específica.
+
+## NO REPETIR — componentes cerrados
+
+- MediaClock.
+- RealtimePacer.
+- MediaInterleaver.
+- AudioTimelineMixer base.
+- WGC ventana/pantalla.
+- FrameBridge CPU de referencia.
+- SoftwareCompositor de referencia.
+- Three.js/GLTFLoader adapter.
+- MediaPipe timestamp guard.
+- Electron security hardening.
+- NativeEngine/request correlation.
+- FFmpeg EOF/flush.
+- stderr cap 256 KiB.
+- OutputRetryPolicy base.
+- OutputFailureCategory base.
+- CI branch trigger + workflow_dispatch structure.
+- Smoke registration básica.
+
+## Próxima cola por prioridad
+
+### P0
+- Recuperar CI con steps/logs reales.
+- Named pipes + FFmpeg sostenidos en Windows.
+- Grabación prolongada.
+- A/V sync y drift.
+- RTMP real + reconnect.
+
+### P1
+- PTS explícitos extremo a extremo.
+- Compositor GPU D3D11.
+- Integración avatar -> frame final.
+- Camera Media Foundation.
+- Game Capture.
+- Lip-sync.
+
+### P2
+- Acciones chat/sound/scene reales.
+- Multi-stream.
+- EventSub reconnect.
+- Editor/presets UI.
+
+### P3
+- FFmpeg/codecs packaging.
+- Third-party notices.
+- Installer.
+- Asset catalog.
+- Release smoke test.
+
+## Regla de reapertura
+
+Una tarea marcada NO REPETIR solo vuelve a abrirse cuando exista:
+- regresión;
+- nueva evidencia de CI/hardware;
+- cambio de requisito;
+- cambio de dependencia;
+- nueva restricción legal.
+
+Al reabrirla hay que registrar primero el motivo y la prueba nueva.
+
+## Snapshot
+
+**59% — ingeniería.**
+
+El siguiente avance debe venir de cerrar gates de producción, no de duplicar la infraestructura ya implementada.
