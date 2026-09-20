@@ -1,0 +1,19 @@
+name: Actions Runner Diagnostic
+
+on:
+  push:
+    branches: [main, "fix/native-windows-foundation"]
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Runner probe
+        run: |
+          echo "runner-started"
+          uname -a
+          git --version
+          node --version || true
