@@ -40,6 +40,12 @@ int main() {
     assert(policy.attempts() == 0);
     assert(!policy.pending());
 
+    // A fresh output session must be able to schedule retries again after
+    // the previous session exhausted its attempts.
+    assert(policy.schedule_failure(now + 200));
+    assert(policy.attempts() == 1);
+    assert(policy.ready(now + 210));
+
     std::cout << "Output retry policy smoke: PASS\n";
     return 0;
 }
