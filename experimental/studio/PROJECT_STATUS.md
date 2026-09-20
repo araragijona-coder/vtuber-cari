@@ -113,6 +113,12 @@
 - [ ] Instalador Windows.
 - [ ] Diagnóstico/rollback y logs de usuario.
 
+## Estimación de avance
+
+**Estimación global de ingeniería: ~59%.**
+
+Este porcentaje mide avance de ingeniería respecto del objetivo completo. No equivale a validación en hardware ni a porcentaje de código que pueda considerarse producción.
+
 ## Criterio de cierre
 
 Un componente no se marca como completo por tener una interfaz. Debe:
