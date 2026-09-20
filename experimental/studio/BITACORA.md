@@ -896,3 +896,160 @@ Los snapshots anteriores son históricos. Esta sección es la referencia activa 
 6. Solo después: validación RTMP, multistream, distribución y hardware.
 
 Esta sección debe ser actualizada cuando un hallazgo cambie de estado. No duplicar entradas con otro nombre.
+
+
+## 25. Auditoría de rendimiento y corrección multimedia — 20/09/2026 15:04 ART
+
+**HEAD auditado:** 59952e8e68c9857aa9c4e528218503fc7ab7cddd  
+**PR:** #2 — `fix/native-windows-foundation`  
+**Estado:** experimental / NO listo para producción  
+**Avance canónico:** **63%**
+
+### P0 confirmados
+
+| ID | Hallazgo confirmado | Evidencia en código | Riesgo | Acción |
+|---|---|---|---|---|
+| P0-02 | El callback `Windows.Graphics.Capture` sigue siendo demasiado pesado. | `main.cpp`: `FrameArrived` crea el frame final, ejecuta composición D3D11 y, para la salida FFmpeg actual, llama `copy_output_to_cpu()`; el fallback `FrameBridge::copy_to_cpu()` también crea staging + `Map`. | Alta latencia, pérdida de frames, sincronización GPU/CPU y presión de memoria. | Callback = adquirir/enqueue solamente. Worker de composición/readback acotado y con política de drop-oldest/latest-frame. |
+| P0-04 | Los PTS originales no viajan por el protocolo raw y FFmpeg recibe `use_wallclock_as_timestamps=1`. | `output_profile.h` aplica la opción a ambas entradas raw. | Se pierde la continuidad temporal de origen; además FFmpeg documenta que forzar wallclock tiene resultados indefinidos con B-frames. | Implementar transporte con header/framing de PTS o abandonar raw pipe para el boundary final; no usar wallclock como sustituto permanente. |
+| P0-05 | El compositor GPU cachea device/context y no detecta cambio de dispositivo después de device-loss recovery. | `main.cpp` reusa `g_gpu_compositor`; `needs_init` solo comprueba null/tamaño, no identidad del `ID3D11Device`. | Después de device removed/reset, el compositor puede conservar recursos del dispositivo antiguo y operar contra una textura del nuevo. | Invalidación/reinicialización explícita del compositor cuando cambia el device; test de recovery antes de cerrar el gate. |
+
+### P0-02: cadena exacta observada
+
+La descripción anterior de la bitácora debe leerse así; no se debe volver a usar la versión simplificada:
+
+```
+WGC FrameArrived (worker interno de FramePool)
+    ↓
+captured.surface
+    ↓
+D3D11 GPU composition
+    ├─ CopyResource(capture → output)
+    ├─ upload_overlay(...)
+    └─ Draw(...)
+    ↓
+CopyResource(output → staging)
+    ↓
+Map(D3D11_MAP_READ)
+    ↓
+CPU BGRA buffer
+    ↓
+MediaGraphController
+    ↓
+RawPipe
+    ↓
+FFmpeg
+```
+
+Cuando la composición GPU no está disponible o en diagnóstico:
+
+```
+WGC FrameArrived
+    ↓
+FrameBridge::copy_to_cpu
+    ↓
+CreateTexture2D(STAGING)
+    ↓
+CopyResource
+    ↓
+Map(READ)
+    ↓
+CPU buffer
+```
+
+**Corrección importante:** no existe una segunda "GPU→CPU readback después de un compositor software" como describían algunos snapshots antiguos. El camino actual de producción experimental es **GPU compositor → CPU readback**. El compositor software aparece como diagnóstico/fallback.
+
+Microsoft documenta que `CreateFreeThreaded` hace que `FrameArrived` se ejecute en el worker interno del frame pool. Eso no vuelve barato el callback: el trabajo síncrono del callback sigue bloqueando el consumo de frames de ese worker. urlCreateFreeThreaded — Microsoft Learnhttps://learn.microsoft.com/en-us/uwp/api/windows.graphics.capture.direct3d11captureframepool.createfreethreaded?view=winrt-26100
+
+Microsoft también documenta que el immediate context de D3D11 no es thread-safe; el acceso compartido requiere sincronización. En el diseño actual el acceso principal está serializado por el propio callback/compositor, pero no debe expandirse a más workers sin definir ownership explícito. urlDirect3D 11 multithreading — Microsoft Learnhttps://learn.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-render-multi-thread-intro
+
+### P1 confirmados en esta revisión
+
+| ID | Hallazgo | Evidencia | Próximo gate |
+|---|---|---|---|
+| P1-16 | `D3D11Compositor::upload_overlay()` crea una textura `IMMUTABLE` + SRV por overlay y por frame. | `d3d11_compositor.cpp`. | Cachear textura/SRV; actualizar solo cuando cambie el bitmap. |
+| P1-17 | `D3D11Compositor::copy_output_to_cpu()` crea un staging texture nuevo por frame. | `d3d11_compositor.cpp`. | Pool de staging/readback asíncrono; eliminar del camino final cuando exista encoder GPU. |
+| P1-18 | Overlay del avatar hace WGC → readback CPU cada 2 frames → BGRA→RGBA → upload GPU en el compositor. | callback de `g_avatar_capture` + `upload_overlay`. | Worker + surface/texture compartida o mecanismo de captura GPU directo. |
+| P1-19 | El avatar overlay no está sincronizado por PTS con el frame final. | Se conserva `g_avatar_overlay_sequence`, pero el compositor usa simplemente el último bitmap disponible. | Selección por timestamp/sequence y política de edad máxima del overlay. |
+| P1-20 | `StartOutput()` puede esperar hasta ~1 s con `Sleep(10)` para que la cámara tenga formato. | `main.cpp`. | Convertir a estado asíncrono/event-driven; no bloquear UI/control thread. |
+| P1-21 | `BuildSourceStatus()` enumera cámaras periódicamente y llama MFStartup/MFShutdown repetidamente. | `main.cpp` + `camera_sources.cpp`. | Cachear enumeración y refrescar bajo demanda. |
+| P1-22 | La cámara Media Foundation usa timestamps del Source Reader sin puente temporal demostrado hacia el dominio WGC/WASAPI. | `media_foundation_camera.cpp`. | Medir offset/drift y documentar el dominio. |
+| P1-23 | La cámara hace `ReadSample()` síncrono en worker y `stop()` espera con join. | `media_foundation_camera.cpp`. | Cancelación/Shutdown no bloqueante y prueba de desconexión. |
+
+### Riesgos que se revisaron y NO se elevan a P0
+
+- **P0-03 de snapshots anteriores:** el código actual no demuestra una carrera concurrente del immediate context del mismo device. El callback principal y el compositor usan el contexto de ese device dentro de la misma ruta, y el compositor tiene mutex. Mantener el punto como **riesgo de ownership futuro**, no como bug concurrente confirmado. No borrar el análisis; simplemente no sobrerankearlo.
+- `SoftwareCompositor` no es el cuello principal de producción porque el camino actual usa GPU compositor cuando puede; queda como referencia/diagnóstico. No invertir el siguiente ciclo en optimizarlo antes de eliminar readbacks.
+- OpenCV no es necesario para reparar P0-02: WGC/D3D11 ya es el backend de captura Windows seleccionado. No crear un segundo backend.
+
+### Problemas adicionales de corrección temporal
+
+FFmpeg documenta `use_wallclock_as_timestamps` como una opción que fuerza timestamps de wallclock y advierte resultados indefinidos con B-frames. La configuración actual usa `libx264` y no desactiva explícitamente B-frames. Por tanto, el current raw boundary no debe promocionarse como timestamp-safe aunque el scheduler upstream funcione correctamente. urlFFmpeg Formats Documentationhttps://ffmpeg.org/ffmpeg-formats.html
+
+### No repetir
+
+- No volver a implementar WGC.
+- No sustituir WGC por OpenCV.
+- No crear otro compositor D3D11.
+- No crear otro RawPipe.
+- No crear otro MediaClock/RealtimePacer/MediaInterleaver.
+- No crear otro tracker MediaPipe.
+- No crear otro renderer Three.js.
+- No convertir `capturePage()` en transporte multimedia.
+- No optimizar primero el `SoftwareCompositor`.
+- No marcar el callback como resuelto solo por mover una línea: debe quedar medido con latencia, FPS entregado, cola máxima, drops y duración sostenida.
+- No eliminar el readback final sin reemplazarlo por una frontera de encoder válida.
+- No tratar `use_wallclock_as_timestamps` como solución permanente de PTS.
+- No marcar device-loss como cerrado hasta demostrar que el compositor se reinicializa con el nuevo D3D device.
+
+### Próxima cola única recomendada
+
+**P0-A — Worker de captura**
+```
+WGC FrameArrived
+    ↓
+AddRef / captura de metadata mínima
+    ↓
+bounded latest-frame queue
+    ↓
+GPU/CPU worker
+    ↓
+D3D11 compositor
+    ↓
+readback provisional
+    ↓
+MediaGraph
+```
+
+**P0-B — PTS**
+```
+FrameHeader {
+    magic
+    version
+    stream_type
+    sequence
+    pts_100ns
+    payload_size
+}
++
+raw payload
+```
+
+El header debe ser versionado, pequeño y con validación de tamaño antes de aceptar el payload. La frontera FFmpeg debe leer ese framing mediante un adaptador propio o sustituirse por una API de encoder/muxer que acepte timestamps explícitos.
+
+**P0-C — Device identity**
+- Asociar al compositor el `ID3D11Device` activo.
+- Invalidar recursos cuando el device cambie.
+- Recrear shaders/buffers/textures solo cuando corresponda.
+- Ejecutar test de device-loss/recovery + composición posterior.
+
+### Estado y continuidad
+
+- **Avance global canónico:** **63%**.
+- **Producto:** NO listo para producción.
+- **P0-02:** abierto y confirmado.
+- **P0-04:** abierto y confirmado.
+- **P0-05:** nuevo y confirmado.
+- **CI:** los runs recientes siguen terminando con `failure` sin `steps/logs` observables; la bitácora no atribuye esos fallos al código.
+- **HEAD auditado:** 59952e8e68c9857aa9c4e528218503fc7ab7cddd.
+
+Esta sección reemplaza cualquier descripción anterior de P0-02 que diga que existe una "segunda readback de composición software". Esa descripción está obsoleta y no debe reutilizarse.
