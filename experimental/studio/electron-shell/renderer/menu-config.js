@@ -123,10 +123,10 @@ export const STUDIO_MENU = [
 export const CAPABILITIES = {
   twitch: [
     ["Chat", "channel.chat.message", "connected"],
-    ["Follow", "channel.follow", "eventsub"],
-    ["Suscripciones", "channel.subscribe / gift / message / end", "eventsub"],
-    ["Cheers", "channel.cheer", "eventsub"],
-    ["Raids", "channel.raid", "eventsub"],
+    ["Follow", "channel.follow", "prepared"],
+    ["Suscripciones", "channel.subscribe / gift / message / end", "prepared"],
+    ["Cheers", "channel.cheer", "prepared"],
+    ["Raids", "channel.raid", "connected"],
     ["Channel Points", "custom + automatic rewards/redemptions", "eventsub"],
     ["Polls", "begin / progress / end", "eventsub"],
     ["Predictions", "begin / progress / lock / end", "eventsub"],
@@ -140,7 +140,7 @@ export const CAPABILITIES = {
     ["Shared Chat", "begin / update / end", "eventsub"],
     ["Guest Star", "session / guest / settings events", "eventsub"],
     ["Power-ups", "custom power-up redemption", "eventsub"],
-    ["Stream lifecycle", "online / offline / channel update", "eventsub"]
+    ["Stream lifecycle", "online / offline / channel.update", "connected"]
   ],
   obs: [
     ["Streaming", "StartStream / StopStream / status", "connected"],
