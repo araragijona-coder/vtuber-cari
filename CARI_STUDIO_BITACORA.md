@@ -275,3 +275,31 @@ Para código: repositorio GitHub `araragijona-coder/vtuber-cari`.
 Para estado de Cari Studio: este archivo + `experimental/studio/PROJECT_STATUS.md` + `experimental/studio/AUDIT_MATRIX.md` mientras la implementación continúe en validación.
 
 **Última actualización de esta bitácora: 2026-09-20.**
+
+## 2026-09-20 — Promoción controlada a main
+
+Se aplicó una promoción selectiva a la rama `main`:
+- módulos principales de avatar/presets y perfil;
+- catálogo de personajes;
+- capa `app/studio` para acciones, métricas y bindings de runtime;
+- integración y automatización Twitch que ya tenían contratos/tests;
+- tests Python asociados;
+- workflows CI y diagnóstico;
+- README y esta bitácora maestra.
+
+El runtime nativo Windows completo **no** se promovió todavía porque sus gates de hardware/FFmpeg/captura siguen abiertos. Permanece en la única zona experimental de nivel superior: `experimental/`.
+
+### Estado de integración
+- PR #2 continúa abierto/draft y GitHub rechaza mergearlo mientras siga en draft.
+- No se hizo force-push ni reescritura de `main`.
+- HEAD de `main` después de la promoción: `14c938a8712a5aaadae51e867c91ddd01a44f8a2`.
+- HEAD de la rama de trabajo durante esta actualización: `581cb2944326c9c27312c139230167eb5310ffae`.
+
+### NO REPETIR
+- No volver a mover a `main` los módulos ya promovidos salvo que cambie su contenido o aparezca nueva evidencia.
+- No intentar fusionar el PR #2 mientras siga en draft.
+- No copiar el runtime nativo Windows a otra ruta experimental; `experimental/` es la única zona reservada para aquello que aún no está cerrado.
+
+### Avance
+**58% de ingeniería.**
+La promoción de código no aumenta artificialmente el porcentaje: el siguiente incremento debe provenir de cerrar validaciones funcionales, no de mover archivos.
