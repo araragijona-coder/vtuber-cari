@@ -629,3 +629,21 @@ Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese re
 ### Regla de porcentaje
 - El avance canónico permanece en 63%.
 - P04, P08 y P14 no suman puntos hasta sus gates de verificación correspondientes.
+
+## 16. Diagnóstico de Actions — fallo previo a steps (20/09/2026)
+
+### Evidencia
+- Se añadió `.github/workflows/actions-diagnostic.yml`, una workflow mínima con checkout y un `echo` sobre ubuntu-latest.
+- El run de la workflow mínima también terminó en `failure` con `steps=null` y `logs_url=null`.
+- Los workflows de CI, Character Runtime y Native Windows presentan el mismo patrón: job creado, terminado casi inmediatamente y sin steps observables.
+- El status público de GitHub consultado el 20/09/2026 indica `All Systems Operational` y Actions `Operational`; por eso no se afirma una caída global de GitHub como causa.
+
+### Conclusión operativa
+- El bloqueo de verificación no puede atribuirse a una línea de Cari con la evidencia disponible.
+- No se debe seguir modificando código para intentar adivinar la causa mientras los jobs no entreguen logs/steps.
+- La workflow diagnóstica queda como instrumento permanente de comprobación de runner.
+
+### No repetir
+- No reescribir las workflows de producto sin evidencia nueva.
+- No marcar CI verde por el mero hecho de que el run exista.
+- No atribuir failure pre-step a CMake, C++, Python o Electron sin logs.
