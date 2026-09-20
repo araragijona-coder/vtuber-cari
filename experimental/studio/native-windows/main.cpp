@@ -736,7 +736,7 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
                 false, "unsupported output profile", command.request_id);
         if (g_media_enabled.load(std::memory_order_relaxed))
             return cari::native::control_response(true, "output=running", command.request_id);
-        if (!StartOutput(hwnd, command.profile, command.target))
+        if (!StartOutput(hwnd, command.profile, command.target, true))
             return cari::native::control_response(false, "output=start-failed", command.request_id);
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "output=started", command.request_id);
@@ -835,7 +835,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
                 g_media_graph.stop();
                 g_media_enabled.store(false, std::memory_order_relaxed);
             } else {
-                StartOutput(hwnd, "local-record", "");
+                StartOutput(hwnd, "local-record", "", true);
             }
             RefreshStatus(hwnd);
             return 0;
