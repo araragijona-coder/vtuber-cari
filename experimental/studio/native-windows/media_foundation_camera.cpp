@@ -271,9 +271,20 @@ void MediaFoundationCamera::run(
     }
 
     ComPtr<IMFAttributes> attributes;
-    hr = MFCreateAttributes(&attributes, 1);
+    hr = MFCreateAttributes(&attributes, 2);
     if (FAILED(hr)) {
         set_error(hresult_message(L"MFCreateAttributes", hr));
+        MFShutdown();
+        if (should_uninitialize) CoUninitialize();
+        running_.store(false, std::memory_order_relaxed);
+        return;
+    }
+
+    hr = attributes->SetGUID(
+        MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
+        MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
+    if (FAILED(hr)) {
+        set_error(hresult_message(L"SetGUID(video capture source type)", hr));
         MFShutdown();
         if (should_uninitialize) CoUninitialize();
         running_.store(false, std::memory_order_relaxed);
