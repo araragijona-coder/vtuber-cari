@@ -3,8 +3,8 @@
 > **Fuente canónica única de continuidad.**
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
-**Última auditoría:** 20/09/2026 14:33 ART
-**HEAD canónico:** 46080690edf3df3cd669ce3fda7a6dc4282cb87b
+**Última auditoría:** 20/09/2026 14:35 ART
+**HEAD canónico:** d272442776dbc501cc46a4a035194749d5bb0b53
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
@@ -247,8 +247,7 @@ El 62% no significa 62% de código ni disponibilidad para producción. La ruta p
 - smoke `output_diagnostics_smoke`: PASS;
 - FFmpeg sintético BGRA raw + PCM float32 -> H.264/AAC -> Matroska: PASS;
 - D3D11 compositor smoke con WARP: PASS, según el estado registrado en `PROJECT_STATUS.md`;
-- E2E Windows named-pipe -> FFmpeg -> decode: IMPLEMENTADO EN CÓDIGO, todavía no VERIFIED por ausencia de steps/logs observables en Actions.
-### No repetir
+- E2E Windows named-pipe -> FFmpeg -> decode: IMPLEMENTADO EN CÓDIGO, todavía no VERIFIED por ausencia de steps/logs observables en Actions.### No repetir
 
 - no volver a implementar captura de escritorio con OpenCV;
 - no convertir `capturePage()` en transporte de vídeo;
@@ -350,7 +349,7 @@ P4 — streaming/release: RTMP prolongado + caída de red + validación del retr
 Regla: trabajar únicamente sobre el primer gate no cerrado; no abrir nuevamente componentes ya marcados como IMPLEMENTADO/VERIFICADO sin evidencia de regresión.
 ## 11. Cierre de continuidad — 20/09/2026 13:24 ART
 
-**HEAD canónico:** 46080690edf3df3cd669ce3fda7a6dc4282cb87b
+**HEAD canónico:** d272442776dbc501cc46a4a035194749d5bb0b53
 **PR #2:** abierto / draft / no mergeable.
 **Avance canónico:** **62%**. No se incrementa por parches menores que no cierren un gate.
 
@@ -498,7 +497,6 @@ Primero P01/P02. Después P04/P05/P06. Luego P07/P08/P09. Después P10/P11. Al f
 | Cámara + MediaPipe + avatar | PENDIENTE | conectar frames de cámara al tracker | no crear segundo tracker |
 ### Regla de trabajo vigente
 El siguiente trabajo debe atacar exclusivamente un gate PENDIENTE. Una pieza marcada IMPLEMENTADO/VERIFICADO se conserva y solo se modifica ante una regresión concreta.
-
 ### CI
 Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese resultado para afirmar que la cámara compila en Windows. La verificación real del módulo queda condicionada a un runner Windows observable.
 ## 12. Cierre de esta iteración — 20/09/2026 13:46 ART
@@ -770,3 +768,41 @@ P06 tiene implementación experimental, pero sus 4 puntos permanecen abiertos ha
 3. Registrar primero cualquier hallazgo nuevo que justifique tocar un componente cerrado.
 4. No sumar puntos al porcentaje por implementar dos veces la misma capacidad.
 5. Mantener separados implementación, verificación y validación en hardware.
+
+## 22. Estado CI y continuidad — 20/09/2026 14:35 ART
+
+### HEAD canónico observado
+- PR #2 / rama `fix/native-windows-foundation`.
+- HEAD: `d272442776dbc501cc46a4a035194749d5bb0b53`.
+- Avance canónico: **63%**.
+
+### CI observado en este HEAD
+| Workflow | Run | Estado | Evidencia |
+|---|---:|---|---|
+| Native Windows Build | 35526287906 | failure | jobs `electron-shell-check` y `build` sin `steps` ni `logs_url` |
+| CI | 35526287890 | failure | jobs Python sin `steps` ni `logs_url` |
+| Actions Runner Diagnostic | 35526287874 | failure | job `probe` sin `steps` ni `logs_url` |
+| Character Runtime Tests | 35526287879 | failure | jobs sin `steps` ni `logs_url` |
+
+El workflow diagnóstico mínimo reproduce el mismo patrón. No se modifica C++/CMake/Python para adivinar una causa que no tiene logs. P01 permanece pendiente.
+
+### P06 estado actual
+- Overlay transparente Electron + Three.js/glTF: **IMPLEMENTADO EXPERIMENTAL**.
+- Estado de actuación persistente durante carga del overlay: **IMPLEMENTADO**.
+- Overlay capturado por WGC y enviado al compositor D3D11: **IMPLEMENTADO EXPERIMENTAL**.
+- Modelo real mediante `CARI_AVATAR_MODEL_PATH`: **IMPLEMENTADO / CONFIGURABLE**.
+- P06 completo: **PENDIENTE DE VALIDACIÓN** en Windows con modelo real, transparencia, rendimiento y salida sostenida.
+- P05 continúa separado: el boundary raw requiere readback CPU, así que no se considera compositor GPU de producción.
+
+### No repetir
+- No rehacer WGC, WASAPI, MediaClock, RealtimePacer, MediaInterleaver, RawPipe, FFmpeg supervisor, retry policy, compositor D3D11 base, MediaPipe tracker ni renderer Three.js.
+- No crear otro transporte para el avatar.
+- No marcar P06 como VERIFIED por el código existente.
+- No marcar P01 como VERIFIED por un run `failure` con `steps=null`.
+
+### Siguiente cola única
+1. P01/P02: obtener ejecución Windows observable y ejecutar el E2E ya existente.
+2. P05/P06: eliminar readback CPU del camino de producción y validar avatar real dentro del frame final.
+3. P07/P08/P09: validación de cámara, relojes de dispositivos, drift y voz integrada.
+4. P10/P11: RTMP sostenido, caída de red y reconexión EventSub real.
+5. P12/P13/P14: Game Capture, distribución y multistream real.
