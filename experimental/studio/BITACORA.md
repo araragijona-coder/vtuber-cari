@@ -512,3 +512,63 @@ P2 transporte temporal explícito;
 P3 cámara/Audio drift/lip-sync;
 P4 RTMP real + hardware;
 P5 packaging/release.
+
+
+## 024 — Checkpoint de continuidad — 2026-09-20 10:00 ART
+**Estado:** CANÓNICO / NO REPETIR
+
+**HEAD observado del branch:** `4bdbca78be521e09b13917f1aa36c59f0ed7c763`  
+**PR:** #2 — `fix: harden native Windows foundation`  
+**Avance global:** **60%**
+
+### Trabajo ya registrado y reutilizable
+- Núcleo Windows: Windows Graphics Capture + D3D11 para ventana/pantalla.
+- Audio: WASAPI micrófono + loopback + AudioTimelineMixer.
+- Voz: VoiceEffectProcessor local; `anime-bright` no se considera motor pitch/formant.
+- Timing: MediaClock + RealtimePacer + MediaInterleaver global.
+- Backpressure: el audio no se drena antes de conectar los dos pipes.
+- Presupuesto: máximo 8 eventos A/V por polling.
+- Output: FFmpeg supervisado, EOF/flush antes de terminación forzada.
+- Diagnóstico: stderr acotado a 256 KiB + estado/código de salida.
+- Resiliencia: OutputFailureCategory + OutputRetryPolicy, RTMP/network solamente, máximo 5 intentos.
+- Captura/UX: invariantes que bloquean cambios de captura/audio mientras output está activo.
+- Avatar: MediaPipe Face Landmarker + bridge de actuación + Three.js/glTF.
+- OBS: integración opcional vía obs-websocket.
+- CI: workflows de desarrollo y `workflow_dispatch`.
+- E2E Windows: `ffmpeg_named_pipe_e2e_smoke.cpp` registrado en CMake/workflow.
+
+### Verificación disponible
+- Smoke C++20 portable de timing/interleave: PASS.
+- Smoke de retry/backoff: PASS.
+- Smoke de clasificación de errores: PASS.
+- FFmpeg sintético BGRA + PCM float32 -> H.264/AAC -> Matroska: PASS en Linux.
+- El smoke E2E Windows de named pipes está implementado, pero no puede marcarse VERIFICADO todavía.
+
+### CI actual
+Los runs asociados al HEAD observado terminan con `failure` y los jobs no exponen `steps` ni `logs_url`. Esto impide distinguir una ejecución de build/test real desde la evidencia entregada por el conector. Por esta razón:
+- CI = **PENDIENTE/BLOQUEADA como evidencia**;
+- no atribuir el fallo a una línea de código;
+- no declarar el build Windows como correcto hasta obtener steps/logs reales.
+
+### NO REPETIR
+- No crear otro retry/backoff.
+- No crear otro clasificador de fallos.
+- No crear otro interleaver/pacer.
+- No diseñar otra arquitectura de captura Windows.
+- No reemplazar WGC por OpenCV para captura principal sin evidencia nueva.
+- No usar `capturePage()` como compositor de vídeo.
+- No declarar raw pipes timestamp-preserving.
+- No declarar FFmpeg Linux como validación Windows.
+- No duplicar la bitácora.
+- No incrementar el porcentaje por scaffolding: solo por gates cerrados con evidencia proporcional.
+
+### Próximos gates
+**P0:** obtener una ejecución Windows CI con steps/logs y ejecutar `cari-ffmpeg-named-pipe-e2e-smoke`.  
+**P1:** compositor GPU D3D11: captura + avatar + overlays -> frame final.  
+**P2:** estrategia de timestamps explícitos/extremo a extremo.  
+**P3:** cámara Media Foundation + drift correction + lip-sync.  
+**P4:** RTMP real/reconnect + validación en hardware.  
+**P5:** packaging/installer + política de redistribución FFmpeg/codecs.
+
+### Regla de la siguiente iteración
+Comenzar desde este ledger y tocar solamente el primer gate sin evidencia. Las soluciones ya implementadas deben modificarse **in-place** ante bugs; no crear implementaciones paralelas.
