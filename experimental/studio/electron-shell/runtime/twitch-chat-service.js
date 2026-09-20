@@ -310,6 +310,10 @@ class TwitchChatService extends EventEmitter {
 
     if (type === "session_reconnect") {
       const reconnectUrl = message.payload?.session?.reconnect_url;
+      this.emit("eventsub:reconnect", {
+        generation,
+        reconnectUrl: reconnectUrl || null
+      });
       if (reconnectUrl) await this.#openWebSocket(reconnectUrl, { transfer: true });
       return;
     }
