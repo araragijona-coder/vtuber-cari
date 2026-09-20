@@ -240,3 +240,10 @@ Consultar `experimental/studio/BITACORA.md` antes de reabrir una tarea. El HEAD 
 - P1 dejó de ser solo diagnóstico: el callback nativo puede componer captura + placeholder GPU y enviar el frame final BGRA al MediaGraphController.
 - El readback CPU se mantiene explícitamente como limitación de rendimiento y no se marca como producción.
 - Los nuevos smoke portable de retry/diagnóstico pasan C++20 con warnings como errors.
+### Production readiness
+
+- **Estado actual:** NO listo para producción.
+- **Build experimental:** arquitectura y componentes principales implementados.
+- **Verificación Windows:** pendiente mientras Actions no ejecute steps/logs observables.
+- **Uso diario estable:** pendiente de captura/audio/FFmpeg/RTMP/hardware sostenidos.
+- **Promoción fuera de experimental:** bloqueada hasta cerrar P0 + P1 + P2 y el hardware gate.
