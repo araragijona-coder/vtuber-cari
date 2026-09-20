@@ -364,7 +364,7 @@ class TwitchChatService extends EventEmitter {
     }, timeoutSeconds * 1000 + 1000);
   }
 
-
+  #scheduleReconnect() {
     if (this.manualDisconnect) return;
 
     this.reconnectAttempt += 1;
