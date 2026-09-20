@@ -17,6 +17,7 @@
 - [x] Readback de captura CPU lazy: solo diagnóstico/fallback; no se ejecuta antes de cada composición GPU.
 - [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
 - [x] Retry/backoff RTMP restringido a errores de red y métricas de categoría.
+- [x] Reset de retry por nueva sesión manual, conservando intentos durante reconexiones automáticas.
 - [x] Reset de contador de retry para nuevas sesiones manuales con continuidad de intentos en reconexiones automáticas.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
