@@ -28,6 +28,17 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 | FFmpeg outputs | FFmpeg formats documentation | `tee`/`fifo` para múltiples destinos y tolerancia a distinta latencia/fallo. |
 | Character design | Writers.com — character development | Separación de rasgos, valores, defectos, objetivos y arco para mantener coherencia de personaje. |
 
+## Producto / UX
+
+- [x] Superficie de Studio de escritorio tipo plataforma de streaming.
+- [x] Navegación por En vivo, Panel, VTuber, Escenas, Chat, Eventos, Assets y Configuración.
+- [x] Editor de acciones VTuber con `＋ Nueva acción`.
+- [x] Acciones iniciales Feliz, Triste, Hablar, Callar, Neutral y Enojada.
+- [x] Imágenes por acción, múltiples frames, drag-and-drop, orden, loop, escala, opacidad y offsets.
+- [x] Persistencia local y presets JSON.
+- [x] Activación de acciones desde UI y comandos básicos del chat.
+- [x] Bitácora `BITACORA_CARI_STUDIO.md` con estados y lista NO REPETIR.
+
 ## Gates
 
 ### Core multimedia
@@ -156,6 +167,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Accessory anchors and transforms.
 - [x] Seeded randomization.
 - [x] JSON presets.
+- [x] Editor de acciones PNG/frame dentro del Studio.
 - [x] Canonical Cari personality bible with explicit invariants and data classification.
 - [ ] Character behavior engine consuming personality/value/state layers.
 - [x] Neutral avatar contract consumed by the Three.js renderer.
@@ -171,7 +183,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 - [x] Preset data model.
 - [x] Save/load validation.
-- [ ] Desktop editor.
+- [ ] Desktop editor 3D completo; el editor de acciones visuales ya está implementado.
 - [ ] Asset catalog.
 - [ ] Integrated preview.
 - [ ] UI preset management.
@@ -196,6 +208,9 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Release smoke test on target PC.
 
 ## Evidencia actual
+
+- `AvatarActionStore` centraliza acciones, persistencia local, frames y export/import; la UI no mantiene un segundo almacenamiento paralelo.
+- El editor visual permite crear acciones con `＋`, asignar imágenes, ordenar frames y reproducirlos en preview; la promoción a composición nativa sigue siendo un gate multimedia separado.
 
 - Existe `ffmpeg_named_pipe_e2e_smoke.cpp` conectado a CMake y al workflow Windows; queda clasificado como IMPLEMENTADO pero no VERIFICADO mientras el runner no ejecute los steps.
 
