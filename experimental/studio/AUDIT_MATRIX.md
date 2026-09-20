@@ -207,6 +207,13 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Diagnostics/log folder policy.
 - [ ] Release smoke test on target PC.
 
+## Continuity checkpoint — 2026-09-20
+
+- HEAD actual auditado: `c9e75775698814359aeb3ccab59c25efc2aa10e3`.
+- Ingeniería: ~65%; producto usable: ~50%.
+- Nuevos módulos recientes: Media Foundation camera, D3D11 compositor experimental, LatestItemQueue, drift estimator, Libav experimental, named-pipe E2E, multistream supervisor, ActionStore/editor y Twitch desktop UI.
+- Ninguno de estos se promociona a producción mientras falte su gate externo correspondiente.
+
 ## Evidencia actual
 
 - `AvatarActionStore` centraliza acciones, frames, persistencia local y presets JSON; no se creó un almacenamiento paralelo para el editor.
@@ -254,7 +261,7 @@ Cada pendiente debe indicar qué evidencia falta antes de pasar a `[x]`.
 
 ## Bitácora y continuidad
 
-La fuente canónica de continuidad y anti-repetición es `CARI_STUDIO_BITACORA.md`. Consultarla antes de reabrir una tarea, prueba o componente.
+La fuente canónica de continuidad y anti-repetición es `BITACORA.md`; `BITACORA_CARI_STUDIO.md` queda congelada como histórico. Consultarla antes de reabrir una tarea, prueba o componente.
 ## Evidencia adicional — 2026-09-20
 - P1 dejó de ser solo diagnóstico: el callback nativo puede componer captura + placeholder GPU y enviar el frame final BGRA al MediaGraphController.
 - El readback CPU se mantiene explícitamente como limitación de rendimiento y no se marca como producción.
