@@ -25,6 +25,7 @@ add_executable(cari-studio-native WIN32
     capture_engine.cpp
     compositor_bridge.cpp
     d3d11_compositor.cpp
+    avatar_gpu_overlay.cpp
     frame_bridge.cpp
     process_runner.cpp
     ffmpeg_supervisor.cpp
