@@ -112,7 +112,8 @@
 - [ ] Ejecutar realmente `studio_chat_requested`, `studio_sound_requested`, `studio_scene_requested` y equivalentes con los backends nativos.
 - [x] Supervisor multi-stream experimental con hasta 4 destinos y retry independiente por destino.
   - [ ] Validación con múltiples endpoints RTMP reales.
-- [ ] Reconexión EventSub explícita auditada contra el ciclo welcome/keepalive/reconnect de Twitch.
+- [x] Observabilidad de continuidad EventSub con ledger de generaciones y auditoría de suscripciones.
+  - [ ] Prueba real de reconexión/re-suscripción con Twitch CLI o canal.
 
 ## Avatar Studio
 
