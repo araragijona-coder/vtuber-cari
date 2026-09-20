@@ -3,7 +3,7 @@
 > Última actualización: 2026-09-20
 > Rama: `fix/native-windows-foundation`
 > PR: #2
-> HEAD canónico al cierre: `aca3649cfa5630f47d50c89403faf910423ec83c`
+> HEAD canónico al cierre: `ead361f716628a5b73aa84592702170864c34b56`
 
 Esta es la fuente única de continuidad para Cari Studio. Su objetivo es impedir que el mismo componente se rediseñe o implemente repetidamente.
 
@@ -318,3 +318,8 @@ Pendientes críticos que impiden producción:
 - lip-sync;
 - distribución legal de FFmpeg;
 - hardware del usuario.
+## CI diagnóstico 2026-09-20
+
+- IMPLEMENTADO — workflow adicional de diagnóstico de runner.
+- OBSERVADO — Native Windows Build, CI, Character Runtime Tests y Actions Runner Diagnostic siguen terminando antes de steps/logs útiles.
+- NO REPETIR — mientras `steps=null` y `logs_url=null`, no atribuir la falla a una línea del código.
