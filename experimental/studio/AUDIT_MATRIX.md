@@ -153,6 +153,13 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Integrated preview.
 - [ ] UI preset management.
 
+### License / distribution
+
+- [x] Runtime dependency versions pinned.
+- [x] Dependency license audit documented in `experimental/studio/DEPENDENCY_LICENSE_AUDIT.md`.
+- [ ] Final asset/model license audit.
+- [ ] FFmpeg/codec redistribution decision.
+
 ### Distribution
 
 - [x] Windows x64 CI build.
