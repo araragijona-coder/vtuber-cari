@@ -13,6 +13,7 @@
 - [x] Emisión raw temporizada por PTS con `RealtimePacer` y colas acotadas.
 - [x] Interleaver A/V global por PTS con prioridad determinista de audio en empate.
 - [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
+- [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Smoke test nativo para contratos core.
 - [ ] CI Windows verde sobre el head actual (los runs recientes fallan con `steps=null` antes de registrar steps; requiere nueva evidencia del runner).
 
