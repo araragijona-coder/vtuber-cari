@@ -309,3 +309,15 @@ La existencia de botón, módulo o workflow no equivale por sí sola a validaci�
 - Actions Runner Diagnostic: job `probe` también termina sin steps/logs.
 - Estado correcto: **BLOQUEADO**, no “código roto”.
 - Próximo gate: conseguir una ejecución que realmente llegue a Checkout/CMake/npm/CTest.
+
+## Continuidad viva — 2026-09-20 — control plane audit
+
+- Engineering tracking: ~65%.
+- End-user/product readiness: ~50%.
+- UI contract audit: 57 static buttons, 0 missing handlers/navigation.
+- Renderer OBS/Twitch calls: 0 missing preload wrappers.
+- OBS runtime event mirror: implemented.
+- Twitch EventSub lifecycle/reconnect/keepalive path: implemented.
+- Contractual UI test is part of the Electron shell test suite.
+- Production gates still open: explicit A/V timestamps, final GPU compositor, Windows E2E, physical drift correction, real Twitch/OBS validation, hardware and installer release validation.
+- No-repeat: continue on existing ObsService, TwitchChatService, StudioSessionManager, AvatarActionStore, MediaClock, RealtimePacer and compositor bridge; do not fork parallel implementations without reproducible regression.
