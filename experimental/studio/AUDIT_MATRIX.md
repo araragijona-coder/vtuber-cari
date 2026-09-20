@@ -245,7 +245,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 **Estimación global de ingeniería: ~65%.**
 
-El 62% refleja que la ruta principal y varios componentes experimentales ya están implementados, mientras permanecen abiertos los gates de validación Windows/hardware, PTS extremo a extremo, compositor de producción, cámara, drift, RTMP sostenido y distribución.
+El 65% refleja que la ruta principal y varios componentes experimentales ya están implementados, mientras permanecen abiertos los gates de validación Windows/hardware, PTS extremo a extremo, compositor de producción, cámara, drift, RTMP sostenido y distribución.
 
 ## Regla de cierre
 
@@ -297,3 +297,12 @@ La existencia de botón, módulo o workflow no equivale por sí sola a validaci�
 - No usar este SHA como HEAD permanente; consultar el PR #2 para el estado vivo.
 - Ingeniería vigente: ~65%; producto usable/end-user: ~50%.
 - Bitácora canónica: `experimental/studio/BITACORA.md`.
+
+
+## CI runner checkpoint — 2026-09-20
+
+- Native Windows Build run 369: `failure`; jobs sin steps/logs.
+- CI y Character Runtime Tests asociados al mismo período: failures previos a steps útiles.
+- Actions Runner Diagnostic: job `probe` también termina sin steps/logs.
+- Estado correcto: **BLOQUEADO**, no “código roto”.
+- Próximo gate: conseguir una ejecución que realmente llegue a Checkout/CMake/npm/CTest.
