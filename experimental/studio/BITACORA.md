@@ -4,7 +4,7 @@
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
 **Última auditoría:** 20/09/2026 14:42 ART
-**HEAD canónico:** a5d9cca3b15f8cfed22b50b40f4d9885d8ed6cc5
+**HEAD canónico:** d89dde52dbbef57f82d5d5966f0b3ea45e8ce5aa
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
@@ -822,7 +822,7 @@ El workflow diagnóstico mínimo reproduce el mismo patrón. No se modifica C++/
 
 ## 13. Auditoría estructural actual — 20/09/2026 14:42 ART
 
-**HEAD auditado:** a5d9cca3b15f8cfed22b50b40f4d9885d8ed6cc5
+**HEAD auditado:** d89dde52dbbef57f82d5d5966f0b3ea45e8ce5aa
 **Estado:** experimental / NO listo para producción
 **Avance canónico:** **63%**
 
