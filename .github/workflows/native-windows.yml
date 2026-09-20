@@ -73,6 +73,9 @@ jobs:
 
       - name: Run media clock smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-media-clock-smoke
+      - name: Run Media Foundation camera smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-media-foundation-camera-smoke
+
       - name: Run media scheduler smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-media-scheduler-smoke
 
