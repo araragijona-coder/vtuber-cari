@@ -164,7 +164,7 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 
 ## Continuidad / bitácora
 
-La única fuente canónica de continuidad y anti-repetición es `experimental/studio/BITACORA.md`.
+La única fuente canónica de continuidad y anti-repetición es `CARI_STUDIO_BITACORA.md`.
 
 - HEAD canónico: consultar el HEAD actual del PR #2
 - Avance global vigente: **63%**.
