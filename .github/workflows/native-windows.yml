@@ -1,0 +1,143 @@
+name: Native Windows Build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'experimental/studio/native-windows/**'
+      - 'experimental/studio/core/**'
+      - 'experimental/studio/electron-shell/**'
+      - '.github/workflows/native-windows.yml'
+  push:
+    branches: [main, "fix/native-windows-foundation"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    defaults:
+      run:
+        working-directory: experimental/studio/native-windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        shell: pwsh
+        run: |
+          choco install ffmpeg -y --no-progress
+          ffmpeg -version
+
+      - name: Configure CMake
+        run: cmake -S . -B build -A x64
+
+      - name: Build native targets
+        run: cmake --build build --config Release --parallel
+
+      - name: Run Cari Core smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-core-smoke
+
+      - name: Run FFmpeg supervisor smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-supervisor-smoke
+
+      - name: Run FFmpeg named-pipe A/V E2E smoke
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-named-pipe-e2e-smoke
+
+      - name: Run FFmpeg A/V output smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-ffmpeg-av-output-smoke
+
+      - name: Run raw media adapter smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-raw-media-adapter-smoke
+
+      - name: Run native media output bridge smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-native-media-output-bridge-smoke
+
+      - name: Run frame bridge smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-frame-bridge-smoke
+      - name: Run D3D11 compositor smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-d3d11-compositor-smoke
+
+
+      - name: Run audio timeline mixer smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-audio-timeline-mixer-smoke
+
+      - name: Run native audio core bridge smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-audio-core-bridge-smoke
+
+      - name: Run raw pipe smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-raw-pipe-smoke
+
+      - name: Run A/V sync smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-av-sync-smoke
+
+      - name: Run media clock smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-media-clock-smoke
+      - name: Run Media Foundation camera smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-media-foundation-camera-smoke
+
+      - name: Run media scheduler smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-media-scheduler-smoke
+
+      - name: Run output retry smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-output-retry-smoke
+
+      - name: Run output diagnostics smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-output-diagnostics-smoke
+
+      - name: Run control protocol smoke test
+        run: ctest --test-dir build -C Release --output-on-failure -R cari-control-protocol-smoke
+
+      - name: Verify native executable exists
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'build/Release/cari-studio-native.exe'
+          if (-not (Test-Path $exe)) {
+            throw "Native executable was not produced: $exe"
+          }
+          Get-Item $exe | Select-Object FullName, Length
+
+      - name: Package portable Windows build
+        shell: pwsh
+        run: |
+          $package = Join-Path $PWD 'build/CariStudio-Windows-x64'
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+          Copy-Item (Join-Path $PWD 'build/Release/cari-studio-native.exe') (Join-Path $package 'CariStudio.exe') -Force
+          @'
+          Cari Studio — Windows x64 test build
+
+          This package is intended for the first real Windows hardware test.
+          It does not include proprietary assets, Twitch credentials, or FFmpeg binaries.
+          The executable reports native Windows capture/audio capabilities and exposes
+          the current diagnostic capture path. Hardware-dependent validation remains
+          required on the target PC.
+          '@ | Set-Content -Path (Join-Path $package 'README.txt') -Encoding UTF8
+          Compress-Archive -Path (Join-Path $package '*') -DestinationPath (Join-Path $PWD 'build/CariStudio-Windows-x64.zip') -Force
+
+      - name: Upload portable Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: CariStudio-Windows-x64
+          path: experimental/studio/native-windows/build/CariStudio-Windows-x64.zip
+          if-no-files-found: error
+
+
+  electron-shell-check:
+    runs-on: windows-2022
+    defaults:
+      run:
+        working-directory: experimental/studio/electron-shell
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate Electron shell JavaScript
+        run: npm run check
+
+      - name: Run Electron shell contract tests
+        run: npm test
