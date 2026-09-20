@@ -143,3 +143,37 @@ Estas pruebas no sustituyen Windows real, named pipes sostenidos, cámara, Game 
 IMPLEMENTADO no implica VERIFICADO.
 VERIFICADO no implica VALIDADO EN HARDWARE.
 Una tarjeta del menú no convierte una capacidad en una función terminada.
+
+## Actualización 2026-09-20 — UI y sistemas
+
+- El menú fue centralizado en renderer/menu-config.js.
+- La navegación ahora cubre Studio, Producción, VTuber, Twitch, OBS, Automatización y Sistema.
+- Se agregó buscador de herramientas y hotkeys de navegación.
+- Se agregó Centro Twitch con catálogo de capacidades y estados.
+- Se agregó Centro OBS con escenas, inputs, stats, recording, virtual camera, Studio Mode, profiles y scene collections.
+- Se agregó separación VTuber entre Editor, Tracking, Avatar, Expresiones y Assets.
+- Se agregó catálogo documental UI_SYSTEM_CATALOG.md.
+- Se agregó test de coherencia para que cada item del menú tenga una vista y que los IDs HTML sean únicos.
+- Se extendió preload/Main/ObsService para la superficie OBS.
+- Se añadieron indicadores visuales de estado de Engine/Twitch/OBS y parámetros de tracking/audio.
+- No se marca como implementada una capacidad solo por estar visible en el menú.
+
+### Estado de continuidad
+
+- Ingeniería vigente: 65%.
+- Producto usable vigente: 50%.
+- Esta iteración mejora superficie y control, pero no cierra validación Windows/hardware.
+- Próximo trabajo debe comenzar en los gates listados en este archivo y no volver a diseñar la navegación.
+
+### Evidencia CI de esta iteración
+
+- Los workflows ahora se disparan sobre la rama de desarrollo y tienen workflow_dispatch.
+- Los últimos jobs observados siguen terminando como failure sin evidencia útil de steps/logs; Native Windows, CI y Character Runtime siguen sin validación real del build.
+
+### No repetir
+
+- No reconstruir menú estático.
+- No crear un segundo Centro Twitch.
+- No crear un segundo Centro OBS.
+- No duplicar el Action Store/editor.
+- No convertir el catálogo de capacidades en backend ficticio.
