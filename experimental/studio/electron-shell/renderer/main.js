@@ -90,6 +90,7 @@ async function refresh() {
       "Late/Cadence " + (metrics.video_dropped_late ?? 0) + "/" + (metrics.video_dropped_cadence ?? 0) + " · " +
       "A/V format " + (metrics.video_dropped_format ?? 0) + "/" + (metrics.audio_dropped_format ?? 0) + " · " +
       "Audio late " + (metrics.audio_late ?? 0) + " · " +
+      "Pacing budget " + (metrics.pacing_budget_exhausted ?? 0) + " · " +
       "Voice " + (metrics.voice_effect ?? "off");
   } catch (error) {
     showStatus("Status error: " + error.message);
