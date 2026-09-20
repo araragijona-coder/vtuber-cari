@@ -15,6 +15,36 @@ enum class RealtimePaceDecision {
     late,
 };
 
+// Deterministic global ordering for the two raw media streams.
+// Ties intentionally prefer audio so the audio clock is not starved when
+// packet timestamps coincide. The transport still remains raw and timestamp-less.
+enum class MediaStreamKind {
+    none,
+    audio,
+    video,
+};
+
+struct MediaInterleaver final {
+    [[nodiscard]] static MediaStreamKind select(
+        bool has_audio,
+        Timestamp audio_pts,
+        bool has_video,
+        Timestamp video_pts) noexcept {
+        if (!has_audio && !has_video) {
+            return MediaStreamKind::none;
+        }
+        if (!has_video) {
+            return MediaStreamKind::audio;
+        }
+        if (!has_audio) {
+            return MediaStreamKind::video;
+        }
+        return audio_pts <= video_pts
+            ? MediaStreamKind::audio
+            : MediaStreamKind::video;
+    }
+};
+
 class RealtimePacer final {
 public:
     explicit RealtimePacer(RealtimePacerConfig config = {}) noexcept
