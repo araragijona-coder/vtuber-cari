@@ -235,7 +235,7 @@ These cannot honestly be marked green from repository CI alone because they requ
 
 ## Cari Studio
 
-El estado y la bitácora de continuidad de la aplicación están en [`CARI_STUDIO_BITACORA.md`](CARI_STUDIO_BITACORA.md). Los componentes que todavía no tienen validación suficiente permanecen en la única zona `experimental/`.
+El estado y la bitácora de continuidad de Cari Studio están en [`main/`](main/) y [`main/CARI_STUDIO_BITACORA.md`](main/CARI_STUDIO_BITACORA.md). Los componentes todavía no validados permanecen en la única zona `experimental/`.
 
 
 ## Cari Studio — Windows
