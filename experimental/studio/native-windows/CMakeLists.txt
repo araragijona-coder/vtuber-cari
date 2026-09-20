@@ -268,6 +268,14 @@ target_include_directories(cari-media-clock-smoke PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../core
 )
 
+add_executable(cari-media-scheduler-smoke
+    ../core/media_scheduler_smoke.cpp
+)
+
+target_include_directories(cari-media-scheduler-smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+)
+
 add_executable(cari-control-protocol-smoke
     control_protocol_smoke.cpp
     control_protocol.cpp
@@ -305,6 +313,7 @@ add_test(NAME cari-voice-effects-smoke COMMAND cari-voice-effects-smoke)
 add_test(NAME cari-raw-pipe-smoke COMMAND cari-raw-pipe-smoke)
 add_test(NAME cari-av-sync-smoke COMMAND cari-av-sync-smoke)
 add_test(NAME cari-media-clock-smoke COMMAND cari-media-clock-smoke)
+add_test(NAME cari-media-scheduler-smoke COMMAND cari-media-scheduler-smoke)
 add_test(NAME cari-control-protocol-smoke COMMAND cari-control-protocol-smoke)
 
 # Native capture/audio/output infrastructure is isolated behind stable
