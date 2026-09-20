@@ -1,5 +1,9 @@
 #include "media_graph_controller.h"
 
+#include "../core/media_scheduler.h"
+
+#include <utility>
+
 namespace cari::native {
 
 MediaGraphController::~MediaGraphController() {
@@ -16,6 +20,9 @@ bool MediaGraphController::start(
     std::lock_guard lock(mutex_);
     stats_ = {};
     last_error_.clear();
+    pending_video_.clear();
+    pending_audio_.clear();
+    pacer_.reset();
 
     if (!output_.start(
             profile,
@@ -35,24 +42,42 @@ bool MediaGraphController::submit_video(
     const cari::studio::core::Frame& frame,
     const std::shared_ptr<std::vector<std::uint8_t>>& bgra) noexcept {
     std::lock_guard lock(mutex_);
-    if (!output_.submit_video(frame, bgra)) {
+    if (!output_.running() || !bgra) {
         ++stats_.video_dropped;
-        last_error_ = output_.last_error();
+        last_error_ = "video submitted while output is not running";
         return false;
     }
-    ++stats_.video_submitted;
+
+    if (pending_video_.size() >= kMaxPendingVideo) {
+        pending_video_.pop_front();
+        ++stats_.video_dropped_overflow;
+        ++stats_.video_dropped;
+    }
+
+    pending_video_.push_back(PendingVideo{frame, bgra});
+    ++stats_.video_queued;
     return true;
 }
 
 bool MediaGraphController::submit_audio(
     const cari::studio::core::AudioPacket& packet) noexcept {
     std::lock_guard lock(mutex_);
-    if (!output_.submit_audio(packet)) {
+    if (!output_.running() || packet.samples.empty() ||
+        packet.sample_rate == 0 || packet.channels == 0 ||
+        packet.samples.size() % packet.channels != 0) {
         ++stats_.audio_dropped;
-        last_error_ = output_.last_error();
+        last_error_ = "invalid audio packet or output is not running";
         return false;
     }
-    ++stats_.audio_submitted;
+
+    if (pending_audio_.size() >= kMaxPendingAudio) {
+        ++stats_.audio_dropped_overflow;
+        ++stats_.audio_dropped;
+        return false;
+    }
+
+    pending_audio_.push_back(packet);
+    ++stats_.audio_queued;
     return true;
 }
 
@@ -62,13 +87,70 @@ bool MediaGraphController::poll() noexcept {
     if (!output_.poll()) {
         ++stats_.poll_failures;
         last_error_ = output_.last_error();
+        pending_video_.clear();
+        pending_audio_.clear();
         return false;
     }
+
+    if (!output_.running()) {
+        // FFmpeg exited or the output was closed. Release queued media now;
+        // do not retain frames/audio until the next session.
+        pending_video_.clear();
+        pending_audio_.clear();
+        return true;
+    }
+
+    const auto wall_now = cari::studio::core::MediaClock::monotonic_now();
+
+    while (!pending_audio_.empty()) {
+        const auto decision = pacer_.decide(
+            pending_audio_.front().pts, wall_now);
+        if (decision == cari::studio::core::RealtimePaceDecision::wait) {
+            break;
+        }
+
+        auto packet = std::move(pending_audio_.front());
+        pending_audio_.pop_front();
+        if (!output_.submit_audio(packet)) {
+            ++stats_.audio_dropped;
+            last_error_ = output_.last_error();
+            break;
+        }
+        ++stats_.audio_submitted;
+    }
+
+    while (!pending_video_.empty()) {
+        const auto decision = pacer_.decide(
+            pending_video_.front().frame.pts, wall_now);
+        if (decision == cari::studio::core::RealtimePaceDecision::wait) {
+            break;
+        }
+
+        if (decision == cari::studio::core::RealtimePaceDecision::late) {
+            pending_video_.pop_front();
+            ++stats_.video_dropped_late;
+            ++stats_.video_dropped;
+            continue;
+        }
+
+        auto video = std::move(pending_video_.front());
+        pending_video_.pop_front();
+        if (!output_.submit_video(video.frame, video.bgra)) {
+            ++stats_.video_dropped;
+            last_error_ = output_.last_error();
+            break;
+        }
+        ++stats_.video_submitted;
+    }
+
     return true;
 }
 
 void MediaGraphController::stop() noexcept {
     std::lock_guard lock(mutex_);
+    pending_video_.clear();
+    pending_audio_.clear();
+    pacer_.reset();
     output_.stop();
 }
 
