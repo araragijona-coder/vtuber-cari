@@ -43,6 +43,7 @@ const twitch = new TwitchChatService({ auth: new TwitchAuth() });
 obs.on("event", payload => publish({ type: "obs.event", ...payload }));
 obs.on("status", payload => publish({ type: "obs.status", ...payload }));
 obs.on("connection-error", error => publish({ type: "obs.error", message: error.message }));
+obs.on("connection-closed", error => publish({ type: "obs.status", connected: false, message: error?.message || "OBS disconnected" }));
 
 function publish(payload) {
   for (const webContents of subscribers) {
