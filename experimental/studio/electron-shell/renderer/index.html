@@ -4,144 +4,79 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Cari Studio</title>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self' ws://127.0.0.1:4455 wss:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self' ws://127.0.0.1:4455 wss://eventsub.wss.twitch.tv; font-src 'self';">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      background: #111318;
-      color: #f3f4f6;
-      font: 14px system-ui, sans-serif;
-    }
-    body {
-      display: grid;
-      grid-template-columns: 270px minmax(420px, 1fr) 320px;
-      grid-template-rows: minmax(0, 1fr) 48px;
-      overflow: hidden;
-    }
-    aside {
-      min-height: 0;
-      overflow: auto;
-      padding: 16px;
-      background: #171a21;
-      border-right: 1px solid #292e39;
-    }
-    #right {
-      border-right: 0;
-      border-left: 1px solid #292e39;
-    }
-    main {
-      position: relative;
-      min-width: 0;
-      min-height: 0;
-      display: grid;
-      grid-template-rows: minmax(0, 1fr) 180px;
-      gap: 10px;
-      padding: 12px;
-      background: #0d0f13;
-    }
-    #avatar, #camera {
-      width: 100%;
-      min-height: 0;
-      height: 100%;
-      object-fit: contain;
-      background: #08090c;
-      border: 1px solid #292e39;
-      border-radius: 8px;
-    }
-    #camera { object-fit: cover; }
-    button, input {
-      width: 100%;
-      box-sizing: border-box;
-      margin: 5px 0;
-      padding: 9px;
-      border-radius: 6px;
-      border: 1px solid #343a46;
-      background: #202530;
-      color: #fff;
-    }
-    button:hover { background: #2a3040; cursor: pointer; }
-    button:focus-visible, input:focus-visible {
-      outline: 2px solid #7aa2ff;
-      outline-offset: 1px;
-    }
-    .metric {
-      margin: 12px 0;
-      padding: 10px;
-      background: #1d212a;
-      border-radius: 7px;
-      overflow-wrap: anywhere;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    small { color: #a9b0bd; }
-    #status {
-      grid-column: 1 / 4;
-      padding: 13px 18px;
-      background: #0d0f13;
-      border-top: 1px solid #292e39;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    h2, h3 { margin-top: 0; }
+    html, body { margin: 0; width: 100%; height: 100%; background:#0e1015; color:#f5f7fb; font:14px system-ui,-apple-system,Segoe UI,sans-serif; }
+    body { display:grid; grid-template-columns:290px minmax(480px,1fr) 380px; grid-template-rows:minmax(0,1fr) 46px; overflow:hidden; }
+    aside { min-height:0; overflow:auto; padding:16px; background:#171a21; border-right:1px solid #2b303b; }
+    #right { border-right:0; border-left:1px solid #2b303b; }
+    main { min-width:0; min-height:0; padding:12px; display:grid; grid-template-rows:minmax(0,1fr) 155px; gap:10px; background:#0b0d11; }
+    #avatar { width:100%; height:100%; min-height:0; background:radial-gradient(circle at 50% 35%,#20283a 0,#090b10 65%); border:1px solid #303644; border-radius:10px; }
+    #camera { width:100%; height:100%; object-fit:cover; background:#07080b; border:1px solid #303644; border-radius:10px; }
+    .panel { background:#1b1f28; border:1px solid #2b303b; border-radius:9px; padding:12px; margin-bottom:12px; }
+    h1,h2,h3 { margin:0 0 9px; } h1{font-size:20px} h2{font-size:16px} h3{font-size:14px}
+    button,input { width:100%; margin:4px 0; padding:9px; border-radius:7px; border:1px solid #3a414f; background:#222733; color:#fff; }
+    button:hover { background:#2c3341; cursor:pointer; }
+    button.primary { background:#355bb3; border-color:#466ed0; } button.danger{background:#7d2e38}
+    input::placeholder{color:#7f8796}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    .tiny{font-size:12px;color:#9ea7b7;line-height:1.35}
+    .metric{padding:9px;background:#141820;border-radius:7px;margin-top:7px;overflow-wrap:anywhere}
+    .pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#252b38;color:#bfc8d8;font-size:11px}
+    #chat-log{height:330px;overflow:auto;background:#10131a;border:1px solid #2c323f;border-radius:7px;padding:8px}
+    .chat-line{padding:5px 3px;border-bottom:1px solid #1d222c;overflow-wrap:anywhere}
+    .chat-name{font-weight:700}
+    #event-log{height:145px;overflow:auto;background:#10131a;border:1px solid #2c323f;border-radius:7px;padding:8px;font-size:12px}
+    .event-line{padding:3px 2px;border-bottom:1px solid #1d222c}
+    #status{grid-column:1/4;padding:12px 17px;background:#0c0f14;border-top:1px solid #2b303b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ok{color:#7ee787}.warn{color:#f2cc60}.bad{color:#ff7b72}
   </style>
 </head>
 <body>
   <aside>
-    <h2>Cari Studio</h2>
+    <h1>Cari Studio</h1>
+    <div class="tiny">Windows-first local studio. AI is not required for capture, avatar, chat or streaming.</div>
 
-    <button id="start">Start Native Engine</button>
-    <button id="stop">Stop Native Engine</button>
-
-    <h3>Capture</h3>
-    <label for="window-index"><small>Window number from native source list</small></label>
-    <input id="window-index" type="number" min="1" max="10000" value="1" inputmode="numeric">
-    <div class="row">
-      <button id="capture-window">Window</button>
-      <button id="capture-screen">Primary Screen</button>
-    </div>
-    <label for="camera-source-index"><small>Native camera source number</small></label>
-    <input id="camera-source-index" type="number" min="1" max="10000" value="1" inputmode="numeric">
-    <button id="capture-camera">Native Camera</button>
-    <button id="capture-stop">Stop Capture</button>
-
-    <h3>Output</h3>
-    <button id="record">Start Local Record</button>
-    <label for="rtmp-target"><small>RTMP target</small></label>
-    <input id="rtmp-target" type="text" inputmode="url" autocomplete="off" spellcheck="false"
-      placeholder="rtmps://server.example/live/stream-key">
-    <button id="stream-start">Start Direct RTMP</button>
-    <button id="stream-stop">Stop Output</button>
-
-    <h3>OBS (optional)</h3>
-    <button id="obs-connect">Connect OBS</button>
-    <div class="row">
-      <button id="obs-start">Stream On</button>
-      <button id="obs-stop">Stream Off</button>
+    <div class="panel">
+      <h3>Engine</h3>
+      <button id="start" class="primary">Start Cari Engine</button>
+      <button id="stop">Stop Engine</button>
+      <div class="metric" id="engine">offline</div>
     </div>
 
-    <h3>Voice</h3>
-    <div class="row">
-      <button id="voice-off">Voice Off</button>
-      <button id="voice-anime">Anime Bright</button>
+    <div class="panel">
+      <h3>Capture</h3>
+      <label class="tiny">Window number</label>
+      <input id="window-index" type="number" min="1" value="1">
+      <div class="row"><button id="capture-window">Window</button><button id="capture-screen">Screen</button></div>
+      <label class="tiny">Camera number</label>
+      <input id="camera-source-index" type="number" min="1" value="1">
+      <button id="capture-camera">Native Camera</button>
+      <button id="capture-stop">Stop Capture</button>
     </div>
 
-    <h3>Face Tracking</h3>
-    <div class="row">
-      <button id="camera-start">Camera On</button>
-      <button id="camera-stop">Camera Off</button>
+    <div class="panel">
+      <h3>Output</h3>
+      <button id="record" class="primary">Record Local MKV</button>
+      <input id="rtmp-target" placeholder="rtmps://server/live/stream-key">
+      <button id="stream-start" class="primary">Start Direct RTMP</button>
+      <button id="stream-stop">Stop Output</button>
     </div>
 
-    <div class="metric">
-      <small>Engine</small>
-      <div id="engine">offline</div>
+    <div class="panel">
+      <h3>Voice</h3>
+      <div class="row"><button id="voice-off">Off</button><button id="voice-anime">Anime Bright</button></div>
+      <div class="tiny">Local DSP effect. It is not pitch/formant synthesis.</div>
+    </div>
+
+    <div class="panel">
+      <h3>Avatar Source</h3>
+      <button id="model-pick" class="primary">Load GLB / glTF Model</button>
+      <div class="metric" id="model">Built-in full-body demo rig</div>
+      <div class="row"><button id="overlay-show">Show Overlay</button><button id="overlay-hide">Hide Overlay</button></div>
+      <div class="tiny">The bundled rig is a technical demo, not a proprietary final Cari character asset.</div>
     </div>
   </aside>
 
@@ -151,38 +86,46 @@
   </main>
 
   <aside id="right">
-    <h3>Avatar</h3>
-    <button id="neutral">Neutral</button>
-    <button id="happy">Happy</button>
-    <button id="angry">Angry</button>
-
-    <div class="metric">
-      <small>Render</small>
-      <div id="render">ready</div>
+    <div class="panel">
+      <h2>Twitch</h2>
+      <div class="tiny">1) Create a Twitch app. 2) Set redirect URL to <b>http://127.0.0.1:37845/oauth/callback</b>. 3) Paste the Client ID here.</div>
+      <input id="twitch-client-id" autocomplete="off" placeholder="Twitch Client ID">
+      <input id="twitch-channel" autocomplete="off" placeholder="Channel login, e.g. mi_canal">
+      <div class="row"><button id="twitch-connect" class="primary">Connect Twitch</button><button id="twitch-disconnect">Disconnect</button></div>
+      <div class="metric" id="twitch-status">Disconnected</div>
     </div>
 
-    <div class="metric">
-      <small>Tracking</small>
-      <div id="tracking">idle</div>
+    <div class="panel">
+      <h2>Chat</h2>
+      <div id="chat-log"></div>
+      <label class="tiny">Message</label>
+      <input id="chat-input" maxlength="500" placeholder="Write in Twitch chat…">
+      <div class="row"><button id="chat-send" class="primary">Send Chat</button><button id="chat-read">Read Chat: Off</button></div>
+      <div class="tiny">Deterministic local reactions: !happy, !angry and !neutral change the avatar.</div>
     </div>
 
-    <div class="metric">
-      <small>Asset</small>
-      <div id="model">placeholder avatar</div>
+    <div class="panel">
+      <h2>Avatar Controls</h2>
+      <div class="row"><button id="neutral">Neutral</button><button id="happy">Happy</button></div>
+      <button id="angry">Angry</button>
+      <div class="metric" id="render">neutral</div>
+      <div class="metric" id="tracking">tracking idle</div>
     </div>
 
-    <div class="metric">
-      <small>Runtime contract</small>
-      <div>Electron control plane → local native engine</div>
+    <div class="panel">
+      <h2>Events / Diagnostics</h2>
+      <div id="event-log"></div>
+      <div class="metric" id="metrics">native engine offline</div>
     </div>
 
-    <div class="metric">
-      <small>Native metrics</small>
-      <div id="metrics">native engine offline</div>
+    <div class="panel">
+      <h3>OBS (optional)</h3>
+      <div class="row"><button id="obs-connect">Connect</button><button id="obs-start">Stream On</button></div>
+      <button id="obs-stop">Stream Off</button>
     </div>
   </aside>
 
-  <div id="status">Ready — local-first control plane.</div>
+  <div id="status">Ready — local control plane.</div>
 
   <script type="importmap">
   {
