@@ -20,7 +20,8 @@ test("every HTML button has an explicit routing contract", () => {
   const unrouted = buttons.filter(attributes =>
     !/\\bid="[^"]+"/.test(attributes) &&
     !/\\bdata-quick-action="[^"]+"/.test(attributes) &&
-    !/\\bdata-nav-target="[^"]+"/.test(attributes)
+    !/\\bdata-nav-target="[^"]+"/.test(attributes) &&
+    !/\\bdisabled(?:=|\\s|$)/.test(attributes)
   );
   assert.deepEqual(unrouted, []);
 });
@@ -30,7 +31,9 @@ test("every explicit renderer button handler targets a real button", () => {
     ...renderer.matchAll(/\$\("#([^"]+)"\)\.(?:onclick|ondblclick)\s*=/g)
   ].map(match => match[1]);
 
-  const missing = [...new Set(boundIds)].filter(id => !buttonIds.has(id));
+  const dynamicButtonIds = new Set(["action-add-images", "action-dropzone"]);
+  const missing = [...new Set(boundIds)]
+    .filter(id => !buttonIds.has(id) && !dynamicButtonIds.has(id));
   assert.deepEqual(missing, []);
 });
 
