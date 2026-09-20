@@ -8,7 +8,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2 — `fix: harden native Windows foundation`
-- Último HEAD registrado en esta entrada: `44765dd4c00d976cbcc39360b8743e540aeb51db`.
+- Último HEAD registrado en esta entrada: `ea89b51ce5934881cb9f60702364a7b60e52338c`.
 - Estado: experimental; todavía no se promueve a producción.
 - Avance de ingeniería: **60%**.
 
@@ -371,3 +371,72 @@ No volver a:
 **P4:** empaquetado/release.
 
 La regla de continuidad se mantiene: cualquier tarea que ya esté en IMPLEMENTADO/VERIFICADO se corrige sobre el componente existente; solo se reabre con evidencia nueva.
+
+## 021 — Estado canónico actual — 2026-09-20
+**Estado:** ACTUALIZADO / FUENTE DE CONTINUIDAD
+
+**HEAD canónico:** `ea89b51ce5934881cb9f60702364a7b60e52338c`  
+**Rama:** `fix/native-windows-foundation`  
+**PR:** #2  
+**Avance global:** **60%**
+
+### Lo que ya está hecho
+- Arquitectura Electron + Native Windows C++ + Core estabilizada.
+- Windows Graphics Capture para ventana y pantalla primaria.
+- D3D11 foundation y recuperación de device removed/reset/hung.
+- WASAPI micrófono + loopback del sistema.
+- AudioTimelineMixer + VoiceEffectProcessor local.
+- MediaClock + RealtimePacer + interleave global A/V.
+- Colas acotadas + backpressure + presupuesto máximo de 8 eventos por polling.
+- FFmpeg supervisor + named pipes separados de vídeo/audio.
+- Cierre por EOF/flush con fallback de terminación.
+- Diagnóstico con stderr limitado a 256 KiB.
+- OutputFailureCategory + OutputRetryPolicy.
+- Retry solo para RTMP y errores de red, máximo 5 intentos y backoff acotado.
+- Smoke Windows `named-pipe -> FFmpeg -> archivo` implementado y conectado al workflow.
+- Workflow Windows instala FFmpeg y registra los smoke tests.
+- MediaPipe Face Landmarker + guard de timestamp monotónico + bridge a avatar.
+- Three.js + glTF/GLB + avatar placeholder.
+- OBS WebSocket v5 permanece opcional.
+- Bitácora canónica y matrices de auditoría persistentes.
+
+### Evidencia vigente
+- MediaClock/RealtimePacer/MediaInterleaver: VERIFICADO mediante smoke C++20 estricto.
+- Retry/backoff: VERIFICADO mediante smoke.
+- Failure classification: VERIFICADO mediante smoke.
+- FFmpeg sintético BGRA + PCM float32 -> H.264/AAC -> Matroska: VERIFICADO en Linux.
+- Named-pipe E2E Windows: IMPLEMENTADO, pero BLOQUEADO como evidencia porque los jobs recientes de Actions fallan antes de ejecutar steps.
+- CI: BLOQUEADO por infraestructura/runner; no usar ese estado como prueba de éxito ni atribuirlo al código.
+
+### Qué NO se debe volver a hacer
+1. No crear otro retry/backoff.
+2. No crear otro clasificador de errores.
+3. No crear otro interleaver A/V.
+4. No reemplazar WGC por OpenCV como captura principal sin evidencia nueva.
+5. No rediseñar Electron/native desde cero.
+6. No declarar raw pipes timestamp-preserving.
+7. No declarar la prueba Linux de FFmpeg como validación Windows.
+8. No declarar el named-pipe E2E verificado hasta obtener steps/logs reales.
+9. No usar `capturePage()` como compositor de vídeo principal.
+10. No distribuir Live2D propietario sin resolver licencia/runtime.
+11. No usar IA/cloud como dependencia del streaming.
+12. No duplicar la bitácora: este archivo es el ledger canónico.
+
+### Pendientes P0
+- Obtener ejecución Windows con steps/logs reales.
+- Validar `cari-ffmpeg-named-pipe-e2e-smoke`.
+- Medir grabación sostenida y sincronización A/V.
+- Resolver timestamps explícitos extremo a extremo o una frontera temporal equivalente.
+- Implementar compositor GPU D3D11: captura + avatar + overlays -> frame final.
+- Validar cámara Media Foundation y Game Capture.
+- Implementar drift correction y lip-sync local.
+- Probar RTMP real y reconexión.
+- Completar empaquetado, instalador y política de redistribución de FFmpeg/codecs.
+- Validar en el hardware objetivo.
+
+### Regla de la siguiente iteración
+La siguiente sesión debe comenzar leyendo:
+`BITACORA.md` -> `PROJECT_STATUS.md` -> `AUDIT_MATRIX.md`
+y luego trabajar solo sobre el primer gate P0/P1 que siga sin evidencia.
+
+El porcentaje no aumenta por agregar scaffolding o duplicar componentes; aumenta solo cuando un gate nuevo tiene implementación y evidencia proporcional.
