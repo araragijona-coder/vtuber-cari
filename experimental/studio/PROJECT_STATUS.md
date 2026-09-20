@@ -156,7 +156,7 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 
 La única fuente canónica de continuidad y anti-repetición es `experimental/studio/BITACORA.md`.
 
-- HEAD canónico: `06bc51a98585f4d48c546ad4df3430698ba0e3c8`
+- HEAD canónico: consultar el HEAD actual del PR #2
 - Avance global vigente: **62%**.
 - Los checkpoints anteriores son históricos y no deben usarse para decidir trabajo nuevo.
 
