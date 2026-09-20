@@ -40,7 +40,8 @@
 - [x] Enumeración de ventanas capturables.
 - [x] WASAPI microphone/loopback foundation.
 - [x] Recreación del frame pool ante cambios de tamaño.
-- [ ] Captura de cámara real mediante Media Foundation.
+- [x] Módulo de captura de cámara Media Foundation implementado.
+  - Integración al runtime/UI y validación en cámara real siguen pendientes.
 - [ ] Game Capture dedicada con backend específico.
 - [x] Recuperación explícita de device removed/reset/hung.
 - [ ] Validación exhaustiva de device-loss/reconnect en hardware real.
@@ -131,7 +132,7 @@
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~62%.**
+**Estimación global de ingeniería: ~63%.**
 
 Este porcentaje mide cierre de requisitos de ingeniería; no equivale a porcentaje de código ni a disponibilidad para producción.
 
