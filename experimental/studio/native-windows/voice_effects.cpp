@@ -13,12 +13,27 @@ float soft_clip(float value, float drive) noexcept {
     return std::tanh(scaled);
 }
 
+float compress(float value, float threshold, float ratio) noexcept {
+    const float magnitude = std::fabs(value);
+    const float safe_threshold = std::clamp(threshold, 0.05f, 0.98f);
+    const float safe_ratio = std::max(1.0f, ratio);
+    if (magnitude <= safe_threshold) {
+        return value;
+    }
+    const float excess = magnitude - safe_threshold;
+    const float compressed = safe_threshold + excess / safe_ratio;
+    return std::copysign(compressed, value);
+}
+
 } // namespace
 
 void VoiceEffectProcessor::set_config(VoiceEffectConfig config) noexcept {
     config.drive = std::clamp(config.drive, 0.5f, 3.0f);
     config.presence = std::clamp(config.presence, 0.0f, 0.8f);
     config.output_gain = std::clamp(config.output_gain, 0.1f, 1.0f);
+    config.compressor_threshold = std::clamp(config.compressor_threshold, 0.20f, 0.90f);
+    config.compressor_ratio = std::clamp(config.compressor_ratio, 1.0f, 12.0f);
+    config.limiter_ceiling = std::clamp(config.limiter_ceiling, 0.70f, 0.99f);
 
     if (config.style != VoiceEffectStyle::anime_bright) {
         config.style = VoiceEffectStyle::off;
@@ -68,9 +83,15 @@ void VoiceEffectProcessor::process(
             previous_output_[state_channel] = high_pass;
 
             const float presence = input + high_pass * config_.presence;
-            samples[index] =
-                std::clamp(soft_clip(presence, config_.drive) * config_.output_gain,
-                           -1.0f, 1.0f);
+            const float compressed = compress(
+                presence,
+                config_.compressor_threshold,
+                config_.compressor_ratio);
+            const float saturated = soft_clip(compressed, config_.drive);
+            samples[index] = std::clamp(
+                saturated * config_.output_gain,
+                -config_.limiter_ceiling,
+                config_.limiter_ceiling);
         }
     }
 }
