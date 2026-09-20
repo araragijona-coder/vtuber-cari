@@ -88,6 +88,7 @@
 - [x] Accesorios con ancla, posición, escala, rotación y color.
 - [x] Selección aleatoria reproducible de accesorios.
 - [x] Renderer VRM experimental web existente.
+- [x] Fallback Three.js de cuerpo completo para validación de tracking/composición; ya no es un placeholder de solo cabeza.
 - [x] Overlay Three.js/glTF integrado experimentalmente al compositor nativo mediante la ventana transparente capturada con WGC.
 - [ ] Integración de avatar de producción sin readback CPU.
 - [x] Lip-sync local por amplitud del audio mezclado cuando MediaPipe no está conduciendo `mouthOpen`.
@@ -164,9 +165,9 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 
 ## Continuidad / bitácora
 
-La única fuente canónica de continuidad y anti-repetición es `CARI_STUDIO_BITACORA.md`.
+La única fuente canónica de continuidad y anti-repetición es `BITACORA.md`.
 
-- HEAD canónico: consultar el HEAD actual del PR #2 y `CARI_STUDIO_BITACORA.md`
+- HEAD canónico: consultar el HEAD actual del PR #2 y `BITACORA.md`
 - Avance global vigente: **63%**.
 - Los checkpoints anteriores son históricos y no deben usarse para decidir trabajo nuevo.
 
