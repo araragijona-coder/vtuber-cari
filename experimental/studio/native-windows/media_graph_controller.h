@@ -2,11 +2,14 @@
 
 #include "native_media_output_bridge.h"
 
+#include "../core/media_scheduler.h"
+
 #include "../core/output_profile.h"
 #include "../core/types.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -15,10 +18,15 @@
 namespace cari::native {
 
 struct MediaGraphStats {
+    std::uint64_t video_queued = 0;
     std::uint64_t video_submitted = 0;
     std::uint64_t video_dropped = 0;
+    std::uint64_t video_dropped_late = 0;
+    std::uint64_t video_dropped_overflow = 0;
+    std::uint64_t audio_queued = 0;
     std::uint64_t audio_submitted = 0;
     std::uint64_t audio_dropped = 0;
+    std::uint64_t audio_dropped_overflow = 0;
     std::uint64_t polls = 0;
     std::uint64_t poll_failures = 0;
 };
@@ -55,8 +63,19 @@ public:
     [[nodiscard]] FfmpegAvOutputMetrics transport_metrics() const noexcept;
 
 private:
+    struct PendingVideo {
+        cari::studio::core::Frame frame;
+        std::shared_ptr<std::vector<std::uint8_t>> bgra;
+    };
+
+    static constexpr std::size_t kMaxPendingVideo = 8;
+    static constexpr std::size_t kMaxPendingAudio = 32;
+
     mutable std::mutex mutex_;
     NativeMediaOutputBridge output_;
+    std::deque<PendingVideo> pending_video_;
+    std::deque<cari::studio::core::AudioPacket> pending_audio_;
+    cari::studio::core::RealtimePacer pacer_{};
     MediaGraphStats stats_{};
     std::string last_error_;
 };
