@@ -7,6 +7,16 @@ const { ObsService } = require("./runtime/obs-service");
 
 const engineEvents = ["message", "log", "error", "exit"];
 let avatarOverlayWindow = null;
+let avatarOverlayState = {
+  expression: "neutral",
+  mouthOpen: 0,
+  blink: 0,
+  headYaw: 0,
+  headPitch: 0,
+  headRoll: 0,
+  eyeX: 0,
+  eyeY: 0
+};
 const subscribers = new Set();
 
 function resolveNativeExecutable() {
@@ -72,6 +82,11 @@ function createAvatarOverlayWindow() {
   ).href;
 
   win.loadURL(localUrl);
+  win.webContents.on("did-finish-load", () => {
+    if (!win.isDestroyed()) {
+      win.webContents.send("avatar:state", avatarOverlayState);
+    }
+  });
   win.once("ready-to-show", () => {
     if (!win.isDestroyed()) win.showInactive();
   });
@@ -157,8 +172,9 @@ ipcMain.handle("native:send", (event, command) => {
 
 ipcMain.handle("avatar:set-state", (event, state) => {
   requireTrustedSender(event);
+  avatarOverlayState = state || avatarOverlayState;
   if (!avatarOverlayWindow || avatarOverlayWindow.isDestroyed()) return { ok: false };
-  avatarOverlayWindow.webContents.send("avatar:state", state);
+  avatarOverlayWindow.webContents.send("avatar:state", avatarOverlayState);
   return { ok: true };
 });
 
