@@ -236,7 +236,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~64%.**
+**Estimación global de ingeniería: ~65%.**
 
 El 62% refleja que la ruta principal y varios componentes experimentales ya están implementados, mientras permanecen abiertos los gates de validación Windows/hardware, PTS extremo a extremo, compositor de producción, cámara, drift, RTMP sostenido y distribución.
 
