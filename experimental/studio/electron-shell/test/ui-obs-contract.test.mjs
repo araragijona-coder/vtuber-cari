@@ -15,6 +15,16 @@ const buttonIds = new Set(
   [...html.matchAll(/<button[^>]*\\bid="([^"]+)"/g)].map(match => match[1])
 );
 
+test("every HTML button has an explicit routing contract", () => {
+  const buttons = [...html.matchAll(/<button\\b([^>]*)>/g)].map(match => match[1]);
+  const unrouted = buttons.filter(attributes =>
+    !/\\bid="[^"]+"/.test(attributes) &&
+    !/\\bdata-quick-action="[^"]+"/.test(attributes) &&
+    !/\\bdata-nav-target="[^"]+"/.test(attributes)
+  );
+  assert.deepEqual(unrouted, []);
+});
+
 test("every explicit renderer button handler targets a real button", () => {
   const boundIds = [
     ...renderer.matchAll(/\$\("#([^"]+)"\)\.(?:onclick|ondblclick)\s*=/g)
