@@ -19,13 +19,18 @@ class ObsService extends EventEmitter {
       studioMode: false
     };
 
-    this.client.on("ConnectionClosed", error => {
-      this.connected = false;
-      this.emit("connection-closed", error);
-    });
     this.client.on("ConnectionError", error => {
       this.connected = false;
+      this.#resetRuntime();
       this.emit("connection-error", error);
+      this.emit("status", this.status());
+    });
+
+    this.client.on("ConnectionClosed", error => {
+      this.connected = false;
+      this.#resetRuntime();
+      this.emit("connection-closed", error);
+      this.emit("status", this.status());
     });
     this.client.on("StreamStateChanged", event => {
       this.runtime.streaming = event?.outputActive === true;
@@ -101,12 +106,7 @@ class ObsService extends EventEmitter {
     if (!this.connected) return { ok: true };
     await this.client.disconnect();
     this.connected = false;
-    this.runtime.streaming = false;
-    this.runtime.recording = false;
-    this.runtime.virtualCamera = false;
-    this.runtime.streamState = "stopped";
-    this.runtime.recordState = "stopped";
-    this.runtime.virtualCameraState = "stopped";
+    this.#resetRuntime();
     this.emit("status", this.status());
     return { ok: true };
   }
@@ -245,6 +245,18 @@ class ObsService extends EventEmitter {
       url: this.url,
       runtime: { ...this.runtime }
     };
+  }
+
+  #resetRuntime() {
+    this.runtime.streaming = false;
+    this.runtime.recording = false;
+    this.runtime.virtualCamera = false;
+    this.runtime.streamState = "stopped";
+    this.runtime.recordState = "stopped";
+    this.runtime.virtualCameraState = "stopped";
+    this.runtime.programScene = null;
+    this.runtime.previewScene = null;
+    this.runtime.studioMode = false;
   }
 
   #requireConnection() {
