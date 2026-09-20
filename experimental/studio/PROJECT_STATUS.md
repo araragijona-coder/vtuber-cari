@@ -174,9 +174,7 @@ This section is the canonical handoff record. Before implementing a feature, che
 9. Packaging/installer/runtime FFmpeg distribution.
 
 
-## Bitácora de continuidad
+## Bitácora
 
-La bitácora persistente de implementación, validación, decisiones y tareas pendientes está en `experimental/studio/BITACORA_CARI_STUDIO.md`. Antes de abrir una tarea ya trabajada, debe revisarse ese registro para evitar repetir implementaciones.
-
-
-Head documentado en la bitácora: `c1b3dd6afea5363f0bd095473dd3c01d7ccf0ff0`.
+La bitácora canónica y única de continuidad es `experimental/studio/BITACORA.md`.
+Debe revisarse antes de implementar o auditar cualquier componente ya registrado.
