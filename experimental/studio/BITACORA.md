@@ -592,3 +592,40 @@ Los runs continúan fallando antes de registrar steps/logs_url; no se usa ese re
 - El avance canónico permanece en 63%; P07 no suma los 3 puntos hasta obtener la evidencia Windows requerida.
 - PR #2 HEAD observado al cierre: 106a18c4a56f2052907ced0d17b932603cd58080.
 - El PR sigue abierto/draft/no mergeable.
+
+## 15. P04/P08/P14 — nuevos bloques sin reabrir componentes cerrados (20/09/2026)
+
+### P04 — PTS explícitos extremo a extremo
+- Añadido LibavMediaOutput como ruta experimental opcional.
+- Usa libavcodec/libavformat/libavutil/libswscale/libswresample.
+- El PTS de Frame/AudioPacket se normaliza a un origen común y se rescalea a las timebases de encoder/stream.
+- Los AVPacket resultantes conservan PTS para el muxer.
+- El FIFO de audio respeta el frame_size normal del encoder y deja el remanente para flush.
+- El path de named pipes/CLI sigue siendo el predeterminado y no fue reemplazado.
+- Estado: IMPLEMENTADO / NO VERIFICADO.
+
+### P08 — estimación de drift
+- Añadido AudioClockDriftEstimator independiente del mixer ya cerrado.
+- Calcula sample rate observado, drift ppm y corrección de signo inverso.
+- Aplica smoothing y límite de seguridad de ppm.
+- Smoke determinista incluido.
+- Estado: IMPLEMENTADO / NO VERIFICADO EN DISPOSITIVOS REALES.
+
+### P14 — multistream
+- Añadido MultiStreamOutput independiente de FanoutOutput.
+- Máximo de 4 destinos.
+- Cada destino tiene FFmpeg, estado, métricas, clasificación de fallo y retry independiente.
+- Solo los fallos de red de RTMP son candidatos a retry.
+- Smoke con dos destinos locales simultáneos incluido.
+- Validación real de múltiples endpoints RTMP pendiente.
+- Estado: IMPLEMENTADO / NO VERIFICADO.
+
+### No repetir
+- No reemplazar FfmpegAvOutput hasta cerrar P04 con evidencia Windows.
+- No modificar AudioTimelineMixer para implementar drift mientras no exista evidencia de hardware que lo justifique.
+- No reemplazar FanoutOutput; MultiStreamOutput es un supervisor específico del runtime nativo.
+- No crear otro transport protocol ni otro tracker.
+
+### Regla de porcentaje
+- El avance canónico permanece en 63%.
+- P04, P08 y P14 no suman puntos hasta sus gates de verificación correspondientes.
