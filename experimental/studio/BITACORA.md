@@ -150,3 +150,86 @@ Solo reabrir esos puntos cuando exista un bug reproducible o una nueva evidencia
 **Avance global de ingeniería estimado: 59%.**
 
 Este porcentaje es una medida de cierre de requisitos, no una suma de líneas de código. El producto todavía no debe considerarse listo para uso diario de streaming porque faltan validaciones de Windows/hardware, compositor final, transporte PTS y pruebas sostenidas de FFmpeg/RTMP.
+
+
+---
+
+## Checkpoint canónico — 20/09/2026
+
+### Estado confirmado del repositorio
+
+**HEAD:** e8f33bff3d9ee1012b4c9ce5334d4f9393325bbe
+
+**Avance global documentado:** 62%.
+
+El porcentaje se toma del estado actual de `PROJECT_STATUS.md` y refleja avance de ingeniería, no disponibilidad para producción.
+
+### Trabajo adicional ya existente y contabilizado
+
+| Área | Estado | Evidencia | No repetir |
+|---|---|---|---|
+| Compositor D3D11 experimental | IMPLEMENTADO | bridge/compositor nativo + smoke WARP | NO rehacer compositor base |
+| Captura CPU lazy para fallback/diagnóstico | IMPLEMENTADO | frame bridge / compositor path | NO volver a introducir readback por frame por defecto |
+| Overlay alpha sobre compositor GPU | IMPLEMENTADO + VERIFICADO | smoke compositor WARP | NO repetir smoke básico |
+| Lip-sync local por amplitud | IMPLEMENTADO | runtime/avatar path | NO asumir que esto equivale a viseme/lip-sync fonémico |
+| Auditoría de licencias de dependencias runtime fijadas | IMPLEMENTADO | documentación de proyecto | NO repetir auditoría completa salvo cambio de dependencia |
+| Retry RTMP network-only | IMPLEMENTADO | `OutputRetryPolicy` + clasificación | NO ampliar retries a encoder/mux/input sin evidencia |
+| Reset de retry | IMPLEMENTADO | lifecycle de output | NO duplicar estados de retry |
+| E2E Windows named-pipe smoke | IMPLEMENTADO EN CÓDIGO, NO VERIFICADO | workflow preparado | NO darlo por probado hasta obtener logs/steps Windows |
+
+### Corrección reciente de salida
+
+La serialización del campo `output` fue corregida para no emitir una clave vacía antes de `output_state`.
+
+### CI actual
+
+Los workflows ya se ejecutan sobre la rama de desarrollo, pero los runs más recientes siguen terminando antes de registrar steps:
+
+- Native Windows Build: failure, `steps=null`, `logs_url=null`
+- CI: failure/cancelled, `steps=null`, `logs_url=null`
+- Character Runtime Tests: failure/cancelled, `steps=null`, `logs_url=null`
+
+**Conclusión:** todavía no hay evidencia de compilación/test ejecutados en GitHub Actions.
+
+### Lo que ya NO necesita volver a hacerse
+
+- Replantear Windows Graphics Capture.
+- Replantear WASAPI mic + loopback.
+- Crear otro MediaClock.
+- Crear otro RealtimePacer.
+- Crear otro interleaver A/V.
+- Crear otro mixer temporal básico.
+- Crear otro supervisor FFmpeg.
+- Crear otra política de retry general.
+- Crear otro renderer Three.js/glTF básico.
+- Crear otro guard de timestamps monotónicos de MediaPipe.
+- Crear otro compositor software de referencia.
+
+### Trabajo prioritario siguiente
+
+1. Obtener una ejecución real de CI Windows con steps/logs.
+2. Validar el smoke E2E named-pipe + FFmpeg + decodificación.
+3. Diseñar e implementar transporte de timestamps explícitos.
+4. Conectar compositor D3D11 al frame final que alimenta encoder.
+5. Completar cámara Media Foundation.
+6. Validar audio drift correction.
+7. Validar RTMP real + caída de red + recuperación.
+8. Integrar lip-sync más preciso si el requisito lo necesita.
+9. Game Capture.
+10. Multistream y distribución.
+
+### Readiness
+
+**NO listo para producción.**
+
+**Sí sirve como build experimental/desarrollo**, una vez compilado en Windows.
+
+Para uso diario como software de streaming/VTuber faltan todavía los gates Windows/hardware y la ruta final avatar/captura → compositor → encoder/output.
+
+### Regla de evidencia
+
+Un estado cambia de IMPLEMENTADO a VERIFICADO únicamente cuando existe una prueba ejecutada y observable.
+
+Un estado cambia a VALIDADO EN HARDWARE únicamente después de una prueba en la máquina objetivo.
+
+No elevar un estado por documentación, existencia de código o éxito en un entorno diferente.
