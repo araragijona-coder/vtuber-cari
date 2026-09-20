@@ -9,6 +9,7 @@ export class FaceTracker {
     this.modelPath = modelPath;
     this.landmarker = null;
     this.lastVideoTime = -1;
+    this.lastTimestampMs = -1;
   }
 
   async init() {
@@ -31,13 +32,22 @@ export class FaceTracker {
 
   detect(video, timestampMs) {
     if (!this.landmarker || video.readyState < 2) return null;
+
+    const timestamp = Number(timestampMs);
+    if (!Number.isFinite(timestamp) || timestamp <= this.lastTimestampMs) {
+      return null;
+    }
     if (video.currentTime === this.lastVideoTime) return null;
+
     this.lastVideoTime = video.currentTime;
-    return this.landmarker.detectForVideo(video, timestampMs);
+    this.lastTimestampMs = timestamp;
+    return this.landmarker.detectForVideo(video, timestamp);
   }
 
   close() {
     this.landmarker?.close();
     this.landmarker = null;
+    this.lastVideoTime = -1;
+    this.lastTimestampMs = -1;
   }
 }
