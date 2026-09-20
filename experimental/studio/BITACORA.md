@@ -298,3 +298,54 @@ Cada nueva iteración debe modificar esta sección o añadir una sección poster
 **HEAD observado de esta entrada:** b42edae76160aeb0b4d0de643dcad7cfaa2d2764
 **Avance global canónico:** **62%**.
 **Producto:** NO listo para producción.
+
+## 11. Snapshot de continuidad — 20/09/2026 13:18 ART
+
+**HEAD observado:** 76be712d88964f4255a189280871f0c716411ecd
+**Avance global:** 62%
+**PR:** #2 — abierto / draft / no mergeable
+
+### Cambios incorporados desde el snapshot anterior
+
+- MediaGraphController mantiene orden A/V global por PTS y límite de 8 eventos por polling.
+- La extracción del mixer queda bloqueada hasta que ambos pipes están conectados.
+- Cambios de captura/audio quedan bloqueados mientras existe una salida activa.
+- OutputRetryPolicy usa backoff exponencial acotado y máximo de 5 intentos; el runtime solo lo aplica a fallos clasificados como red.
+- OutputFailureCategory distingue red, encoder, input, mux, permisos y desconocido; no se reintenta indiscriminadamente.
+- El estado del output expone estado, exit code, categoría de fallo, intentos y presupuesto de pacing.
+- stderr de FFmpeg permanece limitado a 256 KiB.
+- Se agregaron smoke tests portables para retry y clasificación.
+- La UI expone las métricas nuevas de output/pacing.
+- Los workflows CI aceptan la rama de desarrollo y workflow_dispatch.
+
+### Evidencia nueva observada en esta iteración
+
+- media_scheduler_smoke: PASS con C++20, -Wall -Wextra -Werror.
+- output_retry_smoke: PASS con C++20, -Wall -Wextra -Werror.
+- output_diagnostics_smoke: PASS con C++20, -Wall -Wextra -Werror.
+- Los últimos runs de Native Windows Build, CI y Character Runtime Tests siguen terminando con failure antes de registrar steps (steps=null, logs_url=null).
+- El run de Native Windows Build asociado al HEAD actual también presenta jobs sin steps/logs; por tanto CI sigue NO VERIFICADO.
+
+### NO REPETIR desde ahora
+
+- No rehacer Windows Graphics Capture.
+- No sustituir WGC por OpenCV como backend principal.
+- No rehacer WASAPI/AudioTimelineMixer.
+- No crear otro MediaClock, RealtimePacer, MediaInterleaver, RawPipe, FFmpeg supervisor, retry policy, diagnostics classifier, compositor D3D11, tracker MediaPipe o renderer Three.js.
+- No repetir el smoke FFmpeg sintético salvo que cambie el contrato de entrada/salida.
+- No considerar failure + steps=null como evidencia de regresión del código.
+- No marcar el E2E Windows named-pipe -> FFmpeg -> decode como VERIFIED hasta disponer de ejecución observable con métricas.
+
+### Próximo bloque único de trabajo
+
+P0 — validación Windows observable: conseguir un run de CI que registre steps/logs y ejecutar el E2E Windows ya implementado.
+
+P1 — pipeline final: transportar PTS explícitos extremo a extremo y reemplazar el readback CPU del camino de producción.
+
+P2 — avatar final: conectar avatar real/neutral al compositor D3D11 y después a la señal codificada.
+
+P3 — audio/cámara: Media Foundation camera streaming + device clocks + drift correction + lip-sync avanzado.
+
+P4 — streaming/release: RTMP prolongado + caída de red + validación del retry existente + Game Capture + multistream + installer + redistribución FFmpeg.
+
+Regla: trabajar únicamente sobre el primer gate no cerrado; no abrir nuevamente componentes ya marcados como IMPLEMENTADO/VERIFICADO sin evidencia de regresión.
