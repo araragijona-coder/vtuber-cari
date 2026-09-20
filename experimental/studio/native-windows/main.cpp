@@ -31,6 +31,7 @@ constexpr UINT_PTR kStatusTimerId = 1;
 constexpr UINT_PTR kMediaTimerId = 2;
 constexpr UINT kControlCommandMessage = WM_APP + 42;
 constexpr std::uint64_t kBridgeSampleEvery = 30;
+constexpr cari::studio::core::Timestamp kOutputStableTicks = 300'000'000; // 30 s.
 
 cari::native::CaptureEngine g_capture;
 cari::native::AudioCoreBridge g_audio_bridge;
@@ -56,6 +57,7 @@ cari::studio::core::OutputRetryPolicy g_output_retry{};
 std::string g_last_output_profile;
 std::string g_last_output_target;
 std::string g_last_output_category = "none";
+cari::studio::core::Timestamp g_output_started_at = 0;
 
 std::wstring BuildAudioStatus() {
     const auto endpoints = cari::native::enumerate_audio_endpoints();
@@ -300,6 +302,13 @@ void PollMediaGraph(HWND hwnd) {
         }
         return;
     }
+
+    if (g_output_retry.attempts() > 0 &&
+        g_output_started_at > 0 &&
+        cari::studio::core::MediaClock::monotonic_now() - g_output_started_at >=
+            kOutputStableTicks) {
+        ResetOutputRetry();
+    }
 }
 
 bool StartCaptureSource(HWND hwnd, const std::string& source, std::int32_t requested_window_index = -1) {
@@ -423,7 +432,7 @@ bool StartOutput(
 
     g_last_output_profile = output_profile;
     g_last_output_target = resolved_target;
-    ResetOutputRetry();
+    g_output_started_at = cari::studio::core::MediaClock::monotonic_now();
     g_media_enabled.store(true, std::memory_order_relaxed);
     return true;
 }
@@ -501,6 +510,7 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
             command.request_id);
     }
     case cari::native::ControlCommandType::output_start:
+        ResetOutputRetry();
         if (command.profile != "local-record" && command.profile != "rtmp")
             return cari::native::control_response(
                 false, "unsupported output profile", command.request_id);
