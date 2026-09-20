@@ -57,7 +57,7 @@
 - Estado PR: abierto, draft.
 - Avance global: **60% de ingeniería**.
 - Última comprobación de esta iteración: contratos retry/diagnostics portables pasan con C++20 `-Wall -Wextra -Werror`.
-- Último HEAD comprobado: `dbd6c58f565633b8f87c22c8de9c62392838a4f4`.
+- Último HEAD comprobado: `f32cdd0430ac4a22dd6f2e58216f2d96403bb04e`.
 - Interpretación del porcentaje: avance frente al producto completo; **no** equivale a validación de hardware ni a CI verde.
 - Regla de promoción: mantener la implementación en `experimental/` hasta cerrar los gates.
 
