@@ -2645,3 +2645,30 @@ Los archivos afectados fueron revisados sin:
 - Producto usable/end-user: ~58%
 - Seguimiento global: ~65%
 - Producción: NO listo
+
+## LOG-056 — Verificación reproducible del bloque 2D — 21/09/2026
+
+- Se añadió el script npm `verify:avatar2d`.
+- Comando único:
+  `npm run verify:avatar2d`
+- Ejecuta exactamente:
+  - `action-runtime.test.mjs`
+  - `action-store.test.mjs`
+  - `speech-activity.test.mjs`
+- El comando verifica playback de frames, persistencia JSON, envelopes Twitch/EventSub y VAD.
+- No se considera validación Windows: la ejecución observable local/CI sigue pendiente por el estado del runner de GitHub Actions.
+
+### NO REPETIR
+
+La prueba funcional del router y la persistencia ya tienen un entrypoint reproducible. No crear otra suite paralela para las mismas garantías salvo regresión reproducible.
+
+### Estado canónico
+
+- Ingeniería: ~71%.
+- Producto usable/end-user: ~58%.
+- Seguimiento global: ~65%.
+- Producción: NO listo.
+
+### HEAD
+
+fb0ea2b1b29dfe82287ceb7ed7f005402a330e85
