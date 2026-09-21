@@ -329,7 +329,14 @@ std::string BuildControlStatusMessage() {
         ? "anime-bright"
         : "off";
     const output_running =
-        g_media_enabled.load(std::memory_order_relaxed) && g_media_graph.running();
+        g_media_enabled.load(std::memory_order_relaxed) &&
+        (g_media_graph.running() ||
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+         g_libav_runtime.running()
+#else
+         false
+#endif
+        );
     result += ";output=" + std::string(output_running ? "running" : "stopped");
     result += ";output_backend=" + g_output_backend;
 #ifdef CARI_ENABLE_LIBAV_OUTPUT
@@ -642,6 +649,19 @@ bool StartOutput(
     }
 
     const bool streaming = output_profile == "rtmp";
+    g_output_backend = configured_output_backend();
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+    const bool use_libav = g_output_backend == "libav-d3d11";
+#else
+    const bool use_libav = false;
+    if (g_output_backend == "libav-d3d11") return false;
+#endif
+    if (use_libav && g_capture_source == "camera") {
+        if (started_audio) g_audio_bridge.stop();
+        if (started_capture) StopCaptureSource();
+        g_output_backend = "raw-ffmpeg";
+        return false;
+    }
     if (output_profile != "local-record" && !streaming) {
         if (started_audio) g_audio_bridge.stop();
         if (started_capture) StopCaptureSource();
@@ -699,14 +719,26 @@ bool StartOutput(
     g_last_output_profile = output_profile;
     g_last_output_target = resolved_target;
 
-    if (!g_media_graph.start(
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+    if (use_libav) {
+        if (!g_libav_runtime.configure(profile, 48000, 2)) {
+            g_last_output_category = "encoder";
+            if (started_audio) g_audio_bridge.stop();
+            if (started_capture) StopCaptureSource();
+            return false;
+        }
+    } else
+#endif
+    if (!use_libav && !g_media_graph.start(
             profile,
             48000,
             2,
             configured_ffmpeg_executable())) {
-        const retry = streaming && ScheduleOutputRetryIfEligible();
+        const bool retry =
+            streaming && g_output_backend == "raw-ffmpeg" &&
+            ScheduleOutputRetryIfEligible();
         if (started_audio) g_audio_bridge.stop();
-        if (started_capture) g_capture.stop();
+        if (started_capture) StopCaptureSource();
         if (retry) {
             RefreshStatus(hwnd);
         }
@@ -843,6 +875,9 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
     case cari::native::ControlCommandType::output_stop:
         ResetOutputRetry();
         StopAvatarOverlayCapture();
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+        g_libav_runtime.stop();
+#endif
         g_media_graph.stop();
         g_media_enabled.store(false, std::memory_order_relaxed);
         RefreshStatus(hwnd);
@@ -934,6 +969,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             if (g_media_enabled.load(std::memory_order_relaxed)) {
                 ResetOutputRetry();
                 StopAvatarOverlayCapture();
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+                g_libav_runtime.stop();
+#endif
                 g_media_graph.stop();
                 g_media_enabled.store(false, std::memory_order_relaxed);
             } else {
@@ -1167,6 +1205,51 @@ void ProcessPrimaryCapturedFrame(const cari::native::CapturedFrame& captured) {
                                 avatar_overlay
                             },
                             gpu_error)) {
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+                        if (g_output_backend == "libav-d3d11") {
+                            if (!g_libav_runtime.running() &&
+                                !g_libav_runtime.ensure_started(device.Get())) {
+                                g_gpu_compositor_error =
+                                    g_libav_runtime.last_error();
+                                g_last_output_category = "encoder";
+                                g_media_enabled.store(
+                                    false,
+                                    std::memory_order_relaxed);
+                                StopAvatarOverlayCapture();
+                                g_libav_runtime.stop();
+                                return;
+                            }
+
+                            final_frame.width =
+                                static_cast<std::uint32_t>(desc.Width);
+                            final_frame.height =
+                                static_cast<std::uint32_t>(desc.Height);
+                            final_frame.stride =
+                                static_cast<std::uint32_t>(desc.Width * 4u);
+                            final_frame.format =
+                                static_cast<std::uint32_t>(
+                                    DXGI_FORMAT_B8G8R8A8_UNORM);
+                            final_frame.sequence = captured.sequence;
+                            final_frame.pts = captured.timestamp;
+
+                            if (!g_libav_runtime.submit_video(
+                                    final_frame,
+                                    g_gpu_compositor.output_texture())) {
+                                g_gpu_compositor_error =
+                                    g_libav_runtime.last_error();
+                                g_last_output_category = "encoder";
+                                g_media_enabled.store(
+                                    false,
+                                    std::memory_order_relaxed);
+                                StopAvatarOverlayCapture();
+                                g_libav_runtime.stop();
+                                return;
+                            }
+
+                            g_gpu_compositor_error.clear();
+                            return;
+                        }
+#endif
                         std::shared_ptr<std::vector<std::uint8_t>> gpu_pixels;
                         if (g_gpu_compositor.copy_output_to_cpu(
                                 gpu_pixels,
