@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       model:
-        description: "Pollinations image model"
+        description: "Pollinations image model hint"
         required: true
         default: "zimage"
         type: string
@@ -30,7 +30,7 @@ on:
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: generate-cari-assets
@@ -57,8 +57,6 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r scripts/requirements-assets.txt
 
       - name: Generate Cari PNG gallery
-        env:
-          POLLINATIONS_KEY: ${{ secrets.POLLINATIONS_KEY }}
         run: |
           args=(
             --output-dir assets/cari-gallery
@@ -70,23 +68,17 @@ jobs:
           if [ "${{ inputs.overwrite }}" = "true" ]; then
             args+=(--overwrite)
           fi
-          python scripts/generate_cari_assets.py "\${args[@]}"
+          python scripts/generate_cari_assets.py "${args[@]}"
 
       - name: Show generated assets
         run: |
           echo "Generated gallery:"
           find assets/cari-gallery -maxdepth 1 -type f -name '*.png' -print | sort
 
-      - name: Commit generated assets
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/cari-gallery
-          if git diff --cached --quiet; then
-            echo "No asset changes to commit."
-            exit 0
-          fi
-          git commit -m "assets(cari): generate gallery images"
-          git push
+      - name: Upload generated gallery
+        uses: actions/upload-artifact@v4
+        with:
+          name: cari-gallery-${{ github.run_number }}
+          path: assets/cari-gallery/*.png
+          if-no-files-found: error
+          retention-days: 14
