@@ -24,6 +24,21 @@ async function loadModule(relativePath) {
 
 const { StudioSessionManager } = await loadModule("runtime/session-manager.js");
 const { AudioLipSync } = await loadModule("avatar/audio-lipsync.js");
+async function loadActionStore() {
+  const source = await fs.readFile(
+    path.join(root, "avatar/action-store.js"),
+    "utf8"
+  );
+  const contract = await fs.readFile(
+    path.join(root, "avatar/avatar-contract.js"),
+    "utf8"
+  );
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "cari-actions-"));
+  await fs.writeFile(path.join(tempRoot, "action-store.mjs"), source, "utf8");
+  await fs.writeFile(path.join(tempRoot, "avatar-contract.js"), contract, "utf8");
+  return import(pathToFileURL(path.join(tempRoot, "action-store.mjs")).href);
+}
+
 const {
   normalizeAvatarState,
   normalizeExpression,
@@ -205,6 +220,36 @@ test("output stop releases capture/audio owned by the output", async () => {
     "audio.stop"
   ]);
   assert.equal(native.calls.filter(call => call[0] === "stop").length, 1);
+});
+
+test("Cari action store exposes only canonical runtime actions", async () => {
+  const { AvatarActionStore } = await loadActionStore();
+  const storage = {
+    value: null,
+    getItem() { return this.value; },
+    setItem(_key, value) { this.value = value; }
+  };
+  const store = new AvatarActionStore(storage);
+  const actions = store.list();
+
+  assert.deepEqual(
+    actions.map(action => action.id),
+    [
+      "neutral",
+      "happy",
+      "sad",
+      "angry",
+      "afraid",
+      "embarrassed",
+      "exhausted",
+      "confused",
+      "talking",
+      "silent"
+    ]
+  );
+  assert.equal(actions.find(action => action.id === "sad").expression, "sad");
+  assert.equal(actions.find(action => action.id === "afraid").expression, "afraid");
+  assert.equal(actions.find(action => action.id === "exhausted").expression, "exhausted");
 });
 
 test("avatar contract clamps unsafe values and keeps the renderer contract stable", () => {
