@@ -60,8 +60,14 @@ def _validate_log_sections(bitacora: str) -> None:
 
 
 def _latest_head(bitacora: str) -> str | None:
-    matches = HEAD_PATTERN.findall(bitacora)
-    return matches[-1] if matches else None
+    state_match = re.search(
+        r"## Estado actual(?P<state>.*?)(?:^## |\\Z)",
+        bitacora,
+        flags=re.M | re.S,
+    )
+    state = state_match.group("state") if state_match else bitacora
+    match = HEAD_PATTERN.search(state)
+    return match.group(1) if match else None
 
 
 def validate(root: Path = ROOT, expected_head: str | None = None) -> dict[str, object]:
