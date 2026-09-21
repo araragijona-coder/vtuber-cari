@@ -5,6 +5,7 @@ import { FaceTrackingBridge } from "../avatar/face-tracking-bridge.js";
 import { ThreeAvatarRenderer } from "../avatar/three-avatar.js";
 import { AvatarActingBridge } from "../avatar/acting-bridge.js";
 import { AudioLipSync } from "../avatar/audio-lipsync.js";
+import { LocalSpeechController } from "../avatar/local-speech-controller.js";
 import { AvatarActionStore } from "../avatar/action-store.js";
 import { STUDIO_MENU, CAPABILITIES } from "./menu-config.js";
 
@@ -54,6 +55,7 @@ const editorRenderer = new ThreeAvatarRenderer(ui.editorAvatar);
 const settingsRenderer = new ThreeAvatarRenderer(ui.settingsAvatar);
 const tracking = new FaceTrackingBridge(acting);
 const lipSync = new AudioLipSync(acting);
+const speech = new LocalSpeechController();
 const actionStore = new AvatarActionStore();
 const bundledCariAssets = await window.cari.assets.cariExpressions().catch(() => ({}));
 await actionStore.seedBundledFrames(bundledCariAssets);
@@ -65,6 +67,9 @@ let frameIndex = 0;
 let actionTimer = null;
 let refreshBusy = false;
 let twitchRead = false;
+let manualTalk = false;
+let talkStartedAudio = false;
+let speechAutoEnabled = false;
 
 const scenes = loadScenes();
 const twitch = {
@@ -404,8 +409,8 @@ function setAction(id) {
   const action = actionStore.get(id);
   if (!action) return;
   selectedActionId = action.id;
+  acting.setManualExpression(action.expression || "neutral");
   acting.set({
-    expression: action.expression || "neutral",
     mouthOpen: Number(action.mouthOpen) || 0
   });
   ui.previewAction.textContent = action.label;
@@ -721,6 +726,78 @@ function switchView(view) {
   }
 }
 
+async function startSpeechMonitor() {
+  if (speechAutoEnabled) return;
+  await speech.start();
+  speechAutoEnabled = true;
+  updateTalkUi({ level: 0, speaking: false, active: true });
+}
+
+function updateTalkUi({ level = 0, speaking = false, active = false } = {}) {
+  const mic = $("#mic-state");
+  const state = $("#speech-state");
+  const button = $("#talk-toggle");
+  if (mic) mic.textContent = speechAutoEnabled ? "MIC ON" : "MIC OFF";
+  if (button) {
+    button.textContent = manualTalk ? "🎙 Callar" : "🎙 Hablar";
+    button.classList.toggle("primary", !manualTalk);
+    button.classList.toggle("talking-active", manualTalk);
+  }
+  if (state) {
+    state.textContent =
+      (manualTalk ? "Habla manual: activa" : (speaking ? "Habla detectada" : "Habla: en silencio")) +
+      " · nivel " + Math.round(Math.max(0, Math.min(1, level)) * 100) + "%" +
+      " · reacción: " + (acting.manualExpression() ? "manual" : "automática");
+  }
+  const percent = Math.round(Math.max(0, Math.min(1, level)) * 100);
+  const micMeter = $("#mix-mic");
+  const micLabel = $("#mix-mic-label");
+  if (micMeter) micMeter.style.width = percent + "%";
+  if (micLabel) micLabel.textContent = percent + "%";
+}
+
+async function setManualTalk(enabled) {
+  const desired = Boolean(enabled);
+  if (desired === manualTalk && (!desired || speechAutoEnabled)) {
+    updateTalkUi(speech.sample());
+    return;
+  }
+
+  if (desired) {
+    talkStartedAudio = !session.snapshot().audio;
+    const audio = await session.audioStart();
+    if (audio?.ok === false) {
+      throw new Error(audio.error || "No se pudo iniciar el audio nativo");
+    }
+
+    await session.microphoneSet(true);
+    await startSpeechMonitor();
+    manualTalk = true;
+    acting.setManualExpression("neutral");
+  } else {
+    manualTalk = false;
+    await session.microphoneSet(false).catch(() => undefined);
+    if (talkStartedAudio && !session.snapshot().output) {
+      await session.audioStop().catch(() => undefined);
+    }
+    talkStartedAudio = false;
+    lipSync.reset();
+  }
+
+  updateTalkUi(speech.sample());
+}
+
+function setManualExpression(expression) {
+  acting.setManualExpression(expression);
+  const action = actionStore.list().find(item => item.expression === expression);
+  if (action) {
+    selectedActionId = action.id;
+    ui.previewAction.textContent = action.label;
+  } else {
+    ui.previewAction.textContent = expression;
+  }
+}
+
 async function startCamera() {
   if (cameraStream) return;
   cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -760,9 +837,28 @@ function stopCamera() {
 
 function trackingLoop(timestamp) {
   requestAnimationFrame(trackingLoop);
-  if (!faceTracker || !cameraStream || ui.camera.readyState < 2) return;
-  const result = faceTracker.detect(ui.camera, timestamp);
-  if (result) tracking.apply(result);
+
+  if (faceTracker && cameraStream && ui.camera.readyState >= 2) {
+    const result = faceTracker.detect(ui.camera, timestamp);
+    if (result) tracking.apply(result);
+  }
+
+  if (speechAutoEnabled) {
+    const voice = speech.sample(timestamp);
+    const drivenLevel = manualTalk
+      ? Math.max(voice.level, 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(timestamp / 85)))
+      : voice.speaking
+        ? voice.level
+        : 0;
+    if (drivenLevel > 0) lipSync.update(drivenLevel);
+    else lipSync.reset();
+
+    updateTalkUi({ ...voice, level: drivenLevel });
+    const trackingState = $("#tracking");
+    if (trackingState && voice.speaking) {
+      trackingState.textContent = faceTracker ? "camera + speech" : "speech";
+    }
+  }
 }
 
 acting.subscribe(state => {
@@ -1095,6 +1191,30 @@ $("#source-window").onclick = () => {
 };
 $("#source-camera").onclick = () => startCamera().catch(error => showStatus("Camera: " + error.message));
 
+$("#talk-toggle").onclick = async () => {
+  try {
+    await setManualTalk(!manualTalk);
+    showStatus(manualTalk ? "Micrófono + Hablar activados" : "Micrófono silenciado");
+  } catch (error) {
+    showStatus("Hablar: " + error.message);
+  }
+};
+$("#talk-auto").onclick = () => {
+  manualTalk = false;
+  talkStartedAudio = false;
+  acting.clearManualExpression();
+  lipSync.reset();
+  updateTalkUi(speech.sample());
+  showStatus("Cari vuelve a reacción automática");
+};
+document.querySelectorAll("[data-manual-expression]").forEach(button => {
+  button.onclick = () => {
+    const expression = button.dataset.manualExpression;
+    setManualExpression(expression);
+    showStatus("Reacción manual: " + expression);
+  };
+});
+
 $("#audio-start").onclick = () => command(session.audioStart ? session.audioStart() : window.cari.native.send({ type: "audio.start" }));
 $("#audio-stop").onclick = () => command(session.audioStop ? session.audioStop() : window.cari.native.send({ type: "audio.stop" }));
 $("#voice-anime-2").onclick = () => command(session.setVoiceEffect("anime-bright"));
@@ -1169,6 +1289,9 @@ async function refresh() {
     ui.liveState.innerHTML = '<span class="dot"></span><span>' + (metrics.output === "running" ? "LIVE" : "OFFLINE") + "</span>";
     ui.fps.textContent = Number(metrics.fps ?? 0).toFixed(1);
     ui.audio.textContent = String(metrics.audio_packets ?? 0);
+    if (!speechAutoEnabled && (metrics.audio_packets ?? 0) > 0) {
+      startSpeechMonitor().catch(() => undefined);
+    }
     const peak = Math.max(0, Math.min(1, Number(metrics.audio_peak ?? 0)));
     $("#mix-mic").style.width = (peak * 100).toFixed(1) + "%";
     $("#mix-mic-label").textContent = Math.round(peak * 100) + "%";
