@@ -50,3 +50,9 @@ A demo image is visual reference only.
 - Bitácora canonical update: do not repeat timing/supervisor/tracker/renderer work without regression evidence.
 - Canonical progress remains Engineering ~71%, Product usable ~58%, Tracking ~65%.
 - Next focus remains P0 GPU compositor -> final frame + observable Windows E2E.
+
+
+## 2026-09-21 — LOG-027
+- Camera metrics now follow the active source instead of always reading WGC counters.
+- No new metrics architecture added; existing status path corrected.
+- Engineering ~71%, Product usable ~58%, Tracking ~65%.
