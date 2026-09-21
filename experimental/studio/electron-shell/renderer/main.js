@@ -546,7 +546,11 @@ function renderActionFrame(action, index = 0, meta = {}) {
       action?.id || "none",
       frame?.id || "none",
       frame?.url || "",
-      frame?.dataUrl ? frame.dataUrl.slice(0, 48) : ""
+      frame?.dataUrl ? frame.dataUrl.slice(0, 48) : "",
+      action?.opacity ?? 1,
+      action?.scale ?? 1,
+      action?.offsetX ?? 0,
+      action?.offsetY ?? 0
     ].join("|");
 
     if (frameKey !== lastLiveActionFrameKey) {
