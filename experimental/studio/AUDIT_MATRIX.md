@@ -365,3 +365,30 @@ La existencia de botón, módulo o workflow no equivale por sí sola a validaci�
 - No convertir Twitch conectado en razón para capturar vídeo.
 - No convertir OBS abierto en razón para iniciar encoder.
 - No ejecutar compositor/readback de frames si no hay sink explícito.
+## Checkpoint canónico — 2026-09-21
+
+- Ingeniería: **~68%**.
+- Producto usable/end-user: **~54%**.
+- Seguimiento global: **~62%**.
+- Producción: **NO listo**.
+- HEAD auditado: `a49860c3393345759703e65090836a70f48c05bf`.
+
+### Auditoría de errores del ciclo
+
+- Atajo `R` limpiado para cerrar output, retry y avatar overlay.
+- Cambio de fuente desde cámara a ventana corregido para no dejar una fuente activa.
+- Status output serializado correctamente.
+- Clasificación de fallos de red restringida.
+- Workflows de CI corregidos para rama de desarrollo y `workflow_dispatch`.
+- Includes Windows explícitos.
+
+### Avatar externo
+
+- PNGTuber: sin nuevo runtime; reutiliza Action Store.
+- Inochi2D: opción 2D abierta, BSD-2-Clause.
+- Live2D Cubism: software propietario, adapter opcional.
+- VRoid/VRM y Blender/three-vrm: ruta 3D compatible con el renderer existente.
+
+### Gate de rendimiento
+
+El compositor D3D11 ya compone captura + overlay, pero el frame final se hace CPU-readback antes de la frontera FFmpeg. Esta ruta sigue siendo experimental y debe sustituirse por un encoder capaz de consumir la textura GPU o por un puente equivalente antes de declararla producción.
