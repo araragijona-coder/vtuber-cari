@@ -1,3 +1,10 @@
+## 2026-09-21 — PTS Libav
+
+- Se ampliaron métricas de paquetes codificados con primer PTS de audio y vídeo.
+- El audio reancla su reloj de samples cuando el FIFO queda vacío, usando el PTS explícito del siguiente paquete.
+- El smoke de Libav ahora verifica límites de PTS de paquetes codificados.
+- Estado: PTS E2E experimental, pendiente de validación Windows.
+
 # Cari Studio — Engineering Changelog
 
 > La bitácora de continuidad canónica es experimental/studio/BITACORA.md.
