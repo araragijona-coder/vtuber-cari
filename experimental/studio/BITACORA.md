@@ -1,5 +1,130 @@
 # Cari Studio — Bitácora maestra
 
+## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — CONTINUIDAD Y ANTI-REPETICIÓN
+
+> Este bloque es la referencia operativa actual. Los checkpoints históricos inferiores no deben sustituirlo.
+
+- Rama: `fix/native-windows-foundation`
+- PR: #2
+- HEAD auditado al iniciar esta iteración: `ad0298da38c7c93e415fc5f41478095cf85d331e`
+- Estado: **EXPERIMENTAL / NO listo para producción**
+- Ingeniería: **~68%**
+- Producto usable/end-user: **~54%**
+- Seguimiento global: **~62%**
+
+### Trabajo ya realizado y que NO debe repetirse
+
+#### Captura
+- Windows Graphics Capture de ventana: IMPLEMENTADO.
+- Windows Graphics Capture de pantalla primaria: IMPLEMENTADO.
+- Enumeración de ventanas: IMPLEMENTADO.
+- Recuperación D3D11 por device removed/reset/hung: IMPLEMENTADO.
+- Cámara Media Foundation: IMPLEMENTADA como source nativa + control plane; falta validación física.
+- Game Capture dedicada: PENDIENTE.
+
+#### Audio
+- WASAPI micrófono: IMPLEMENTADO.
+- WASAPI system loopback: IMPLEMENTADO.
+- AudioTimelineMixer: IMPLEMENTADO + smoke.
+- Normalización sample-rate/canales: IMPLEMENTADA.
+- Voice DSP local anime-bright: IMPLEMENTADO; no es pitch/formant.
+- Lip-sync por amplitud: IMPLEMENTADO como fallback local.
+- Drift estimator: IMPLEMENTADO.
+- Drift correction/resampling físico: PENDIENTE.
+
+#### Media pipeline
+- MediaClock 100 ns: IMPLEMENTADO + smoke.
+- RealtimePacer: IMPLEMENTADO + smoke.
+- Interleaver A/V global por PTS: IMPLEMENTADO + smoke.
+- Colas acotadas + métricas: IMPLEMENTADAS.
+- Máximo 8 eventos A/V por polling: IMPLEMENTADO.
+- Backpressure de handshake: IMPLEMENTADO.
+- Rechazo de cambios de formato de audio durante sesión: IMPLEMENTADO.
+- FFmpeg A/V boundary con dos named pipes: IMPLEMENTADO.
+- Cierre por EOF/flush antes de terminación forzada: IMPLEMENTADO.
+- stderr acotado a 256 KiB: IMPLEMENTADO.
+- Clasificación inicial de fallos: IMPLEMENTADA.
+- Retry/backoff RTMP: IMPLEMENTADO, solo para categorías de red.
+- Libav directo con PTS explícitos: IMPLEMENTADO como ruta experimental separada.
+- E2E named-pipe + FFmpeg: IMPLEMENTADO y preparado para ejecución Windows.
+- Verificación sostenida Windows: PENDIENTE por runner/hardware.
+
+#### Composición / avatar
+- Contrato de avatar: IMPLEMENTADO.
+- Three.js + GLB/glTF: IMPLEMENTADO.
+- MediaPipe Face Landmarker: IMPLEMENTADO + guard de timestamps.
+- FaceTrackingBridge: IMPLEMENTADO.
+- Action Store/editor de acciones: IMPLEMENTADO.
+- Overlay transparente: IMPLEMENTADO.
+- Compositor D3D11 GPU captura + avatar/overlay: IMPLEMENTADO experimental.
+- Fallback CPU/readback: EXISTE SOLO COMO LIMITACIÓN DE VALIDACIÓN; NO PROMOVER A PRODUCCIÓN.
+- Composición GPU sin readback / encoder consumiendo textura: PENDIENTE.
+- Live2D runtime: PENDIENTE/adaptador opcional.
+- VRM native de producción: PENDIENTE.
+
+#### Control plane
+- Electron NativeEngine: IMPLEMENTADO.
+- OBS WebSocket opcional: IMPLEMENTADO.
+- Detección OBS separada de conexión/control: IMPLEMENTADA.
+- Twitch EventSub único: IMPLEMENTADO.
+- Reconnect/keepalive/lifecycle Twitch: IMPLEMENTADO.
+- StudioRuntimeBindings / NativeBackend / OBSBackend: IMPLEMENTADOS.
+- No crear transportes, routers o services paralelos.
+
+#### Distribución
+- Runtime versions fijadas: IMPLEMENTADO.
+- Auditoría de licencias: IMPLEMENTADA.
+- NSIS x64: CONFIGURADO.
+- ZIP portable: CONFIGURADO.
+- Redistribución FFmpeg/codec: PENDIENTE decisión final.
+- Firma/validación release: PENDIENTE.
+
+### Cambios hechos en este ciclo de continuidad
+- Se verificó el estado real del PR #2 y se tomó `BITACORA.md` como fuente canónica.
+- Se comprobó que la política RTMP de retry/backoff ya existe; no se duplicó.
+- Se comprobó que los diagnósticos de output ya están integrados; no se creó otro sistema.
+- Se comprobó el compositor D3D11 experimental y la ruta Libav; ambos permanecen experimentales.
+- Se corrigieron anteriormente y se conservan como cerradas las invariantes de sesión, backpressure, orden A/V y serialización de output.
+- Los workflows de CI ya aceptan la rama de desarrollo y `workflow_dispatch`; las ejecuciones siguen fallando antes de registrar steps/logs útiles.
+- Se añadirá/actualizará solo la bitácora y los checkpoints; no se rehacen módulos existentes.
+
+### Evidencia conocida
+- C++20 portable con `-Wall -Wextra -Werror`: PASS para timing/interleaver y retry/diagnóstico.
+- FFmpeg sintético 7.1.5: BGRA raw + PCM float32 -> H.264/AAC -> Matroska: PASS.
+- E2E Windows named-pipe -> FFmpeg: código IMPLEMENTADO; no considerado VERIFICADO mientras Actions no produzca steps/logs observables.
+- D3D11 compositor smoke: IMPLEMENTADO; la validación completa sigue pendiente.
+- Media Foundation camera smoke: IMPLEMENTADO; cámara física sigue pendiente.
+- GitHub Actions: runs recientes continúan terminando con `steps=null`/sin logs observables.
+
+### NO REPETIR
+
+1. No rehacer Windows Graphics Capture.
+2. No rehacer WASAPI/AudioTimelineMixer.
+3. No rehacer MediaClock, RealtimePacer o Interleaver.
+4. No crear otro FFmpeg supervisor/output bridge.
+5. No crear otro OBS service.
+6. No crear otro Twitch EventSub WebSocket.
+7. No crear otro Action Store.
+8. No sustituir Three.js sin una regresión medible.
+9. No usar `capturePage()` como compositor final.
+10. No declarar CI, RTMP, cámara, Game Capture, drift, Live2D, VRM o hardware como validados sin evidencia.
+11. No perseguir `steps=null` mediante cambios del pipeline sin logs nuevos.
+12. No copiar este trabajo a otra rama/repositorio sin una razón de release/merge explícita.
+
+### PRÓXIMO ORDEN OBLIGATORIO
+
+1. Obtener una ejecución CI observable con Checkout/CMake/npm/CTest.
+2. Verificar E2E Windows named-pipe -> FFmpeg -> archivo.
+3. Eliminar CPU readback del compositor y conectar la textura GPU a un encoder adecuado.
+4. Verificar PTS explícitos mediante la ruta Libav experimental en Windows.
+5. Aplicar drift correction/resampling basado en relojes WASAPI.
+6. Validar cámara Media Foundation y Game Capture.
+7. Validar OBS/Twitch reales y backends de acciones.
+8. Hardware objetivo, multistream, FFmpeg redistribution e instalador release.
+
+---
+# Cari Studio — Bitácora maestra
+
 Última actualización: 2026-09-21
 Rama: fix/native-windows-foundation
 
