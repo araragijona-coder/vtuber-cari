@@ -203,6 +203,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Loop de frames por durationMs y retorno al estado base.
 - [x] Persistencia en disco Electron con límites de tamaño y escritura atómica.
 - [x] Tests de routing y persistencia.
+- [x] NODE syntax check del runtime y main Electron.
 - [ ] Ejecución Windows/renderer sostenida.
 - [ ] Integración del frame 2D final al compositor/encoder.
 
