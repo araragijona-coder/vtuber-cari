@@ -36,9 +36,11 @@ function normalizeAction(input, index = 0) {
           id: String(frame.id || uid("frame")),
           name: String(frame.name || "image").slice(0, 120),
           dataUrl: typeof frame.dataUrl === "string" ? frame.dataUrl : "",
+          url: typeof frame.url === "string" ? frame.url : "",
           mime: String(frame.mime || "image/png"),
-          size: Number(frame.size) || 0
-        })).filter(frame => frame.dataUrl)
+          size: Number(frame.size) || 0,
+          bundled: frame.bundled === true
+        })).filter(frame => frame.dataUrl || frame.url)
       : []
   };
 }
@@ -123,6 +125,35 @@ export class AvatarActionStore {
     });
     this.#persist();
     return { ...this.actions[index] };
+  }
+
+  async seedBundledFrames(assetUrls = {}) {
+    const mapping = [
+      ["neutral", "neutral", "cari_neutral.png"],
+      ["happy", "happy", "cari_happy.png"],
+      ["angry", "angry", "cari_angry.png"]
+    ];
+
+    let changed = false;
+    for (const [actionId, key, filename] of mapping) {
+      const action = this.actions.find(item => item.id === actionId);
+      const url = typeof assetUrls[key] === "string" ? assetUrls[key] : "";
+      if (!action || !url || action.frames.length) continue;
+
+      action.frames.push({
+        id: "bundled-" + actionId,
+        name: filename,
+        dataUrl: "",
+        url,
+        mime: "image/png",
+        size: 0,
+        bundled: true
+      });
+      changed = true;
+    }
+
+    if (changed) this.#persist();
+    return changed;
   }
 
   addFrame(id, file) {
