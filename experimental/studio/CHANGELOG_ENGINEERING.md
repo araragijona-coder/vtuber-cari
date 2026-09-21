@@ -84,3 +84,9 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Se mantiene Libav como ruta experimental para PTS explícitos.
 - CI continúa bloqueada sin steps/logs observables.
 - Nuevo siguiente foco: eliminar readback CPU por frame en la ruta GPU y conseguir E2E Windows observable.
+
+## 2026-09-21 — LOG-032 GPU -> encoder
+- Se añadió D3D11AvFrameBridge y smoke experimental de encoder hardware.
+- FFmpeg API research confirma hw_frames_ctx, AV_PIX_FMT_D3D11 y AVCodecHWConfig como base del camino.
+- Estado: experimental; Windows, GPU/driver y encoder real pendientes.
+- Progreso canónico se mantiene en Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
