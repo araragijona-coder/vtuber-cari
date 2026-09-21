@@ -11,6 +11,7 @@
 - [x] Assets de imagen por acción, múltiples frames, drag-and-drop, orden, loop y parámetros visuales.
 - [x] Presets JSON export/import y persistencia local.
 - [x] Acciones activables desde UI y comandos básicos del chat.
+- [x] Base art PNG V0 de Cari (neutral/happy/angry) incluida en `assets/cari/expressions/`.
 
 ## Arquitectura
 
@@ -36,6 +37,7 @@
 - [x] Test contractual UI→IPC→ObsService para evitar regresiones de botones y API.
 - [x] Control Twitch ↔ avatar por comandos locales de chat y toggle de conexión desde Centro Twitch.
 - [x] Bitácora técnica versionada con inventario de trabajo realizado, evidencia y lista NO REPETIR.
+- [x] Action Store precarga las expresiones PNG base de Cari cuando no existen frames personalizados.
 - [x] Test de coherencia UI para menú, vistas e IDs HTML.
 - [x] Latest-frame worker fuera del callback WGC: el callback solo encola/reemplaza frames pendientes; el procesamiento pesado queda desacoplado del hilo de captura.
 - [x] Diagnóstico y retry RTMP acotado por categoría de fallo.
@@ -165,9 +167,9 @@
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~60%.**
+**Estimación vigente: ingeniería ~68% · producto usable ~54% · seguimiento global ~62%.**
 
-Este porcentaje mide cierre de requisitos de ingeniería; no equivale a porcentaje de código ni a disponibilidad para producción.
+Los porcentajes vigentes se mantienen sincronizados con `BITACORA.md`: miden cierre de requisitos, no líneas de código ni disponibilidad para producción.
 
 ## Criterio de cierre
 
