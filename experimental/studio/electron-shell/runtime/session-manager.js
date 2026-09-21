@@ -1,3 +1,5 @@
+import { evaluateResourceDemand, isNativeCommand } from "./resource-policy.js";
+
 const DEFAULT_RTMP_RE = /^rtmps?:\/\//i;
 
 function asErrorMessage(error) {
@@ -20,7 +22,9 @@ export class StudioSessionManager {
       source: "window",
       windowIndex: 0,
       voice: "off",
-      cameraIndex: 0
+      cameraIndex: 0,
+      captureOwnedByOutput: false,
+      audioOwnedByOutput: false
     };
   }
 
@@ -89,7 +93,19 @@ export class StudioSessionManager {
 
   async send(type, payload = {}) {
     return this.#serialize(async () => {
-      if (!this.state.engine) {
+      // Voice selection is configuration until audio is actually active.
+      // Never spawn the native engine only to store a voice preference.
+      if (type === "voice.set" && !this.state.engine && !this.state.audio) {
+        this.state.voice = payload.effect || "off";
+        return {
+          ok: true,
+          skipped: true,
+          message: "voice=configured-no-audio",
+          state: this.snapshot()
+        };
+      }
+
+      if (!this.state.engine && isNativeCommand(type)) {
         const started = await this.native.start();
         if (!started?.running) {
           return {
@@ -197,6 +213,7 @@ export class StudioSessionManager {
             return { ...capture, state: this.snapshot() };
           }
           captureStartedHere = capture.message === "capture=started";
+          this.state.captureOwnedByOutput = captureStartedHere;
           this.state.capture = true;
         }
 
@@ -207,6 +224,7 @@ export class StudioSessionManager {
             return { ...audio, state: this.snapshot() };
           }
           audioStartedHere = audio.message === "audio=started";
+          this.state.audioOwnedByOutput = audioStartedHere;
           this.state.audio = true;
         }
 
@@ -221,6 +239,9 @@ export class StudioSessionManager {
           if (captureStartedHere) await this.native.send({ type: "capture.stop" });
           if (audioStartedHere) this.state.audio = false;
           if (captureStartedHere) this.state.capture = false;
+          this.state.audioOwnedByOutput = false;
+          this.state.captureOwnedByOutput = false;
+          await this.#releaseNativeIfIdle();
           return { ...output, state: this.snapshot() };
         }
 
@@ -231,13 +252,40 @@ export class StudioSessionManager {
         if (captureStartedHere) await this.native.send({ type: "capture.stop" }).catch(() => undefined);
         if (audioStartedHere) this.state.audio = false;
         if (captureStartedHere) this.state.capture = false;
+        this.state.audioOwnedByOutput = false;
+        this.state.captureOwnedByOutput = false;
+        await this.#releaseNativeIfIdle();
         return { ok: false, error: asErrorMessage(error), state: this.snapshot() };
       }
     });
   }
 
   async outputStop() {
-    return this.#stopOnlyWhenRunning("output.stop", "output");
+    return this.#serialize(async () => {
+      if (!this.state.engine || !this.state.output) {
+        return { ok: true, skipped: true, state: this.snapshot() };
+      }
+
+      const result = await this.native.send({ type: "output.stop" });
+      if (result?.ok !== false) {
+        this.state.output = false;
+      }
+
+      if (result?.ok !== false && this.state.captureOwnedByOutput) {
+        await this.native.send({ type: "capture.stop" }).catch(() => undefined);
+        this.state.capture = false;
+        this.state.captureOwnedByOutput = false;
+      }
+
+      if (result?.ok !== false && this.state.audioOwnedByOutput) {
+        await this.native.send({ type: "audio.stop" }).catch(() => undefined);
+        this.state.audio = false;
+        this.state.audioOwnedByOutput = false;
+      }
+
+      await this.#releaseNativeIfIdle();
+      return { ...result, state: this.snapshot() };
+    });
   }
 
   async #stopOnlyWhenRunning(type, stateKey) {
@@ -249,7 +297,10 @@ export class StudioSessionManager {
       const result = await this.native.send({ type });
       if (result?.ok !== false) {
         this.#applyCommandState(type, {}, result);
+        if (stateKey === "capture") this.state.captureOwnedByOutput = false;
+        if (stateKey === "audio") this.state.audioOwnedByOutput = false;
       }
+      await this.#releaseNativeIfIdle();
       return { ...result, state: this.snapshot() };
     });
   }
@@ -262,7 +313,31 @@ export class StudioSessionManager {
         state: this.snapshot()
       };
     }
+    if (!this.state.engine && !this.state.audio) {
+      this.state.voice = effect;
+      return {
+        ok: true,
+        skipped: true,
+        message: "voice=configured-no-audio",
+        state: this.snapshot()
+      };
+    }
     return this.send("voice.set", { effect });
+  }
+
+  resourceDemand({ previewVisible = false, avatarOverlay = false, obs = {}, twitch = {} } = {}) {
+    return evaluateResourceDemand({
+      native: {
+        engine: this.state.engine,
+        capture: this.state.capture,
+        audio: this.state.audio,
+        output: this.state.output
+      },
+      obs,
+      twitch,
+      preview: { visible: previewVisible },
+      avatarOverlay
+    });
   }
 
   handleNativeEvent(event) {
@@ -271,11 +346,29 @@ export class StudioSessionManager {
       this.state.capture = false;
       this.state.audio = false;
       this.state.output = false;
+      this.state.captureOwnedByOutput = false;
+      this.state.audioOwnedByOutput = false;
     }
     if (event?.ok === true) {
       this.#syncFromNativeMessage(event.message);
     }
     return this.snapshot();
+  }
+
+  async #releaseNativeIfIdle() {
+    if (!this.state.engine ||
+        this.state.capture ||
+        this.state.audio ||
+        this.state.output) {
+      return { ok: true, skipped: true, state: this.snapshot() };
+    }
+
+    const result = await this.native.stop().catch(error => ({
+      ok: false,
+      error: asErrorMessage(error)
+    }));
+    this.state.engine = false;
+    return { ...result, state: this.snapshot() };
   }
 
   #applyCommandState(type, payload, result) {
@@ -296,12 +389,14 @@ export class StudioSessionManager {
         break;
       case "capture.stop":
         this.state.capture = false;
+        this.state.captureOwnedByOutput = false;
         break;
       case "audio.start":
         this.state.audio = true;
         break;
       case "audio.stop":
         this.state.audio = false;
+        this.state.audioOwnedByOutput = false;
         break;
       case "output.start":
         this.state.output = true;
