@@ -162,6 +162,15 @@ struct LibavMediaOutput::Impl {
             packet->stream_index = stream->index;
 
             const std::int64_t packet_pts = packet->pts;
+            if (packet_pts != AV_NOPTS_VALUE) {
+                if (video) {
+                    if (stats.first_video_packet_pts < 0) {
+                        stats.first_video_packet_pts = packet_pts;
+                    }
+                } else if (stats.first_audio_packet_pts < 0) {
+                    stats.first_audio_packet_pts = packet_pts;
+                }
+            }
             const int write_result =
                 av_interleaved_write_frame(format, packet);
             av_packet_unref(packet);
@@ -715,6 +724,8 @@ struct LibavMediaOutput::Impl {
         stats.last_audio_input_pts = input_packet.pts;
         ++stats.audio_packets_submitted;
 
+        const int fifo_samples_before = av_audio_fifo_size(audio_fifo);
+
         const int input_samples =
             static_cast<int>(
                 input_packet.samples.size() / input_packet.channels);
@@ -777,7 +788,12 @@ struct LibavMediaOutput::Impl {
             return false;
         }
 
-        if (!audio_pts_ready) {
+        // A newly empty FIFO marks a safe synchronization boundary. Re-anchor
+        // the audio sample clock to the real input PTS instead of assuming the
+        // previous block was perfectly contiguous. This preserves explicit PTS
+        // across normal mixer discontinuities while keeping already queued data
+        // untouched.
+        if (!audio_pts_ready || fifo_samples_before == 0) {
             next_audio_pts = av_rescale_q(
                 normalize_pts(input_packet.pts, media_origin),
                 kSourceTimeBase,
