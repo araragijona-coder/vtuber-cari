@@ -55,16 +55,16 @@ jobs:
 
       - name: Generate Cari PNG gallery
         env:
-          POLLINATIONS_KEY: \${{ secrets.POLLINATIONS_KEY }}
+          POLLINATIONS_KEY: ${{ secrets.POLLINATIONS_KEY }}
         run: |
           args=(
             --output-dir assets/cari-gallery
-            --model "\${{ inputs.model }}"
-            --width "\${{ inputs.width }}"
-            --height "\${{ inputs.height }}"
-            --seed "\${{ inputs.seed }}"
+            --model "${{ inputs.model }}"
+            --width "${{ inputs.width }}"
+            --height "${{ inputs.height }}"
+            --seed "${{ inputs.seed }}"
           )
-          if [ "\${{ inputs.overwrite }}" = "true" ]; then
+          if [ "${{ inputs.overwrite }}" = "true" ]; then
             args+=(--overwrite)
           fi
           python scripts/generate_cari_assets.py "\${args[@]}"
@@ -76,7 +76,7 @@ jobs:
 
       - name: Commit generated assets
         env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
