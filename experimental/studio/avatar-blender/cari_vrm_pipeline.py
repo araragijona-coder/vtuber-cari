@@ -206,11 +206,51 @@ def vrm_api_available() -> bool:
     return hasattr(bpy.ops.import_scene, "vrm") and hasattr(bpy.ops.export_scene, "vrm")
 
 
+def _operator_properties(operator: Any) -> set[str]:
+    try:
+        return {
+            prop.identifier
+            for prop in operator.get_rna_type().properties
+            if prop.identifier != "rna_type"
+        }
+    except Exception:
+        return set()
+
+
+def _filtered_operator_kwargs(operator: Any, options: dict[str, Any]) -> dict[str, Any]:
+    allowed = _operator_properties(operator)
+    if not allowed:
+        return dict(options)
+    return {key: value for key, value in options.items() if key in allowed}
+
+
 def import_fbx(path: Path, config: dict[str, Any], report: Report) -> None:
-    result = bpy.ops.import_scene.fbx(filepath=str(path), **config["import"])
-    if "FINISHED" not in result:
-        raise RuntimeError(f"FBX import failed: {result}")
-    report.note(f"FBX imported: {path}")
+    # Blender 5.x exposes bpy.ops.wm.fbx_import. Older supported Blender
+    # releases commonly expose bpy.ops.import_scene.fbx. Prefer the current
+    # operator and fall back without duplicating the pipeline.
+    candidates = (
+        ("bpy.ops.wm.fbx_import", getattr(bpy.ops.wm, "fbx_import", None)),
+        ("bpy.ops.import_scene.fbx", getattr(bpy.ops.import_scene, "fbx", None)),
+    )
+
+    errors: list[str] = []
+    for operator_name, operator in candidates:
+        if operator is None:
+            continue
+        try:
+            kwargs = _filtered_operator_kwargs(operator, dict(config["import"]))
+            result = operator(filepath=str(path), **kwargs)
+            if "FINISHED" in result:
+                report.metrics["fbx_import_operator"] = operator_name
+                report.note(f"FBX imported with {operator_name}: {path}")
+                return
+            errors.append(f"{operator_name}: {result}")
+        except Exception as exc:
+            errors.append(f"{operator_name}: {type(exc).__name__}: {exc}")
+
+    raise RuntimeError(
+        "No compatible Blender FBX importer succeeded. " + " | ".join(errors)
+    )
 
 
 def meshes() -> list[bpy.types.Object]:
@@ -285,6 +325,20 @@ def audit_geometry(armature: bpy.types.Object | None, report: Report) -> None:
 
         if not obj.data.vertices:
             report.add("WARNING", "EMPTY_MESH", "Mesh contains no vertices.", obj.name)
+        if not obj.data.uv_layers:
+            report.add(
+                "WARNING",
+                "NO_UV_LAYER",
+                "Mesh has no UV layer; textured VRM export may be incomplete.",
+                obj.name,
+            )
+        if armature and not obj.vertex_groups:
+            report.add(
+                "WARNING",
+                "NO_VERTEX_GROUPS",
+                "Skinned mesh has no vertex groups.",
+                obj.name,
+            )
 
     report.metrics.update({
         "mesh_vertices": vertices,
@@ -372,6 +426,51 @@ def configure_humanoid(
                 "WARNING",
                 "OPTIONAL_HUMANOID_ASSIGNMENT_FAILED",
                 f"Could not assign optional {human_bone}: {exc}",
+                armature.name,
+            )
+
+    actual_names = list(mapped.values())
+    if len(actual_names) != len(set(actual_names)):
+        report.add(
+            "ERROR",
+            "DUPLICATE_HUMANOID_BONE_ASSIGNMENT",
+            "The same Blender bone is assigned to multiple VRM humanoid slots.",
+            armature.name,
+        )
+
+    required_parent_links = {
+        "spine": "hips",
+        "head": "spine",
+        "left_upper_leg": "hips",
+        "left_lower_leg": "left_upper_leg",
+        "left_foot": "left_lower_leg",
+        "right_upper_leg": "hips",
+        "right_lower_leg": "right_upper_leg",
+        "right_foot": "right_lower_leg",
+        "left_lower_arm": "left_upper_arm",
+        "left_hand": "left_lower_arm",
+        "right_lower_arm": "right_upper_arm",
+        "right_hand": "right_lower_arm",
+    }
+
+    def is_ancestor(child_name: str, ancestor_name: str) -> bool:
+        bone = armature.data.bones.get(child_name)
+        seen: set[str] = set()
+        while bone is not None and bone.name not in seen:
+            seen.add(bone.name)
+            if bone.parent is not None and bone.parent.name == ancestor_name:
+                return True
+            bone = bone.parent
+        return False
+
+    for child_slot, parent_slot in required_parent_links.items():
+        child_name = mapped.get(child_slot)
+        parent_name = mapped.get(parent_slot)
+        if child_name and parent_name and not is_ancestor(child_name, parent_name):
+            report.add(
+                "ERROR",
+                "INVALID_HUMANOID_PARENT_CHAIN",
+                f"VRM humanoid chain requires {child_slot} below {parent_slot}.",
                 armature.name,
             )
 
@@ -574,6 +673,92 @@ def ensure_shape_keys(config: dict[str, Any], report: Report) -> None:
         )
 
 
+def _clear_collection(collection: Any) -> None:
+    while len(collection):
+        collection.remove(len(collection) - 1)
+
+
+def _add_morph_bind(expression: Any, mesh: bpy.types.Object, shape_key_name: str) -> None:
+    bind = expression.morph_target_binds.add()
+    bind.node.mesh_object_name = mesh.name
+    bind.index = shape_key_name
+    bind.weight = 1.0
+
+
+def configure_expressions(
+    armature: bpy.types.Object | None,
+    config: dict[str, Any],
+    report: Report,
+) -> None:
+    if armature is None or not vrm_api_available():
+        return
+
+    extension = getattr(armature.data, "vrm_addon_extension", None)
+    if extension is None:
+        return
+
+    target_name = report.metrics.get("shape_key_mesh")
+    target = bpy.data.objects.get(target_name) if target_name else None
+    if target is None or not getattr(target.data, "shape_keys", None):
+        return
+
+    key_names = {key.name for key in target.data.shape_keys.key_blocks}
+    expressions = extension.vrm1.expressions
+
+    preset_bindings = {
+        "aa": "cari_mouth_open",
+        "blink_left": "cari_blink_l",
+        "blink_right": "cari_blink_r",
+        "happy": "cari_happy",
+        "angry": "cari_angry",
+        "sad": "cari_sad",
+        "surprised": "cari_surprised",
+        "relaxed": "cari_sleepy",
+    }
+
+    bound = 0
+    placeholders = 0
+
+    for expression_name, shape_key_name in preset_bindings.items():
+        expression = expressions.all_name_to_expression_dict().get(expression_name)
+        if expression is None or shape_key_name not in key_names:
+            continue
+        _clear_collection(expression.morph_target_binds)
+        _add_morph_bind(expression, target, shape_key_name)
+        expression.preview = 0.0
+        bound += 1
+        key = target.data.shape_keys.key_blocks.get(shape_key_name)
+        if key and key.get("cari_pipeline_placeholder"):
+            placeholders += 1
+
+    # Cari-specific runtime states remain custom VRM 1.0 expressions. They
+    # are intentionally named after the existing backend-neutral contract.
+    custom_names = {"cari_embarrassed", "cari_talking"}
+    custom_by_name = {
+        expression.custom_name: expression
+        for expression in expressions.custom
+    }
+    for expression_name in custom_names:
+        shape_key_name = expression_name
+        if shape_key_name not in key_names:
+            continue
+        expression = custom_by_name.get(expression_name)
+        if expression is None:
+            expression = expressions.custom.add()
+            expression.custom_name = expression_name
+        _clear_collection(expression.morph_target_binds)
+        _add_morph_bind(expression, target, shape_key_name)
+        expression.preview = 0.0
+        bound += 1
+        key = target.data.shape_keys.key_blocks.get(shape_key_name)
+        if key and key.get("cari_pipeline_placeholder"):
+            placeholders += 1
+
+    report.metrics["vrm_expression_binds"] = bound
+    report.metrics["vrm_expression_placeholder_binds"] = placeholders
+    report.note(f"Configured {bound} VRM 1.0 expression morph binds.")
+
+
 def safe_set(root: Any, path: str, value: Any) -> bool:
     current = root
     pieces = path.split(".")
@@ -772,8 +957,13 @@ def write_report(path: Path, report: Report) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Cari V1 FBX to VRM 1.0 pipeline")
-    parser.add_argument("--input", required=True, help="Source FBX")
-    parser.add_argument("--output", required=True, help="Target VRM")
+    parser.add_argument("--input", required=False, help="Source FBX")
+    parser.add_argument("--output", required=False, help="Target VRM")
+    parser.add_argument(
+        "--preflight",
+        action="store_true",
+        help="Validate Blender/VRM APIs without importing an FBX",
+    )
     parser.add_argument("--config", default=None, help="Pipeline JSON config")
     parser.add_argument("--report", default=None, help="Report JSON path")
     parser.add_argument("--keep-imported-scene", action="store_true")
@@ -788,6 +978,12 @@ def run(args: argparse.Namespace) -> int:
     config = load_config(Path(args.config).resolve() if args.config else None)
     source = Path(args.input).resolve()
     output = Path(args.output).resolve()
+    if args.preflight:
+        source = Path(args.input).resolve() if args.input else Path("")
+        output = Path(args.output).resolve() if args.output else Path("cari-vrm-preflight.vrm")
+        report.input_path = str(source) if args.input else None
+        report.output_path = str(output)
+
     report_path = (
         Path(args.report).resolve()
         if args.report
@@ -795,6 +991,33 @@ def run(args: argparse.Namespace) -> int:
     )
 
     try:
+        if args.preflight:
+            report.vrm_addon_available = vrm_api_available()
+            report.metrics["blender_version_tuple"] = list(bpy.app.version)
+            report.metrics["fbx_import_operator_available"] = (
+                hasattr(bpy.ops.wm, "fbx_import")
+                or hasattr(bpy.ops.import_scene, "fbx")
+            )
+            report.metrics["vrm_import_operator_available"] = hasattr(
+                bpy.ops.import_scene, "vrm"
+            )
+            report.metrics["vrm_export_operator_available"] = hasattr(
+                bpy.ops.export_scene, "vrm"
+            )
+            if not report.metrics["fbx_import_operator_available"]:
+                report.add("ERROR", "NO_FBX_IMPORT_OPERATOR", "No supported Blender FBX import operator is available.")
+            if not report.vrm_addon_available:
+                report.add("ERROR", "VRM_ADDON_UNAVAILABLE", "VRM Add-on is not installed.")
+            report.status = "PREFLIGHT_PASS" if not report.errors else "PREFLIGHT_FAIL"
+            report.finished_at = now_utc()
+            if config["pipeline"]["write_report"]:
+                write_report(report_path, report)
+            print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
+            return 0 if report.status == "PREFLIGHT_PASS" else 2
+
+        if args.input is None or args.output is None:
+            raise ValueError("--input and --output are required unless --preflight is used")
+
         if not source.exists():
             raise FileNotFoundError(f"FBX not found: {source}")
 
@@ -818,6 +1041,7 @@ def run(args: argparse.Namespace) -> int:
 
         if report.vrm_addon_available:
             configure_humanoid(armature, config, report)
+            configure_expressions(armature, config, report)
             configure_mtoon(config, report)
             configure_metadata(armature, config, report)
 
