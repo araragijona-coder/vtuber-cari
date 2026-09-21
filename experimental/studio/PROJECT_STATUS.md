@@ -491,3 +491,15 @@ Regla de progreso: el checkpoint vigente es Ingeniería ~71%, Producto usable ~5
 - Producto usable/end-user: **~58%**.
 - Seguimiento global: **~65%**.
 - Producción: **NO listo**.
+
+
+## Continuidad vigente — LOG-035
+
+- Bitácora canónica: `experimental/studio/BITACORA.md`.
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
+- Producción: **NO listo**.
+- CI: bloqueada porque los jobs recientes terminan sin `steps` ni `logs_url`.
+- Git: rama divergente y detrás de `main`; no se hace reescritura automática.
+- P0: validación Windows de Libav + D3D11 hardware y E2E observable.
