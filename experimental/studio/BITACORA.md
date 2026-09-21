@@ -1,3 +1,32 @@
+
+## ACTUALIZACIÓN CANÓNICA — cierre de avatar + auditoría — 2026-09-21
+
+- HEAD verificado antes de este registro: `ed2ebd84b0a1a02bb3f126992befbc39ca36322e`.
+- Ingeniería: **~69%**.
+- Producto usable/end-user: **~55%**.
+- Estado: **EXPERIMENTAL / NO listo para producción**.
+
+### Evidencia nueva
+- Sintaxis del `ThreeAvatarRenderer`, `avatar-contract`, `face-tracking-bridge`, `action-store` y renderer principal: PASS.
+- `Action Store` ejecutado contra un storage de prueba: las 10 acciones canónicas coinciden con `CARI_ACTIONS.md`.
+- Avatar V0: cuerpo completo procedural, tracking, expresiones y acciones integrado en el renderer existente.
+- CI: `Native Windows Build`, `CI`, `Character Runtime Tests` y `Actions Runner Diagnostic` fallan con `steps=null`/`logs_url=null`; por tanto no hay ejecución observable de Checkout/CMake/npm/CTest.
+
+### NO REPETIR
+- No crear otro avatar renderer.
+- No crear otro Action Store ni otro mapa de acciones.
+- No rehacer WGC/WASAPI/MediaClock/Pacer/Interleaver/FFmpeg supervisor.
+- No reintentar solucionar `steps=null` modificando el pipeline multimedia: el diagnóstico del runner tampoco ejecuta steps.
+- No declarar Windows E2E, RTMP, cámara, Game Capture, drift, VRM/Live2D o hardware como validados sin evidencia.
+
+### Siguiente trabajo permitido
+1. Recuperar una ejecución de CI con steps/logs observables.
+2. Ejecutar el smoke E2E named-pipe → FFmpeg → archivo en Windows.
+3. Sustituir readback CPU del compositor por una ruta GPU que entregue directamente al encoder.
+4. Validar PTS explícitos con Libav en Windows.
+5. Implementar corrección de drift WASAPI basada en relojes físicos.
+6. Validar cámara/Game Capture y después Twitch/OBS/hardware.
+
 ## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21
 
 - Rama: `fix/native-windows-foundation`.
