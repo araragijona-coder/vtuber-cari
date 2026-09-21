@@ -85,3 +85,9 @@ CARI_OUTPUT_BACKEND=libav-d3d11
 ```
 
 Este camino usa el compositor D3D11 y frames pertenecientes al pool hardware de FFmpeg, evitando el readback CPU del frame final antes del encoder. La validación Windows/hardware continúa pendiente.
+
+### Arranque local
+
+`run-local.ps1` busca primero `CARI_NATIVE_EXECUTABLE` y los builds conocidos. Si no encuentra `cari-studio-native.exe`, intenta generar un build Release x64 en `native-windows/build-launch`. Esto evita confundir la ausencia de artefactos locales con un fallo del motor.
+
+Para una máquina sin toolchain, usar `Cari-Setup.ps1`; para una máquina ya preparada, `Cari-Launch.bat` es suficiente.
