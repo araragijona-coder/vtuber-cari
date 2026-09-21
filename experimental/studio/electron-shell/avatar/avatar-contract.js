@@ -3,7 +3,10 @@ const DEFAULT_STATE = Object.freeze({
   mouthOpen: 0,
   blink: 0,
   head: Object.freeze({ x: 0, y: 0, z: 0 }),
-  gaze: Object.freeze({ x: 0, y: 0 })
+  gaze: Object.freeze({ x: 0, y: 0 }),
+  speaking: false,
+  speechLevel: 0,
+  activity: "idle"
 });
 
 // Expressions are derived from the canonical Cari character bible.
@@ -18,6 +21,18 @@ export const AVATAR_EXPRESSIONS = Object.freeze([
   "exhausted",
   "confused"
 ]);
+
+export const AVATAR_ACTIVITIES = Object.freeze([
+  "idle",
+  "keyboard",
+  "controller",
+  "phone"
+]);
+
+export function normalizeActivity(activity) {
+  const value = String(activity || "idle").toLowerCase();
+  return AVATAR_ACTIVITIES.includes(value) ? value : "idle";
+}
 
 export function clamp01(value) {
   const number = Number(value);
@@ -52,7 +67,10 @@ export function normalizeAvatarState(previous = DEFAULT_STATE, partial = {}) {
     gaze: {
       x: normalizeSigned(patch.gaze?.x ?? source.gaze?.x ?? 0),
       y: normalizeSigned(patch.gaze?.y ?? source.gaze?.y ?? 0)
-    }
+    },
+    speaking: Boolean(patch.speaking ?? source.speaking),
+    speechLevel: clamp01(patch.speechLevel ?? source.speechLevel),
+    activity: normalizeActivity(patch.activity ?? source.activity)
   };
 }
 
@@ -66,6 +84,9 @@ export function toRenderParameters(state) {
     eyeY: normalized.gaze.y,
     mouthOpen: normalized.mouthOpen,
     blink: normalized.blink,
-    expression: normalized.expression
+    expression: normalized.expression,
+    speaking: normalized.speaking,
+    speechLevel: normalized.speechLevel,
+    activity: normalized.activity
   };
 }
