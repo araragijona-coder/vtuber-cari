@@ -1,1 +1,2 @@
 Pillow>=10,<13
+huggingface_hub>=0.33
