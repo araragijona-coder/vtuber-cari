@@ -272,3 +272,25 @@ Este bloque supersede los porcentajes históricos anteriores de este archivo.
 - [x] Puente Twitch experimental antiguo reducido a compatibilidad; no existe un segundo transporte.
 - [ ] Backend Native/OBS ejecutando `studio_*_requested` en runtime real.
 - [ ] Validación real Twitch de reconnect/resubscribe y canal.
+
+## Continuidad 2026-09-21 — backend boundary
+
+- [x] StudioRuntimeBindings funciona como frontera única de acciones entre automatización y backends.
+- [x] NativeBackend definido como backend principal para el Native Engine local.
+- [x] OBSBackend definido como backend opcional para obs-websocket.
+- [x] Routing AUTO con prioridad Native y fallback OBS solo por disponibilidad/capacidad.
+- [x] Fallback prohibido después de una excepción de ejecución para evitar side effects duplicados.
+- [x] LocalPipeline integrado con StudioRuntimeBindings e inyección validada por EventBus.
+- [x] Compatibilidad del snapshot de StudioRuntimeBindings mantenida.
+- [x] Pruebas unitarias de selección de backend, fallback y errores agregadas.
+- [x] Contrato documental de backends en RUNTIME_BACKENDS.md.
+- [ ] Conexión física de NativeBackend con el canal de ejecución del Native Engine desde el integrador final.
+- [ ] Validación real de OBSBackend contra una instancia OBS en Windows.
+
+### Porcentaje canónico actualizado
+
+**Ingeniería: ~67%.**  
+**Producto usable: ~53%.**  
+**Global de seguimiento: ~61%.**
+
+Este porcentaje sigue siendo una estimación de cierre de requisitos, no una medida de líneas de código ni una afirmación de producción.
