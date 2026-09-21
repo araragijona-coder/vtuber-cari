@@ -12,7 +12,7 @@ using the public GET endpoint:
 
 `https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true`
 
-No Hugging Face integration or repository-configured generation secret is used by the current workflow.
+No account, API key, token or repository-configured generation secret is used by the current workflow.
 
 ## Automation
 
