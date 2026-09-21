@@ -19,6 +19,21 @@ contextBridge.exposeInMainWorld("cari", {
       startStream: () => ipcRenderer.invoke("obs:start-stream"),
       stopStream: () => ipcRenderer.invoke("obs:stop-stream"),
       setScene: sceneName => ipcRenderer.invoke("obs:set-scene", sceneName),
+      sceneItems: sceneName => ipcRenderer.invoke("obs:scene-items", sceneName),
+      setSceneItemEnabled: (sceneName, sceneItemId, enabled) =>
+        ipcRenderer.invoke("obs:set-scene-item-enabled", sceneName, sceneItemId, enabled),
+      getInputMute: inputName => ipcRenderer.invoke("obs:get-input-mute", inputName),
+      setInputMute: (inputName, muted) => ipcRenderer.invoke("obs:set-input-mute", inputName, muted),
+      toggleInputMute: inputName => ipcRenderer.invoke("obs:toggle-input-mute", inputName),
+      getInputVolume: inputName => ipcRenderer.invoke("obs:get-input-volume", inputName),
+      setInputVolume: (inputName, volume, volumeDb = false) =>
+        ipcRenderer.invoke("obs:set-input-volume", inputName, volume, volumeDb),
+      replayStatus: () => ipcRenderer.invoke("obs:replay-status"),
+      replayStart: () => ipcRenderer.invoke("obs:replay-start"),
+      replayStop: () => ipcRenderer.invoke("obs:replay-stop"),
+      replaySave: () => ipcRenderer.invoke("obs:replay-save"),
+      transitionToScene: (sceneName, options = {}) =>
+        ipcRenderer.invoke("obs:transition-to-scene", sceneName, options),
       status: () => ipcRenderer.invoke("obs:status"),
       scenes: () => ipcRenderer.invoke("obs:scenes"),
       inputs: () => ipcRenderer.invoke("obs:inputs"),
