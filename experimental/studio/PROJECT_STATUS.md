@@ -328,3 +328,43 @@ La regla evita confundir servicio disponible con consumidor multimedia. Antes de
 - Ingeniería: **~68%**.
 - Producto usable: **~54%**.
 - Seguimiento global: **~62%**.
+## Checkpoint canónico — 2026-09-21
+
+> Este bloque es el estado vigente. Los porcentajes de secciones históricas inferiores no deben utilizarse para planificar trabajo nuevo.
+
+- HEAD auditado: `a49860c3393345759703e65090836a70f48c05bf`
+- Ingeniería: **~68%**
+- Producto usable/end-user: **~54%**
+- Seguimiento global: **~62%**
+- Producción: **NO listo**
+
+### Continuidad
+
+- `experimental/studio/BITACORA.md` es la fuente canónica de anti-repetición.
+- `experimental/studio/VTUBER_ASSET_STRATEGY.md` fija la estrategia de PNGTuber / 2D / 3D.
+- No crear implementaciones paralelas de captura, audio mixer, timing, Twitch transport, OBS service, Action Store o avatar contract.
+
+### Correcciones verificadas en este ciclo
+
+- Atajo `R`: ahora limpia retry y detiene el avatar overlay al detener una salida.
+- Cambio de ventana: ahora detiene cualquier fuente activa, incluida cámara Media Foundation.
+- Status nativo: serialización correcta del campo `output`.
+- Clasificación de red: más restrictiva para no reintentar errores locales como networking.
+- Workflows: `workflow_dispatch` corregido y los workflows también escuchan la rama de desarrollo.
+- Includes nativos Windows: `ComPtr` y utilidades wide explícitos.
+- Bitácora canónica actualizada para separar estado vigente de históricos.
+
+### Evidencia
+
+- C++20 portable con warnings como errors: PASS para timing/interleaver y smoke de retry/diagnóstico.
+- FFmpeg sintético 7.1.5: BGRA raw + PCM float32 -> H.264/AAC -> Matroska: PASS.
+- E2E Windows named-pipe -> FFmpeg: implementado, pero la ejecución sigue pendiente de una Actions observable.
+- GitHub Actions sigue terminando jobs con `steps=null` / sin logs útiles; no se marca CI como verde.
+
+### Avatar
+
+- PNGTuber: soportado hoy por Action Store/editor.
+- 2D abierto: Inochi2D/Inochi Creator, BSD-2-Clause, adapter futuro.
+- Live2D: adapter opcional; no es open source.
+- 3D: Three.js + glTF/VRM como ruta actual; VRoid Studio como authoring externo y Blender como authoring open-source.
+- No se considera completo un avatar hasta superar carga, tracking, lip-sync, composición, rendimiento y licencia.
