@@ -21,6 +21,9 @@ class CariAssetManifestTests(unittest.TestCase):
     def test_required_layer_contract(self):
         data = json.loads(module.MANIFEST.read_text(encoding="utf-8"))
         self.assertEqual(data["asset_id"], "cari-base-v1")
+        self.assertEqual(data["schema_version"], 2)
+        self.assertIn("layer_groups", data)
+        self.assertIn("parts", data)
         self.assertEqual(len(data["required_parts"]), len(set(data["required_parts"])))
         self.assertIn("nose_bandage", data["required_parts"])
         self.assertIn("ponytail", data["required_parts"])
