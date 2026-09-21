@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: `07b7639c6a37f943b68687a518b96ae3be15dcf1`.
+- Último head auditado antes de LOG-046: `a9752ca16a95a032f7e4764a2c1ad2ec32365c57`.
 
 ## Estados de trabajo
 
@@ -1909,3 +1909,48 @@ PARTIAL en asset: el arte V1 real todavía no existe; el V0 continúa como fallb
 ### Siguiente acción
 
 P0 exclusivo de VTuber: producir/revisar el arte V1 real conforme al manifest y luego probar rigging, expresiones, tracking y composición con el runtime existente.
+
+
+## LOG-046 — Cari V1 asset package: cierre del contrato y bloqueo de repetición
+
+Fecha: 2026-09-21
+Área: VTuber / Arte / Rigging / Continuidad
+Estado: IMPLEMENTADO (contrato) / ART V1 PENDIENTE
+
+### Qué quedó cerrado
+
+- Un único manifest canónico de capas en assets/cari/2d/layer-manifest.json.
+- 28 piezas obligatorias + neck como soporte.
+- Grupos de capas con orden explícito.
+- Especificaciones por pieza para hidden fill, lineart y physics.
+- Namespace de parámetros backend-neutral en parameter-manifest.json.
+- Expression sheet de 8 estados mínimos.
+- Checklist de artista/rigger.
+- Package 2D y 3D con estructura de source/layers/exports.
+- Registro de licencia.
+- Validator automático y test integrados al CI.
+
+### Evidencia
+
+- Manifest estructural validado: IDs únicos, órdenes de grupo sin colisiones y cobertura total de piezas.
+- Live2D: la documentación oficial confirma ArtMesh por capa, parámetros y deformers jerárquicos. citeturn110457search0turn110457search10
+- Inochi2D: el proyecto mantiene BSD-2-Clause y declara que la licencia del modelo producido la determina el creador/usuario. citeturn347179search0turn347179search1
+- Three.js: GLTFLoader soporta glTF 2.0 para la ruta 3D existente. citeturn110457search1
+
+### No se modifica
+
+Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%. El contrato del asset no sube el porcentaje porque todavía falta el arte real y su validación.
+
+### NO REPETIR
+
+- No crear otro manifest de capas.
+- No crear otra convención de nombres.
+- No crear otro sistema de parámetros.
+- No crear otro renderer/tracker para resolver problemas artísticos.
+- No rehacer la lista de piezas salvo cambio de canon.
+- No interpretar el manifest como arte final.
+- No declarar ART_READY por tener una especificación.
+
+### Siguiente acción
+
+Arte V1 real -> revisión visual -> rigging -> tracking -> composición -> validación.
