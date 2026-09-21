@@ -210,7 +210,7 @@ export class Avatar2DFramePlayer {
     this.frameIndex = 0;
     this.renderFrame(action, this.frameIndex, { preview: false });
 
-    if (!action.loop || action.frames.length < 2) return;
+    if (action.frames.length < 2) return;
 
     const scheduleNext = () => {
       if (this.destroyed) return;
@@ -218,8 +218,22 @@ export class Avatar2DFramePlayer {
       const current = this.#resolve();
       if (!current || current.actionId !== action.id || this.currentKey !== key) return;
 
-      this.frameIndex = (this.frameIndex + 1) % action.frames.length;
       const currentAction = this.store.get(action.id) || action;
+      if (currentAction.frames.length < 2) return;
+
+      const nextIndex = this.frameIndex + 1;
+      if (nextIndex >= currentAction.frames.length) {
+        if (!currentAction.loop) {
+          this.frameIndex = currentAction.frames.length - 1;
+          this.renderFrame(currentAction, this.frameIndex, { preview: false });
+          this.timer = null;
+          return;
+        }
+        this.frameIndex = 0;
+      } else {
+        this.frameIndex = nextIndex;
+      }
+
       this.renderFrame(currentAction, this.frameIndex, { preview: false });
       this.timer = this.timerFactory(
         scheduleNext,
