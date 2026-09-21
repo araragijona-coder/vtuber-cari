@@ -1160,3 +1160,79 @@ Mantener la política canónica: iniciar el motor de audio no debe abrir el micr
 
 ### Próxima prioridad
 **CI observable → E2E Windows named-pipe/FFmpeg**, manteniendo el compositor GPU y los timestamps explícitos como siguientes gates multimedia.
+
+## Actualización 2026-09-21 — continuidad de ingeniería / bitácora maestra
+
+### Objetivo
+Consolidar la continuidad del proyecto y evitar repetir auditorías, implementaciones o estrategias descartadas.
+
+### Estado antes
+- La bitácora canónica existente es `experimental/studio/BITACORA.md`.
+- `DEVELOPMENT_LOG.md` queda histórico y no debe usarse como fuente para nuevas tareas.
+- La auditoría vigente ya contiene los principales gates multimedia, avatar, OBS/Twitch y distribución.
+- El proyecto continúa EXPERIMENTAL / NO listo para producción.
+
+### Trabajo realizado en esta iteración
+- Confirmada la jerarquía de continuidad: repositorio/HEAD → `BITACORA.md` → `PROJECT_STATUS.md` → `AUDIT_MATRIX.md` → pruebas/CI.
+- Confirmado que no debe crearse una segunda bitácora.
+- Corregida una regresión concreta: el atajo de audio `A` podía activar el micrófono automáticamente; ahora iniciar el motor de audio no habilita el micrófono.
+- Mantiene la política de micrófono OPT-IN mediante el gate explícito `microphone.set` / Hablar.
+- Verificados los workflows: la rama de desarrollo ya dispara CI; los jobs recientes continúan terminando sin steps/logs observables.
+- Sincronizado `PROJECT_STATUS.md` con el HEAD actual.
+
+### Archivos modificados
+- `experimental/studio/native-windows/main.cpp`
+- `experimental/studio/PROJECT_STATUS.md`
+- `experimental/studio/AUDIT_MATRIX.md`
+- `experimental/studio/BITACORA.md`
+
+### Herramientas utilizadas
+- GitHub repository / branch / PR inspection
+- GitHub Actions inspection
+- auditoría estática
+- revisión de bitácora y documentación del proyecto
+
+### Pruebas realizadas
+- Revisión estática del camino de micrófono.
+- Revisión de jobs de Actions para Native Windows, CI, Character Runtime y diagnostic probe.
+- Evidencia histórica conservada: C++20 strict smoke de timing/interleaver/retry/diagnóstico y FFmpeg sintético BGRA + PCM float32 → H.264/AAC → Matroska.
+
+### Resultado
+**PARCIAL / VERIFICADO EN CÓDIGO.**
+La corrección de privacidad está integrada. La validación Windows completa sigue bloqueada por Actions.
+
+### Problemas encontrados
+- GitHub Actions sigue creando jobs con `steps=null` y sin `logs_url`, incluso para el workflow diagnóstico mínimo.
+- Esto impide atribuir los fallos de CI a código de Cari y también impide convertir el E2E Windows en evidencia de validación.
+
+### Qué NO se debe repetir
+1. No crear otra bitácora; usar `experimental/studio/BITACORA.md`.
+2. No rehacer Windows Graphics Capture.
+3. No rehacer WASAPI mixer.
+4. No rehacer MediaClock, RealtimePacer o MediaInterleaver.
+5. No crear otro FFmpeg supervisor, OBS service, Twitch transport, Action Store o avatar renderer.
+6. No hacer fallback de OBS por excepción de ejecución.
+7. No activar automáticamente el micrófono desde audio start, polling, VAD o auto-motion.
+8. No usar OpenCV para reemplazar Windows Graphics Capture sin una regresión reproducible.
+9. No tratar el compositor D3D11 actual como producción: todavía existe readback CPU.
+10. No tratar FFmpeg raw como transporte de PTS explícitos: esa limitación sigue abierta.
+
+### Estado vigente
+- HEAD: `82db3009aa8fe8b083cd1d0d2ed1d9e6c709d6ee`
+- Ingeniería: **~71%**
+- Producto usable/end-user: **~58%**
+- Global de seguimiento: **~65%**
+- Producción: **NO listo**
+
+### Pendientes
+- CI observable.
+- E2E Windows named-pipe → FFmpeg → archivo.
+- Compositor GPU sin CPU readback.
+- PTS explícitos extremo a extremo.
+- Drift correction WASAPI.
+- Validación real de cámara / Game Capture.
+- RTMP/Twitch/OBS reales.
+- Hardware / distribución / release.
+
+### SIGUIENTE PRIORIDAD
+**CI observable; cuando exista ejecución real de steps, ejecutar y conservar la evidencia del E2E Windows named-pipe → FFmpeg → archivo.**
