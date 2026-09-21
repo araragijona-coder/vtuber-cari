@@ -61,3 +61,13 @@ Esto no elimina la autenticación de Twitch. No existe una puerta trasera legít
 ## Prueba local de continuidad
 
 `test_continuity.py` prueba de forma determinista el cambio de generación de WebSocket y la auditoría de suscripciones. La simulación no sustituye una prueba real con Twitch CLI/una cuenta de canal.
+
+## Arquitectura actual
+
+El transporte TwitchIO no contiene lógica de Studio. La ruta canónica es:
+
+TwitchIO EventSub -> TwitchController -> EventBus -> AutomationEngine -> LocalCariActionHandler -> StudioActionRouter -> backend local.
+
+`TwitchController` aplica deduplicación bounded cuando existe `message_id`, controla comandos locales, voz pública y tiempos de acciones. `EventBus` es compartido con `LocalPipeline`; no crear un bus paralelo.
+
+El `StudioActionRouter` acepta acciones de chat, sonido, escena, overlay, música, stream, recording, source, volume, mute, camera, avatar, expression, tracking, command y voice. La ejecución concreta contra Native Engine u OBS todavía pertenece al siguiente gate de integración.
