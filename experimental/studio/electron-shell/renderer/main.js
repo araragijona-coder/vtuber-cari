@@ -417,9 +417,9 @@ function setAction(id, { manual = true } = {}) {
   if (manual) acting.setManualExpression(action.expression || "neutral");
   else acting.clearManualExpression();
   if (action.id === "talking") {
-    acting.setManualMouth(0.9);
+    acting.setManualMouth(0.25);
   } else if (action.id === "silent") {
-    acting.setManualMouth(0);
+    acting.setManualMouth(0, { mode: "hard" });
   } else if (!manualTalk) {
     acting.setManualMouth(null);
   }
@@ -806,6 +806,7 @@ async function setManualTalk(enabled) {
     }
   } else {
     manualTalk = false;
+    acting.setManualMouth(null);
     await session.microphoneSet(false).catch(() => undefined);
     stopSpeechMonitor();
     if (talkStartedAudio && !session.snapshot().output) {
