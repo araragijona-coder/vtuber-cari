@@ -3224,3 +3224,67 @@ Pendiente: crear el secret POLLINATIONS_KEY y lanzar Generate Cari Assets desde 
 ### Porcentaje canónico
 
 La automatización de assets no cambia por sí sola la ingeniería canónica. Mantener los porcentajes vigentes de la cabecera de esta bitácora hasta cerrar evidencia nueva.
+
+## LOG-068 — Pollinations sin API key ni GitHub Secret — 21/09/2026
+
+Área: Assets / GitHub Actions / Automatización
+
+Estado: IMPLEMENTADO / VERIFICACIÓN DE PROVIDER EXTERNO PENDIENTE
+
+### Objetivo
+
+Permitir que el workflow Generate Cari Assets se ejecute desde Actions con Run workflow sin pedir al usuario una cuenta, una POLLINATIONS_KEY, un PAT ni un repository secret propio.
+
+### Cambio realizado
+
+`scripts/generate_cari_assets.py`:
+
+- elimina cualquier lectura de POLLINATIONS_KEY;
+- elimina el header HTTP Authorization;
+- usa exclusivamente https://image.pollinations.ai/prompt/{prompt};
+- mantiene query de tamaño, seed, safe, nologo y modelo como parámetros públicos de la URL;
+- conserva retries/backoff para errores transitorios;
+- conserva normalización real del contenido recibido a PNG mediante Pillow;
+- mantiene --overwrite y seeds reproducibles.
+
+`.github/workflows/generate-assets.yml`:
+
+- elimina `${{ secrets.POLLINATIONS_KEY }}`;
+- elimina el uso explícito de `${{ secrets.GITHUB_TOKEN }}`;
+- mantiene workflow_dispatch y todos sus parámetros;
+- genera las PNG en assets/cari-gallery;
+- publica las imágenes con actions/upload-artifact;
+- ya no intenta hacer git push, porque escribir cambios en el repositorio requeriría una credencial/token; el flujo actual no necesita ningún Secret configurado por el usuario.
+
+### Evidencia externa
+
+La referencia legacy de Pollinations enumera GET https://image.pollinations.ai/prompt/{prompt} como endpoint de generación de imágenes. citeturn657120search4
+
+La documentación actual del servicio de Pollinations también indica que sus APIs actuales pueden usar autenticación/cuentas, por lo que esta implementación se fija deliberadamente al endpoint público legacy y no debe describirse como garantía permanente de disponibilidad o ausencia futura de rate limits. citeturn657120search0turn657120search6
+
+### Verificación de código
+
+- generate_cari_assets.py: sin referencia a POLLINATIONS_KEY: OK.
+- Sin header Authorization: OK.
+- generate-assets.yml: sin secrets.POLLINATIONS_KEY: OK.
+- generate-assets.yml: sin secrets.GITHUB_TOKEN: OK.
+- Workflow mantiene workflow_dispatch: OK.
+- La ejecución real contra el endpoint público no pudo verificarse desde este entorno porque la resolución DNS saliente del contenedor falló; no se registra eso como fallo del workflow.
+
+### NO REPETIR
+
+- No volver a añadir POLLINATIONS_KEY al generador.
+- No añadir un Secret de GitHub solo para generar imágenes.
+- No volver a crear un workflow paralelo de generación.
+- No intentar git push desde este workflow sin una credencial; el resultado correcto sin credenciales es el artifact visible en Actions.
+- No confundir la disponibilidad histórica del endpoint legacy con una garantía permanente del proveedor.
+- No considerar una imagen generada como canon visual de Cari sin revisión.
+
+### Pendiente
+
+- Ejecutar Actions → Generate Cari Assets → Run workflow para obtener la primera evidencia real del endpoint desde GitHub.
+- Revisar visualmente las PNG generadas antes de aprobarlas como assets de Cari.
+
+### Impacto en progreso
+
+No cambia por sí solo el porcentaje de ingeniería del Studio. Es una corrección del flujo de assets y elimina una dependencia de credenciales externas.
