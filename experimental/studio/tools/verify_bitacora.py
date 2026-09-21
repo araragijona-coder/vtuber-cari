@@ -7,11 +7,11 @@ import argparse
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-BITACORA = ROOT / "experimental" / "studio" / "BITACORA.md"
-STATUS = ROOT / "experimental" / "studio" / "PROJECT_STATUS.md"
-ENGINEERING = ROOT / "experimental" / "studio" / "ENGINEERING_LOG.md"
-CHANGELOG = ROOT / "experimental" / "studio" / "CHANGELOG_ENGINEERING.md"
+STUDIO = Path(__file__).resolve().parents[1]
+BITACORA = STUDIO / "BITACORA.md"
+STATUS = STUDIO / "PROJECT_STATUS.md"
+ENGINEERING = STUDIO / "ENGINEERING_LOG.md"
+CHANGELOG = STUDIO / "CHANGELOG_ENGINEERING.md"
 
 PERCENT_PATTERNS = {
     "engineering": re.compile(r"ingeniería(?: canónica actual|):\s*\*?\*?~?(\d+)%", re.I),
@@ -47,8 +47,8 @@ def latest_head(text: str) -> str | None:
     return match.group(1) if match else None
 
 
-def validate(root: Path = ROOT, expected_head: str | None = None) -> dict[str, object]:
-    studio = root / "experimental" / "studio"
+def validate(root: Path | None = None, expected_head: str | None = None) -> dict[str, object]:
+    studio = root / "experimental" / "studio" if root is not None else STUDIO
     bitacora = read(studio / "BITACORA.md")
     status = read(studio / "PROJECT_STATUS.md")
     engineering = read(studio / "ENGINEERING_LOG.md")
