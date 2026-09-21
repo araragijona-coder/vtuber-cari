@@ -45,7 +45,7 @@ const integrationHealth = new IntegrationHealthMonitor({ obs, twitch });
 integrationHealth.on("status", payload => publish({ type: "integration.health", ...payload }));
 integrationHealth.on("error", error => publish({ type: "integration.health.error", message: error.message }));
 
-obs.on("event", payload => publish({ type: "obs.event", ...payload }));
+obs.on("event", payload => publish({ type: "obs.event", eventType: payload.type, data: payload.data || {} }));
 obs.on("status", payload => publish({ type: "obs.status", ...payload }));
 obs.on("connection-error", error => publish({ type: "obs.error", message: error.message }));
 obs.on("connection-closed", error => publish({ type: "obs.status", connected: false, message: error?.message || "OBS disconnected" }));
