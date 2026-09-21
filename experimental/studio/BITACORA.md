@@ -658,3 +658,37 @@ NO REPETIR:
 
 Siguiente foco:
 P0 — Asset Cari V1 real y validación visual/tracking sobre el renderer existente; en paralelo, compositor GPU → frame final sin readback y CI/E2E Windows.
+
+
+---
+
+## LOG-024 — Verificación de contratos de output y estado final del ciclo
+
+Fecha: 2026-09-21
+Área: Testing / Output / Continuidad
+Estado: VERIFICADO PORTABLE / WINDOWS PENDIENTE
+
+Pruebas ejecutadas en entorno disponible:
+- OutputRetryPolicy: compilación C++20 con -Wall -Wextra -Werror y ejecución del smoke: PASS.
+- output_profile raw A/V: compilación C++20 con -Wall -Wextra -Werror; contrato BGRA + PCM float32, mapping 0:v:0/1:a:0, matroska y ausencia de use_wallclock_as_timestamps: PASS.
+- OutputFailureCategory: compilación C++20 con -Wall -Wextra -Werror y pruebas de network/encoder/mux/permission/unknown: PASS.
+
+Evidencia web relevante:
+- FFmpeg documenta que use_wallclock_as_timestamps fuerza timestamps de wallclock y advierte resultados indefinidos con B-frames; se mantiene eliminado de la ruta raw. citeturn349667search10turn349667search4
+- Windows Graphics Capture expone SystemRelativeTime como tiempo QPC del compositor, útil como referencia para sincronización multimedia. citeturn349667search0turn349667search11
+- Media Foundation Source Reader es la ruta documentada para trabajar con dispositivos de captura como webcams y seleccionar sus media types. citeturn501700search1turn501700search2
+
+Estado de continuidad:
+- Ingeniería: ~71%.
+- Producto usable/end-user: ~58%.
+- Seguimiento global: ~65%.
+- Producción: NO listo.
+
+NO REPETIR:
+- Los tres contratos anteriores ya tienen evidencia portable y no deben recompilarse/reformularse como diseño nuevo salvo regresión.
+- La ausencia de steps/logs en GitHub Actions no debe solucionarse cambiando el código a ciegas.
+- El asset V0 no debe presentarse como Cari V1.
+
+Siguiente foco ejecutivo:
+P0: asset Cari V1 real → revisión visual → tracking sobre V1 → compositor GPU → frame final → E2E Windows.
+P1 queda después de cerrar P0, empezando por PTS E2E y drift físico.
