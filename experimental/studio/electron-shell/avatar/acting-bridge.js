@@ -4,11 +4,34 @@ export class AvatarActingBridge {
   constructor() {
     this.state = normalizeAvatarState();
     this.listeners = new Set();
+    this.manualOverrides = {
+      expression: null
+    };
   }
 
   set(partial) {
-    this.state = normalizeAvatarState(this.state, partial);
+    const patch = { ...(partial || {}) };
+    if (this.manualOverrides.expression !== null) {
+      patch.expression = this.manualOverrides.expression;
+    }
+
+    this.state = normalizeAvatarState(this.state, patch);
     for (const listener of this.listeners) listener(this.state);
+  }
+
+  setManualExpression(expression = null) {
+    this.manualOverrides.expression =
+      expression === null ? null : String(expression).toLowerCase();
+    this.set({});
+    return this.manualOverrides.expression;
+  }
+
+  clearManualExpression() {
+    return this.setManualExpression(null);
+  }
+
+  manualExpression() {
+    return this.manualOverrides.expression;
   }
 
   subscribe(listener) {
