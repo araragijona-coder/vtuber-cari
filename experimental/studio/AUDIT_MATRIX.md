@@ -184,6 +184,16 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 ### Cari / Avatar
 
 ### Cari V0 — habla y reacciones
+- [x] Acción canónica `talking` en el Action Store existente.
+- [x] Gate nativo `microphone.set` para mutear/activar solo el micrófono.
+- [x] Botón manual **Hablar** activa micrófono y acción `talking`.
+- [x] Modo **Auto** retorna la expresión al tracking/VAD.
+- [x] Reacciones manuales reutilizan el Action Store.
+- [x] VAD local con captura de micrófono + HPF/LPF + RMS + histéresis.
+- [ ] Validación de VAD con ruido, música y múltiples dispositivos Windows.
+
+
+### Cari V0 — habla y reacciones
 
 - [x] Acción canónica `talking` existente en el Action Store.
 - [x] Gate nativo `microphone.set` para mutear/activar el micrófono sin detener system loopback.
