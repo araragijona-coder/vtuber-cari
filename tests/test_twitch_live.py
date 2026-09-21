@@ -33,3 +33,13 @@ class TwitchLiveTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_controller_uses_pipeline_event_bus(self) -> None:
+        from app.brain.event_bus import EventBus
+        from app.pipeline.runtime import LocalPipeline
+
+        pipeline = LocalPipeline()
+        bot = TwitchLiveBot(pipeline)
+
+        self.assertIs(bot.controller.event_bus, pipeline.event_bus)
+        self.assertTrue(hasattr(bot.controller, "continuity"))
