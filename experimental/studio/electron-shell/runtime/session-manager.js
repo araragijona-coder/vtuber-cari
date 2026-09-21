@@ -18,6 +18,7 @@ export class StudioSessionManager {
       engine: false,
       capture: false,
       audio: false,
+      microphone: false,
       output: false,
       source: "window",
       windowIndex: 0,
@@ -197,6 +198,7 @@ export class StudioSessionManager {
       type: "microphone.set",
       enabled: desired
     });
+    if (acceptedResponse(result)) this.state.microphone = desired;
     return { ...result, state: this.snapshot() };
   }
 
@@ -425,12 +427,15 @@ export class StudioSessionManager {
         break;
       case "audio.start":
         this.state.audio = true;
+        this.state.microphone = true;
         break;
       case "audio.stop":
         this.state.audio = false;
+        this.state.microphone = false;
         this.state.audioOwnedByOutput = false;
         break;
       case "microphone.set":
+        this.state.microphone = Boolean(payload.enabled);
         break;
       case "output.start":
         this.state.output = true;
