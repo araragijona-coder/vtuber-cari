@@ -485,3 +485,38 @@ kbd { border: 1px solid var(--line); padding: 2px 7px; border-radius: 5px; color
   outline: 2px solid var(--accent, currentColor);
   outline-offset: 2px;
 }
+
+
+/* Privacy invariant: raw camera pixels are never rendered in Studio.
+   The media element remains alive only as a MediaPipe input surface. */
+#camera, #tracking-camera {
+  display: none !important;
+  visibility: hidden !important;
+}
+.camera-box {
+  display: grid !important;
+  place-items: end start;
+  padding: 7px;
+}
+.camera-box::after {
+  content: "tracking only";
+  position: absolute;
+  inset: auto 8px 8px auto;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: rgb(5 7 10 / .78);
+  color: #d5d9e1;
+  font-size: 9px;
+}
+.tracking-hidden-label {
+  position: absolute;
+  inset: auto 12px 12px 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgb(5 7 10 / .82);
+  border: 1px solid #303847;
+  color: #c7cdd7;
+  font-size: 10px;
+  text-align: center;
+  letter-spacing: .06em;
+}
