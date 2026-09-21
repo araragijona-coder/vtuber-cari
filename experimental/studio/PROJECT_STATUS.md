@@ -504,6 +504,8 @@ Regla de progreso: el checkpoint vigente es Ingeniería ~71%, Producto usable ~5
 
 ## Continuidad — LOG-031
 
+- Último head canónico de continuidad: `cafcc2a0291f8ca107d3857c7bf2819108c22747`.
+
 - Se consolida BITACORA.md como memoria canónica.
 - No se reabren subsistemas ya cerrados sin regresión reproducible.
 - P0 vigente: D3D11Compositor → encoder Libav/D3D11 sin readback CPU por frame + E2E Windows observable.
