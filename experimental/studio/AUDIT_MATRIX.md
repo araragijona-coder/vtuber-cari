@@ -527,3 +527,27 @@ Antes de implementar una tarea, consultar BITACORA.md. Si el componente figura c
 - El encoder hardware debe declarar D3D11 + HW_FRAMES_CTX antes de abrirse.
 - El smoke produce archivo A/V solamente cuando el entorno Windows dispone de encoder hardware compatible; en caso contrario el smoke hace SKIP.
 - Esto sigue en estado CODE_EXISTS/TEST PREPARED, no WINDOWS_VERIFIED ni HARDWARE_VALIDATED.
+
+
+## Evidence update — LOG-035
+
+### CI
+
+- Native Windows Build: failure antes de steps/logs.
+- Actions Runner Diagnostic: failure antes de steps/logs.
+- CI: failure antes de steps/logs.
+- Character Runtime Tests: failure antes de steps/logs.
+- Estado: **INFRASTRUCTURE BLOCKED**, no CI_VERIFIED.
+
+### D3D11 / Libav
+
+- `D3D11AvFrameBridge`: CODE_EXISTS.
+- `LibavMediaOutput::start_d3d11()`: CODE_EXISTS.
+- `submit_video_d3d11()`: CODE_EXISTS.
+- Smoke de salida D3D11: preparado bajo `CARI_ENABLE_LIBAV_OUTPUT=ON`.
+- Estado: **TEST PREPARED**, Windows/hardware pendiente.
+
+### Git continuity
+
+- main y la rama experimental permanecen divergentes.
+- No se reescribe historial automáticamente.
