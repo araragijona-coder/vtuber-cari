@@ -25,6 +25,9 @@ class TwitchChatService extends EventEmitter {
     this.keepaliveTimer = null;
     this.manualDisconnect = false;
     this.messageIds = new Set();
+    this.streamOnline = false;
+    this.lastEventAt = null;
+    this.lastKeepaliveAt = null;
   }
 
   get status() {
@@ -38,7 +41,11 @@ class TwitchChatService extends EventEmitter {
         ? { id: this.user.id, login: this.user.login, display_name: this.user.display_name }
         : null,
       reconnectAttempt: this.reconnectAttempt,
-      generation: this.generation
+      generation: this.generation,
+      streamOnline: this.streamOnline,
+      lastEventAt: this.lastEventAt,
+      lastKeepaliveAt: this.lastKeepaliveAt,
+      controlOnly: true
     };
   }
 
@@ -92,11 +99,18 @@ class TwitchChatService extends EventEmitter {
     return this.status;
   }
 
+  #setStreamState(online) {
+    this.streamOnline = online === true;
+    this.lastEventAt = new Date().toISOString();
+    this.emit("status", this.status);
+  }
+
   async disconnect() {
     this.manualDisconnect = true;
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
     this.reconnectAttempt = 0;
+    this.streamOnline = false;
     if (this.socket) {
       try { this.socket.close(1000, "client disconnect"); } catch {}
       this.socket = null;
@@ -304,7 +318,9 @@ class TwitchChatService extends EventEmitter {
 
     if (type === "session_keepalive") {
       this.#refreshKeepaliveTimer();
+      this.lastKeepaliveAt = new Date().toISOString();
       this.emit("eventsub:keepalive", { generation });
+      this.emit("status", this.status());
       return;
     }
 
@@ -333,6 +349,12 @@ class TwitchChatService extends EventEmitter {
 
     const eventType = message?.payload?.subscription?.type;
     const event = message.payload.event || {};
+
+    if (eventType === "stream.online") {
+      this.#setStreamState(true);
+    } else if (eventType === "stream.offline") {
+      this.#setStreamState(false);
+    }
 
     if (eventType !== "channel.chat.message") {
       this.emit("event", {
