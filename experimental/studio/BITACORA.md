@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: `a962dbea8890acae80178defd1bfe5010c6f2734`.
+- Último head auditado: **este commit**.
 
 ## Estados de trabajo
 
@@ -539,3 +539,69 @@ NO REPETIR:
 
 Siguiente acción:
 Validar el asset V1 sobre el renderer/overlay existente y medir composición, tracking, lip-sync y rendimiento.
+
+---
+
+## LOG-022 — Reconciliación de estado + dirección artística V1 corregida
+
+**Fecha:** 2026-09-21
+**Área:** Continuidad / Auditoría / VTuber / Arte
+**Estado:** IMPLEMENTADO / DOCUMENTADO
+
+### Problema
+
+El proyecto tenía checkpoints históricos con porcentajes y estados diferentes. Además, una propuesta artística V1 había introducido prendas/accesorios que no estaban permitidos por la Biblia canónica de Cari.
+
+### Investigación
+
+- Se tomó BITACORA.md como memoria canónica.
+- Se revisaron PROJECT_STATUS.md y AUDIT_MATRIX.md antes de tocar componentes existentes.
+- Se contrastó la superficie visual pública de VTubers maduras para extraer propiedades de diseño útiles: silueta reconocible, paleta consistente, rostro legible, detalles de firma y preparación para múltiples ángulos/expresiones.
+- Se usó como referencia pública la hoja de personaje de Ironmouse y la ficha oficial de Usada Pekora; no se copian sus diseños, modelos, logos, texturas ni accesorios distintivos.
+
+### Acción realizada
+
+- Se reconcilió el checkpoint operativo con la bitácora canónica: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Se corrigió VTUBER_CARI_ART_DIRECTION.md para que la dirección V1 respete las restricciones de CARI_CHARACTER_BIBLE.md.
+- Se creó ART_QUALITY_GATE.md con estados de evidencia y criterios medibles.
+- Se mejoró el fallback procedural Three.js sin crear otro renderer:
+  - MeshToonMaterial;
+  - lighting de key/fill/rim;
+  - color management/tone mapping;
+  - ojos con iris marrón y pupilas blancas;
+  - highlights;
+  - mechones frontales;
+  - lectura atlética;
+  - piezas nombradas para rigging;
+  - eliminación de binding duplicado.
+- Se mantienen separados arte, contrato de actuación y renderer.
+
+### Evidencia
+
+- three-avatar.js contiene la mejora estilística y conserva Three.js/GLTFLoader.
+- ART_QUALITY_GATE.md define BASE_ART_V1 como un gate de calidad, no como una ilustración automática.
+- La dirección V1 ya no contradice el canon visual confirmado.
+- El asset V1 final aún no está producido ni validado en hardware.
+
+### Resultado
+
+**PARTIAL:** la calidad del fallback sube, pero no se declara equivalente a un modelo VTuber comercial terminado.
+
+### Riesgos restantes
+
+- Falta arte V1 final con calidad de producción.
+- Falta revisión visual real de thumbnail, plano medio y cuerpo completo.
+- Falta tracking, expresiones y lip-sync sobre el asset V1.
+- Falta compositor final sin readback CPU y validación Windows/hardware.
+
+### NO REPETIR
+
+- No reconstruir MediaPipe, FaceTrackingBridge, Three.js renderer, WGC, WASAPI o FFmpeg supervisor sin regresión demostrada.
+- No crear un segundo renderer para resolver el problema artístico.
+- No agregar accesorios/prendas que contradigan CARI_CHARACTER_BIBLE.md.
+- No tratar el fallback procedural como arte final.
+- No usar referencias de VTubers existentes como assets del proyecto.
+
+### Siguiente foco
+
+Crear/evaluar un asset V1 real que cumpla ART_QUALITY_GATE.md y conectarlo al renderer/rigging existente; en paralelo, mantener como P0 el compositor GPU y la evidencia CI/E2E Windows.
