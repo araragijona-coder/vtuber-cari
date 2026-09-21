@@ -294,3 +294,37 @@ Este bloque supersede los porcentajes históricos anteriores de este archivo.
 **Global de seguimiento: ~61%.**
 
 Este porcentaje sigue siendo una estimación de cierre de requisitos, no una medida de líneas de código ni una afirmación de producción.
+
+## Continuidad viva — 2026-09-21 — presencia de integraciones y control de recursos
+
+- [x] Detector local de proceso OBS (obs64.exe/obs32.exe/obs.exe) con cache corta para distinguir OBS abierto de OBS controlable.
+- [x] ObsService expone processDetected, processName y controlReady separados de connected.
+- [x] Monitor de salud compartido OBS/Twitch publica un snapshot cada 2 s sin abrir conexiones automáticamente.
+- [x] Twitch expone authorized, connected, streamOnline, lastEventAt y lastKeepaliveAt; la conexión se trata como plano de control/eventos, no como consumidor de vídeo.
+- [x] Política de recursos centralizada: conexión a OBS o Twitch no activa captura/encoder por sí sola.
+- [x] Configurar voz sin audio no arranca el engine nativo.
+- [x] Output que creó captura/audio los libera al detenerse; captura/audio existentes por decisión del usuario no se destruyen automáticamente.
+- [x] Worker nativo de captura no hace readback/composición si no existe un output nativo activo; se evita procesar frames hacia un sink inexistente.
+- [x] Estado de presencia e integración accesible desde preload/renderer.
+- [x] Tests de regresión de ciclo de vida y política de recursos.
+- [ ] Detección de OBS no sustituye la conexión WS: OBS puede estar abierto y requerir credenciales/servidor no habilitado.
+- [ ] Twitch no tiene un concepto de programa abierto equivalente: el estado canónico es autorización/conexión y estado del canal.
+
+### Regla de consumo de recursos
+
+| Condición | Captura nativa pesada | Encoder nativo | Render avatar | Control OBS/Twitch |
+|---|---|---|---|---|
+| Nada conectado / ningún output | NO | NO | Solo preview local visible | NO |
+| OBS abierto, no conectado | NO | NO | Solo preview local visible | OBS detectado, no controlable |
+| OBS conectado, sin stream/record/vcam | NO | NO | Solo preview local visible | SÍ |
+| OBS con salida activa | Cari native media NO salvo demanda propia | NO | SÍ si avatar es sink | SÍ |
+| Twitch conectado | NO | NO | NO por Twitch | SÍ |
+| Cari local record/RTMP activo | SÍ | SÍ | SÍ si overlay/preview | Opcional |
+
+La regla evita confundir servicio disponible con consumidor multimedia. Antes de añadir un nuevo proceso, renderer o loop debe existir un sink explícito en esta tabla.
+
+### Porcentaje canónico actualizado
+
+- Ingeniería: **~68%**.
+- Producto usable: **~54%**.
+- Seguimiento global: **~62%**.
