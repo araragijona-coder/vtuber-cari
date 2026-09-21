@@ -476,13 +476,16 @@ function addChat(message, outbound = false) {
   twitch.log.appendChild(row);
   twitch.log.scrollTop = twitch.log.scrollHeight;
 
-  const bridge = actionRouter.handleEvent({
-    type: "twitch.chat",
-    text: message.text
-  });
-  const routedAction = bridge?.action || null;
-  if (routedAction) {
-    addEvent("2D action ← chat: " + routedAction);
+  let routedAction = null;
+  if (!outbound) {
+    const bridge = actionRouter.handleEvent({
+      type: "twitch.chat",
+      text: message.text
+    });
+    routedAction = bridge?.action || null;
+    if (routedAction) {
+      addEvent("2D action ← chat: " + routedAction);
+    }
   }
 
   if (!outbound && twitchRead && "speechSynthesis" in window) {
@@ -1117,7 +1120,14 @@ function trackingLoop(timestamp) {
 
   if (speechAutoEnabled) {
     const voice = speech.sample(timestamp);
-    actionRouter.setVoiceActivity({ speaking: voice.speaking, active: true });
+    const voiceBridge = actionRouter.handleEvent({
+      type: "voice.activity",
+      speaking: voice.speaking,
+      active: true
+    });
+    if (voiceBridge?.action) {
+      addEvent("2D action ← voice: " + voiceBridge.action);
+    }
     const drivenLevel = voice.speaking ? voice.level : 0;
     if (drivenLevel > 0) {
       lipSync.update(drivenLevel);
