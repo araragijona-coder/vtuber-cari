@@ -2951,3 +2951,63 @@ Prueba de doble clic: PENDIENTE.
 3. Ejecutarlo por doble clic.
 4. Verificar que conecta `NativeEngine` y abre el shell.
 5. Guardar el resultado en esta misma bitácora.
+
+## LOG-063 — Primera validación positiva del ejecutable portable en Windows — 21/09/2026
+
+Área: Windows / Distribución / Arranque / Hardware
+
+Estado: VALIDADO EN HARDWARE — ARRANQUE DEL EJECUTABLE
+
+### Evidencia aportada por el usuario
+
+El usuario confirmó que pudo:
+- descargar el paquete portable;
+- abrir correctamente `CariStudio.exe`;
+- comprobar que la aplicación arranca en su PC sin presentar un cierre inmediato.
+
+### Qué queda demostrado
+
+Este resultado valida únicamente el gate de **arranque del ejecutable portable en una máquina Windows real**.
+
+No demuestra todavía:
+- captura sostenida de pantalla/ventana;
+- captura de cámara;
+- audio WASAPI sostenido;
+- composición avatar → frame final;
+- FFmpeg + named pipes durante una sesión prolongada;
+- grabación correcta;
+- RTMP/reconexión;
+- rendimiento de tracking;
+- hardware encoder;
+- estabilidad de varias horas.
+
+### NO REPETIR
+
+- No volver a diagnosticar el arranque básico de `CariStudio.exe` como si estuviera roto mientras esta evidencia siga vigente.
+- No volver a pedir instalación de GitHub CLI para continuar la validación del producto.
+- No usar la ausencia de `gh` como bloqueo: Git normal y los controles de GitHub disponibles son suficientes para este flujo.
+- No rehacer WGC/WASAPI/FFmpeg/tracking por el simple hecho de que el ejecutable abre.
+
+### Próximo gate obligatorio
+
+Pasar de **ARRANCA** a **FUNCIONA EN HARDWARE** mediante una secuencia controlada:
+1. captura de pantalla;
+2. captura de ventana;
+3. audio de micrófono;
+4. audio del sistema;
+5. grabación corta;
+6. reproducción e inspección del archivo;
+7. tracking facial;
+8. avatar/expresiones;
+9. prueba prolongada;
+10. RTMP real, solo después de cerrar grabación local.
+
+### Resultado de porcentaje
+
+Esta evidencia no incrementa por sí sola el porcentaje global de ingeniería. Sí cambia el estado de validación del arranque desde pendiente a validado en hardware.
+
+Porcentajes canónicos al registrar este log:
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
