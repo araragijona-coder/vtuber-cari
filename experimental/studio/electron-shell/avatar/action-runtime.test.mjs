@@ -31,6 +31,9 @@ const actions = [
   { id: "talking", label: "Hablar", expression: "neutral", durationMs: 100, loop: true, frames: [
     { id: "t0", name: "mouth-open", dataUrl: "data:image/png;base64,e" },
     { id: "t1", name: "mouth-closed", dataUrl: "data:image/png;base64,f" }
+  ]},
+  { id: "silent", label: "Callar", expression: "neutral", durationMs: 100, loop: false, frames: [
+    { id: "s0", name: "mouth-closed", dataUrl: "data:image/png;base64,g" }
   ]}
 ];
 
