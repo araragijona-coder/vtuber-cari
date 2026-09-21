@@ -427,7 +427,8 @@ export class StudioSessionManager {
         break;
       case "audio.start":
         this.state.audio = true;
-        this.state.microphone = true;
+        // Audio engine can run for system audio/output while microphone remains OFF.
+        this.state.microphone = false;
         break;
       case "audio.stop":
         this.state.audio = false;
