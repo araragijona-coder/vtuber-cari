@@ -53,25 +53,80 @@ function normalizeAction(input, index = 0) {
 }
 
 export class AvatarActionStore {
-  constructor(storage = window.localStorage) {
+  constructor(
+    storage = typeof window !== "undefined" ? window.localStorage : null,
+    persistence = typeof window !== "undefined" ? window.cari?.avatarActions : null
+  ) {
     this.storage = storage;
-    this.actions = this.#load();
+    this.persistence = persistence;
+    this.persistenceError = null;
+    this.persistQueue = Promise.resolve();
+    this.actions = this.#loadLocal();
+    this.ready = this.#hydrate();
   }
 
-  #load() {
+  #loadLocal() {
+    if (!this.storage?.getItem) {
+      return DEFAULT_ACTIONS.map((item, index) => normalizeAction(item, index));
+    }
+
     try {
       const parsed = JSON.parse(this.storage.getItem(STORAGE_KEY) || "null");
       if (Array.isArray(parsed) && parsed.length) {
         return parsed.map((item, index) => normalizeAction(item, index));
       }
     } catch {
-      // Corrupt local state is replaced by deterministic defaults.
+      this.persistenceError = "local action storage was corrupt and was reset";
     }
     return DEFAULT_ACTIONS.map((item, index) => normalizeAction(item, index));
   }
 
+  async #hydrate() {
+    if (!this.persistence?.load) return this.list();
+
+    try {
+      const payload = await this.persistence.load();
+      if (payload?.version === 1 && Array.isArray(payload.actions) && payload.actions.length) {
+        this.actions = payload.actions.map((item, index) => normalizeAction(item, index));
+        return this.list();
+      }
+
+      if (this.actions.length) {
+        await this.#persist();
+      }
+    } catch (error) {
+      this.persistenceError = String(error?.message || error || "disk persistence unavailable");
+    }
+    return this.list();
+  }
+
   #persist() {
-    this.storage.setItem(STORAGE_KEY, JSON.stringify(this.actions));
+    const serialized = JSON.stringify(this.actions);
+    if (this.storage?.setItem) {
+      try {
+        this.storage.setItem(STORAGE_KEY, serialized);
+      } catch (error) {
+        this.persistenceError = String(error?.message || error || "local storage write failed");
+      }
+    }
+
+    if (!this.persistence?.save) return Promise.resolve();
+
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      actions: this.list()
+    };
+    this.persistQueue = this.persistQueue
+      .then(() => this.persistence.save(payload))
+      .catch(error => {
+        this.persistenceError = String(error?.message || error || "disk persistence failed");
+      });
+    return this.persistQueue;
+  }
+
+  async flush() {
+    return this.persistQueue;
   }
 
   list() {
