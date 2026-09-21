@@ -171,6 +171,25 @@ test("stop-only commands never start an offline engine", async () => {
   assert.deepEqual(native.calls, []);
 });
 
+test("microphone gate starts audio only when enabling", async () => {
+  const native = makeNative({
+    "audio.start": { ok: true, message: "audio=started" },
+    "microphone.set": { ok: true, message: "microphone=on" }
+  });
+  const session = new StudioSessionManager(native);
+
+  const result = await session.microphoneSet(true);
+  assert.equal(result.ok, true);
+  assert.equal(session.snapshot().audio, true);
+  assert.equal(session.snapshot().microphone, true);
+
+  const micCall = native.calls.find(call =>
+    call[0] === "send" && call[1].type === "microphone.set"
+  );
+  assert.ok(micCall);
+  assert.equal(micCall[1].enabled, true);
+});
+
 test("voice configuration does not spawn an idle native engine", async () => {
   const native = makeNative();
   const session = new StudioSessionManager(native);
