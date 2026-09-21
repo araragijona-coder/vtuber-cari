@@ -268,6 +268,69 @@ function obsListItems(target, values, buttonLabel, callback) {
   }
 }
 
+async function renderObsInputControls(inputs) {
+  const container = $("#obs-inputs");
+  if (!container) return;
+  container.innerHTML = "";
+
+  for (const input of inputs || []) {
+    const name = String(input.inputName || input.name || "").trim();
+    if (!name) continue;
+
+    const row = document.createElement("div");
+    row.className = "obs-item";
+    const label = document.createElement("span");
+    label.textContent = name;
+
+    const controls = document.createElement("div");
+    controls.className = "toolbar";
+
+    const mute = document.createElement("button");
+    mute.textContent = "Mute";
+    mute.onclick = async () => {
+      const current = await window.cari.native.obs.getInputMute(name);
+      const next = !Boolean(current?.inputMuted);
+      await command(window.cari.native.obs.setInputMute(name, next));
+      mute.textContent = next ? "Unmute" : "Mute";
+    };
+
+    const volume = document.createElement("input");
+    volume.type = "range";
+    volume.min = "0";
+    volume.max = "2";
+    volume.step = "0.01";
+    volume.value = "1";
+    volume.title = "Volumen OBS";
+
+    try {
+      const currentMute = await window.cari.native.obs.getInputMute(name);
+      mute.textContent = currentMute?.inputMuted ? "Unmute" : "Mute";
+      const currentVolume = await window.cari.native.obs.getInputVolume(name);
+      const multiplier = Number(currentVolume?.inputVolumeMul);
+      if (Number.isFinite(multiplier)) volume.value = String(Math.max(0, Math.min(2, multiplier)));
+    } catch {
+      mute.disabled = true;
+      volume.disabled = true;
+    }
+
+    let volumeTimer = null;
+    volume.oninput = () => {
+      if (volumeTimer) clearTimeout(volumeTimer);
+      volumeTimer = setTimeout(() => {
+        command(window.cari.native.obs.setInputVolume(name, Number(volume.value), false));
+      }, 120);
+    };
+
+    controls.append(mute, volume);
+    row.append(label, controls);
+    container.appendChild(row);
+  }
+
+  if (!container.children.length) {
+    container.innerHTML = '<div class="small muted">Sin inputs de audio/controlables.</div>';
+  }
+}
+
 async function refreshObsCenter() {
   const pill = $("#obs-status-pill");
   const current = await window.cari.native.obs.status().catch(() => ({ connected: false }));
@@ -293,7 +356,7 @@ async function refreshObsCenter() {
       $("#obs-current-scene").textContent = "Program: " + currentScene;
 
       const inputs = inputsData?.inputs || [];
-      obsListItems("#obs-inputs", inputs, "Ver", value => showStatus("OBS input: " + (value.inputName || value.name || "source")));
+      await renderObsInputControls(inputs);
 
       const stats = statsData || {};
       $("#obs-stats").textContent = JSON.stringify({
@@ -1088,7 +1151,12 @@ window.cari.native.onEvent(event => {
       VirtualcamStateChanged: data.outputActive ? "OBS virtual camera: ON" : "OBS virtual camera: OFF",
       CurrentProgramSceneChanged: "OBS program: " + (data.sceneName || "—"),
       CurrentPreviewSceneChanged: "OBS preview: " + (data.sceneName || "—"),
-      StudioModeStateChanged: data.studioModeEnabled ? "OBS Studio Mode: ON" : "OBS Studio Mode: OFF"
+      StudioModeStateChanged: data.studioModeEnabled ? "OBS Studio Mode: ON" : "OBS Studio Mode: OFF",
+      ReplayBufferStateChanged: data.outputActive ? "OBS Replay Buffer: ON" : "OBS Replay Buffer: OFF",
+      OBSReconnectScheduled: "OBS reconnect scheduled: attempt " + (data.attempt || "—"),
+      OBSReconnectSucceeded: "OBS reconnect succeeded",
+      InputMuteStateChanged: "OBS mute changed: " + (data.inputName || "input"),
+      InputVolumeChanged: "OBS volume changed: " + (data.inputName || "input")
     };
     addEvent(labelMap[type] || "OBS event: " + type);
     if (type === "CurrentProgramSceneChanged" && data.sceneName) {
@@ -1308,6 +1376,9 @@ $("#obs-disconnect").onclick = () => command(window.cari.native.obs.disconnect()
 $("#obs-record-start").onclick = () => command(window.cari.native.obs.startRecord());
 $("#obs-record-stop").onclick = () => command(window.cari.native.obs.stopRecord());
 $("#obs-vcam-start").onclick = () => command(window.cari.native.obs.startVirtualCamera());
+$("#obs-replay-start").onclick = () => command(window.cari.native.obs.replayStart());
+$("#obs-replay-save").onclick = () => command(window.cari.native.obs.replaySave());
+$("#obs-replay-stop").onclick = () => command(window.cari.native.obs.replayStop());
 $("#obs-vcam-stop").onclick = () => command(window.cari.native.obs.stopVirtualCamera());
 $("#obs-refresh-scenes").onclick = refreshObsCenter;
 $("#obs-refresh-inputs").onclick = refreshObsCenter;
