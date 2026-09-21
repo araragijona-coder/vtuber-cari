@@ -146,3 +146,11 @@ A demo image is visual reference only.
 - Native Windows workflow ejecuta smoke de retry y diagnóstico.
 - Progreso canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - Siguiente foco: evidencia Windows de D3D11 → Libav/encoder y E2E observable.
+
+## 2026-09-21 — LOG-040
+- HEAD auditado: eab7897a5c971a64acc9c31cdf5c4557ffaf4b8f.
+- Native Windows, CI, Character Runtime y Runner Diagnostic fallan sin steps/logs observables.
+- Se consolida el bloqueo como infraestructura; no se atribuye regresión de código.
+- Bitácora maestra actualizada para impedir repetir correcciones funcionales sin evidencia.
+- Progreso canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Siguiente foco: D3D11 → Libav/encoder, compositor final y validación OBS/Windows real.
