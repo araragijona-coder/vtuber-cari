@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: `eab7897a5c971a64acc9c31cdf5c4557ffaf4b8f`.
+- Último head auditado: `313baa3be82ece0e6cbe2d2699bfad8bf9fe170b`.
 
 ## Estados de trabajo
 
@@ -1560,3 +1560,77 @@ No se modifica código funcional para perseguir estos failures mientras no exist
 ### Siguiente foco
 
 Continuar con el backlog P0 real: validación Windows del camino D3D11 → Libav/encoder, compositor final del avatar y validación OBS real/sesión larga. La corrección de CI se retoma únicamente cuando aparezca evidencia observable del runner.
+
+---
+
+## LOG-041 — Continuidad ejecutable y auditoría de CI
+
+Fecha: 2026-09-21
+Área: Continuidad / Testing / CI
+Estado: IMPLEMENTADO / TEST DEFINIDO / CI INFRASTRUCTURE BLOCKED
+
+### Problema
+
+La memoria canónica ya contenía reglas de anti-repetición y porcentajes, pero esas reglas necesitaban una comprobación ejecutable para evitar divergencias entre BITACORA, PROJECT_STATUS, ENGINEERING_LOG y CHANGELOG.
+
+Durante la auditoría también apareció una inconsistencia histórica: algunos registros apuntaban al validador dentro de experimental/studio/tools, mientras que una modificación reciente había intentado crear otro validator en la raíz.
+
+### Investigación
+
+- La ruta canónica existente es experimental/studio/tools/verify_bitacora.py.
+- GitHub Actions admite múltiples eventos de workflow mediante el bloque on y documenta workflow_dispatch como disparador manual. La ejecución manual requiere que el workflow exista en la rama por defecto; por eso el push sobre la rama de desarrollo continúa siendo la evidencia automática principal. citeturn107109search0
+- La observabilidad de Actions sigue siendo insuficiente para validar compilación porque los jobs recientes terminan con steps/logs no observables.
+
+### Decisión
+
+Mantener un único validador real en experimental/studio/tools/verify_bitacora.py.
+
+tools/verify_bitacora.py queda solamente como API/entrada de compatibilidad para conservar referencias existentes, sin duplicar la lógica.
+
+### Implementación
+
+- El validator canónico comprueba:
+  - existencia de la memoria requerida;
+  - sección # NO REPETIR;
+  - existencia de entradas LOG-*;
+  - IDs sin duplicados y en orden monotónico;
+  - porcentajes canónicos iguales entre BITACORA y PROJECT_STATUS;
+  - secciones mínimas de cada LOG;
+  - declaración de continuidad en ENGINEERING_LOG;
+  - presencia del último LOG en ENGINEERING_LOG;
+  - regla de no usar cantidad de commits como métrica de progreso;
+  - comparación opcional del HEAD documentado cuando se proporciona --head.
+- Se añadió cobertura unittest para casos válidos, IDs duplicados, deriva de porcentajes y deriva de HEAD.
+- CI ejecuta el validator canónico y la suite unittest de continuidad.
+- Se eliminó el test duplicado de raíz.
+- No se añade un segundo sistema de memoria.
+
+### Resultado
+
+PARTIAL.
+
+La gobernanza de continuidad ya es código ejecutable y tiene tests definidos. Falta la ejecución observable de esos tests en GitHub Actions porque los runners continúan fallando antes de registrar steps/logs.
+
+### Evidencia actual
+
+- HEAD auditado antes de esta actualización documental: 313baa3be82ece0e6cbe2d2699bfad8bf9fe170b.
+- Native Windows Build, CI, Character Runtime Tests y Actions Runner Diagnostic del mismo ciclo siguen terminando failure con steps=null/logs no disponibles.
+- No se aumenta el porcentaje por la existencia del validator: Ingeniería 71%, Producto usable 58%, Seguimiento 65%.
+
+### Riesgos
+
+- Si alguien ejecuta el root wrapper desde una distribución parcial sin la carpeta experimental completa, la compatibilidad fallará; eso es preferible a mantener dos implementaciones.
+- El validator detecta deriva documental, no puede demostrar por sí mismo que el código multimedia funciona en Windows.
+- El HEAD documentado representa el último estado auditado y no debe confundirse con la identidad del commit que modifica la propia bitácora.
+
+### NO REPETIR
+
+- No crear otro validador de continuidad.
+- No volver a crear otra BITACORA paralela.
+- No convertir el validator en sustituto de tests funcionales.
+- No modificar WGC, WASAPI, timing, tracker, renderer, FFmpeg o D3D11 por un failure de Actions sin steps/logs.
+- No usar cantidad de commits para aumentar el porcentaje.
+
+### Siguiente acción
+
+P0 continúa sin cambiar: conseguir evidencia Windows observable para D3D11 → Libav/encoder y el E2E final; en paralelo, validar OBS real y sesión prolongada. La continuidad ya tiene un mecanismo ejecutable, por lo que no debe volver a tratarse como tarea de diseño.
