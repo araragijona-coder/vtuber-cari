@@ -1,3 +1,86 @@
+## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — CARI V1 RUNTIME + CONTINUIDAD
+
+> Este bloque tiene precedencia sobre todos los checkpoints históricos inferiores.
+
+- Rama: `fix/native-windows-foundation`
+- PR: #2
+- HEAD auditado: `d401f9e5ec95bdadd5845b7c36f430e288052272`
+- Estado: **EXPERIMENTAL / NO listo para producción**
+- Ingeniería: **~71%**
+- Producto usable/end-user: **~58%**
+- Seguimiento global: **~65%**
+
+### Bloque Cari V1 cerrado
+- **IMPLEMENTADO:** avatar procedural de Cari sobre el `ThreeAvatarRenderer` existente.
+- **IMPLEMENTADO:** expresiones canónicas `neutral`, `happy`, `angry`, `afraid`, `embarrassed`, `sad`, `exhausted`, `confused`.
+- **IMPLEMENTADO:** acciones `talking` y `silent`.
+- **IMPLEMENTADO:** botón **Hablar**: arranca audio/micrófono cuando corresponde, activa el gate nativo y selecciona `talking`.
+- **IMPLEMENTADO:** botón **Callar**: desactiva el micrófono y fuerza boca cerrada cuando se usa la acción `silent`.
+- **IMPLEMENTADO:** botón **Auto**: libera el override manual y devuelve boca/expresión a tracking + VAD.
+- **IMPLEMENTADO:** botones manuales de reacción reutilizando el Action Store existente.
+- **IMPLEMENTADO:** VAD local con RMS, HPF/LPF, histéresis y hold.
+- **IMPLEMENTADO:** lip-sync local separado del Face Landmarker.
+- **IMPLEMENTADO:** composición de boca: el modo `talking` deja una apertura mínima y el audio puede superarla; `silent` es hard mute.
+- **IMPLEMENTADO:** tracking facial con pose de cabeza, blink, expresión y gaze.
+- **IMPLEMENTADO:** smoothing de head/gaze.
+- **IMPLEMENTADO:** movimiento libre/idle de baja amplitud.
+- **IMPLEMENTADO:** actividad `keyboard`, `controller`, `phone`.
+- **IMPLEMENTADO:** teclado y Gamepad pueden marcar actividad automáticamente; móvil queda como acción manual.
+- **IMPLEMENTADO:** cámara usada como input de tracking, no como imagen de preview/output.
+- **IMPLEMENTADO:** `#camera` y `#tracking-camera` ocultos en UI; la cara del usuario no debe aparecer en Preview/Tracking.
+- **IMPLEMENTADO:** nuevo smoke de runtime para composición rostro+voz, actividad y VAD.
+
+### Definición correcta de “analiza el habla”
+- Cari puede detectar **actividad de habla probable** usando el micrófono local.
+- El micrófono determina energía/actividad; el Face Landmarker determina movimiento facial.
+- La cámara por sí sola no entiende audio ni contenido hablado.
+- OBS WebSocket tampoco convierte automáticamente audio en texto o intención.
+- No se añade STT/IA/cloud como dependencia obligatoria del runtime.
+
+### Infraestructura reforzada y NO repetir
+- `MediaClock`, `RealtimePacer`, `MediaInterleaver`: IMPLEMENTADOS + smoke.
+- `OutputRetryPolicy`: IMPLEMENTADO.
+- Clasificación de fallos output: IMPLEMENTADA.
+- FFmpeg stderr acotado + exit code: IMPLEMENTADO.
+- Backpressure de handshake: IMPLEMENTADO.
+- Presupuesto de 8 eventos A/V por polling: IMPLEMENTADO.
+- Invariantes para impedir cambiar captura/audio mientras hay output: IMPLEMENTADAS.
+- No crear otro scheduler, otro FFmpeg supervisor, otro Action Store, otro renderer ni otro router de Twitch/OBS.
+
+### Privacidad — regla de oro
+**La cámara es una fuente de datos de tracking, no una fuente visual para emisión.**
+Cualquier futura función que muestre webcam debe ser opt-in y estar fuera del canvas de salida de Cari.
+
+### Evidencia de este ciclo
+- JavaScript: smoke de `AvatarActingBridge`, `AvatarActivityController` y `SpeechActivityDetector`: PASS.
+- `node --check` de módulos ESM relevantes: PASS en el flujo previo.
+- C++20 portable de timing/retry/diagnóstico: PASS en el flujo previo.
+- FFmpeg sintético BGRA + PCM float32 → H.264/AAC → Matroska: PASS en Linux.
+- **No** equivale a validación Windows/hardware/RTMP sostenido.
+
+### Bloqueadores actuales
+1. CI sigue terminando con `steps=null`/`logs_url=null`; no marcar verde.
+2. E2E Windows sostenido con named pipes + FFmpeg.
+3. Compositor D3D11 sin CPU readback conectado de forma definitiva al encoder.
+4. PTS explícitos extremo a extremo con Libav en Windows.
+5. Drift correction basada en relojes físicos WASAPI.
+6. Cámara Media Foundation y Game Capture en hardware real.
+7. Validación real OBS/Twitch/RTMP.
+8. Modelo artístico final / VRM / Live2D según licencias.
+9. Instalador/release/firma y redistribución legal de FFmpeg.
+
+### Próxima iteración obligatoria
+Trabajar sobre los bloqueadores anteriores. No volver a crear:
+- otro avatar;
+- otro sistema de expresiones;
+- otro botón Hablar;
+- otro VAD;
+- otro compositor;
+- otro supervisor FFmpeg;
+- otra bitácora.
+
+---
+
 ## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — HABLA + REACCIONES + CARI V0
 
 - Este bloque supersede checkpoints históricos anteriores.
