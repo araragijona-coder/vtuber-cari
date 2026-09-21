@@ -58,7 +58,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Verificación automática del manifest y firmas PNG en `electron-shell/test/avatar-assets.test.mjs`.
 - [x] Activación de acciones desde UI y comandos básicos del chat.
 - [x] Action Store puede precargar el arte base empaquetado de Cari sin crear un segundo sistema de assets.
-- [x] Bitácora `BITACORA_CARI_STUDIO.md` con estados y lista NO REPETIR.
+- [x] Bitácora `BITACORA.md` con estados y lista NO REPETIR.
 
 ## Gates
 
@@ -184,6 +184,9 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 ### Cari / Avatar
 
 ### Cari V0 — habla y reacciones
+- [x] Runtime activity controller: idle/movimiento libre, keyboard, controller y phone.
+- [x] Cámara de tracking oculta en la interfaz; webcam no entra como frame visual de output.
+- [x] Manual Hablar/Callar y Auto conectados al gate de micrófono y lip-sync.
 - [x] Acción canónica `talking` en el Action Store existente.
 - [x] Gate nativo `microphone.set` para mutear/activar solo el micrófono.
 - [x] Botón manual **Hablar** activa micrófono y acción `talking`.
@@ -308,7 +311,7 @@ Cada pendiente debe indicar qué evidencia falta antes de pasar a `[x]`.
 
 ## Bitácora y continuidad
 
-La fuente canónica de continuidad y anti-repetición es `BITACORA.md`; `BITACORA_CARI_STUDIO.md` queda congelada como histórico. Consultarla antes de reabrir una tarea, prueba o componente.
+La fuente canónica de continuidad y anti-repetición es `BITACORA.md`; `BITACORA.md` queda congelada como histórico. Consultarla antes de reabrir una tarea, prueba o componente.
 ## Evidencia adicional — 2026-09-20
 - P1 dejó de ser solo diagnóstico: el callback nativo puede componer captura + placeholder GPU y enviar el frame final BGRA al MediaGraphController.
 - El readback CPU se mantiene explícitamente como limitación de rendimiento y no se marca como producción.
