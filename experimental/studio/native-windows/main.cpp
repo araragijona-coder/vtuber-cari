@@ -621,17 +621,25 @@ bool StartOutput(
         return false;
     }
 
+    g_last_output_profile = output_profile;
+    g_last_output_target = resolved_target;
+
     if (!g_media_graph.start(
             profile,
             48000,
             2,
             configured_ffmpeg_executable())) {
+        const retry = streaming && ScheduleOutputRetryIfEligible();
         if (started_audio) g_audio_bridge.stop();
         if (started_capture) g_capture.stop();
+        if (retry) {
+            RefreshStatus(hwnd);
+        }
         return false;
     }
 
-    g_last_output_profile = output_profile;
+    ResetOutputRetry();
+
     g_last_output_target = resolved_target;
     g_output_started_at = cari::studio::core::MediaClock::monotonic_now();
     if (!StartAvatarOverlayCapture()) {
