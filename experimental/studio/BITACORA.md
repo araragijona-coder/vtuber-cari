@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Generador de galería: Hugging Face Inference Providers configurable por modelo/proveedor.
+- Generador de galería: Pollinations público vía HTTP GET, 1024x1024.
 - Último head auditado: `e4b1ddb704a3471c6b495541f866116d1628bc05`.
 
 ## Estados de trabajo
@@ -3353,3 +3353,95 @@ Los modelos específicos de anime deben comprobarse por compatibilidad real con 
 
 Este cambio no incrementa el porcentaje de la ruta multimedia de Cari Studio por sí solo. Es automatización de assets y facilita probar arte/estilos sin meter Stable Diffusion en el runtime de streaming.
 
+
+
+---
+
+## LOG-069 — Migración definitiva de generación Cari a Pollinations público
+
+**Fecha:** 2026-09-21  
+**Área:** Assets / GitHub Actions / Automatización  
+**Estado:** IMPLEMENTADO / VERIFICADO POR INSPECCIÓN DE REPOSITORIO / EJECUCIÓN EXTERNA PENDIENTE
+
+### Objetivo
+
+Eliminar por completo la dependencia operativa de Hugging Face y de `HF_TOKEN`, manteniendo la generación de la galería de Cari como tarea externa al runtime de streaming.
+
+### Cambios realizados
+
+`scripts/generate_cari_assets.py`:
+
+- reemplazado el cliente autenticado por HTTP GET directo con la librería estándar de Python;
+- endpoint exacto:
+  `https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true`;
+- prompt correctamente escapado para URL;
+- resultado descargado a archivo temporal;
+- validación real mediante Pillow;
+- normalización a PNG 1024x1024;
+- retries y backoff conservados;
+- salida por defecto en `assets/cari-gallery/`;
+- eliminado el manejo de modelos, providers, tokens y credenciales;
+- eliminado el commit/push desde el script para que la herramienta local no necesite credenciales.
+
+`scripts/requirements-assets.txt`:
+
+- queda únicamente Pillow;
+- eliminada `huggingface_hub`.
+
+`scripts/test_generate_cari_assets.py`:
+
+- valida la URL pública;
+- valida que la URL no añada token/api_key/model/provider;
+- simula un GET y comprueba normalización PNG;
+- rechaza respuestas que no sean imágenes;
+- mantiene prueba de dry-run sin autenticación.
+
+`.github/workflows/generate-cari-assets.yml`:
+
+- añade `schedule` semanal;
+- mantiene `workflow_dispatch`;
+- usa `assets/cari-gallery/` como destino;
+- la generación programada usa `--overwrite`;
+- configura `permissions: contents: write`;
+- `actions/checkout` conserva las credenciales del job;
+- el commit/push se ejecuta en el workflow y usa exclusivamente el `GITHUB_TOKEN` incorporado por Actions;
+- el push apunta a `fix/native-windows-foundation`.
+
+### Documentación
+
+Se actualizaron:
+
+- `README.md`;
+- `assets/cari-gallery/README.md`;
+- esta bitácora.
+
+Las instrucciones anteriores de Hugging Face quedan históricas y no son operativas. El LOG-023 y el LOG-068 deben considerarse **SUPERSEDED** para la generación actual de assets.
+
+### No repetir
+
+- No volver a instalar `huggingface_hub` para la galería.
+- No volver a añadir `HF_TOKEN`.
+- No crear otro workflow de generación.
+- No mover la salida a otra carpeta.
+- No poner el commit/push dentro del generador local.
+- No confundir `GITHUB_TOKEN` de Actions con un secret de usuario: el workflow usa el token integrado del job.
+- No borrar los logs históricos: sirven para saber qué ruta fue descartada y evitar reabrirla sin una nueva razón.
+
+### Verificación actual
+
+- referencia a Hugging Face en el generador actual: eliminada;
+- `HF_TOKEN` en requirements/workflow actual: eliminado;
+- endpoint Pollinations público: presente;
+- salida `assets/cari-gallery/`: configurada;
+- commit/push automático: configurado;
+- schedule semanal: configurado;
+- `workflow_dispatch`: configurado;
+- generación real contra el proveedor externo: pendiente de la primera ejecución de Actions.
+
+### Regla de scheduling
+
+GitHub Actions ejecuta los workflows programados desde la rama por defecto del repositorio. Este archivo está en `fix/native-windows-foundation` y el job se encarga de checkout/push sobre esa rama; la programación quedará activa cuando esta versión del workflow esté disponible en la rama por defecto.
+
+### Impacto
+
+No cambia el porcentaje de ingeniería del motor de streaming. Es una mejora del flujo de assets y elimina una dependencia de autenticación externa para esa tarea.
