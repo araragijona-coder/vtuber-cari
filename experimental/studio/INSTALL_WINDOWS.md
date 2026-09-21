@@ -16,6 +16,7 @@ Tras un setup exitoso sin argumentos, el script abre **Cari Studio automáticame
 
     .\experimental\studio\tools\windows\Cari-Launch.bat
 
+En un checkout que todavía no tenga el ejecutable nativo, `Cari-Launch.bat` tampoco requiere una variable manual: `run-local.ps1` intenta generar automáticamente `experimental\studio\native-windows\build-launch\Release\cari-studio-native.exe` con CMake/Visual Studio. Si CMake o el toolchain C++ no están instalados, el launcher informa exactamente qué dependencia falta.
 El script hace, en orden:
 
 1. auditoría inicial del PC;
