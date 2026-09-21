@@ -1073,3 +1073,62 @@ P0 único:
 ### Regla de continuidad
 
 El siguiente arquitecto debe leer LOG-031 y continuar desde ese backlog. No debe volver a auditar desde cero los componentes listados en NO REPETIR salvo que exista una regresión reproducible.
+
+---
+
+## LOG-032 — Puente D3D11 -> FFmpeg hardware y gate de encoder
+
+Fecha: 2026-09-21
+Área: P0 GPU / Encoder / Auditoría / Continuidad
+Estado: CODE_EXISTS / TEST PREPARADO / WINDOWS PENDIENTE
+
+### Problema
+
+El compositor D3D11 ya produce una textura BGRA final, pero el camino actual hacia FFmpeg todavía realiza readback CPU. Esto limita rendimiento y puede introducir stalls de GPU/CPU.
+
+### Investigación
+
+FFmpeg documenta que AVCodecContext::hw_frames_ctx describe las frames hardware suministradas al encoder y que el contexto debe corresponder al formato y dispositivo usado. 
+FFmpeg documenta AVD3D11FrameDescriptor con la textura en AVFrame.data[0] y el índice de subrecurso en AVFrame.data[1]; la referencia de la textura es gestionada por AVBufferRef. 
+FFmpeg expone AVCodecHWConfig y avcodec_get_hw_config() para consultar si un encoder admite un dispositivo/formato hardware concreto. 
+El código actual de NVENC declara soporte para AV_PIX_FMT_D3D11 mediante HW_FRAMES_CTX; AMF también expone D3D11 en sus formatos compatibles. 
+
+### Acción realizada
+
+- Se creó d3d11_av_frame_bridge.h/.cpp.
+- El bridge inicializa un contexto D3D11VA de FFmpeg sobre el ID3D11Device de Cari.
+- Envuelve una textura D3D11 en un AVFrame con AV_PIX_FMT_D3D11.
+- Conserva PTS explícito.
+- Mantiene una referencia COM de la textura mediante AVBufferRef.
+- No realiza readback CPU.
+- Se añadió smoke de bridge D3D11.
+- Se añadió smoke de encoder hardware que busca h264_nvenc o h264_amf, comprueba AVCodecHWConfig, abre el encoder con hw_frames_ctx, envía frames D3D11 y exige al menos un paquete con PTS.
+- Los smoke están bajo CARI_ENABLE_LIBAV_OUTPUT=ON porque requieren headers/librerías de desarrollo FFmpeg.
+
+### Evidencia
+
+- CODE_EXISTS: PASS.
+- Diseño respaldado por API oficial de FFmpeg: PASS.
+- Smoke compilable en un entorno Windows con FFmpeg dev kit: PENDIENTE.
+- Encoder hardware real: PENDIENTE.
+- Windows/hardware objetivo: PENDIENTE.
+
+### Riesgos
+
+- El adapter D3D11 debe coincidir con el GPU que use el encoder; el smoke puede saltar si el dispositivo/driver/build no es compatible.
+- La vida de la textura debe cubrir cualquier uso diferido del encoder.
+- Device-loss/recreate requiere reconstruir el D3D11VA device/frame context.
+- No se debe interpretar AV_PIX_FMT_D3D11 como garantía de disponibilidad de NVENC/AMF.
+- Aún no se reemplaza el camino FFmpeg raw de producción.
+
+### NO REPETIR
+
+- No crear un segundo D3D11 compositor.
+- No crear un segundo bridge D3D11/AVFrame.
+- No sustituir Libav por otra librería hasta obtener evidencia de fallo de esta ruta.
+- No declarar zero-copy de producción: la implementación elimina CPU readback, pero puede requerir sincronización/copy GPU según el diseño final.
+- No declarar encoder hardware funcionando sin un smoke Windows que produzca paquetes.
+
+### Siguiente acción
+
+Integrar este bridge en LibavMediaOutput para el camino de video hardware y validar primero la apertura/compatibilidad del encoder, después la producción real de paquetes y finalmente el muxer/RTMP con PTS.
