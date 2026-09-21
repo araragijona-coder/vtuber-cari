@@ -174,3 +174,10 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Validator y test del asset quedan integrados al flujo CI.
 - Porcentaje canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - Siguiente foco: arte V1 real → rigging → tracking.
+
+
+## 2026-09-21 — LOG-047 Blender pipeline
+- Se añadió pipeline FBX → VRM 1.0 con auditoría, weight cleanup, Humanoid, MToon, metadata, export y reimport audit.
+- Se añadió test contractual y gate de sintaxis/configuración.
+- El asset final no está incluido; el arte y rigging real continúan pendientes.
+- Porcentaje canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
