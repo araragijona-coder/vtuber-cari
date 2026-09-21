@@ -345,6 +345,15 @@ class StudioRuntimeBindings:
         )
 
     def dispatch_payload(self, payload: dict[str, Any]) -> bool:
+        if not isinstance(payload, dict):
+            self.metrics.invalid += 1
+            self.event_bus.publish(
+                RuntimeEvent(
+                    "studio_action_invalid",
+                    {"error": "studio action payload must be an object"},
+                )
+            )
+            return False
         try:
             action = StudioAction(
                 str(payload.get("kind", "")),
@@ -362,24 +371,28 @@ class StudioRuntimeBindings:
         return self.dispatch(action).ok
 
     def snapshot(self) -> dict[str, Any]:
+        metrics = {
+            "dispatched": self.metrics.dispatched,
+            "handled": self.metrics.handled,
+            "errors": self.metrics.errors,
+            "invalid": self.metrics.invalid,
+            "unavailable": self.metrics.unavailable,
+            "unsupported": self.metrics.unsupported,
+            "fallback_count": self.metrics.fallback_count,
+            "native_handled": self.metrics.native_handled,
+            "obs_handled": self.metrics.obs_handled,
+            "forwarded": self.metrics.forwarded,
+            "last_action": self.metrics.last_action,
+            "last_backend": self.metrics.last_backend,
+            "last_error": self.metrics.last_error,
+        }
+        # Keep the original flat keys for compatibility while exposing the
+        # richer backend/runtime view for new callers.
         return {
             "preference": self.preference.value,
             "backends": [backend.snapshot() for backend in self.backends],
-            "metrics": {
-                "dispatched": self.metrics.dispatched,
-                "handled": self.metrics.handled,
-                "errors": self.metrics.errors,
-                "invalid": self.metrics.invalid,
-                "unavailable": self.metrics.unavailable,
-                "unsupported": self.metrics.unsupported,
-                "fallback_count": self.metrics.fallback_count,
-                "native_handled": self.metrics.native_handled,
-                "obs_handled": self.metrics.obs_handled,
-                "forwarded": self.metrics.forwarded,
-                "last_action": self.metrics.last_action,
-                "last_backend": self.metrics.last_backend,
-                "last_error": self.metrics.last_error,
-            },
+            **metrics,
+            "metrics": metrics,
         }
 
     def _routing_order(self) -> tuple[StudioBackend, ...]:
