@@ -1,3 +1,11 @@
+## CHECKPOINT VIGENTE — 2026-09-21 — CARI V1 RUNTIME
+
+- HEAD auditado: `d401f9e5ec95bdadd5845b7c36f430e288052272`
+- Ingeniería: ~71% · Producto usable: ~58% · Seguimiento: ~65%
+- Avatar Cari V0/V1 procedural, Talk/Auto, VAD/lip-sync, reacciones manuales, idle y actividades keyboard/controller/phone: IMPLEMENTADOS.
+- Cámara de tracking: visualmente oculta; el frame del usuario no forma parte del output visual.
+- Próximos gates: CI observable, E2E Windows, GPU compositor sin readback, PTS E2E, drift, hardware.
+
 ## CHECKPOINT VIGENTE — 2026-09-21
 
 | Área | Estado | Próximo gate |
