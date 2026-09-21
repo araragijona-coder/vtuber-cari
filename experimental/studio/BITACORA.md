@@ -3445,3 +3445,59 @@ GitHub Actions ejecuta los workflows programados desde la rama por defecto del r
 ### Impacto
 
 No cambia el porcentaje de ingeniería del motor de streaming. Es una mejora del flujo de assets y elimina una dependencia de autenticación externa para esa tarea.
+
+
+---
+
+## LOG-070 — Estado definitivo del generador de galería público
+
+**Fecha:** 2026-09-21  
+**Área:** Continuidad / Assets / Automatización  
+**Estado:** IMPLEMENTADO / DOCUMENTADO
+
+### HEAD
+
+`5261a3592561782665ba4ad342ada6d1b19029b3`
+
+### Cambio confirmado
+
+La ruta operativa de generación de la galería de Cari queda definitivamente:
+
+`Python urllib HTTP GET → image.pollinations.ai → validación Pillow → assets/cari-gallery/`
+
+El commit/push queda fuera del generador y dentro de GitHub Actions:
+
+`checkout con credencial integrada → git add assets/cari-gallery → git commit → git push fix/native-windows-foundation`
+
+### Dependencias
+
+`scripts/requirements-assets.txt` contiene únicamente Pillow. No se necesita SDK de proveedor externo ni token de generación.
+
+### Automatización
+
+`.github/workflows/generate-cari-assets.yml` contiene:
+
+- `schedule` semanal: domingo 03:00 UTC;
+- `workflow_dispatch`;
+- `permissions: contents: write`;
+- salida en `assets/cari-gallery/`;
+- `--overwrite` en ejecuciones programadas;
+- commit/push automático con el `GITHUB_TOKEN` integrado de Actions.
+
+### No repetir
+
+- No volver a implementar Hugging Face para este flujo.
+- No volver a introducir `HF_TOKEN`.
+- No crear un segundo generador o segundo workflow.
+- No mover la galería a otra carpeta.
+- No añadir credenciales de Pollinations.
+- No poner git commit/push dentro del generador local.
+- Los logs históricos de rutas anteriores se conservan únicamente para auditoría; no son instrucciones operativas.
+
+### Estado de verificación
+
+- Archivos operativos revisados: sin referencias actuales a Hugging Face/HF_TOKEN.
+- URL pública Pollinations y query 1024x1024/nologo verificadas por test de construcción.
+- GET y normalización PNG cubiertos por test con respuesta simulada.
+- Workflow de commit/push y schedule revisado en la rama.
+- Ejecución real del proveedor externo: pendiente de Actions/manual para obtener evidencia de red real.
