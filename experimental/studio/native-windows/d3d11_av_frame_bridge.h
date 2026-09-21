@@ -52,6 +52,9 @@ public:
     [[nodiscard]] AVBufferRef* frames_ref() const noexcept {
         return frames_ref_;
     }
+    [[nodiscard]] ID3D11DeviceContext* device_context() const noexcept {
+        return context_.Get();
+    }
 
 private:
     ID3D11Device* device_ = nullptr;
