@@ -1687,3 +1687,83 @@ Los jobs consultados devuelven steps=null y no ofrecen logs observables. CI cont
 
 ### Siguiente acción
 P0: obtener evidencia Windows observable del camino D3D11 → Libav/encoder y del E2E final; después validar sesión prolongada, PTS E2E y drift físico.
+
+## LOG-043 — D3D11 compositor -> Libav runtime sin readback CPU por frame
+
+Fecha: 2026-09-21
+Área: GPU compositor / encoder / PTS / output
+Estado: CODE_EXISTS / TEST_PREPARED / WINDOWS_PENDING
+
+### Problema
+
+El compositor D3D11 ya generaba una textura GPU final, pero el runtime principal seguía entregándola a la frontera raw FFmpeg mediante readback CPU. Entregar directamente la textura reusable al encoder también podía permitir aliasing mientras el compositor reutilizaba ese recurso.
+
+### Investigación
+
+Se revisó la API oficial de FFmpeg para AVHWFramesContext, av_hwframe_get_buffer(), AV_PIX_FMT_D3D11 y el contexto D3D11VA. La ruta elegida obtiene superficies desde el pool hardware de FFmpeg y copia el resultado compuesto GPU->GPU.
+
+### Decisión
+
+Usar:
+
+    D3D11Compositor output_texture
+        -> av_hwframe_get_buffer
+        -> textura propiedad del pool FFmpeg
+        -> ID3D11DeviceContext::CopyResource
+        -> AVFrame AV_PIX_FMT_D3D11 con PTS explícito
+        -> encoder H.264 D3D11
+        -> libavformat
+
+El backend raw FFmpeg CLI continúa como default.
+
+### Implementación
+
+- Añadido LibavRuntimeBackend como frontera separada.
+- CARI_ENABLE_LIBAV_OUTPUT=ON habilita el backend en el ejecutable.
+- CARI_OUTPUT_BACKEND=libav-d3d11 lo selecciona en runtime.
+- Selección de encoder restringida a h264_nvenc/h264_amf con D3D11 + HW_FRAMES_CTX.
+- Arranque diferido hasta disponer del dispositivo D3D11 del frame real.
+- D3D11AvFrameBridge::copy_texture_to_hwframe() obtiene una superficie del pool y hace copia GPU->GPU.
+- LibavMediaOutput::submit_video_d3d11() usa el frame del pool.
+- El camino libav-d3d11 evita copy_output_to_cpu() para el frame final.
+- Añadidos estado, encoder y contadores Libav a status.
+- Añadida LIBAV_D3D11_RUNTIME.md.
+
+### Pruebas
+
+- Timing/interleaver y retry/diagnóstico: PASS en evidencia previa.
+- FFmpeg sintético BGRA + PCM -> H.264/AAC -> Matroska: PASS en Linux.
+- Smokes D3D11/Libav: registrados cuando CARI_ENABLE_LIBAV_OUTPUT=ON.
+- Windows/hardware: PENDIENTE.
+
+### Resultado
+
+PARTIAL.
+
+El riesgo de aliasing de la textura reusable queda tratado en código mediante frames propios del pool y CopyResource. Todavía no existe evidencia WINDOWS_VERIFIED ni HARDWARE_VALIDATED.
+
+### Riesgos restantes
+
+- encoder D3D11 real disponible en el FFmpeg de Windows;
+- driver/GPU y creación del hardware-frame pool;
+- PTS y paquetes codificados sostenidos;
+- shutdown/flush del encoder hardware;
+- A/V sync y drift físico;
+- overlay avatar todavía capturado por CPU;
+- RTMP real no validado.
+
+### Siguiente acción
+
+P0: ejecutar libav-d3d11 en Windows observable, comprobar frames/PTS/paquetes, archivo final, ausencia de readback CPU del frame final y estabilidad sostenida.
+
+### NO REPETIR
+
+- No volver a entregar directamente la textura reusable del compositor a Libav.
+- No crear otro bridge D3D11->AVFrame.
+- No crear otro compositor GPU.
+- No rediseñar WGC, WASAPI, MediaClock/RealtimePacer/Interleaver, MediaPipe, Three.js o FFmpeg supervisor sin regresión.
+- Mantener raw FFmpeg CLI como fallback separado.
+
+### HEAD auditado antes de este registro
+
+`a29b3d13b36dceb667e06127ce50362e2f1b732e`
