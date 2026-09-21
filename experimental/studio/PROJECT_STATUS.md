@@ -561,6 +561,9 @@ El escenario de uso con OBS como streamer principal está documentado en OBS_USA
 
 
 ## Arranque Windows
+- [x] `run-local.ps1` descubre CMake en PATH, rutas estándar y Visual Studio antes de declarar toolchain ausente.
+- [x] `run-local.ps1` puede ejecutar `Cari-Setup.ps1 -SkipBuild -SkipNpm` automáticamente cuando CMake falta.
+- [x] `-NoSetup` permite desactivar el bootstrap automático para entornos controlados.
 
 - [x] Target CMake `cari-studio-launcher`.
 - [x] `CariStudioLauncher.exe` se genera automáticamente en la raíz del checkout durante Release.
