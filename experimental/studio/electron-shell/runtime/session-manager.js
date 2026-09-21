@@ -467,6 +467,8 @@ export class StudioSessionManager {
     if (values.capture === "stopped") this.state.capture = false;
     if (values.output === "running") this.state.output = true;
     if (values.output === "stopped") this.state.output = false;
+    if (values.microphone === "on") this.state.microphone = true;
+    if (values.microphone === "off") this.state.microphone = false;
     if (values.voice_effect === "anime-bright" || values.voice_effect === "off") {
       this.state.voice = values.voice_effect;
     }
