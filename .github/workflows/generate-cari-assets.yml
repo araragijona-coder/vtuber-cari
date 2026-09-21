@@ -1,0 +1,74 @@
+name: Generate Cari Gallery
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to receive generated assets"
+        required: true
+        default: "fix/native-windows-foundation"
+      model:
+        description: "Hugging Face model id"
+        required: true
+        default: "stabilityai/stable-diffusion-xl-base-1.0"
+      provider:
+        description: "Inference Provider or auto"
+        required: true
+        default: "auto"
+      style:
+        description: "Art direction preset"
+        required: true
+        default: "anime-classic"
+        type: choice
+        options:
+          - anime-classic
+          - cel-shading
+          - ecchi
+          - soft-illustration
+          - none
+      overwrite:
+        description: "Regenerate existing PNG files"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install asset generator dependencies
+        run: python -m pip install -r scripts/requirements-assets.txt
+
+      - name: Validate generator
+        run: python -m unittest scripts.test_generate_cari_assets -v
+
+      - name: Generate and commit Cari gallery
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          ARGS=(
+            --model "${{ inputs.model }}"
+            --provider "${{ inputs.provider }}"
+            --style "${{ inputs.style }}"
+            --git-commit
+            --git-push
+            --git-branch "${{ inputs.branch }}"
+          )
+          if [ "${{ inputs.overwrite }}" = "true" ]; then
+            ARGS+=(--overwrite)
+          fi
+          python scripts/generate_cari_assets.py "${ARGS[@]}"
