@@ -519,3 +519,16 @@ El escenario de uso con OBS como streamer principal está documentado en OBS_USA
 - Los jobs afectados reportan `steps=null` y `logs_url=null`.
 - Estado: **CI bloqueada por infraestructura**, no CI_VERIFIED.
 - Regla: no modificar componentes funcionales para estos failures sin evidencia de step/log.
+
+## Checkpoint vigente — 2026-09-21 — LOG-043
+
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
+- Producción: **NO listo**.
+- P0 GPU: **CODE_EXISTS / TEST_PREPARED / WINDOWS_PENDING**.
+- El backend opt-in `libav-d3d11` une el compositor D3D11 con Libav mediante frames propios de `AVHWFramesContext` y copia GPU->GPU.
+- El backend raw FFmpeg CLI sigue siendo el default.
+- El frame final del camino `libav-d3d11` no pasa por `copy_output_to_cpu()`.
+- P0 siguiente: evidencia Windows observable del encoder D3D11 real, PTS, mux y estabilidad sostenida.
+- No repetir la arquitectura de WGC/WASAPI/timing/tracker/renderer/compositor/FFmpeg supervisor; solo reabrir ante regresión o nueva evidencia.
