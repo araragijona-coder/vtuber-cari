@@ -10,6 +10,7 @@
 - Estado del PR: abierto, draft.
 - Regla: ningún componente pasa a producción solo porque compile.
 - Estimación actual de ingeniería: **60%**.
+- Último head auditado: `faa522a9cf59f3e1e0561ea2d357954400daec0d`.
 
 ## Estados de trabajo
 
@@ -351,3 +352,18 @@ Se añadió:
 
 La referencia operacional pasa a ser este archivo junto con `PROJECT_STATUS.md`, `AUDIT_MATRIX.md` y `VTUBER_USABILITY_SPEC.md`.
 Antes de modificar una pieza existente hay que comprobar primero si ya aparece como IMPLEMENTADA/VERIFICADA.
+
+
+### 16 — Evidencia CI de la iteración actual
+
+**Estado:** BLOQUEADO POR RUNNER
+
+Los workflows de desarrollo y un workflow de diagnóstico de runners alcanzan el estado `completed/failure`, pero GitHub devuelve:
+```
+steps = null
+logs_url = null
+```
+
+Esto también ocurre en el job `probe` del workflow de diagnóstico. La bitácora debe conservar esta evidencia para evitar intentar corregir líneas de código sin un step/log que las implique.
+
+**NO REPETIR:** no asumir que un `failure` de Actions es una regresión del código mientras el job no tenga steps/logs ejecutados.
