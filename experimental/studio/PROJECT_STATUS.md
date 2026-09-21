@@ -1,6 +1,6 @@
 ## CHECKPOINT VIGENTE — 2026-09-21
 
-- HEAD canónico de esta rama: `ea08fb0cddc525754f3e38314b03d39b06770e68`.
+- HEAD canónico de esta rama: `82db3009aa8fe8b083cd1d0d2ed1d9e6c709d6ee`.
 - Ingeniería: **~71%**.
 - Producto usable/end-user: **~58%**.
 - Seguimiento global: **~65%**.
