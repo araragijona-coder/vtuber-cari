@@ -66,8 +66,12 @@ if(Test-Path $vswhere){
 }else{Add-Check $checks 'Toolchain' 'Visual Studio C++ workload' 'FAIL' 'vswhere.exe not found.'}
 
 $root=(Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
-$native=Join-Path $root 'experimental\studio\native-windows\build\Release\cari-studio-native.exe'
-if(Test-Path $native){Add-Check $checks 'Cari Studio' 'Native executable' 'PASS' $native}
+$nativeCandidates=@(
+    (Join-Path $root 'experimental\studio\native-windows\build\Release\cari-studio-native.exe'),
+    (Join-Path $root 'experimental\studio\native-windows\build-validation\Release\cari-studio-native.exe')
+)
+$native=$nativeCandidates|Where-Object{Test-Path $_}|Select-Object -First 1
+if($native){Add-Check $checks 'Cari Studio' 'Native executable' 'PASS' $native}
 else{Add-Check $checks 'Cari Studio' 'Native executable' 'WARN' 'Not built yet.'}
 $shell=Join-Path $root 'experimental\studio\electron-shell'
 if(Test-Path (Join-Path $shell 'package.json')){Add-Check $checks 'Cari Studio' 'Electron manifest' 'PASS' 'package.json detected.'}
