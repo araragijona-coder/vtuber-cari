@@ -9,6 +9,7 @@ import { LocalSpeechController } from "../avatar/local-speech-controller.js";
 import { AvatarActionStore } from "../avatar/action-store.js";
 import { AVATAR_EXPRESSIONS } from "../avatar/avatar-contract.js";
 import { AvatarActivityController } from "../avatar/activity-motion.js";
+import { ChibiWorldController } from "../avatar/chibi-world.js";
 import { STUDIO_MENU, CAPABILITIES } from "./menu-config.js";
 
 const $ = selector => document.querySelector(selector);
@@ -61,6 +62,8 @@ const speech = new LocalSpeechController();
 const actionStore = new AvatarActionStore();
 const activity = new AvatarActivityController();
 activity.install(window);
+const chibiWorld = new ChibiWorldController($("#chibi-map"), { count: 3, seed: 42 });
+chibiWorld.start();
 const bundledCariAssets = await window.cari.assets.cariExpressions().catch(() => ({}));
 await actionStore.seedBundledFrames(bundledCariAssets);
 
@@ -840,6 +843,8 @@ function setManualExpression(expression) {
 }
 
 async function startCamera() {
+  activity.setAutomatic("camera");
+  acting.setActivityState(activity.current());
   if (cameraStream) return;
   cameraStream = await navigator.mediaDevices.getUserMedia({
     video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 60 } },
@@ -881,8 +886,22 @@ function trackingLoop(timestamp) {
 
   activity.pollGamepads(timestamp);
   const activityState = activity.current(timestamp);
-  if (acting.state.activity !== activityState) {
-    acting.setActivity(activityState);
+  if (JSON.stringify({
+    mode: acting.state.mode,
+    activity: acting.state.activity,
+    movementLevel: acting.state.movementLevel,
+    arms: acting.state.arms,
+    object: acting.state.object,
+    pose: acting.state.pose
+  }) !== JSON.stringify({
+    mode: activityState.mode,
+    activity: activityState.activity,
+    movementLevel: activityState.movementLevel,
+    arms: activityState.arms,
+    object: activityState.object,
+    pose: activityState.pose
+  })) {
+    acting.setActivityState(activityState);
   }
 
   if (faceTracker && cameraStream && ui.camera.readyState >= 2) {
@@ -1251,17 +1270,14 @@ $("#talk-auto").onclick = async () => {
     talkStartedAudio = false;
     acting.clearManualExpression();
     lipSync.reset();
-    if (!session.snapshot().microphone) {
-      const microphone = await session.microphoneSet(true);
-      if (microphone?.ok === false) {
-        throw new Error(microphone.error || "No se pudo activar el micrófono");
-      }
-    }
-    await startSpeechMonitor();
-    updateTalkUi(speech.sample());
-    showStatus("Cari vuelve a reacción automática");
+    stopSpeechMonitor();
+    await session.microphoneSet(false).catch(() => undefined);
+    activity.setAutomatic("motion");
+    acting.setActivityState(activity.current());
+    updateTalkUi({ level: 0, speaking: false, active: false });
+    showStatus("Auto movimiento activado · micrófono OFF");
   } catch (error) {
-    showStatus("Auto: " + error.message);
+    showStatus("Auto movimiento: " + error.message);
   }
 };
 document.querySelectorAll("[data-manual-expression]").forEach(button => {
@@ -1274,12 +1290,63 @@ document.querySelectorAll("[data-manual-expression]").forEach(button => {
 
 document.querySelectorAll("[data-avatar-activity]").forEach(button => {
   button.onclick = () => {
-    const selected = activity.setManual(button.dataset.avatarActivity);
-    acting.setActivity(selected || "idle");
+    const value = button.dataset.avatarActivity;
+    const state = value === "auto"
+      ? activity.setAutomatic("motion")
+      : activity.setManualActivity(value);
+    acting.setActivityState(state);
     showStatus(
-      selected
-        ? "Movimiento manual: " + selected
-        : "Movimiento automático: idle/teclado/mando"
+      value === "auto"
+        ? "Movimiento automático: teclado/mando"
+        : "Movimiento manual: " + state.activity
+    );
+  };
+});
+
+document.querySelectorAll("[data-auto-mode]").forEach(button => {
+  button.onclick = () => {
+    const state = activity.setAutomatic(button.dataset.autoMode);
+    acting.setActivityState(state);
+    showStatus(
+      button.dataset.autoMode === "camera"
+        ? "Modo cámara: acciones faciales sin abrir micrófono"
+        : "Modo automático de movimiento sin IA"
+    );
+  };
+});
+
+document.querySelectorAll("[data-movement-level]").forEach(button => {
+  button.onclick = () => {
+    const state = activity.setMovementLevel(button.dataset.movementLevel);
+    acting.setActivityState(state);
+    showStatus("Movimiento: " + state.movementLevel);
+  };
+});
+
+document.querySelectorAll("[data-avatar-object]").forEach(button => {
+  button.onclick = () => {
+    const state = activity.setObject(button.dataset.avatarObject);
+    acting.setActivityState(state);
+    showStatus("Objeto: " + state.object);
+  };
+});
+
+document.querySelectorAll("[data-full-mode]").forEach(button => {
+  button.onclick = () => {
+    const id = button.dataset.fullMode;
+    const state = id === "stop"
+      ? activity.stopFullMode()
+      : activity.startFullMode(id);
+    if (!state) {
+      showStatus("Modo completo no encontrado");
+      return;
+    }
+    acting.setManualExpression(state.expression || "neutral");
+    acting.setActivityState(state);
+    showStatus(
+      id === "stop"
+        ? "Modo completo detenido"
+        : "Modo completo: " + (state.fullModeId || id)
     );
   };
 });
