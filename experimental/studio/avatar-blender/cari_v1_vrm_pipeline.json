@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "asset_id": "cari-base-v1",
+  "import": {
+    "use_anim": true,
+    "use_image_search": true,
+    "automatic_bone_orientation": false,
+    "ignore_leaf_bones": true,
+    "global_scale": 1,
+    "axis_forward": "-Z",
+    "axis_up": "Y"
+  },
+  "cleanup": {
+    "apply_mesh_rotation": true,
+    "apply_mesh_scale": true,
+    "repair_zero_weight_vertices": true,
+    "normalize_weights": true,
+    "max_deform_influences": 4
+  },
+  "shape_keys": {
+    "enabled": true,
+    "create_placeholders": true,
+    "target_mesh_name_tokens": [
+      "head",
+      "face",
+      "body"
+    ],
+    "names": [
+      "cari_mouth_open",
+      "cari_blink_l",
+      "cari_blink_r",
+      "cari_happy",
+      "cari_angry",
+      "cari_sad",
+      "cari_surprised",
+      "cari_embarrassed",
+      "cari_sleepy",
+      "cari_talking"
+    ]
+  },
+  "materials": {
+    "enable_mtoon": true,
+    "toony_factor": 0.85,
+    "outline_mode": "none",
+    "outline_width": 0
+  },
+  "humanoid": {
+    "required": {
+      "hips": [
+        "hips",
+        "pelvis"
+      ],
+      "spine": [
+        "spine",
+        "spine1",
+        "spine_01"
+      ],
+      "head": [
+        "head"
+      ],
+      "left_upper_arm": [
+        "leftUpperArm",
+        "upper_arm.L",
+        "upperarm_l",
+        "arm_l"
+      ],
+      "right_upper_arm": [
+        "rightUpperArm",
+        "upper_arm.R",
+        "upperarm_r",
+        "arm_r"
+      ],
+      "left_lower_arm": [
+        "leftLowerArm",
+        "lower_arm.L",
+        "lowerarm_l",
+        "forearm_l"
+      ],
+      "right_lower_arm": [
+        "rightLowerArm",
+        "lower_arm.R",
+        "lowerarm_r",
+        "forearm_r"
+      ],
+      "left_hand": [
+        "leftHand",
+        "hand.L",
+        "hand_l"
+      ],
+      "right_hand": [
+        "rightHand",
+        "hand.R",
+        "hand_r"
+      ],
+      "left_upper_leg": [
+        "leftUpperLeg",
+        "thigh.L",
+        "thigh_l"
+      ],
+      "right_upper_leg": [
+        "rightUpperLeg",
+        "thigh.R",
+        "thigh_r"
+      ],
+      "left_lower_leg": [
+        "leftLowerLeg",
+        "calf.L",
+        "calf_l"
+      ],
+      "right_lower_leg": [
+        "rightLowerLeg",
+        "calf.R",
+        "calf_r"
+      ],
+      "left_foot": [
+        "leftFoot",
+        "foot.L",
+        "foot_l"
+      ],
+      "right_foot": [
+        "rightFoot",
+        "foot.R",
+        "foot_r"
+      ]
+    },
+    "optional": {
+      "chest": [
+        "chest",
+        "Chest"
+      ],
+      "neck": [
+        "neck",
+        "Neck"
+      ],
+      "left_shoulder": [
+        "leftShoulder",
+        "shoulder.L",
+        "shoulder_l"
+      ],
+      "right_shoulder": [
+        "rightShoulder",
+        "shoulder.R",
+        "shoulder_r"
+      ],
+      "left_toes": [
+        "leftToes",
+        "toes.L",
+        "toes_l"
+      ],
+      "right_toes": [
+        "rightToes",
+        "toes.R",
+        "toes_r"
+      ]
+    }
+  },
+  "vrm": {
+    "name": "Cari V1",
+    "version": "1.0.0",
+    "authors": [
+      "Cari Studio"
+    ],
+    "copyright_information": "",
+    "contact_information": "",
+    "references": [],
+    "third_party_licenses": "See assets/cari/ASSET_LICENSE.md.",
+    "avatar_permission": "onlyAuthor",
+    "commercial_usage": "personalProfit",
+    "credit_notation": "required",
+    "allow_redistribution": false,
+    "modification": "allowModification",
+    "other_license_url": "",
+    "allow_excessively_violent_usage": false,
+    "allow_excessively_sexual_usage": false,
+    "allow_political_or_religious_usage": false,
+    "allow_antisocial_or_hate_usage": false
+  },
+  "pipeline": {
+    "clean_scene_first": true,
+    "save_staging_blend": true,
+    "staging_blend_name": "cari_vrm_pipeline_staging.blend",
+    "write_report": true,
+    "reimport_audit": true,
+    "export_vrm": true
+  }
+}

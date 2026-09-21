@@ -1,0 +1,72 @@
+name: Generate Cari Gallery
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      overwrite:
+        description: "Regenerate existing PNG files"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install asset generator dependencies
+        run: python -m pip install -r scripts/requirements-assets.txt
+
+      - name: Validate asset generator
+        run: python -m unittest scripts.test_generate_cari_assets -v
+
+      - name: Generate Cari gallery
+        run: |
+          set -euo pipefail
+          ARGS=(
+            --output-dir assets/cari-gallery
+            --style anime-classic
+          )
+
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            ARGS+=(--overwrite)
+          elif [ "${{ inputs.overwrite }}" = "true" ]; then
+            ARGS+=(--overwrite)
+          fi
+
+          python scripts/generate_cari_assets.py "${ARGS[@]}"
+
+      - name: Commit and push generated gallery
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- assets/cari-gallery
+
+          if git diff --cached --quiet -- assets/cari-gallery; then
+            echo "No generated gallery changes to commit."
+            exit 0
+          fi
+
+          git commit -m "assets(cari): refresh gallery"
+          git push origin "HEAD:${{ github.ref_name }}"

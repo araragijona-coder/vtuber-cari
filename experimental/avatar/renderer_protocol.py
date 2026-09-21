@@ -1,0 +1,23 @@
+from __future__ import annotations
+
+from typing import Protocol
+
+from .acting_state import AvatarActingState
+
+
+class AvatarRenderer(Protocol):
+    """Minimal backend contract; concrete VRM engines implement this later."""
+
+    def load(self, model_path: str) -> None: ...
+
+    def unload(self) -> None: ...
+
+    def is_loaded(self) -> bool: ...
+
+    def update(self, delta_seconds: float) -> None: ...
+
+    def set_acting_state(self, state: AvatarActingState) -> None: ...
+
+    def set_camera_preset(self, name: str) -> None: ...
+
+    def get_metrics(self) -> dict[str, float | int | bool | None]: ...

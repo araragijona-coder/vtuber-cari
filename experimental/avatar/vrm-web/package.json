@@ -1,0 +1,15 @@
+{
+  "name": "cari-vrm-web-renderer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Experimental real VRM renderer proof-of-concept for Cari.",
+  "scripts": {
+    "check": "node --check src/main.js"
+  },
+  "dependencies": {
+    "@pixiv/three-vrm": "3.5.5",
+    "@pixiv/three-vrm-animation": "3.5.5",
+    "three": "0.180.0"
+  }
+}

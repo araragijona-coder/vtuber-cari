@@ -1,6 +1,24 @@
+# Cari Studio — estado de implementación
+
+> **Checkpoint vigente — 2026-09-21:** Ingeniería **~71%** · Producto usable/end-user **~58%** · Seguimiento global **~65%** · Producción **NO listo**.
+> Memoria canónica: `experimental/studio/BITACORA.md`.
+
+# Cari Studio — checkpoint canónico vigente
+
+> **Fuente de continuidad:** `experimental/studio/BITACORA.md`.  
+> Los porcentajes y estados históricos que aparezcan más abajo no deben reemplazar este checkpoint.
+
+- HEAD actual: consultar el PR #2
+- Ingeniería: **~71%**
+- Producto usable/end-user: **~58%**
+- Seguimiento global: **~65%**
+- Producción: **NO listo**
+
+---
+
 ## CHECKPOINT VIGENTE — 2026-09-21
 
-- HEAD canónico de esta rama: `2ffeb2c8db89421e4151d3ef6ab94e0ca9fd0915`.
+- HEAD canónico de esta rama: consultar el PR #2; último head auditado en esta iteración: consultar el PR #2.
 - Ingeniería: **~71%**.
 - Producto usable/end-user: **~58%**.
 - Seguimiento global: **~65%**.
@@ -12,19 +30,24 @@
 - [x] Acciones canónicas: talking y silent, además de acciones emocionales del Action Store.
 - [x] Tracking facial con MediaPipe y estabilización de expresión.
 - [x] Botón manual **Hablar** conectado al Action Store y al gate nativo del micrófono.
-- [x] Botón **Auto** para devolver el control de boca/reacción al detector local.
+- [x] Botón **Auto** devuelve el movimiento/reacción al procesamiento local y mantiene el micrófono OFF.
 - [x] Botones manuales de reacción para las expresiones canónicas.
+- [x] Movimiento libre/idle procedural del avatar.
+- [x] Actividades teclado, mando y móvil con control manual/automático.
+- [x] Cámara de tracking oculta: no se renderiza la cara del usuario en Preview/Tracking.
 - [x] Detector local de habla por amplitud/HPF/LPF/histéresis, sin speech-to-text ni cloud.
 - [ ] Reconocimiento semántico del contenido hablado; no es requisito para activar la acción talking y no se añade IA obligatoria.
 - [ ] Rig VRM/Live2D de producción; no mezclarlo con el V0 procedural.
 
 ### Continuidad
+- [x] Pipeline Blender FBX→VRM 1.0 con auditoría, limpieza de weights, shape-key contract, Humanoid, metadata, MToon, export y reimport audit.
+- [x] Gate CI de sintaxis/configuración del pipeline Blender.
 - `BITACORA.md` es la fuente canónica de anti-repetición.
+- `ART_QUALITY_GATE.md` es la referencia del gate visual; el procedural V2 solo demuestra runtime, no calidad final.
 - No rehacer WGC, WASAPI, MediaClock/Pacer/Interleaver, FFmpeg supervisor, OBS service, Twitch transport, Action Store ni renderer Three.js salvo regresión reproducible.
 - Gates inmediatos: CI observable, E2E Windows, compositor GPU sin readback, PTS E2E, drift físico y validación en hardware.
 - La cámara Media Foundation y el compositor D3D11 ya existen en la rama; queda su validación física/E2E.
 
-# Cari Studio — estado de implementación
 
 ## Producto objetivo
 
@@ -53,17 +76,27 @@
 - [x] Emisión raw temporizada por PTS con `RealtimePacer` y colas acotadas.
 - [x] Interleaver A/V global por PTS con prioridad determinista de audio en empate.
 - [x] Compositor D3D11 experimental conectado al frame final mediante readback BGRA.
+- [x] Adaptador experimental D3D11 texture -> AVFrame hardware sin readback CPU.
 - [x] Readback de captura CPU lazy: solo diagnóstico/fallback; no se ejecuta antes de cada composición GPU.
 - [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
+- [x] Preflight Blender/VRM sin asset para detectar dependencias antes de ejecutar el FBX real.
 - [x] Retry/backoff RTMP restringido a errores de red y métricas de categoría.
 - [x] Reset de retry por nueva sesión manual, conservando intentos durante reconexiones automáticas.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
-- [x] Bitácora maestra de continuidad para impedir repetir tareas ya resueltas.
+- [x] Política de retry RTMP acotada por categoría de fallo y máximo de intentos.
+- [x] Native Windows CI ejecuta smoke tests de retry y diagnóstico de output.
+- [x] Retry RTMP acotado por backoff, con clasificación de fallos y cancelación al detener manualmente el output.
+- [x] Ruta Libav experimental D3D11 -> AVFrame hardware sin readback CPU en la entrega al encoder.
+- [x] Manual Talk gate: el motor de audio arranca con micrófono OFF y solo se habilita por acción explícita de Hablar.
 - [x] Auditoría de botones renderer y alineación de handlers OBS/Twitch/VTuber.
 - [x] Test contractual UI→IPC→ObsService para evitar regresiones de botones y API.
 - [x] Control Twitch ↔ avatar por comandos locales de chat y toggle de conexión desde Centro Twitch.
 - [x] Bitácora técnica versionada con inventario de trabajo realizado, evidencia y lista NO REPETIR.
+- [x] Validador automático de continuidad para detectar porcentajes desalineados, LOG duplicados y pérdida de reglas NO REPETIR.
+- [x] Generador automático de assets Cari mediante endpoint público de Pollinations en GitHub Actions con PNG normalizado, seed reproducible y sin API keys/secrets del repositorio; los resultados se publican como artifact de Actions.
+  - Canonical: `experimental/studio/tools/verify_bitacora.py`; `tools/verify_bitacora.py` solo actúa como wrapper de compatibilidad.
+- [x] Gate visual medible para Cari V1 y reconciliación contra su canon visual.
 - [x] Action Store precarga las expresiones PNG base de Cari cuando no existen frames personalizados.
 - [x] Test de coherencia UI para menú, vistas e IDs HTML.
 - [x] Latest-frame worker fuera del callback WGC: el callback solo encola/reemplaza frames pendientes; el procesamiento pesado queda desacoplado del hilo de captura.
@@ -73,10 +106,16 @@
 - [x] Bitácora maestra con ledger de trabajo realizado, descartado y pendiente.
 - [x] Auditoría de licencias de dependencias runtime fijadas.
   - No habilita por sí sola redistribución de FFmpeg/codec; esa decisión sigue pendiente.
+- [x] Perfil de tracking facial calibrable con smoothing, deadzone, sensibilidad y recuperación ante pérdida de rostro.
+- [x] Hotkeys globales para expresiones, calibración y toggle de tracking.
+- [x] Controles de cámara, calibración, reset, sensibilidad y suavizado en la vista Tracking.
+- [x] Guardia que distingue frame duplicado de pérdida real de rostro.
 - [x] Smoke test nativo para contratos core.
+- [x] Bootstrap de toolchain Windows con descubrimiento de CMake, Visual Studio/vswhere y WinGet.
 - [x] Smoke D3D11 compositor con WARP, incluyendo composición alpha de overlay.
+- [x] Smoke D3D11 hardware encoder preparado para validar h264_nvenc/h264_amf; requiere Windows + driver + FFmpeg dev kit.
 - [x] Reconstrucción del compositor ante cambio de ID3D11Device después de device-loss recovery.
-- [ ] CI Windows verde sobre el head actual (los últimos runs siguen fallando antes de registrar steps; el nuevo workflow ya incluye instalación de FFmpeg y gates e2e para cuando el runner ejecute jobs normalmente).
+- [ ] CI Windows verde sobre el head actual (los últimos runs y el workflow de diagnóstico siguen fallando antes de registrar steps/logs; no existe evidencia de ejecución del build).
 
 ## Windows
 
@@ -105,6 +144,7 @@
 - [x] Compositor D3D11 GPU experimental para captura + avatar-placeholder + overlays.
 - [ ] Compositor GPU D3D11 de producción conectado al encoder.
 - [ ] Encoder hardware/software real conectado al pipeline.
+  - La ruta Libav/D3D11 existe y tiene smoke; requiere Windows + FFmpeg development kit + GPU/driver para verificación.
 - [ ] Muxer/recorder de producción.
 - [x] Proceso FFmpeg administrado por Cari y conectado a las salidas.
   - El cierre intenta primero EOF/flush antes de escalar a terminación forzada.
@@ -117,6 +157,7 @@
 - [x] Estimator independiente de drift de reloj de audio implementado.
   - [ ] Corrección/resampling de producción con relojes físicos.
 - [ ] Verificación sostenida del pacing A/V con FFmpeg real.
+- [ ] Verificación de salida D3D11 hardware sostenida en Windows.
   - E2E sintético de named pipes reforzado a 5 s y listo para CI; la validación sigue bloqueada mientras Actions no ejecute steps.
 - [ ] Verificación Windows del E2E named-pipe y del compositor D3D11.
 - [x] Ruta Libav experimental para preservar PTS explícitos.
@@ -127,12 +168,19 @@
 
 ## VTuber / cámara / voz
 
+- [x] Editor de Acciones 2D conectado a un runtime único de frames y prioridades.
+- [x] Chat/EventSub/VAD sincronizados con el reproductor PNG 2D.
+- [x] Persistencia de presets y frames 2D en userData de Electron con fallback local.
+- [x] Bridge de frames 2D al overlay transparente separado de Electron.
+- [x] Router genérico para eventos Twitch/chat y VAD con el mismo runtime de frames.
+- [x] Tests de routing, loops, persistencia, bridge nativo y sincronización Twitch/VAD preparados.
+- [ ] Validación sostenida del PNGTuber sobre Windows y del frame final que entra al encoder.
+  - La capa 2D ya puede alimentar el overlay transparente; falta demostrar captura/encoder sostenidos del resultado final.
+
 - [x] Contratos de avatar y actuación existentes.
 - [x] Contrato normalizado de expresión/pose/gaze para renderer Three.js.
-- [x] Estado separado para rostro, habla y actividad; las fuentes se componen sin sobrescribirse.
-- [x] Avatar procedural Cari con idle, habla, expresiones y actividades teclado/mando/móvil.
+- [x] Registro/validación de assets GLB/GLTF antes de cargarlos en el overlay.
 - [x] Estado de actuación independiente de apariencia.
-- [x] Cámara de tracking visualmente oculta en todos los paneles; el video bruto no se muestra.
 - [x] Perfil de apariencia modular con cabello, outfit y accesorios.
 - [x] Accesorios con ancla, posición, escala, rotación y color.
 - [x] Selección aleatoria reproducible de accesorios.
@@ -152,6 +200,8 @@
 
 - [x] Arquitectura de salida desacoplada de plataformas.
 - [x] Controles de chat Twitch conectados a acciones locales del avatar y botones OBS conectados a su servicio real.
+- [x] OBS companion con control de mute/volumen, Scene Items visibility, Replay Buffer, transición por batch y reconexión WebSocket acotada.
+- [x] Auditoría específica del alcance necesario cuando OBS es el streamer principal.
 - [ ] Adaptador Twitch RTMP probado en máquina real.
 - [ ] Adaptador YouTube RTMP probado en máquina real.
 - [ ] Adaptadores adicionales.
@@ -183,15 +233,18 @@
 - [x] Randomización de accesorios con semilla reproducible.
 - [x] Persistencia de presets JSON con validación de versión y nombres seguros.
 - [ ] Editor visual de escritorio 3D completo (escena/modelo/assets); el editor de acciones 2D ya está implementado.
+- [x] Especificación técnica de asset Cari V1 con manifest de capas, parámetros y checklist de entrega.
 - [ ] Catálogo real de assets aprobado por el usuario.
 - [ ] Previsualización VRM integrada.
 - [ ] Guardado/carga de presets desde UI.
 
 ## Distribución
 
+- [x] Setup automático de dependencias Windows + auditoría de compatibilidad.
 - [x] Workflow reproducible de compilación Release x64 en Windows CI.
 - [x] Paquete portable x64 generado por CI como artifact.
 - [ ] Bundle de assets de producción y modelo artístico final.
+  - La especificación V1 y sus validadores están implementados; el arte V1 real sigue pendiente.
 - [ ] FFmpeg/codec legalmente redistribuible elegido.
 - [x] Configuración del instalador NSIS x64.
 - [ ] Validación del instalador Windows en máquina/CI y firma.
@@ -223,8 +276,8 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 La única fuente canónica de continuidad y anti-repetición es `BITACORA.md`.
 
 - HEAD canónico: consultar el HEAD actual del PR #2 y `BITACORA.md`
-- Avance de ingeniería vigente: **65%**.
-- Avance de producto usable vigente: **50%**.
+- Avance de ingeniería vigente: **71%**.
+- Avance de producto usable vigente: **58%**.
 - Los checkpoints anteriores son históricos y no deben usarse para decidir trabajo nuevo.
 
 ### Regla
@@ -366,7 +419,7 @@ La regla evita confundir servicio disponible con consumidor multimedia. Antes de
 
 > Este bloque es el estado vigente. Los porcentajes de secciones históricas inferiores no deben utilizarse para planificar trabajo nuevo.
 
-- HEAD auditado: `a49860c3393345759703e65090836a70f48c05bf`
+- HEAD auditado: `9dae3002ad4f694255583c1632409362c88d7431`.
 - Ingeniería: **~68%**
 - Producto usable/end-user: **~54%**
 - Seguimiento global: **~62%**
@@ -406,10 +459,121 @@ La regla evita confundir servicio disponible con consumidor multimedia. Antes de
 
 ## Checkpoint canónico — 2026-09-21 — continuidad
 
-- Ingeniería: **~68%**.
-- Producto usable/end-user: **~54%**.
-- Seguimiento global: **~62%**.
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
 - Producción: **NO listo**.
 - Bitácora maestra: `experimental/studio/BITACORA.md`.
 - No repetir: captura WGC, WASAPI mixer, MediaClock/RealtimePacer/Interleaver, OBS service, Twitch transport, Action Store o avatar contract.
 - Siguiente foco: CI observable → E2E Windows named-pipe/FFmpeg → compositor GPU sin readback → PTS explícitos Libav → drift correction → cámara/Game Capture → validación real de OBS/Twitch → release/hardware.
+
+
+## Continuidad viva — 2026-09-21 — privacidad de micrófono
+
+- [x] El atajo `A` ya no abre el micrófono automáticamente.
+- [x] El motor de audio y el gate de micrófono permanecen separados.
+- [ ] Validación con hardware WASAPI real.
+
+
+## Prioridad ejecutiva P0-P3 — 2026-09-21
+
+### P0
+- [ ] Asset Cari V1 real.
+- [ ] Revisión visual real contra ART_QUALITY_GATE.
+- [ ] Tracking sostenido sobre V1.
+- [ ] Compositor GPU → frame final sin readback CPU por frame.
+- [ ] Validación Windows/E2E sostenida.
+
+### P1
+- [ ] PTS extremo a extremo.
+- [ ] Drift correction físico.
+- [ ] FFmpeg sostenido.
+- [ ] Grabación prolongada.
+- [ ] RTMP/reconexión real.
+
+### P2
+- [ ] Game Capture.
+- [ ] Optimización GPU.
+- [ ] Hardware real.
+
+### P3
+- [ ] Live2D adapter bajo licencia compatible.
+- [ ] Multistream.
+- [ ] Installer.
+- [ ] Distribución.
+
+Regla de progreso: el checkpoint vigente es Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%. Los porcentajes no suben por volumen de código.
+
+## Continuidad — LOG-031
+
+- Último head canónico de continuidad: `cafcc2a0291f8ca107d3857c7bf2819108c22747`.
+
+- Se consolida BITACORA.md como memoria canónica.
+- No se reabren subsistemas ya cerrados sin regresión reproducible.
+- P0 vigente: D3D11Compositor → encoder Libav/D3D11 sin readback CPU por frame + E2E Windows observable.
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
+- Producción: **NO listo**.
+
+
+## Continuidad vigente — LOG-035
+
+- Bitácora canónica: `experimental/studio/BITACORA.md`.
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
+- Producción: **NO listo**.
+- CI: bloqueada porque los jobs recientes terminan sin `steps` ni `logs_url`.
+- Git: rama divergente y detrás de `main`; no se hace reescritura automática.
+- P0: validación Windows de Libav + D3D11 hardware y E2E observable.
+
+## OBS companion
+
+El escenario de uso con OBS como streamer principal está documentado en OBS_USAGE_AUDIT.md. OBS conserva encoder/mux/RTMP y la reconexión del stream; Cari aporta control VTuber, automatización y observabilidad. La integración todavía requiere validación contra OBS real.
+## Evidencia CI vigente — LOG-040
+
+- HEAD auditado: **eab7897a5c971a64acc9c31cdf5c4557ffaf4b8f**.
+- Native Windows Build, CI, Character Runtime Tests y Actions Runner Diagnostic terminan en `failure`.
+- Los jobs afectados reportan `steps=null` y `logs_url=null`.
+- Estado: **CI bloqueada por infraestructura**, no CI_VERIFIED.
+- Regla: no modificar componentes funcionales para estos failures sin evidencia de step/log.
+
+## Checkpoint vigente — 2026-09-21 — LOG-043
+
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
+- Producción: **NO listo**.
+- P0 GPU: **CODE_EXISTS / TEST_PREPARED / WINDOWS_PENDING**.
+- El backend opt-in `libav-d3d11` une el compositor D3D11 con Libav mediante frames propios de `AVHWFramesContext` y copia GPU->GPU.
+- El backend raw FFmpeg CLI sigue siendo el default.
+- El frame final del camino `libav-d3d11` no pasa por `copy_output_to_cpu()`.
+- P0 siguiente: evidencia Windows observable del encoder D3D11 real, PTS, mux y estabilidad sostenida.
+- No repetir la arquitectura de WGC/WASAPI/timing/tracker/renderer/compositor/FFmpeg supervisor; solo reabrir ante regresión o nueva evidencia.
+
+
+## Continuidad 2D — LOG-055 — 2026-09-21
+
+- El Editor de Acciones 2D existente queda como fuente única para frames y presets.
+- Avatar2DFramePlayer ahora reproduce secuencias finitas multi-frame cuando loop=false y conserva el último frame hasta expirar el override.
+- StudioActionRouter unifica twitch.chat, twitch.command, twitch.event y voice.activity.
+- VAD local alimenta el mismo router; estados talking/silent estables no reinician la animación.
+- Mensajes salientes de Cari no disparan acciones 2D.
+- Persistencia sigue en window.cari.native.avatarActions → userData/avatar-actions; no se creó un segundo almacenamiento.
+- Validación Windows/encoder del overlay sigue pendiente.
+
+
+## Arranque Windows
+- [x] `run-local.ps1` descubre CMake en PATH, rutas estándar y Visual Studio antes de declarar toolchain ausente.
+- [x] `run-local.ps1` puede ejecutar `Cari-Setup.ps1 -SkipBuild -SkipNpm` automáticamente cuando CMake falta.
+- [x] `Cari-Setup.ps1` y `Cari-PC-Audit.ps1` corrigen la raíz del repositorio y la ubicación de evidencia; WinGet deja logs por paquete.
+- [x] `-NoSetup` permite desactivar el bootstrap automático para entornos controlados.
+
+- [x] Target CMake `cari-studio-launcher`.
+- [x] `CariStudioLauncher.exe` se genera automáticamente en la raíz del checkout durante Release.
+- [x] Prioridad de arranque: instalación de escritorio → shell Electron del checkout → runtime nativo de diagnóstico.
+- [x] Errores del shell de desarrollo registrados en `%LOCALAPPDATA%\CariStudio\launcher.log`.
+- [ ] Build Windows real y prueba de doble clic.
+
+El launcher es un entrypoint de conveniencia; no reemplaza `cari-studio-native.exe` ni crea una segunda ruta de runtime.

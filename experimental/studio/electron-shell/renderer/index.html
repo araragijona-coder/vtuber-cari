@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cari Studio</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self' ws://127.0.0.1:4455; font-src 'self';">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand">
+        <div class="brand-mark">C</div>
+        <div class="brand-copy">
+          <div class="brand-title">Cari Studio</div>
+          <div class="small muted">Streaming · VTuber · Twitch · OBS</div>
+        </div>
+      </div>
+
+      <div class="topbar-center">
+        <div class="command-search">
+          <span class="search-icon">⌕</span>
+          <input id="menu-search" placeholder="Buscar herramienta, panel o comando…" autocomplete="off">
+          <kbd>Ctrl K</kbd>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-chip" id="engine-chip">ENGINE <b>OFF</b></div>
+        <div class="status-chip" id="twitch-chip">TWITCH <b>OFF</b></div>
+        <div class="status-chip" id="obs-chip">OBS <b>OFF</b></div>
+        <div class="live-indicator" id="live-state"><span class="dot"></span><span>OFFLINE</span></div>
+        <button id="header-start" class="primary">Iniciar motor</button>
+      </div>
+    </header>
+
+    <aside id="sidebar">
+      <div id="nav-container"></div>
+      <div class="sidebar-footer">
+        <div class="small">Cari Studio Runtime</div>
+        <div class="small muted">Local-first · sin IA obligatoria</div>
+        <div class="small muted">Build experimental</div>
+      </div>
+    </aside>
+
+    <section id="workspace">
+      <section class="view active" data-view-panel="live">
+        <div class="view-header hero-header">
+          <div>
+            <div class="eyebrow">PRODUCCIÓN</div>
+            <div class="view-title">En vivo</div>
+            <div class="muted small">Todo lo que necesitás para salir al aire desde un solo lugar.</div>
+          </div>
+          <div class="toolbar">
+            <button id="live-record">Grabar</button>
+            <button id="live-stream" class="primary">Iniciar directo</button>
+          </div>
+        </div>
+
+        <div class="hero-stats">
+          <div class="metric-card"><div class="metric-label">FPS</div><div class="metric-value" id="stat-fps">0</div><div class="metric-sub">captura</div></div>
+          <div class="metric-card"><div class="metric-label">AUDIO</div><div class="metric-value" id="stat-audio">0</div><div class="metric-sub">paquetes</div></div>
+          <div class="metric-card"><div class="metric-label">OUTPUT</div><div class="metric-value" id="stat-output">OFF</div><div class="metric-sub">estado</div></div>
+          <div class="metric-card"><div class="metric-label">TRACKING</div><div class="metric-value" id="tracking">IDLE</div><div class="metric-sub">MediaPipe</div></div>
+        </div>
+
+        <div class="live-grid">
+          <div class="card preview-card">
+            <div class="section-title"><h3>Preview</h3><span class="pill accent-pill" id="preview-action">Neutral</span></div>
+            <div class="preview-stage">
+              <canvas id="avatar"></canvas>
+              <img id="action-overlay" alt="" aria-hidden="true">
+              <div class="preview-grid"></div>
+              <div class="camera-box" aria-hidden="true"><video id="camera" autoplay muted playsinline></video><span class="camera-label">CAM · SOLO TRACKING</span></div>
+              <div class="action-badge" id="tracking-badge">tracking idle</div>
+            </div>
+            <div class="chibi-world-wrap">
+              <div class="section-title"><h4>Mini mundo alrededor de Cari</h4><span class="pill">preview · sin IA</span></div>
+              <canvas id="chibi-map" class="chibi-map" aria-label="Mapa local con pequeños chibis"></canvas>
+              <div class="small muted">Capibaras y mini-Cari usan movimiento determinista; la composición en el frame final queda pendiente del compositor nativo.</div>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="card">
+              <div class="section-title"><h3>Acciones rápidas</h3><button id="goto-vtuber" class="ghost small">Editar</button></div>
+              <div id="live-action-bar" class="preset-row"></div>
+            </div>
+
+            <div class="card">
+              <div class="section-title">
+                <h3>Control manual de Cari</h3>
+                <span class="pill" id="mic-state">MIC OFF</span>
+              </div>
+              <div class="form-grid">
+                <button id="talk-toggle" class="primary">🎙 Hablar</button>
+                <button id="talk-auto">Auto</button>
+              </div>
+              <div class="small muted" id="speech-state" style="margin-top:8px">Micrófono cerrado · Habla solo al pulsar “Hablar”.</div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-manual-expression="happy">☺ Feliz</button>
+                <button data-manual-expression="angry">△ Enojada</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-manual-expression="sad">◡ Triste</button>
+                <button data-manual-expression="afraid">! Asustada</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-manual-expression="embarrassed">〃 Avergonzada</button>
+                <button data-manual-expression="exhausted">z Agotada</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-manual-expression="confused">? Confundida</button>
+                <button data-manual-expression="neutral">○ Neutral</button>
+              </div>
+              <div class="section-title" style="margin-top:12px"><h4>Modo</h4><span class="pill">100% local · sin IA</span></div>
+              <div class="form-grid">
+                <button data-auto-mode="motion">Auto movimiento</button>
+                <button data-auto-mode="camera">Lectura por cámara</button>
+              </div>
+              <div class="section-title" style="margin-top:12px"><h4>Movimiento</h4><span class="pill">sin IA</span></div>
+              <div class="form-grid">
+                <button data-avatar-activity="idle">Movimiento libre</button>
+                <button data-avatar-activity="auto">Auto actividad</button>
+              </div>              <div class="form-grid" style="margin-top:9px">
+                <button data-movement-level="quiet">Quieta</button>
+                <button data-movement-level="normal">Normal</button>
+                <button data-movement-level="restless">Inquieta</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-avatar-object="none">Nada</button>
+                <button data-avatar-object="phone">📱 Teléfono</button>
+                <button data-avatar-object="joystick">🎮 Joystick</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-avatar-object="keyboard">⌨ Teclado</button>
+                <button data-avatar-object="pillow">🛏 Almohada</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-avatar-activity="keyboard">⌨ Teclado</button>
+                <button data-avatar-activity="controller">🎮 Mando</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-avatar-activity="phone">📱 Móvil</button>
+              </div>
+              <div class="section-title" style="margin-top:12px"><h4>Modos completos</h4><span class="pill">sin IA</span></div>
+              <div class="form-grid">
+                <button data-full-mode="gaming-angry-happy">🎮 Joystick · 😠↔☺</button>
+                <button data-full-mode="keyboard-tired-focused">⌨ Teclado · 😴↔●</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-full-mode="pillow-hug-sleeping">🛏 Almohada · abrazar/dormir</button>
+                <button data-full-mode="stop">Detener modo</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="section-title"><h3>Captura</h3><span class="pill" id="capture-state">stopped</span></div>
+              <div class="form-row"><label>Ventana</label><div class="form-grid"><input id="window-index" type="number" min="1" value="1"><button id="capture-window">Capturar ventana</button></div></div>
+              <div class="form-grid"><button id="capture-screen">Pantalla primaria</button><button id="capture-stop">Detener</button></div>
+            </div>
+
+            <div class="card">
+              <div class="section-title"><h3>Voz local</h3><span class="pill">DSP</span></div>
+              <div class="form-grid"><button id="voice-off">Normal</button><button id="voice-anime">Anime Bright</button></div>
+            </div>
+
+            <div class="card mini-console">
+              <div class="section-title"><h3>Diagnóstico</h3><button class="ghost" data-nav-target="dashboard">Abrir panel</button></div>
+              <div id="side-diagnostics" class="small muted">Esperando motor…</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="dashboard">
+        <div class="view-header"><div><div class="eyebrow">OPERACIÓN</div><div class="view-title">Panel</div><div class="muted small">Estado global de todos los subsistemas.</div></div></div>
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="section-title"><h3>Runtime</h3><span class="pill" id="dash-engine">offline</span></div>
+            <div class="health-list">
+              <div><span>Native Windows</span><b id="health-native">—</b></div>
+              <div><span>Capture</span><b id="dash-capture">stopped</b></div>
+              <div><span>Audio</span><b id="dash-audio">stopped</b></div>
+              <div><span>Output</span><b id="dash-output">stopped</b></div>
+              <div><span>Twitch</span><b id="dash-twitch">offline</b></div>
+              <div><span>OBS</span><b id="dash-obs">offline</b></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="section-title"><h3>Pipeline</h3><span class="pill">Windows Native</span></div>
+            <div class="list-card"><span>Windows Graphics Capture</span><span class="pill">local</span></div>
+            <div class="list-card"><span>WASAPI mic + system</span><span class="pill">local</span></div>
+            <div class="list-card"><span>MediaPipe / Three.js</span><span class="pill">VTuber</span></div>
+            <div class="list-card"><span>FFmpeg</span><span class="pill">output</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title"><h3>Diagnóstico multimedia</h3><span class="pill" id="dash-failure">none</span></div>
+          <div id="metrics" class="diagnostic-output">native engine offline</div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="scenes">
+        <div class="view-header"><div><div class="eyebrow">PRODUCCIÓN</div><div class="view-title">Escenas</div><div class="muted small">Layouts, transiciones y presets visuales.</div></div><button id="scene-add" class="primary">＋ Nueva escena</button></div>
+        <div class="workspace-split">
+          <div>
+            <div id="scene-list"></div>
+          </div>
+          <div class="card sticky-card">
+            <div class="section-title"><h3>Transición</h3><span class="pill">Local</span></div>
+            <div class="form-row"><label>Tipo</label><select id="scene-transition"><option>Fade</option><option>Cut</option><option>Swipe</option><option>Stinger</option></select></div>
+            <div class="form-row"><label>Duración (ms)</label><input id="scene-transition-duration" type="number" value="300" min="0" max="10000"></div>
+            <button id="scene-transition-apply" class="primary">Aplicar a la escena</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="sources">
+        <div class="view-header"><div><div class="eyebrow">PRODUCCIÓN</div><div class="view-title">Fuentes</div><div class="muted small">Entradas de vídeo, audio, navegador, imágenes y overlays.</div></div></div>
+        <div class="source-matrix">
+          <div class="source-card" data-source-kind="screen"><span class="source-icon">▦</span><h3>Pantalla</h3><p>Windows Graphics Capture</p><button id="source-screen">Usar pantalla</button></div>
+          <div class="source-card" data-source-kind="window"><span class="source-icon">▣</span><h3>Ventana</h3><p>Ventana individual por índice</p><button id="source-window">Usar ventana</button></div>
+          <div class="source-card" data-source-kind="camera"><span class="source-icon">◎</span><h3>Cámara</h3><p>Webcam local + tracking</p><button id="source-camera">Activar cámara</button></div>
+          <div class="source-card"><span class="source-icon">◉</span><h3>Audio</h3><p>Micrófono + system loopback</p><button data-nav-target="audio">Abrir mixer</button></div>
+          <div class="source-card"><span class="source-icon">▧</span><h3>Media</h3><p>Imágenes, vídeo y overlays</p><button data-nav-target="assets">Abrir assets</button></div>
+          <div class="source-card"><span class="source-icon">◈</span><h3>OBS</h3><p>Sources existentes en OBS</p><button data-nav-target="obs-center">Sincronizar</button></div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="audio">
+        <div class="view-header"><div><div class="eyebrow">PRODUCCIÓN</div><div class="view-title">Audio</div><div class="muted small">Mixer local, voz y monitoreo.</div></div></div>
+        <div class="audio-layout">
+          <div class="card">
+            <div class="section-title"><h3>Mixer</h3><span class="pill">WASAPI</span></div>
+            <div class="mixer-row"><div class="mixer-head"><b>Micrófono</b><span id="mix-mic-label">0%</span></div><div class="meter"><span id="mix-mic"></span></div><div class="mixer-actions"><button id="audio-start">On</button><button id="audio-stop">Off</button><button id="voice-anime-2">Anime Bright</button></div></div>
+            <div class="mixer-row"><div class="mixer-head"><b>System Loopback</b><span id="mix-system-label">0%</span></div><div class="meter"><span id="mix-system"></span></div><div class="small muted">Windows default render device</div></div>
+            <div class="mixer-row"><div class="mixer-head"><b>TTS / futuro</b><span>route-ready</span></div><div class="meter"><span class="static-meter"></span></div><div class="small muted">Arquitectura preparada para pistas locales</div></div>
+          </div>
+          <div class="card">
+            <div class="section-title"><h3>Voice FX</h3><span class="pill">local</span></div>
+            <div class="fx-choice active"><div><b>Normal</b><div class="small muted">sin procesamiento</div></div><button id="voice-off-2">Activar</button></div>
+            <div class="fx-choice"><div><b>Anime Bright</b><div class="small muted">presence + soft clip</div></div><button id="voice-anime-3" class="primary">Activar</button></div>
+            <div class="fx-choice disabled"><div><b>Pitch / Formant</b><div class="small muted">etapa futura</div></div><button disabled>Próximo</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="outputs">
+        <div class="view-header"><div><div class="eyebrow">PRODUCCIÓN</div><div class="view-title">Salidas</div><div class="muted small">Grabación local y streaming directo.</div></div></div>
+        <div class="output-grid">
+          <div class="card output-card">
+            <div class="output-icon">REC</div><h3>Grabación local</h3><p>Matroska + H.264/AAC mediante FFmpeg.</p>
+            <button id="output-record" class="primary">Grabar MKV</button>
+          </div>
+          <div class="card output-card">
+            <div class="output-icon">LIVE</div><h3>RTMP / RTMPS</h3><p>Streaming directo sin depender de OBS.</p>
+            <input id="rtmp-target-2" placeholder="rtmps://servidor/live/key">
+            <button id="output-rtmp" class="primary">Iniciar RTMP</button>
+            <button id="output-stop">Detener</button>
+          </div>
+          <div class="card output-card">
+            <div class="output-icon">OBS</div><h3>OBS opcional</h3><p>Control por obs-websocket 5.x.</p><button data-nav-target="obs-center">Abrir consola OBS</button></div>
+          <div class="card output-card">
+            <div class="output-icon">↻</div><h3>Resiliencia</h3><p>Backoff de red acotado y diagnóstico de salida.</p><div class="metric" id="output-resilience">Estado: —</div></div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="vtuber">
+        <div class="view-header">
+          <div><div class="eyebrow">VTUBER</div><div class="view-title">Editor de acciones</div><div class="muted small">Acciones, poses, frames, expresiones y presets locales.</div></div>
+          <div class="toolbar"><button id="action-import">Importar preset</button><button id="action-export">Exportar preset</button><button id="action-add" class="primary">＋ Nueva acción</button></div>
+        </div>
+        <div class="action-editor">
+          <div class="editor-left"><div class="card action-stage-card">
+            <div class="section-title"><h3 id="editor-action-title">Neutral</h3><span class="pill" id="editor-frame-count">0 imágenes</span></div>
+            <div class="action-stage"><canvas id="editor-avatar"></canvas><img id="editor-overlay" alt="" aria-hidden="true"><div class="action-badge">Preview</div></div>
+            <div class="section-title action-list-heading"><h3>Acciones</h3><span class="small muted">clic para probar</span></div>
+            <div id="action-grid" class="action-grid"></div>
+          </div></div>
+          <div class="editor-right"><div class="card"><div class="section-title"><h3>Inspector</h3><span class="pill">local</span></div><div id="inspector-content"></div></div></div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="tracking">
+        <div class="view-header"><div><div class="eyebrow">VTUBER</div><div class="view-title">Tracking</div><div class="muted small">Cámara local y estado del Face Landmarker.</div></div></div>
+        <div class="tracking-layout">
+          <div class="card"><div class="section-title"><h3>Camera</h3><span class="pill" id="tracking-status">idle</span></div><div class="tracking-preview" aria-hidden="true"><video id="tracking-camera" autoplay muted playsinline></video><div class="tracking-crosshair"></div><div class="tracking-hidden-label">CÁMARA OCULTA · SOLO TRACKING</div></div><div class="toolbar" style="margin-top:10px"><button id="tracking-camera-start" class="primary">Iniciar</button><button id="tracking-camera-stop">Detener</button><button id="tracking-calibrate">Calibrar</button><button id="tracking-reset">Reset</button></div><div class="form-grid" style="margin-top:10px"><label>Suavizado<select id="tracking-smoothing"><option value="0.18">muy estable</option><option value="0.32" selected>normal</option><option value="0.48">rápido</option><option value="0.62">muy rápido</option></select></label><label>Sensibilidad<select id="tracking-sensitivity"><option value="0.8">baja</option><option value="1" selected>normal</option><option value="1.35">alta</option></select></label></div><div class="metric" id="tracking-quality">Face: idle · Calibrado: no</div></div>
+          <div class="card"><div class="section-title"><h3>Actuación</h3><span class="pill">normalized</span></div><div class="parameter-grid"><div><span>Head X</span><b id="track-head-x">0</b></div><div><span>Head Y</span><b id="track-head-y">0</b></div><div><span>Roll</span><b id="track-roll">0</b></div><div><span>Gaze X</span><b id="track-gaze-x">0</b></div><div><span>Gaze Y</span><b id="track-gaze-y">0</b></div><div><span>Mouth</span><b id="track-mouth">0</b></div><div><span>Blink</span><b id="track-blink">0</b></div><div><span>Expression</span><b id="track-expression">neutral</b></div></div></div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="avatar">
+        <div class="view-header"><div><div class="eyebrow">VTUBER</div><div class="view-title">Avatar</div><div class="muted small">Modelos, backends y overlay.</div></div></div>
+        <div class="avatar-grid">
+          <div class="card avatar-preview-card"><div class="section-title"><h3>Renderer</h3><span class="pill" id="avatar-backend">Three.js</span></div><div class="avatar-preview"><canvas id="avatar-settings-preview"></canvas></div><div class="toolbar"><button id="model-pick" class="primary">Cargar GLB / glTF</button><button id="overlay-show">Overlay On</button><button id="overlay-hide">Overlay Off</button></div><div class="metric" id="model">placeholder técnico</div></div>
+          <div class="card"><div class="section-title"><h3>Backends</h3></div><div class="backend-row active"><b>Three.js</b><span>GLTF/GLB · local</span><em>OK</em></div><div class="backend-row"><b>Live2D</b><span>Adapter boundary</span><em>planned</em></div><div class="backend-row"><b>VRM Native</b><span>D3D11 compositor</span><em>planned</em></div><div class="card inset"><b>Sin assets propietarios</b><p class="small muted">Cari carga tus modelos locales; el repositorio no incluye modelos comerciales.</p></div></div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="expressions">
+        <div class="view-header"><div><div class="eyebrow">VTUBER</div><div class="view-title">Expresiones</div><div class="muted small">Mapa de actuación y acciones.</div></div></div>
+        <div class="card"><div class="section-title"><h3>Estados</h3><span class="pill">hotkeys-ready</span></div><div id="expression-grid" class="expression-grid"></div></div>
+      </section>
+
+      <section class="view" data-view-panel="assets">
+        <div class="view-header"><div><div class="eyebrow">VTUBER</div><div class="view-title">Assets</div><div class="muted small">Biblioteca local de imágenes y presets.</div></div><button id="assets-open-editor" class="primary">Abrir editor</button></div>
+        <div class="card"><div class="asset-summary-head"><h3>Biblioteca</h3><span class="pill">localStorage</span></div><div id="asset-summary"></div></div>
+      </section>
+
+      <section class="view" data-view-panel="chat">
+        <div class="view-header"><div><div class="eyebrow">TWITCH</div><div class="view-title">Chat</div><div class="muted small">Chat local + EventSub WebSocket.</div></div></div>
+        <div class="connection-banner"><span class="service-icon twitch">T</span><div><b>Twitch</b><div class="small muted">OAuth seguro y WebSocket EventSub</div></div><span id="twitch-status" class="pill">Disconnected</span></div>
+        <div class="card"><div class="form-grid"><input id="twitch-client-id" autocomplete="off" placeholder="Twitch Client ID"><input id="twitch-channel" autocomplete="off" placeholder="Canal"></div><div class="toolbar" style="margin-top:9px"><button id="twitch-connect" class="primary">Conectar Twitch</button><button id="twitch-disconnect">Desconectar</button><button id="chat-read">Leer chat: Off</button></div></div>
+        <div class="chat-layout"><div class="card"><div class="section-title"><h3>Mensajes</h3><span class="pill">live</span></div><div id="chat-log" class="chat-log"></div><div class="form-grid" style="margin-top:9px"><input id="chat-input" maxlength="500" placeholder="Escribí un mensaje…"><button id="chat-send" class="primary">Enviar</button></div></div><div class="card"><div class="section-title"><h3>Comandos locales</h3></div><div class="command-row"><code>!happy</code><span>Feliz</span></div><div class="command-row"><code>!sad</code><span>Triste</span></div><div class="command-row"><code>!talk</code><span>Hablar</span></div><div class="command-row"><code>!silent</code><span>Callar</span></div><div class="command-row"><code>!angry</code><span>Enojada</span></div></div></div>
+      </section>
+
+      <section class="view" data-view-panel="twitch-center">
+        <div class="view-header"><div><div class="eyebrow">TWITCH</div><div class="view-title">Centro Twitch</div><div class="muted small">Superficie completa de capacidades del canal, con estado de implementación real.</div></div></div>
+        <div class="service-toolbar"><button data-nav-target="chat" class="primary">Abrir chat</button><button id="twitch-center-connect">Conectar</button><span class="pill" id="twitch-center-status">offline</span></div>
+        <div id="twitch-capabilities" class="capability-grid"></div>
+      </section>
+
+      <section class="view" data-view-panel="events">
+        <div class="view-header"><div><div class="eyebrow">TWITCH</div><div class="view-title">Eventos</div><div class="muted small">EventSub y automatizaciones.</div></div></div>
+        <div class="event-dashboard"><div class="card"><div class="section-title"><h3>Event Log</h3><span class="pill">local</span></div><div id="event-log" class="event-log"></div></div><div class="card"><div class="section-title"><h3>Triggers</h3></div><div id="event-triggers" class="trigger-list"></div></div></div>
+      </section>
+
+      <section class="view" data-view-panel="obs-center">
+        <div class="view-header"><div><div class="eyebrow">OBS</div><div class="view-title">Centro OBS</div><div class="muted small">Control avanzado sobre un OBS existente mediante obs-websocket 5.x.</div></div></div>
+        <div class="connection-banner"><span class="service-icon obs">O</span><div><b>OBS WebSocket</b><div class="small muted">Conexión local ws://127.0.0.1:4455 por defecto</div></div><span id="obs-status-pill" class="pill">offline</span></div>
+        <div class="obs-toolbar toolbar"><button id="obs-connect" class="primary">Conectar</button><button id="obs-disconnect">Desconectar</button><button id="obs-start">Stream On</button><button id="obs-stop">Stream Off</button><button id="obs-record-start">Record On</button><button id="obs-record-stop">Record Off</button><button id="obs-replay-start">Replay On</button><button id="obs-replay-save">Guardar Replay</button><button id="obs-replay-stop">Replay Off</button><button id="obs-vcam-start">Virtual Cam On</button><button id="obs-vcam-stop">Virtual Cam Off</button></div>
+        <div class="obs-grid">
+          <div class="card"><div class="section-title"><h3>Scenes</h3><button id="obs-refresh-scenes" class="ghost">Actualizar</button></div><div id="obs-scenes" class="obs-list"></div><div class="small muted" id="obs-current-scene">Program: —</div></div><div class="card"><div class="section-title"><h3>Scene Items</h3><span class="pill" id="obs-scene-items-scene">—</span></div><div id="obs-scene-items" class="obs-list"><div class="small muted">Seleccioná una escena.</div></div></div>
+          <div class="card"><div class="section-title"><h3>Inputs / Sources</h3><button id="obs-refresh-inputs" class="ghost">Actualizar</button></div><div id="obs-inputs" class="obs-list"></div></div>
+          <div class="card"><div class="section-title"><h3>Studio Mode</h3></div><div class="toolbar"><button id="obs-refresh-studio">Estado</button><button id="obs-transition" class="primary">Transition</button></div><div id="obs-studio-state" class="metric">unknown</div></div>
+          <div class="card"><div class="section-title"><h3>Runtime</h3><button id="obs-refresh-stats" class="ghost">Stats</button></div><pre id="obs-stats" class="diagnostic-output">offline</pre></div>
+          <div class="card"><div class="section-title"><h3>Profiles</h3></div><div id="obs-profiles" class="obs-list"></div></div>
+          <div class="card"><div class="section-title"><h3>Scene Collections</h3></div><div id="obs-collections" class="obs-list"></div></div>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="hotkeys">
+        <div class="view-header"><div><div class="eyebrow">AUTOMATIZACIÓN</div><div class="view-title">Hotkeys</div><div class="muted small">Atajos centralizados para no depender de una sola pantalla.</div></div></div>
+        <div id="hotkey-grid" class="hotkey-grid"></div>
+      </section>
+
+      <section class="view" data-view-panel="settings">
+        <div class="view-header"><div><div class="eyebrow">SISTEMA</div><div class="view-title">Configuración</div><div class="muted small">Runtime, conexiones y privacidad.</div></div></div>
+        <div class="settings-grid">
+          <div class="card"><div class="section-title"><h3>Native Runtime</h3><span class="pill">Windows</span></div><div class="small muted">CARI_NATIVE_EXECUTABLE</div><div class="metric" id="native-path">resuelto por Electron</div><div class="small muted">MediaPipe: variable de entorno local.</div></div>
+          <div class="card"><div class="section-title"><h3>Twitch</h3><span class="pill">OAuth</span></div><p class="small muted">El token se almacena mediante el almacenamiento seguro de Windows cuando está disponible.</p><button data-nav-target="twitch-center" class="primary">Abrir centro Twitch</button></div>
+          <div class="card"><div class="section-title"><h3>OBS</h3><span class="pill">opcional</span></div><p class="small muted">Cari funciona sin OBS; la integración usa obs-websocket 5.x.</p><button data-nav-target="obs-center" class="primary">Abrir centro OBS</button></div>
+          <div class="card"><div class="section-title"><h3>Assets</h3><span class="pill">local</span></div><p class="small muted">No se distribuyen modelos ni assets propietarios.</p><button data-nav-target="assets">Abrir biblioteca</button></div>
+        </div>
+      </section>
+    </section>
+
+    <aside id="inspector">
+      <div class="card quick-inspector">
+        <div class="section-title"><h3>Control rápido</h3><span class="pill accent-pill">Studio</span></div>
+        <div class="preset-row">
+          <button data-quick-action="neutral">Neutral</button><button data-quick-action="happy">Feliz</button><button data-quick-action="sad">Triste</button><button data-quick-action="talking">Hablar</button><button data-quick-action="silent">Callar</button><button data-quick-action="angry">Enojada</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><h3>Salida</h3><span class="pill" id="side-output-state">offline</span></div>
+        <input id="rtmp-target" placeholder="rtmps://servidor/live/key">
+        <div class="toolbar" style="margin-top:8px"><button id="stream-start" class="primary">Iniciar RTMP</button><button id="stream-stop">Detener</button><button id="record" class="ghost">Grabar MKV</button></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><h3>Avatar</h3><span class="pill">Three.js</span></div>
+        <button id="model-pick-side">Cargar GLB / glTF</button>
+        <div class="metric" id="model-side">placeholder técnico</div>
+        <div class="form-grid"><button id="camera-start">Tracking On</button><button id="camera-stop">Tracking Off</button></div>
+        <div class="toolbar"><button id="overlay-show-side">Overlay On</button><button id="overlay-hide-side">Overlay Off</button></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><h3>Servicios</h3></div>
+        <div class="service-mini"><span class="service-dot" id="service-twitch-dot"></span><span>Twitch</span><b id="service-twitch-text">offline</b></div>
+        <div class="service-mini"><span class="service-dot" id="service-obs-dot"></span><span>OBS</span><b id="service-obs-text">offline</b></div>
+        <div class="service-mini"><span class="service-dot" id="service-engine-dot"></span><span>Native Engine</span><b id="service-engine-text">offline</b></div>
+      </div>
+    </aside>
+
+    <footer id="statusbar">
+      <span id="status">Listo — control local.</span>
+      <span id="workspace-state">Workspace: live</span>
+      <span id="build-label">Cari Studio Experimental</span>
+    </footer>
+  </div>
+
+  <input id="action-file-input" class="hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+  <input id="action-preset-input" class="hidden" type="file" accept="application/json,.json">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "../node_modules/three/build/three.module.js",
+      "three/addons/": "../node_modules/three/examples/jsm/",
+      "@mediapipe/tasks-vision": "../node_modules/@mediapipe/tasks-vision/vision_bundle.mjs"
+    }
+  }
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
