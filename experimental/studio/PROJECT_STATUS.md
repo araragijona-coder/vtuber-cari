@@ -546,3 +546,14 @@ El escenario de uso con OBS como streamer principal está documentado en OBS_USA
 - El frame final del camino `libav-d3d11` no pasa por `copy_output_to_cpu()`.
 - P0 siguiente: evidencia Windows observable del encoder D3D11 real, PTS, mux y estabilidad sostenida.
 - No repetir la arquitectura de WGC/WASAPI/timing/tracker/renderer/compositor/FFmpeg supervisor; solo reabrir ante regresión o nueva evidencia.
+
+
+## Continuidad 2D — LOG-055 — 2026-09-21
+
+- El Editor de Acciones 2D existente queda como fuente única para frames y presets.
+- Avatar2DFramePlayer ahora reproduce secuencias finitas multi-frame cuando loop=false y conserva el último frame hasta expirar el override.
+- StudioActionRouter unifica twitch.chat, twitch.command, twitch.event y voice.activity.
+- VAD local alimenta el mismo router; estados talking/silent estables no reinician la animación.
+- Mensajes salientes de Cari no disparan acciones 2D.
+- Persistencia sigue en window.cari.native.avatarActions → userData/avatar-actions; no se creó un segundo almacenamiento.
+- Validación Windows/encoder del overlay sigue pendiente.
