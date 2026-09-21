@@ -12,6 +12,8 @@ $validator=Join-Path $repoRoot 'experimental\studio\native-windows\validate-wind
 $logDir=Join-Path $repoRoot 'experimental\studio\validation-evidence\setup'
 New-Item -ItemType Directory -Force -Path $logDir|Out-Null
 $log=Join-Path $logDir ("setup-{0}.log" -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+$wingetLogDir=Join-Path $logDir 'winget'
+New-Item -ItemType Directory -Force -Path $wingetLogDir|Out-Null
 
 function Refresh-Path {
     $machine=[Environment]::GetEnvironmentVariable('Path','Machine')
@@ -33,10 +35,25 @@ function Ensure-Admin {
 function Invoke-WingetInstall([string]$Id,[string]$Override='') {
     $winget=Get-Command winget.exe -ErrorAction SilentlyContinue
     if($null -eq $winget){throw 'WinGet no está disponible. El setup requiere Windows Package Manager.'}
-    $args=@('install','--id',$Id,'--exact','--source','winget','--accept-source-agreements','--accept-package-agreements')
+
+    $probe = & $winget.Source show --id $Id --exact --source winget 2>&1 | Out-String
+    if($LASTEXITCODE -ne 0){
+        throw "WinGet no encontró el paquete $Id en la fuente winget. $($probe.Trim())"
+    }
+
+    $args=@(
+        'install','--id',$Id,'--exact','--source','winget',
+        '--accept-source-agreements','--accept-package-agreements',
+        '--no-upgrade'
+    )
     if($Override){$args+='--override';$args+=$Override}
-    & $winget.Source @args
-    if($LASTEXITCODE -ne 0){throw "WinGet no pudo instalar $Id. Código $LASTEXITCODE."}
+
+    $installerLog=Join-Path $wingetLogDir (($Id -replace '[^A-Za-z0-9._-]','_') + '.log')
+    & $winget.Source @args 2>&1 | Tee-Object -FilePath $installerLog
+    $code=$LASTEXITCODE
+    if($code -ne 0){
+        throw "WinGet no pudo instalar $Id. Código $code. Revisar $installerLog"
+    }
 }
 Start-Transcript -Path $log -Append|Out-Null
 try{
