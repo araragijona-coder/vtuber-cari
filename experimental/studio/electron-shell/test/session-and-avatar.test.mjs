@@ -12,6 +12,13 @@ async function loadModule(relativePath) {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "cari-contract-"));
   const tempFile = path.join(tempRoot, path.basename(relativePath, ".js") + ".mjs");
   await fs.writeFile(tempFile, source, "utf8");
+  if (relativePath === "runtime/session-manager.js") {
+    const dependency = await fs.readFile(
+      path.join(root, "runtime/resource-policy.js"),
+      "utf8"
+    );
+    await fs.writeFile(path.join(tempRoot, "resource-policy.js"), dependency, "utf8");
+  }
   return import(pathToFileURL(tempFile).href);
 }
 
@@ -147,6 +154,57 @@ test("stop-only commands never start an offline engine", async () => {
   assert.equal(result.ok, true);
   assert.equal(result.skipped, true);
   assert.deepEqual(native.calls, []);
+});
+
+test("voice configuration does not spawn an idle native engine", async () => {
+  const native = makeNative();
+  const session = new StudioSessionManager(native);
+
+  const result = await session.setVoiceEffect("anime-bright");
+  assert.equal(result.ok, true);
+  assert.equal(result.skipped, true);
+  assert.equal(session.snapshot().voice, "anime-bright");
+  assert.deepEqual(native.calls, []);
+});
+
+test("output stop releases capture/audio owned by the output", async () => {
+  const native = makeNative({
+    "capture.start:window": { ok: true, message: "capture=started" },
+    "audio.start": { ok: true, message: "audio=started" },
+    "output.start:local-record": { ok: true, message: "output=started" },
+    "output.stop": { ok: true, message: "output=stopped" },
+    "capture.stop": { ok: true, message: "capture=stopped" },
+    "audio.stop": { ok: true, message: "audio=stopped" }
+  });
+  const session = new StudioSessionManager(native);
+
+  const output = await session.outputStart("local-record");
+  assert.equal(output.ok, true);
+  assert.equal(session.snapshot().output, true);
+  assert.equal(session.snapshot().captureOwnedByOutput, true);
+  assert.equal(session.snapshot().audioOwnedByOutput, true);
+
+  const stopped = await session.outputStop();
+  assert.equal(stopped.ok, true);
+  assert.equal(session.snapshot().output, false);
+  assert.equal(session.snapshot().capture, false);
+  assert.equal(session.snapshot().audio, false);
+  assert.equal(session.snapshot().engine, false);
+  assert.equal(session.snapshot().captureOwnedByOutput, false);
+  assert.equal(session.snapshot().audioOwnedByOutput, false);
+
+  const sentTypes = native.calls
+    .filter(call => call[0] === "send")
+    .map(call => call[1].type);
+  assert.deepEqual(sentTypes, [
+    "capture.start",
+    "audio.start",
+    "output.start",
+    "output.stop",
+    "capture.stop",
+    "audio.stop"
+  ]);
+  assert.equal(native.calls.filter(call => call[0] === "stop").length, 1);
 });
 
 test("avatar contract clamps unsafe values and keeps the renderer contract stable", () => {
