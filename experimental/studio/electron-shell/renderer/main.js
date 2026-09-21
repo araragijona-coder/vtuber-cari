@@ -80,6 +80,7 @@ const chibiWorld = new ChibiWorldController($("#chibi-map"), { count: 3, seed: 4
 chibiWorld.start();
 const bundledCariAssets = await window.cari.assets.cariExpressions().catch(() => ({}));
 await actionStore.seedBundledFrames(bundledCariAssets);
+await actionStore.flush();
 
 let faceTracker = null;
 let cameraStream = null;
