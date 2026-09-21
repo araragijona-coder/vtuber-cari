@@ -1355,3 +1355,46 @@ PARTIAL: el alcance funcional del companion ya cubre el mínimo necesario para u
 5. Cambiar Scene Collection y verificar que el guard evita requests durante el cambio.
 6. Hacer sesión larga avatar + tracking + OBS y medir CPU/GPU/memoria.
 7. Mantener en paralelo el gate P0 GPU compositor → encoder para el modo standalone.
+---
+
+## LOG-037 — OBS companion control surface
+
+Fecha: 2026-09-21
+Área: OBS / Electron / UI / Continuidad
+Estado: IMPLEMENTADO / CONTRATO TESTEADO / VALIDACIÓN OBS REAL PENDIENTE
+
+### Problema
+El uso previsto puede ser OBS como streamer principal. La base debía permitir que Cari controle el flujo diario sin intentar reemplazar el encoder/mux/reconnect nativos de OBS.
+
+### Acción
+- Se auditó OBS oficialmente y se creó OBS_USAGE_AUDIT.md.
+- Se amplió ObsService con EventSubscription.InputVolumeMeters, mute/volume de inputs, Scene Items, Replay Buffer, transición por callBatch, guard durante Scene Collection changes y reconexión WebSocket acotada.
+- Se añadió preservación del password solamente en memoria durante la sesión para que el reconnect no pierda autenticación.
+- IPC/preload se ampliaron de forma explícita; no se expuso un call genérico al renderer.
+- UI incorporó controles Replay Buffer y controles operativos de audio.
+- Se corrigió el envelope OBS Main → Renderer: event.type permanece obs.event y el nombre real viaja en eventType.
+- ui-obs-contract.test.mjs se amplió para detectar regresiones del envelope y los comandos nuevos.
+
+### Investigación externa
+- OBS WebSocket está integrado en OBS Studio moderno.
+- obs-websocket-js 5.0.8 es la versión fijada del cliente y su documentación actual soporta connect con event subscriptions y callBatch.
+- InputVolumeMeters es high-volume y debe suscribirse deliberadamente.
+
+### Resultado
+PARTIAL: la superficie de control es suficiente para el flujo diario básico, pero aún no existe validación Windows/OBS real ni sesión prolongada.
+
+### NO REPETIR
+- No duplicar encoder/mux/RTMP de OBS en modo companion.
+- No crear otro scene manager paralelo.
+- No crear otro audio mixer de streaming para OBS.
+- No crear otro cliente WebSocket.
+- No implementar el reconnect de Twitch/YouTube dentro de Cari cuando OBS es el streamer principal.
+- No reabrir WGC/WASAPI/timing/tracker/renderer/FFmpeg supervisor sin regresión.
+
+### Siguiente foco
+1. Validar OBS real + contraseña + RPC 1.
+2. Validar escenas, Studio Mode, record, replay, mute/volume.
+3. Validar caída/reinicio de OBS y reconexión de Cari.
+4. Validar Scene Collection change guard.
+5. Validar sesión prolongada.
+6. Retomar P0 GPU compositor → encoder y PTS E2E del modo standalone.
