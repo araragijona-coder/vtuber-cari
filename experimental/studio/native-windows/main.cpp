@@ -795,7 +795,7 @@ void SelectWindow(HWND hwnd, std::size_t index) {
     g_selected_window_index = index;
     g_selected_window = target;
 
-    if (g_capture.is_running()) {
+    if (CaptureIsRunning()) {
         StopCaptureSource();
         if (g_capture.start_window(g_selected_window)) {
             g_capture_source = "window";
@@ -836,6 +836,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         }
         if (wparam == 'R') {
             if (g_media_enabled.load(std::memory_order_relaxed)) {
+                ResetOutputRetry();
+                StopAvatarOverlayCapture();
                 g_media_graph.stop();
                 g_media_enabled.store(false, std::memory_order_relaxed);
             } else {
