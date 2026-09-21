@@ -161,6 +161,50 @@ test("stable VAD state does not restart the frame sequence", () => {
   assert.equal(player.currentSource(), "base");
 });
 
+test("router consumes voice.activity envelopes without restarting stable VAD state", () => {
+  const store = makeStore();
+  const player = new Avatar2DFramePlayer({
+    store,
+    renderFrame: () => undefined,
+    timerFactory: () => 1,
+    clearTimer: () => undefined
+  });
+  const router = new StudioActionRouter({ actionStore: store, player });
+
+  const silent = router.handleEvent({
+    type: "voice.activity",
+    speaking: false,
+    active: true
+  });
+  assert.equal(silent?.kind, "voice");
+  assert.equal(silent?.action, "silent");
+  assert.equal(player.currentAction().id, "silent");
+
+  const stable = router.handleEvent({
+    type: "voice.activity",
+    speaking: false,
+    active: true
+  });
+  assert.equal(stable?.kind, "voice");
+  assert.equal(stable?.action, null);
+
+  const talking = router.handleEvent({
+    type: "voice.activity",
+    speaking: true,
+    active: true
+  });
+  assert.equal(talking?.action, "talking");
+  assert.equal(player.currentAction().id, "talking");
+
+  const inactive = router.handleEvent({
+    type: "voice.activity",
+    speaking: false,
+    active: false
+  });
+  assert.equal(inactive?.action, null);
+  assert.equal(player.currentSource(), "base");
+});
+
 test("router maps chat commands and Twitch EventSub events", () => {
   const store = makeStore();
   const player = new Avatar2DFramePlayer({
