@@ -117,3 +117,12 @@ A demo image is visual reference only.
 - No se atribuye regresión de código a estos failures.
 - Git compare está divergente y actualmente muestra ~1301 ahead / 67 behind; no se reescribe historia automáticamente.
 - Siguiente foco P0: validar Libav + D3D11 hardware y E2E Windows observable.
+
+## 2026-09-21 — LOG-036
+- Auditoría específica del escenario OBS-as-streamer completada.
+- Decisión: OBS conserva encoder/mux/RTMP/reconnect/escenas principales; Cari actúa como control-plane VTuber/automatización.
+- ObsService ampliado con audio controls, Scene Items, Replay Buffer, batch transition, Scene Collection guard y bounded WebSocket reconnect.
+- Corregido envelope OBS Main → Renderer: ahora usa eventType sin sobrescribir type=obs.event.
+- Contrato UI/preload actualizado.
+- OBS_USAGE_AUDIT.md añadido.
+- Porcentaje canónico se mantiene: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65.
