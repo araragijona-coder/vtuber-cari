@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, session, dialog, globalShortcut } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { pathToFileURL } = require("node:url");
@@ -72,6 +72,28 @@ for (const eventName of engineEvents) {
     else if (eventName === "log") publish({ type: "log", message: payload });
     else if (eventName === "exit") publish({ type: "exit", ...payload });
   });
+}
+
+const GLOBAL_AVATAR_HOTKEYS = Object.freeze({
+  "CommandOrControl+Alt+1": { type: "expression", value: "happy" },
+  "CommandOrControl+Alt+2": { type: "expression", value: "angry" },
+  "CommandOrControl+Alt+3": { type: "expression", value: "sad" },
+  "CommandOrControl+Alt+4": { type: "expression", value: "afraid" },
+  "CommandOrControl+Alt+0": { type: "expression", value: "neutral" },
+  "CommandOrControl+Alt+C": { type: "calibrate" },
+  "CommandOrControl+Alt+T": { type: "toggle-tracking" }
+});
+
+function registerGlobalAvatarHotkeys() {
+  for (const [accelerator, action] of Object.entries(GLOBAL_AVATAR_HOTKEYS)) {
+    globalShortcut.register(accelerator, () => {
+      publish({ type: "avatar.hotkey", ...action });
+    });
+  }
+}
+
+function unregisterGlobalAvatarHotkeys() {
+  globalShortcut.unregisterAll();
 }
 
 function createAvatarOverlayWindow() {
@@ -417,6 +439,7 @@ ipcMain.handle("app:config", event => {
 });
 
 app.whenReady().then(() => {
+  registerGlobalAvatarHotkeys();
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
     const isLocalRenderer = webContents.getURL().startsWith("file://");
     callback(isLocalRenderer && permission === "media");
@@ -434,4 +457,9 @@ app.on("window-all-closed", async () => {
   integrationHealth.stop();
   await engine.stop();
   if (process.platform !== "darwin") app.quit();
+});
+
+
+app.on("will-quit", () => {
+  unregisterGlobalAvatarHotkeys();
 });
