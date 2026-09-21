@@ -736,12 +736,13 @@ struct LibavMediaOutput::Impl {
             kSourceTimeBase,
             video_codec->time_base);
 
+        (void)subresource_index;
         std::string bridge_error;
-        AVFrame* hardware_frame = d3d11_bridge->wrap_texture(
-            texture,
-            encoder_pts,
-            subresource_index,
-            bridge_error);
+        AVFrame* hardware_frame =
+            d3d11_bridge->copy_texture_to_hwframe(
+                texture,
+                encoder_pts,
+                bridge_error);
         if (hardware_frame == nullptr) {
             ++stats.video_packets_dropped;
             set_error(
