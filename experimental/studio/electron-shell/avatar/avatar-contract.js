@@ -6,7 +6,12 @@ const DEFAULT_STATE = Object.freeze({
   gaze: Object.freeze({ x: 0, y: 0 }),
   speaking: false,
   speechLevel: 0,
-  activity: "idle"
+  activity: "idle",
+  mode: "manual",
+  movementLevel: "normal",
+  arms: "relaxed",
+  object: "none",
+  pose: "standing"
 });
 
 // Expressions are derived from the canonical Cari character bible.
@@ -19,19 +24,80 @@ export const AVATAR_EXPRESSIONS = Object.freeze([
   "embarrassed",
   "sad",
   "exhausted",
-  "confused"
+  "confused",
+  "focused"
 ]);
 
 export const AVATAR_ACTIVITIES = Object.freeze([
   "idle",
   "keyboard",
   "controller",
-  "phone"
+  "phone",
+  "pillow"
+]);
+
+export const AVATAR_MODES = Object.freeze([
+  "manual",
+  "auto-motion",
+  "camera-actions"
+]);
+
+export const MOVEMENT_LEVELS = Object.freeze([
+  "quiet",
+  "normal",
+  "restless"
+]);
+
+export const ARM_POSES = Object.freeze([
+  "relaxed",
+  "keyboard",
+  "controller",
+  "phone",
+  "hug",
+  "sleeping"
+]);
+
+export const HELD_OBJECTS = Object.freeze([
+  "none",
+  "phone",
+  "joystick",
+  "keyboard",
+  "pillow"
+]);
+
+export const AVATAR_POSES = Object.freeze([
+  "standing",
+  "sleeping"
 ]);
 
 export function normalizeActivity(activity) {
   const value = String(activity || "idle").toLowerCase();
   return AVATAR_ACTIVITIES.includes(value) ? value : "idle";
+}
+
+export function normalizeMode(mode) {
+  const value = String(mode || "manual").toLowerCase();
+  return AVATAR_MODES.includes(value) ? value : "manual";
+}
+
+export function normalizeMovementLevel(level) {
+  const value = String(level || "normal").toLowerCase();
+  return MOVEMENT_LEVELS.includes(value) ? value : "normal";
+}
+
+export function normalizeArmPose(arms) {
+  const value = String(arms || "relaxed").toLowerCase();
+  return ARM_POSES.includes(value) ? value : "relaxed";
+}
+
+export function normalizeHeldObject(object) {
+  const value = String(object || "none").toLowerCase();
+  return HELD_OBJECTS.includes(value) ? value : "none";
+}
+
+export function normalizePose(pose) {
+  const value = String(pose || "standing").toLowerCase();
+  return AVATAR_POSES.includes(value) ? value : "standing";
 }
 
 export function clamp01(value) {
@@ -70,7 +136,14 @@ export function normalizeAvatarState(previous = DEFAULT_STATE, partial = {}) {
     },
     speaking: Boolean(patch.speaking ?? source.speaking),
     speechLevel: clamp01(patch.speechLevel ?? source.speechLevel),
-    activity: normalizeActivity(patch.activity ?? source.activity)
+    activity: normalizeActivity(patch.activity ?? source.activity),
+    mode: normalizeMode(patch.mode ?? source.mode),
+    movementLevel: normalizeMovementLevel(
+      patch.movementLevel ?? source.movementLevel
+    ),
+    arms: normalizeArmPose(patch.arms ?? source.arms),
+    object: normalizeHeldObject(patch.object ?? source.object),
+    pose: normalizePose(patch.pose ?? source.pose)
   };
 }
 
@@ -87,6 +160,11 @@ export function toRenderParameters(state) {
     expression: normalized.expression,
     speaking: normalized.speaking,
     speechLevel: normalized.speechLevel,
-    activity: normalized.activity
+    activity: normalized.activity,
+    mode: normalized.mode,
+    movementLevel: normalized.movementLevel,
+    arms: normalized.arms,
+    object: normalized.object,
+    pose: normalized.pose
   };
 }
