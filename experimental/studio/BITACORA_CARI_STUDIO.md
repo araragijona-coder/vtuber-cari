@@ -205,3 +205,55 @@ Antes de agregar una función:
 ### Última actualización
 
 Esta bitácora se creó durante la implementación del runtime de avatar, privacidad de cámara, VAD/habla y actividades locales. El HEAD exacto debe consultarse en GitHub/PR al continuar.
+
+
+## Registro de esta continuación — 2026-09-21
+
+### Avatar / tracking
+- **IMPLEMENTADO:** `AvatarActingBridge` separa inputs de rostro, audio y actividad antes de componer el estado final.
+- **IMPLEMENTADO + VERIFICADO:** boca compuesta; rostro sigue aportando jawOpen, audio aporta VAD/lip-sync; el botón Hablar aplica solo una apertura mínima y el audio puede superarla.
+- **IMPLEMENTADO:** Callar usa un mute de boca duro.
+- **IMPLEMENTADO + VERIFICADO:** gaze derivado de blendshapes eye-look con smoothing.
+- **IMPLEMENTADO:** `AvatarActivityController`.
+- **IMPLEMENTADO:** idle/movimiento libre continuo.
+- **IMPLEMENTADO:** detección local de interacción de teclado y Gamepad API.
+- **IMPLEMENTADO:** actividad manual teclado/mando/móvil y modo automático.
+- **IMPLEMENTADO:** animación procedural de brazos/cuerpo para esas actividades.
+- **IMPLEMENTADO:** cámara visualmente oculta en Preview y Tracking; el vídeo solo sirve de superficie para MediaPipe.
+
+### Habla
+- **IMPLEMENTADO:** micrófono nativo con `microphone.set`.
+- **IMPLEMENTADO:** botón Hablar → audio + micrófono + acción talking.
+- **IMPLEMENTADO:** botón Auto → VAD local + lip-sync.
+- **VERIFICADO:** VAD usa histéresis/hold para evitar parpadeo de estado.
+- **NO REPETIR:** no usar Face Landmarker como detector acústico; la cámara detecta actuación facial, el audio detecta actividad de voz.
+
+### Infraestructura
+- **IMPLEMENTADO:** política de retry/backoff de output.
+- **IMPLEMENTADO:** retry solo para fallos clasificados como network.
+- **IMPLEMENTADO:** no reintentar ciegamente encoder/mux/input/permission.
+- **IMPLEMENTADO:** smoke tests de retry y clasificación.
+- **IMPLEMENTADO:** workflows con branch de desarrollo + workflow_dispatch.
+
+### Verificación local
+- `avatar-runtime.test.mjs`: PASS.
+- `MediaClock + RealtimePacer + MediaInterleaver`: PASS en evidencia previa.
+- FFmpeg sintético BGRA + PCM float32 → H.264/AAC → Matroska: PASS en evidencia previa.
+- CI GitHub sigue fallando antes de registrar steps (`steps=null`); no convertir ese resultado en “build roto” sin logs/steps.
+
+### Puntos pendientes que pasan al siguiente ciclo
+- compositor real Avatar/Three.js → frame final del encoder;
+- timestamps explícitos dentro del transporte raw;
+- compositor D3D11/GPU de producción;
+- drift correction de relojes físicos;
+- cámara Media Foundation;
+- Game Capture;
+- prueba sostenida Windows + FFmpeg + named pipes;
+- RTMP real con endpoint de prueba;
+- lip-sync por visemes/phonemes más preciso;
+- Hand Landmarker para automatizar manos/objetos;
+- validación en PC objetivo;
+- Live2D legal/redistributible y multistream.
+
+### Regla de continuidad
+No volver a implementar ninguna de las tareas de esta sección salvo que aparezca evidencia nueva de regresión.
