@@ -2672,3 +2672,46 @@ La prueba funcional del router y la persistencia ya tienen un entrypoint reprodu
 ### HEAD
 
 fb0ea2b1b29dfe82287ceb7ed7f005402a330e85
+
+
+## LOG-057 — Workflow dedicado para paquete descargable de Cari Studio — 21/09/2026
+
+Área: CI / distribución / continuidad
+Estado: IMPLEMENTADO / WORKFLOW CREADO / ARTIFACT PENDIENTE POR RUNNER
+
+### Cambio
+
+- Se añadió `.github/workflows/cari-studio-package.yml`.
+- El workflow empaqueta `experimental/studio/` como `CariStudio.zip`.
+- El artifact publicado por el workflow se llama `CariStudio-download`.
+- El paquete incluye `PACKAGE_INFO.txt` con commit, rama y fecha de generación.
+- Retención configurada: 30 días.
+- El workflow usa `actions/checkout@v6` y `actions/upload-artifact@v4`.
+- Se habilitó ejecución automática en `main` y `fix/native-windows-foundation`, además de `workflow_dispatch`.
+
+### Objetivo
+
+Este workflow separa la distribución del código fuente de la validación/build nativos. Así se puede descargar el estado exacto de Cari Studio sin depender de que el ejecutable Windows esté validado todavía.
+
+### Evidencia
+
+- El workflow fue escrito y quedó integrado en GitHub.
+- El primer run registrado fue `Cari Studio Package`, run `35638655554`.
+- Ese run terminó en `failure` antes de ejecutar steps (`steps=null`), igual que los demás workflows actuales.
+- El run no produjo artifacts.
+- Por tanto, **el paquete descargable todavía NO existe como artifact de GitHub** hasta que un runner pueda ejecutar el workflow.
+
+### NO REPETIR
+
+- No crear otro workflow paralelo para empaquetar el mismo `experimental/studio/`.
+- No confundir “workflow creado” con “artifact disponible”.
+- No volver a diagnosticar como defecto de empaquetado un run que muera antes de sus steps.
+- Cuando Actions vuelva a ejecutar correctamente, buscar primero el artifact `CariStudio-download` antes de crear otro método de distribución.
+
+### Próximo gate
+
+1. Obtener una ejecución del workflow con steps visibles.
+2. Verificar `release/CariStudio.zip`.
+3. Confirmar artifact `CariStudio-download`.
+4. Descargarlo y comprobar que contiene `experimental/studio/` completo.
+5. Separar después el paquete fuente del paquete binario Windows cuando exista build validado.
