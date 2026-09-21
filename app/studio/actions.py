@@ -30,6 +30,7 @@ class StudioAction:
         "expression": "studio_expression_requested",
         "tracking": "studio_tracking_requested",
         "command": "studio_command_requested",
+        "voice": "studio_voice_requested",
     }
 
     def __post_init__(self) -> None:
