@@ -1,6 +1,6 @@
 ## CHECKPOINT VIGENTE — 2026-09-21 — CARI V1 RUNTIME
 
-- HEAD auditado: `8b1a472fe57aa20e973a6d333acf1ddd0f63bc93`
+- HEAD auditado: consultar PR #2
 - Ingeniería: ~71% · Producto usable: ~58% · Seguimiento: ~65%
 - Avatar Cari V0/V1 procedural, Talk/Auto, VAD/lip-sync, reacciones manuales, idle y actividades keyboard/controller/phone: IMPLEMENTADOS.
 - Cámara de tracking: visualmente oculta; el frame del usuario no forma parte del output visual.
@@ -472,3 +472,17 @@ El compositor D3D11 ya compone captura + overlay, pero el frame final se hace CP
 - El atajo ya no habilita el micrófono de forma implícita.
 - Invariante: arrancar audio != arrancar micrófono.
 - Estado del gate: IMPLEMENTADO; validación de dispositivo real pendiente.
+
+
+## Arte / calidad visual
+
+- [x] Dirección artística Cari V1 documentada.
+- [x] Restricciones canónicas de Cari reconciliadas con la dirección V1.
+- [x] Gate visual medible en ART_QUALITY_GATE.md.
+- [x] Fallback procedural Three.js elevado visualmente.
+- [ ] Asset V1 final producido y aprobado.
+- [ ] Revisión visual de thumbnail/plano medio/cuerpo completo.
+- [ ] Tracking + expresiones + lip-sync sobre asset V1.
+- [ ] Validación Windows/hardware del asset V1.
+
+**No repetir:** no introducir accesorios o prendas extra para mejorar la silueta mientras contradigan el canon; resolver primero mediante proporción, color, material y construcción de las prendas ya definidas.
