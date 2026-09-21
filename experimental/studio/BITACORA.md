@@ -1954,3 +1954,99 @@ Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%. El contrato del asset 
 ### Siguiente acción
 
 Arte V1 real -> revisión visual -> rigging -> tracking -> composición -> validación.
+
+
+## LOG-047 — Pipeline Blender FBX → VRM 1.0
+
+Fecha: 2026-09-21
+Área: VTuber / Blender / VRM / Rigging / Continuidad
+Estado: IMPLEMENTADO / TEST DEFINIDO / BLENDER PENDIENTE
+
+### Problema
+
+El proyecto ya tenía contrato 3D, renderer Three.js, tracking MediaPipe, manifest de parámetros y gate artístico, pero no tenía una ruta automatizada para convertir un FBX real en un VRM 1.0 auditable. Sin este pipeline, cada importación/rigging podía repetirse manualmente y perder el contrato de Cari.
+
+### Investigación
+
+Se verificó la API actual del VRM Add-on for Blender:
+- bpy.ops.import_scene.vrm
+- bpy.ops.export_scene.vrm
+- armature.data.vrm_addon_extension
+- VRM 1.0 metadata
+- VRM 1.0 human bones
+- MToon 1
+
+También se verificó la API actual de Blender para bpy.ops.import_scene.fbx.
+
+VRM 1.0 mantiene glTF 2.0 como base y define un conjunto humanoide obligatorio; el pipeline adopta esa estructura sin inventar bones faltantes.
+
+### Implementación
+
+Se creó un único pipeline de autoría:
+
+experimental/studio/avatar-blender/
+
+Archivos:
+- cari_vrm_pipeline.py
+- cari_v1_vrm_pipeline.json
+- cari_vrm_binding.json
+- CARI_VRM_PIPELINE_SPEC.md
+- README.md
+- run-cari-vrm-pipeline.ps1
+
+Funciones:
+- importación FBX;
+- auditoría de meshes, polígonos, UV, armature y enlaces;
+- reparación determinista de vértices sin influencia;
+- normalización y límite de 4 influencias deformantes;
+- aplicación opcional de rotación/scale de meshes;
+- shape keys con namespace cari_*;
+- placeholders explícitos para mouth/blink/expresiones;
+- mapping Humanoid VRM 1.0;
+- metadata VRM configurable;
+- MToon 1 configurable;
+- export VRM;
+- reimport audit;
+- reporte JSON;
+- staging .blend.
+
+Se añadió además:
+- test contractual fuera de Blender;
+- gate CI de py_compile;
+- validación JSON del pipeline;
+- documentación específica de arquitectura y estados de evidencia.
+
+### Regla de seguridad artística
+
+Los shape keys creados automáticamente son PLACEHOLDER. No se declaran como deformaciones faciales reales.
+
+El pipeline no genera un modelo propietario, no copia runtimes Live2D/Cubism y no cambia el contrato de actuación backend-neutral.
+
+### Evidencia
+
+- La especificación y scripts fueron integrados al branch.
+- El entorno de ejecución utilizado para esta auditoría no contiene Blender instalado; por eso la ejecución FBX→VRM y la reimportación todavía requieren Windows + Blender + VRM Add-on.
+- El pipeline queda diseñado para continuar automáticamente en el entorno del usuario sin bloquear el proyecto por la ausencia local de Blender.
+- El test de contrato y el py_compile quedan preparados para CI; la observabilidad de GitHub Actions sigue siendo el gate externo pendiente.
+
+### Resultado
+
+IMPLEMENTADO: pipeline de authoring.
+PENDIENTE: ejecutar con FBX real, revisar arte/weights, completar shape keys, validar Humanoid/MToon, exportar y reimportar en Blender.
+
+### NO REPETIR
+
+- No crear otro pipeline Blender.
+- No crear otro manifest de bones.
+- No crear otro namespace de shape keys.
+- No crear otro renderer Three.js.
+- No crear otro tracker MediaPipe.
+- No convertir placeholders en evidencia de rig facial real.
+- No modificar porcentajes solo por cantidad de archivos.
+- No copiar VRM Add-on ni Cubism Core al repositorio.
+
+### Siguiente acción
+
+P0 del avatar:
+FBX real aprobado → ejecutar pipeline → corregir warnings/errors → completar rig facial → export VRM 1.0 → reimport audit → cargar en ThreeAvatarRenderer → tracking → lip-sync → compositor.
+
