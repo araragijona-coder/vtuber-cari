@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "asset_id": "cari-base-v1",
+  "source_of_truth": "assets/cari/2d/parameter-manifest.json",
+  "vrm_version": "1.0",
+  "expressions": {
+    "mouth.open": "cari_mouth_open",
+    "eye.blink.L": "cari_blink_l",
+    "eye.blink.R": "cari_blink_r",
+    "expression.happy": "cari_happy",
+    "expression.angry": "cari_angry",
+    "expression.sad": "cari_sad",
+    "expression.surprised": "cari_surprised",
+    "expression.embarrassed": "cari_embarrassed",
+    "expression.sleepy": "cari_sleepy",
+    "expression.talking": "cari_talking"
+  },
+  "physics": {
+    "pony.sway": "pony_sway",
+    "ahoge.sway": "ahoge_sway",
+    "hair.side.L.sway": "hair_side_l_sway",
+    "hair.side.R.sway": "hair_side_r_sway"
+  }
+}

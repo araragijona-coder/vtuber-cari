@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "asset_id": "cari-base-art-v0",
+  "state": "BASE_ART_V0",
+  "canvas": {
+    "width": 128,
+    "height": 160,
+    "transparent": true
+  },
+  "character": "Cari",
+  "expressions": {
+    "neutral": "cari_neutral.png",
+    "happy": "cari_happy.png",
+    "angry": "cari_angry.png"
+  },
+  "rules": {
+    "skin": "morena",
+    "hair": "marron medio, largo medio, cola de caballo",
+    "inner_hair": "marron claro",
+    "eyes": "marrones con pupilas blancas redondas",
+    "face": ["curita en la nariz"],
+    "hair_rules": ["ahoge centrado", "sin diademas", "sin hairpins"],
+    "clothing": ["ropa deportiva de corredora", "remera ajustada o atada a la cintura", "minishorts o bike-shorts negros"],
+    "forbidden_extras": ["accesorios", "objetos extra", "prendas extra"],
+    "style": "semi-chibi 2D/3D intermedio, no realista, no anime extremo"
+  }
+}

@@ -1,0 +1,275 @@
+#include "ffmpeg_av_output.h"
+
+#include "../core/output_profile.h"
+
+#include <windows.h>
+
+#include <atomic>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace cari::native {
+
+namespace {
+
+std::wstring widen_utf8(const std::string& value) {
+    if (value.empty()) {
+        return {};
+    }
+    const int required = MultiByteToWideChar(
+        CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()), nullptr, 0);
+    if (required <= 0) {
+        return {};
+    }
+
+    std::wstring result(static_cast<std::size_t>(required), L'\\0');
+    if (MultiByteToWideChar(
+            CP_UTF8, MB_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()),
+            result.data(), required) != required) {
+        return {};
+    }
+    return result;
+}
+
+std::string narrow_utf8(const std::wstring& value) {
+    if (value.empty()) {
+        return {};
+    }
+    const int required = WideCharToMultiByte(
+        CP_UTF8, WC_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()),
+        nullptr, 0, nullptr, nullptr);
+    if (required <= 0) {
+        return {};
+    }
+
+    std::string result(static_cast<std::size_t>(required), '\\0');
+    if (WideCharToMultiByte(
+            CP_UTF8, WC_ERR_INVALID_CHARS, value.data(), static_cast<int>(value.size()),
+            result.data(), required, nullptr, nullptr) != required) {
+        return {};
+    }
+    return result;
+}
+
+std::wstring make_pipe_name(const wchar_t* stream_name) {
+    static std::atomic<unsigned long> sequence{0};
+    const auto id = sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    return L"\\\\.\\pipe\\cari-studio-" +
+           std::to_wstring(GetCurrentProcessId()) +
+           L"-" + std::to_wstring(id) +
+           L"-" + stream_name;
+}
+
+} // namespace
+
+FfmpegAvOutput::~FfmpegAvOutput() {
+    stop();
+}
+
+bool FfmpegAvOutput::start(
+    const cari::studio::core::OutputProfile& profile,
+    std::uint32_t audio_sample_rate,
+    std::uint16_t audio_channels,
+    std::size_t max_video_pending_bytes,
+    std::size_t max_audio_pending_bytes,
+    const std::wstring& ffmpeg_executable,
+    const std::wstring& working_directory) {
+    stop();
+    stderr_text_.clear();
+    last_error_.clear();
+    exit_code_ = 0;
+
+    const auto validation = cari::studio::core::validate_output_profile(profile);
+    if (!validation.valid) {
+        fail(validation.error.c_str());
+        return false;
+    }
+    if (audio_sample_rate == 0 || audio_channels == 0) {
+        fail("audio sample rate and channel count must be non-zero");
+        return false;
+    }
+
+    if (!start_pipes(max_video_pending_bytes, max_audio_pending_bytes)) {
+        state_ = FfmpegAvOutputState::failed;
+        return false;
+    }
+
+    const cari::studio::core::RawMediaInputs inputs{
+        .video_input = narrow_utf8(video_pipe_name()),
+        .audio_input = narrow_utf8(audio_pipe_name()),
+        .audio_sample_rate = audio_sample_rate,
+        .audio_channels = audio_channels,
+    };
+
+    const auto command = cari::studio::core::build_ffmpeg_av_command(profile, inputs);
+    std::vector<std::wstring> arguments;
+    arguments.reserve(command.arguments.size());
+    for (const auto& argument : command.arguments) {
+        arguments.push_back(widen_utf8(argument));
+    }
+
+    state_ = FfmpegAvOutputState::starting;
+    if (!process_.start_with_stderr_capture(
+            ffmpeg_executable, arguments, working_directory)) {
+        fail("failed to create FFmpeg A/V process");
+        video_pipe_.close();
+        audio_pipe_.close();
+        state_ = FfmpegAvOutputState::failed;
+        return false;
+    }
+
+    poll();
+    return state_ != FfmpegAvOutputState::failed;
+}
+
+bool FfmpegAvOutput::start_pipes(
+    std::size_t max_video_pending_bytes,
+    std::size_t max_audio_pending_bytes) {
+    if (!video_pipe_.create(make_pipe_name(L"video"), max_video_pending_bytes)) {
+        fail(video_pipe_.last_error().empty()
+                 ? "failed to create video raw pipe"
+                 : video_pipe_.last_error().c_str());
+        return false;
+    }
+    if (!audio_pipe_.create(make_pipe_name(L"audio"), max_audio_pending_bytes)) {
+        fail(audio_pipe_.last_error().empty()
+                 ? "failed to create audio raw pipe"
+                 : audio_pipe_.last_error().c_str());
+        video_pipe_.close();
+        return false;
+    }
+    return true;
+}
+
+bool FfmpegAvOutput::append_stderr(std::string_view chunk) noexcept {
+    if (chunk.empty()) {
+        return true;
+    }
+
+    try {
+        if (chunk.size() >= kMaxStderrBytes) {
+            stderr_text_.assign(
+                chunk.data() + (chunk.size() - kMaxStderrBytes),
+                kMaxStderrBytes);
+            return true;
+        }
+
+        const auto required = stderr_text_.size() + chunk.size();
+        if (required > kMaxStderrBytes) {
+            const auto remove = required - kMaxStderrBytes;
+            stderr_text_.erase(0, remove);
+        }
+        stderr_text_.append(chunk.data(), chunk.size());
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+bool FfmpegAvOutput::poll() noexcept {
+    if (state_ != FfmpegAvOutputState::starting &&
+        state_ != FfmpegAvOutputState::running) {
+        return true;
+    }
+
+    if (!video_pipe_.connected()) {
+        video_pipe_.wait_for_client(0);
+    }
+    if (!audio_pipe_.connected()) {
+        audio_pipe_.wait_for_client(0);
+    }
+
+    if (!video_pipe_.poll() || !audio_pipe_.poll()) {
+        fail("raw A/V pipe polling failed");
+        state_ = FfmpegAvOutputState::failed;
+        return false;
+    }
+
+    std::string chunk;
+    if (!process_.drain_stderr(chunk)) {
+        fail("failed to drain FFmpeg A/V stderr");
+        state_ = FfmpegAvOutputState::failed;
+        return false;
+    }
+    if (!append_stderr(chunk)) {
+        state_ = FfmpegAvOutputState::failed;
+        return false;
+    }
+
+    const auto result = process_.wait(0);
+    if (result.exited) {
+        exit_code_ = result.exit_code;
+        std::string final_chunk;
+        if (process_.drain_stderr(final_chunk)) {
+            if (!append_stderr(final_chunk)) {
+                state_ = FfmpegAvOutputState::failed;
+                return true;
+            }
+        }
+        state_ = (exit_code_ == 0)
+            ? FfmpegAvOutputState::exited
+            : FfmpegAvOutputState::failed;
+        if (state_ == FfmpegAvOutputState::failed && last_error_.empty()) {
+            last_error_ = "FFmpeg A/V process exited with a non-zero code";
+        }
+        return true;
+    }
+
+    if (connected()) {
+        state_ = FfmpegAvOutputState::running;
+    }
+    return true;
+}
+
+bool FfmpegAvOutput::write_video(const std::uint8_t* data, std::size_t size) noexcept {
+    if (!running() || !video_pipe_.connected()) {
+        return false;
+    }
+    return video_pipe_.write(data, size);
+}
+
+bool FfmpegAvOutput::write_audio(const std::uint8_t* data, std::size_t size) noexcept {
+    if (!running() || !audio_pipe_.connected()) {
+        return false;
+    }
+    return audio_pipe_.write(data, size);
+}
+
+void FfmpegAvOutput::stop() noexcept {
+    // Close both raw inputs before terminating FFmpeg. EOF lets FFmpeg flush
+    // encoders and finalize the muxer, which is especially important for local
+    // recordings. Only escalate to TerminateProcess if graceful shutdown does
+    // not complete within the bounded timeout.
+    video_pipe_.close();
+    audio_pipe_.close();
+
+    if (process_.running()) {
+        const auto graceful = process_.wait(1500);
+        if (graceful.exited) {
+            exit_code_ = graceful.exit_code;
+        } else {
+            process_.terminate();
+            const auto forced = process_.wait(1000);
+            if (forced.exited) {
+                exit_code_ = forced.exit_code;
+            }
+        }
+    }
+
+    std::string final_chunk;
+    if (process_.captures_stderr() && process_.drain_stderr(final_chunk)) {
+        append_stderr(final_chunk);
+    }
+
+    if (state_ == FfmpegAvOutputState::running ||
+        state_ == FfmpegAvOutputState::starting) {
+        state_ = FfmpegAvOutputState::stopped;
+    }
+}
+
+void FfmpegAvOutput::fail(const char* message) noexcept {
+    last_error_ = message ? message : "native FFmpeg A/V output error";
+}
+
+} // namespace cari::native

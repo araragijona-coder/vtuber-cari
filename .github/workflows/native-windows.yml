@@ -29,6 +29,29 @@ jobs:
           choco install ffmpeg -y --no-progress
           ffmpeg -version
 
+      - name: Validate Windows setup scripts
+        shell: pwsh
+        run: |
+          $files = @(
+            'experimental/studio/tools/windows/Cari-Setup.ps1',
+            'experimental/studio/tools/windows/Cari-PC-Audit.ps1',
+            'experimental/studio/electron-shell/run-local.ps1'
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Join-Path $env:GITHUB_WORKSPACE $file),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              exit 1
+            }
+          }
+          Write-Host 'PowerShell setup scripts syntax: PASS'
+
       - name: Configure CMake
         run: cmake -S . -B build -A x64
 
@@ -88,6 +111,21 @@ jobs:
       - name: Run control protocol smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-control-protocol-smoke
 
+      - name: Verify root Cari Studio launcher exists
+        shell: pwsh
+        run: |
+          $launcher = Join-Path $env:GITHUB_WORKSPACE 'CariStudioLauncher.exe'
+          if (-not (Test-Path -LiteralPath $launcher)) {
+            throw "Root launcher was not produced: $launcher"
+          }
+          Get-Item $launcher | Select-Object FullName, Length
+
+      - name: Upload root Cari Studio launcher
+        uses: actions/upload-artifact@v4
+        with:
+          name: CariStudioLauncher-Windows-x64
+          path: CariStudioLauncher.exe
+          if-no-files-found: error
       - name: Verify native executable exists
         shell: pwsh
         run: |

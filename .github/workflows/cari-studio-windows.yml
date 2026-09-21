@@ -1,0 +1,40 @@
+name: Cari Studio Windows Installer
+
+on:
+  push:
+    branches: [main, "fix/native-windows-foundation"]
+    paths:
+      - 'experimental/studio/native-windows/**'
+      - 'experimental/studio/core/**'
+      - '.github/workflows/cari-studio-windows.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'experimental/studio/native-windows/**'
+      - 'experimental/studio/core/**'
+      - 'experimental/studio/electron-shell/**'
+      - '.github/workflows/cari-studio-windows.yml'
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: experimental/studio/electron-shell
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build native engine
+        shell: cmd
+        run: scripts\package.cmd
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cari-Studio-Windows-Installer
+          path: experimental/studio/electron-shell/dist/*.exe
+          if-no-files-found: error

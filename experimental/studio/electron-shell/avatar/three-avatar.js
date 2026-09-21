@@ -1,0 +1,925 @@
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+const MORPH_ALIASES = {
+  mouthOpen: ["jawOpen", "mouthOpen", "MouthOpen", "viseme_aa"],
+  blinkLeft: ["eyeBlinkLeft", "blinkLeft", "Blink_L", "EyeBlink_L"],
+  blinkRight: ["eyeBlinkRight", "blinkRight", "Blink_R", "EyeBlink_R"],
+  smileLeft: ["mouthSmileLeft", "smileLeft", "Smile_L"],
+  smileRight: ["mouthSmileRight", "smileRight", "Smile_R"],
+  frownLeft: ["mouthFrownLeft", "frownLeft", "Frown_L"],
+  frownRight: ["mouthFrownRight", "frownRight", "Frown_R"],
+  browDownLeft: ["browDownLeft", "BrowDown_L"],
+  browDownRight: ["browDownRight", "BrowDown_R"],
+  eyeWideLeft: ["eyeWideLeft", "EyeWide_L"],
+  eyeWideRight: ["eyeWideRight", "EyeWide_R"]
+};
+
+export class ThreeAvatarRenderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+      powerPreference: "high-performance"
+    });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
+
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+    this.camera.position.set(0, 1.45, 5.6);
+
+    this.scene.add(new THREE.HemisphereLight(0xfff8fb, 0x4c3f45, 2.1));
+
+    const key = new THREE.DirectionalLight(0xfff7ef, 2.8);
+    key.position.set(-2.6, 4.4, 5.0);
+    this.scene.add(key);
+
+    const fill = new THREE.DirectionalLight(0xdde9ff, 1.2);
+    fill.position.set(3.2, 2.2, 2.4);
+    this.scene.add(fill);
+
+    const rim = new THREE.DirectionalLight(0xffffff, 1.45);
+    rim.position.set(0.5, 3.8, -4.0);
+    this.scene.add(rim);
+
+    this.root = new THREE.Group();
+    this.scene.add(this.root);
+
+    this.avatar = null;
+    this.placeholder = this.#createPlaceholder();
+    this.placeholderParts = this.placeholder.userData.parts;
+    this.placeholderFace = this.placeholder.userData.face;
+
+    this.morphTargets = [];
+    this.activity = "idle";
+    this.currentParams = {
+      headYaw: 0,
+      headPitch: 0,
+      headRoll: 0,
+      speaking: false,
+      speechLevel: 0,
+      activity: "idle"
+    };
+    this.resizeObserver = new ResizeObserver(() => this.#resize());
+    this.resizeObserver.observe(canvas);
+    this.#resize();
+  }
+
+  async load(url) {
+    const gltf = await new GLTFLoader().loadAsync(url);
+    if (this.avatar) this.root.remove(this.avatar);
+
+    this.avatar = gltf.scene;
+    this.root.add(this.avatar);
+    this.root.remove(this.placeholder);
+    this.morphTargets = collectMorphTargets(this.avatar);
+    this.#frameObject(this.avatar);
+    return this.avatar;
+  }
+
+  apply(params) {
+    const target = this.avatar || this.placeholder;
+    this.currentParams = { ...this.currentParams, ...(params || {}) };
+    this.activity = String(params?.activity || this.activity || "idle");
+    if (this.avatar) {
+      target.rotation.y = params.headYaw || 0;
+      target.rotation.x = params.headPitch || 0;
+      target.rotation.z = params.headRoll || 0;
+    } else {
+      this.placeholderFace.rotation.y = params.headYaw || 0;
+      this.placeholderFace.rotation.x = params.headPitch || 0;
+      this.placeholderFace.rotation.z = params.headRoll || 0;
+    }
+
+    const mouthOpen = clamp01(params.mouthOpen || 0);
+    const blink = clamp01(params.blink || 0);
+    const expression = params.expression || "neutral";
+
+    target.userData.cari = params;
+    target.userData.expression = expression;
+
+    if (this.avatar) {
+      applyMorph(this.morphTargets, "mouthOpen", mouthOpen);
+      applyMorph(this.morphTargets, "blinkLeft", blink);
+      applyMorph(this.morphTargets, "blinkRight", blink);
+      applyMorph(
+        this.morphTargets,
+        "smileLeft",
+        expression === "happy" ? 0.85 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "smileRight",
+        expression === "happy" ? 0.85 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "frownLeft",
+        expression === "sad" ? 0.75 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "frownRight",
+        expression === "sad" ? 0.75 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "browDownLeft",
+        expression === "angry" ? 0.75 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "browDownRight",
+        expression === "angry" ? 0.75 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "eyeWideLeft",
+        expression === "afraid" ? 0.7 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "eyeWideRight",
+        expression === "afraid" ? 0.7 : 0
+      );
+      return;
+    }
+
+    const expressionPose = placeholderExpressionPose(expression);
+
+    const blinkScale = Math.max(0.12, 1 - blink * 0.88);
+    const emotionEyeScale = expressionPose.eyeScale;
+    this.placeholderParts.leftEye.scale.y = blinkScale * emotionEyeScale;
+    this.placeholderParts.rightEye.scale.y = blinkScale * emotionEyeScale;
+
+    if (this.placeholderParts.leftPupil && this.placeholderParts.rightPupil) {
+      const gazeX = Number(params.eyeX) || 0;
+      const gazeY = Number(params.eyeY) || 0;
+      const pupilX = gazeX * 0.026;
+      const pupilY = gazeY * 0.020;
+      this.placeholderParts.leftPupil.position.x = -0.14 + pupilX;
+      this.placeholderParts.rightPupil.position.x = 0.14 + pupilX;
+      this.placeholderParts.leftPupil.position.y = 0.03 - pupilY;
+      this.placeholderParts.rightPupil.position.y = 0.03 - pupilY;
+    }
+
+    this.placeholderParts.mouth.scale.y =
+      0.5 + (mouthOpen * expressionPose.mouthScale);
+    this.placeholderParts.mouth.scale.x = expressionPose.mouthWidth;
+    this.placeholderParts.mouth.rotation.z = expressionPose.mouthRotation;
+    this.placeholderParts.mouth.position.y = -0.12 + expressionPose.mouthY;
+
+    if (this.placeholderParts.leftShoulder && this.placeholderParts.rightShoulder) {
+      this.placeholderParts.leftShoulder.rotation.z =
+        -0.08 - expressionPose.shoulderLift;
+      this.placeholderParts.rightShoulder.rotation.z =
+        0.08 + expressionPose.shoulderLift;
+    }
+
+    if (this.placeholderParts.head) {
+      this.placeholderParts.head.position.x = expressionPose.headOffsetX;
+      this.placeholderParts.head.position.y = 2.30 + expressionPose.headOffsetY;
+      this.placeholderParts.head.rotation.z = expressionPose.headRoll;
+    }
+
+    this.placeholderFace.position.z = 0.36 + expressionPose.faceForward;
+  }
+
+  setActivity(activity = "idle") {
+    const normalized = ["idle", "keyboard", "controller", "phone", "pillow"].includes(String(activity))
+      ? String(activity)
+      : "idle";
+    this.activity = normalized;
+    this.currentParams.activity = normalized;
+  }
+
+  render(timestampMs = performance.now()) {
+    this.#applyFreeMotion(Number(timestampMs) || performance.now());
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  #applyFreeMotion(timestampMs) {
+    const t = timestampMs / 1000;
+    const activity = this.activity;
+    const speaking = this.currentParams.speaking === true;
+    const movementLevel = String(this.currentParams.movementLevel || "normal");
+    const movementScale =
+      movementLevel === "quiet" ? 0.45 :
+      movementLevel === "restless" ? 1.7 :
+      1.0;
+    const heldObject = String(this.currentParams.object || "none");
+    const armPose = String(this.currentParams.arms || "relaxed");
+    const pose = String(this.currentParams.pose || "standing");
+
+    if (!this.avatar) {
+      const group = this.placeholder;
+      const parts = this.placeholderParts;
+      if (!group || !parts) return;
+
+      const breath = Math.sin(t * 2.1) * 0.012 * movementScale;
+      const sway = Math.sin(t * 0.72 + 0.8) * 0.018 * movementScale;
+      const headSway = Math.sin(t * 1.15) * 0.012 * movementScale;
+      const speakBob = speaking
+        ? Math.sin(t * (5.5 + this.currentParams.speechLevel * 4)) * 0.010
+        : 0;
+
+      group.position.y = 0.08 + breath;
+      group.rotation.z = sway;
+      this.placeholderFace.rotation.y =
+        Number(this.currentParams.headYaw || 0) + headSway;
+      parts.torso.rotation.z = sway * 0.65;
+
+      const baseShoulder = Number(
+        placeholderExpressionPose(this.currentParams.expression || "neutral").shoulderLift
+      ) || 0;
+
+      const keyboardPulse = Math.sin(t * 8.5) * 0.08 * movementScale;
+      const controllerPulse = Math.sin(t * 3.5) * 0.045 * movementScale;
+      const phonePulse = Math.sin(t * 2.2) * 0.025 * movementScale;
+
+      let leftShoulder = -0.08 - baseShoulder;
+      let rightShoulder = 0.08 + baseShoulder;
+      let leftElbow = 0;
+      let rightElbow = 0;
+      let leftHandY = -0.48;
+      let rightHandY = -0.48;
+      let leftHandZ = 0;
+      let rightHandZ = 0;
+
+      if (activity === "keyboard" || armPose === "keyboard") {
+        leftShoulder += -0.16 - keyboardPulse * 0.35;
+        rightShoulder += 0.16 + keyboardPulse * 0.35;
+        leftElbow = 0.50 + keyboardPulse;
+        rightElbow = -0.50 - keyboardPulse;
+        leftHandY += 0.16;
+        rightHandY += 0.16;
+        leftHandZ = 0.10;
+        rightHandZ = 0.10;
+      } else if (activity === "controller" || armPose === "controller") {
+        leftShoulder += -0.22 - controllerPulse;
+        rightShoulder += 0.22 + controllerPulse;
+        leftElbow = 0.36 + controllerPulse;
+        rightElbow = -0.36 - controllerPulse;
+        leftHandY += 0.08;
+        rightHandY += 0.08;
+        leftHandZ = 0.14;
+        rightHandZ = 0.14;
+      } else if (activity === "phone" || armPose === "phone") {
+        rightShoulder += 0.28 + phonePulse;
+        rightElbow = -0.95 - phonePulse;
+        rightHandY += 0.22;
+        rightHandZ = 0.18;
+        leftShoulder += -0.02;
+        leftElbow = 0.10;
+      } else if (activity === "pillow" || armPose === "hug") {
+        leftShoulder += -0.18;
+        rightShoulder += 0.18;
+        leftElbow = 0.78;
+        rightElbow = -0.78;
+        leftHandY += 0.20;
+        rightHandY += 0.20;
+        leftHandZ = 0.20;
+        rightHandZ = 0.20;
+      }
+
+      if (pose === "sleeping") {
+        this.placeholderFace.rotation.x = 0.10;
+        this.placeholderFace.rotation.z = 0.04;
+        parts.torso.rotation.z = 0.03;
+        leftShoulder = -0.42;
+        rightShoulder = 0.42;
+        leftElbow = 0.70;
+        rightElbow = -0.70;
+        leftHandY = -0.20;
+        rightHandY = -0.20;
+        leftHandZ = 0.22;
+        rightHandZ = 0.22;
+      }
+
+      if (parts.leftShoulder) parts.leftShoulder.rotation.z = leftShoulder;
+      if (parts.rightShoulder) parts.rightShoulder.rotation.z = rightShoulder;
+      if (parts.leftElbow) parts.leftElbow.rotation.z = leftElbow;
+      if (parts.rightElbow) parts.rightElbow.rotation.z = rightElbow;
+
+      if (parts.leftHand) {
+        parts.leftHand.position.y = leftHandY;
+        parts.leftHand.position.z = leftHandZ;
+      }
+      if (parts.rightHand) {
+        parts.rightHand.position.y = rightHandY;
+        parts.rightHand.position.z = rightHandZ;
+      }
+
+      if (parts.heldObject) {
+        const object = parts.heldObject;
+        const active = new Set(["phone", "joystick", "keyboard", "pillow"]);
+        for (const name of active) {
+          if (object[name]) object[name].visible = heldObject === name;
+        }
+        if (object.joystick && heldObject === "joystick") {
+          object.joystick.rotation.z = Math.sin(t * 3.5) * 0.08;
+        }
+      }
+
+      parts.head.position.y =
+        2.30 + placeholderExpressionPose(this.currentParams.expression || "neutral").headOffsetY;
+      parts.head.position.x =
+        placeholderExpressionPose(this.currentParams.expression || "neutral").headOffsetX;
+      parts.head.rotation.z =
+        placeholderExpressionPose(this.currentParams.expression || "neutral").headRoll;
+      this.placeholderFace.rotation.x =
+        Number(this.currentParams.headPitch || 0);
+      this.placeholderFace.rotation.z =
+        Number(this.currentParams.headRoll || 0) +
+        placeholderExpressionPose(this.currentParams.expression || "neutral").headRoll;
+
+      group.position.z = 0;
+      group.userData.speakingBob = speakBob;
+      return;
+    }
+
+    this.root.position.y = Math.sin(t * 2.0) * 0.010;
+    this.root.rotation.z = Math.sin(t * 0.67) * 0.012;
+    this.avatar.rotation.y =
+      Number(this.currentParams.headYaw || 0) + Math.sin(t * 1.05) * 0.008;
+    this.avatar.rotation.x =
+      Number(this.currentParams.headPitch || 0) + Math.sin(t * 0.83) * 0.006;
+  }
+
+  dispose() {
+    this.resizeObserver.disconnect();
+
+    if (this.avatar) disposeObject(this.avatar);
+    disposeObject(this.placeholder);
+    this.renderer.dispose();
+  }
+
+  #frameObject(object) {
+    const bounds = new THREE.Box3().setFromObject(object);
+    if (bounds.isEmpty()) return;
+
+    const center = bounds.getCenter(new THREE.Vector3());
+    const size = bounds.getSize(new THREE.Vector3());
+    const height = Math.max(size.y, 0.5);
+    const distance =
+      (height * 0.58) / Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5));
+
+    this.camera.position.set(center.x, center.y + height * 0.04, center.z + distance);
+    this.camera.lookAt(center.x, center.y + height * 0.02, center.z);
+    this.camera.near = Math.max(0.01, distance / 100);
+    this.camera.far = Math.max(100, distance * 20);
+    this.camera.updateProjectionMatrix();
+  }
+
+  #resize() {
+    const width = Math.max(1, this.canvas.clientWidth);
+    const height = Math.max(1, this.canvas.clientHeight);
+    this.renderer.setSize(width, height, false);
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+  }
+
+  #createPlaceholder() {
+    // Full-body technical fallback. This is deliberately not the final Cari
+    // artwork: the canonical visual design is still undefined. The fallback
+    // gives us a complete VTuber silhouette, articulation points and asset
+    // mounting locations so tracking/composition can be validated now.
+    const group = new THREE.Group();
+    group.name = "CariV0Avatar";
+    group.position.y = 0.08;
+
+    const toon = (color) => new THREE.MeshToonMaterial({
+      color,
+      transparent: false
+    });
+
+    const skinMaterial = toon(0xb98263);
+    const shirtMaterial = toon(0x4f6f7d);
+    const shortsMaterial = toon(0x15171b);
+    const hairMaterial = toon(0x6d432b);
+    const innerHairMaterial = toon(0x9a6a46);
+    const eyeWhiteMaterial = toon(0xf7f4ee);
+    const brownEyeMaterial = toon(0x5a3826);
+    const pupilWhiteMaterial = toon(0xffffff);
+    const highlightMaterial = toon(0xffffff);
+    const bandageMaterial = toon(0xe8ddd0);
+    const shirtAccentMaterial = toon(0x9db5c5);
+
+    const root = new THREE.Group();
+    root.name = "root";
+    group.add(root);
+
+    const hips = new THREE.Group();
+    hips.name = "hips";
+    hips.position.y = 0.95;
+    root.add(hips);
+
+    const torso = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.34, 0.72, 8, 20),
+      shirtMaterial
+    );
+    torso.name = "torso";
+    torso.scale.set(1.15, 1.0, 0.82);
+    torso.position.y = 1.42;
+    hips.add(torso);
+
+    const neck = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11, 0.13, 0.18, 20),
+      skinMaterial
+    );
+    neck.name = "neck";
+    neck.position.y = 1.88;
+    hips.add(neck);
+
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.40, 48, 32),
+      skinMaterial
+    );
+    head.name = "head";
+    head.scale.set(0.94, 1.07, 0.90);
+    head.position.set(0, 2.30, 0);
+    hips.add(head);
+
+    const face = new THREE.Group();
+    face.name = "face";
+    face.position.set(0, 2.30, 0.36);
+    hips.add(face);
+
+    const eyeGeometry = new THREE.SphereGeometry(0.072, 28, 18);
+    const irisGeometry = new THREE.SphereGeometry(0.046, 24, 16);
+    const highlightGeometry = new THREE.SphereGeometry(0.012, 16, 12);
+
+    const leftEye = new THREE.Mesh(eyeGeometry, eyeWhiteMaterial);
+    leftEye.name = "leftEye";
+    leftEye.position.set(-0.14, 0.03, 0.02);
+    leftEye.scale.set(1.0, 1.12, 0.72);
+    face.add(leftEye);
+
+    const leftIris = new THREE.Mesh(irisGeometry, brownEyeMaterial);
+    leftIris.name = "leftIris";
+    leftIris.position.set(-0.14, 0.03, 0.074);
+    leftIris.scale.set(1.0, 1.16, 0.42);
+    face.add(leftIris);
+
+    const leftPupil = new THREE.Mesh(
+      new THREE.SphereGeometry(0.022, 18, 14),
+      pupilWhiteMaterial
+    );
+    leftPupil.name = "leftPupil";
+    leftPupil.position.set(-0.14, 0.035, 0.098);
+    leftPupil.scale.set(0.82, 1.0, 0.46);
+    face.add(leftPupil);
+
+    const leftHighlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+    leftHighlight.name = "leftEyeHighlight";
+    leftHighlight.position.set(-0.122, 0.064, 0.108);
+    face.add(leftHighlight);
+
+    const rightEye = new THREE.Mesh(eyeGeometry, eyeWhiteMaterial);
+    rightEye.name = "rightEye";
+    rightEye.position.set(0.14, 0.03, 0.02);
+    rightEye.scale.set(1.0, 1.12, 0.72);
+    face.add(rightEye);
+
+    const rightIris = new THREE.Mesh(irisGeometry, brownEyeMaterial);
+    rightIris.name = "rightIris";
+    rightIris.position.set(0.14, 0.03, 0.074);
+    rightIris.scale.set(1.0, 1.16, 0.42);
+    face.add(rightIris);
+
+    const rightPupil = new THREE.Mesh(
+      new THREE.SphereGeometry(0.022, 18, 14),
+      pupilWhiteMaterial
+    );
+    rightPupil.name = "rightPupil";
+    rightPupil.position.set(0.14, 0.035, 0.098);
+    rightPupil.scale.set(0.82, 1.0, 0.46);
+    face.add(rightPupil);
+
+    const rightHighlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+    rightHighlight.name = "rightEyeHighlight";
+    rightHighlight.position.set(0.122, 0.064, 0.108);
+    face.add(rightHighlight);
+
+    const mouth = new THREE.Mesh(
+      new THREE.TorusGeometry(0.073, 0.014, 12, 32, Math.PI),
+      brownEyeMaterial
+    );
+    mouth.name = "mouth";
+    mouth.rotation.z = Math.PI;
+    mouth.position.set(0, -0.12, 0.02);
+    face.add(mouth);
+
+    const hair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.43, 40, 24, 0, Math.PI * 2, 0, Math.PI * 0.56),
+      hairMaterial
+    );
+    hair.name = "hair";
+    hair.scale.set(1.02, 1.18, 0.98);
+    hair.position.set(0, 2.43, -0.035);
+    hips.add(hair);
+
+    const innerHair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.33, 32, 18, 0, Math.PI * 2, 0.28, Math.PI * 0.38),
+      innerHairMaterial
+    );
+    innerHair.name = "innerHair";
+    innerHair.scale.set(1.0, 1.0, 0.72);
+    innerHair.position.set(0, 2.31, 0.11);
+    face.add(innerHair);
+
+    const fringeGroup = new THREE.Group();
+    fringeGroup.name = "fringe";
+    const fringeAngles = [-0.42, -0.21, 0, 0.21, 0.42];
+    for (const angle of fringeAngles) {
+      const lock = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.055, 0.34, 6, 14),
+        hairMaterial
+      );
+      lock.scale.set(0.82, 1.0, 0.60);
+      lock.position.set(Math.sin(angle) * 0.30, 2.59 - Math.abs(angle) * 0.08, 0.20);
+      lock.rotation.z = -angle * 0.7;
+      fringeGroup.add(lock);
+    }
+    hips.add(fringeGroup);
+
+    const ponytail = new THREE.Group();
+    ponytail.name = "ponytail";
+    ponytail.position.set(0, 2.19, -0.20);
+    hips.add(ponytail);
+
+    const ponytailMass = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.16, 0.42, 6, 14),
+      hairMaterial
+    );
+    ponytailMass.rotation.x = -0.28;
+    ponytailMass.rotation.z = 0.08;
+    ponytail.add(ponytailMass);
+
+    const ponytailTie = new THREE.Mesh(
+      new THREE.TorusGeometry(0.07, 0.018, 10, 18),
+      innerHairMaterial
+    );
+    ponytailTie.rotation.x = Math.PI / 2;
+    ponytailTie.position.y = 0.22;
+    ponytail.add(ponytailTie);
+
+    const ahoge = new THREE.Mesh(
+      new THREE.ConeGeometry(0.035, 0.23, 8),
+      hairMaterial
+    );
+    ahoge.name = "ahoge";
+    ahoge.rotation.z = 0.18;
+    ahoge.position.set(0, 2.88, 0.0);
+    hips.add(ahoge);
+
+    const bandage = new THREE.Mesh(
+      new THREE.BoxGeometry(0.11, 0.022, 0.015),
+      bandageMaterial
+    );
+    bandage.name = "noseBandage";
+    bandage.rotation.z = -0.14;
+    bandage.position.set(0.02, 2.285, 0.405);
+    face.add(bandage);
+
+    const shirtHem = new THREE.Mesh(
+      new THREE.TorusGeometry(0.29, 0.025, 8, 28),
+      shirtAccentMaterial
+    );
+    shirtHem.name = "shirtHem";
+    shirtHem.rotation.x = Math.PI / 2;
+    shirtHem.scale.set(1.05, 0.72, 1.0);
+    shirtHem.position.set(0, 1.14, 0.0);
+    hips.add(shirtHem);
+
+    const shorts = new THREE.Mesh(
+      new THREE.BoxGeometry(0.58, 0.30, 0.50),
+      shortsMaterial
+    );
+    shorts.name = "shorts";
+    shorts.position.set(0, 1.02, 0.0);
+    hips.add(shorts);
+
+    const armGeometry = new THREE.CapsuleGeometry(0.105, 0.48, 8, 16);
+    const forearmGeometry = new THREE.CapsuleGeometry(0.09, 0.42, 8, 16);
+    const legGeometry = new THREE.CapsuleGeometry(0.13, 0.58, 8, 16);
+    const shinGeometry = new THREE.CapsuleGeometry(0.11, 0.56, 8, 16);
+    const shoeGeometry = new THREE.SphereGeometry(0.15, 24, 16);
+
+    const armSlots = {
+      left: [-0.43, 1.67],
+      right: [0.43, 1.67]
+    };
+    const bodyParts = {
+      head,
+      leftEye,
+      rightEye,
+      leftIris,
+      rightIris,
+      leftPupil,
+      rightPupil,
+      mouth,
+      hair,
+      innerHair,
+      ponytail,
+      ahoge,
+      noseBandage: bandage,
+      torso,
+      shorts
+    };
+
+    for (const [side, [x, y]] of Object.entries(armSlots)) {
+      const sign = side === "left" ? -1 : 1;
+      const shoulder = new THREE.Group();
+      shoulder.name = `${side}Shoulder`;
+      shoulder.position.set(x, y, 0);
+      shoulder.rotation.z = sign * -0.08;
+      hips.add(shoulder);
+
+      const upperArm = new THREE.Mesh(armGeometry, skinMaterial);
+      upperArm.name = `${side}UpperArm`;
+      upperArm.position.y = -0.24;
+      shoulder.add(upperArm);
+
+      const elbow = new THREE.Group();
+      elbow.name = `${side}Elbow`;
+      elbow.position.y = -0.48;
+      shoulder.add(elbow);
+
+      const forearm = new THREE.Mesh(forearmGeometry, skinMaterial);
+      forearm.name = `${side}Forearm`;
+      forearm.position.y = -0.22;
+      elbow.add(forearm);
+
+      const hand = new THREE.Mesh(
+        new THREE.SphereGeometry(0.105, 20, 14),
+        skinMaterial
+      );
+      hand.name = `${side}Hand`;
+      hand.position.y = -0.48;
+      elbow.add(hand);
+
+      bodyParts[`${side}Shoulder`] = shoulder;
+      bodyParts[`${side}Elbow`] = elbow;
+      bodyParts[`${side}Hand`] = hand;
+    }
+
+    for (const side of ["left", "right"]) {
+      const sign = side === "left" ? -1 : 1;
+      const thigh = new THREE.Group();
+      thigh.name = `${side}Thigh`;
+      thigh.position.set(sign * 0.15, 0.90, 0);
+      hips.add(thigh);
+
+      const upperLeg = new THREE.Mesh(legGeometry, skinMaterial);
+      upperLeg.name = `${side}UpperLeg`;
+      upperLeg.position.y = -0.30;
+      thigh.add(upperLeg);
+
+      const knee = new THREE.Group();
+      knee.name = `${side}Knee`;
+      knee.position.y = -0.60;
+      thigh.add(knee);
+
+      const shin = new THREE.Mesh(shinGeometry, skinMaterial);
+      shin.name = `${side}Shin`;
+      shin.position.y = -0.28;
+      knee.add(shin);
+
+      const foot = new THREE.Mesh(shoeGeometry, shortsMaterial);
+      foot.name = `${side}Foot`;
+      foot.scale.set(1.25, 0.72, 1.65);
+      foot.position.set(0, -0.61, 0.07);
+      knee.add(foot);
+
+      bodyParts[`${side}Thigh`] = thigh;
+      bodyParts[`${side}Knee`] = knee;
+      bodyParts[`${side}Foot`] = foot;
+    }
+
+    const anchors = new THREE.Group();
+    anchors.name = "assetAnchors";
+    const anchorNames = [
+      "hair",
+      "head",
+      "face",
+      "neck",
+      "chest",
+      "waist",
+      "leftHand",
+      "rightHand",
+      "leftShoulder",
+      "rightShoulder"
+    ];
+    for (const name of anchorNames) {
+      const anchor = new THREE.Group();
+      anchor.name = `anchor:${name}`;
+      anchors.add(anchor);
+    }
+    hips.add(anchors);
+
+    group.userData.placeholder = true;
+    group.userData.modelType = "full-body";
+    group.userData.face = face;
+    group.userData.parts = bodyParts;
+    group.userData.anchors = anchors;
+    group.traverse(node => {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+    });
+
+    group.userData.note = "Cari V2 stylized procedural runtime avatar: private camera-driven acting, local speech lip-sync, idle motion, keyboard/controller/phone activities, and replaceable glTF/GLB backend.";
+
+    this.root.add(group);
+    return group;
+  }
+
+}
+
+function collectMorphTargets(root) {
+  const targets = [];
+
+  root.traverse(object => {
+    if (!object.isMesh || !object.morphTargetDictionary || !object.morphTargetInfluences) {
+      return;
+    }
+
+    targets.push({
+      dictionary: object.morphTargetDictionary,
+      influences: object.morphTargetInfluences
+    });
+  });
+
+  return targets;
+}
+
+function applyMorph(targets, kind, value) {
+  const aliases = MORPH_ALIASES[kind] || [];
+  for (const target of targets) {
+    for (const alias of aliases) {
+      const index = target.dictionary[alias];
+      if (index !== undefined) {
+        target.influences[index] = value;
+        break;
+      }
+    }
+  }
+}
+
+function placeholderExpressionPose(expression) {
+  switch (expression) {
+    case "happy":
+      return {
+        eyeScale: 0.72,
+        mouthScale: 2.25,
+        mouthWidth: 1.18,
+        mouthRotation: Math.PI * 0.78,
+        mouthY: -0.01,
+        shoulderLift: 0.04,
+        headOffsetX: 0,
+        headOffsetY: 0.02,
+        headRoll: 0.02,
+        faceForward: 0.01
+      };
+    case "angry":
+      return {
+        eyeScale: 0.78,
+        mouthScale: 1.25,
+        mouthWidth: 0.92,
+        mouthRotation: Math.PI * 1.18,
+        mouthY: 0.01,
+        shoulderLift: 0.02,
+        headOffsetX: 0,
+        headOffsetY: -0.01,
+        headRoll: 0,
+        faceForward: 0.018
+      };
+    case "sad":
+      return {
+        eyeScale: 0.68,
+        mouthScale: 0.95,
+        mouthWidth: 0.88,
+        mouthRotation: Math.PI * 1.10,
+        mouthY: -0.01,
+        shoulderLift: -0.06,
+        headOffsetX: 0,
+        headOffsetY: -0.035,
+        headRoll: -0.025,
+        faceForward: -0.01
+      };
+    case "afraid":
+      return {
+        eyeScale: 1.28,
+        mouthScale: 3.2,
+        mouthWidth: 1.08,
+        mouthRotation: Math.PI,
+        mouthY: 0,
+        shoulderLift: 0.09,
+        headOffsetX: 0,
+        headOffsetY: 0.02,
+        headRoll: 0.02,
+        faceForward: 0.025
+      };
+    case "embarrassed":
+      return {
+        eyeScale: 0.50,
+        mouthScale: 0.85,
+        mouthWidth: 0.84,
+        mouthRotation: Math.PI,
+        mouthY: 0.01,
+        shoulderLift: -0.02,
+        headOffsetX: 0.03,
+        headOffsetY: -0.01,
+        headRoll: 0.05,
+        faceForward: -0.005
+      };
+    case "exhausted":
+      return {
+        eyeScale: 0.42,
+        mouthScale: 0.72,
+        mouthWidth: 0.90,
+        mouthRotation: Math.PI,
+        mouthY: 0,
+        shoulderLift: -0.09,
+        headOffsetX: 0,
+        headOffsetY: -0.06,
+        headRoll: -0.04,
+        faceForward: -0.015
+      };
+    case "focused":
+      return {
+        eyeScale: 0.86,
+        mouthScale: 0.78,
+        mouthWidth: 0.88,
+        mouthRotation: Math.PI,
+        mouthY: -0.005,
+        shoulderLift: -0.03,
+        headOffsetX: 0,
+        headOffsetY: -0.02,
+        headRoll: -0.01,
+        faceForward: 0.01
+      };
+    case "confused":
+      return {
+        eyeScale: 1.02,
+        mouthScale: 0.95,
+        mouthWidth: 0.95,
+        mouthRotation: Math.PI,
+        mouthY: 0,
+        shoulderLift: 0,
+        headOffsetX: 0.01,
+        headOffsetY: 0.015,
+        headRoll: 0.11,
+        faceForward: 0.0
+      };
+    default:
+      return {
+        eyeScale: 1,
+        mouthScale: 2.2,
+        mouthWidth: 1,
+        mouthRotation: Math.PI,
+        mouthY: 0,
+        shoulderLift: 0,
+        headOffsetX: 0,
+        headOffsetY: 0,
+        headRoll: 0,
+        faceForward: 0
+      };
+  }
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+function disposeObject(object) {
+  object.traverse(child => {
+    if (child.geometry) child.geometry.dispose();
+
+    if (child.material) {
+      const materials = Array.isArray(child.material)
+        ? child.material
+        : [child.material];
+
+      for (const material of materials) {
+        for (const key of [
+          "map",
+          "normalMap",
+          "roughnessMap",
+          "metalnessMap",
+          "emissiveMap"
+        ]) {
+          material[key]?.dispose();
+        }
+        material.dispose();
+      }
+    }
+  });
+}

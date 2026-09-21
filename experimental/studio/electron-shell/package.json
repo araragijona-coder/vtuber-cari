@@ -1,0 +1,67 @@
+{
+  "name": "cari-studio-shell",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Windows control shell for Cari Studio native media engine.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check main.js && node --check preload.js && node --check runtime/native-engine.js && node --check runtime/obs-service.js && node --check runtime/twitch-auth.js && node --check runtime/twitch-api.js && node --check runtime/twitch-chat-service.js && node --check runtime/integration-health.js && node --check runtime/resource-policy.mjs && node --check avatar-overlay-preload.js && node scripts/check-esm.cjs",
+    "test": "node --test test/*.test.mjs avatar/*.test.mjs",
+    "dist": "electron-builder --win nsis",
+    "build": "npm run check && npm test && npm run dist",
+    "verify:avatar2d": "node --test avatar/action-runtime.test.mjs avatar/action-store.test.mjs avatar/speech-activity.test.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.0.1",
+    "obs-websocket-js": "5.0.8",
+    "three": "0.186.0",
+    "ws": "8.18.3"
+  },
+  "devDependencies": {
+    "electron": "44.4.2",
+    "electron-builder": "27.0.0"
+  },
+  "build": {
+    "appId": "com.cari.studio",
+    "productName": "Cari Studio",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!test{,/**}",
+      "!scripts{,/**}"
+    ],
+    "extraResources": [
+      {
+        "from": "native",
+        "to": "native"
+      },
+      {
+        "from": "../../../assets/cari/expressions",
+        "to": "assets/cari/expressions"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Cari-Studio-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Cari Studio",
+      "runAfterFinish": true,
+      "perMachine": false
+    }
+  }
+}
