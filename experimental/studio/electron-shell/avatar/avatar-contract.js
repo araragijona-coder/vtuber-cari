@@ -1,9 +1,3 @@
-export const AVATAR_EXPRESSIONS = Object.freeze([
-  "neutral",
-  "happy",
-  "angry"
-]);
-
 const DEFAULT_STATE = Object.freeze({
   expression: "neutral",
   mouthOpen: 0,
@@ -11,6 +5,19 @@ const DEFAULT_STATE = Object.freeze({
   head: Object.freeze({ x: 0, y: 0, z: 0 }),
   gaze: Object.freeze({ x: 0, y: 0 })
 });
+
+// Expressions are derived from the canonical Cari character bible.
+// They are acting states, not replacements for personality.
+export const AVATAR_EXPRESSIONS = Object.freeze([
+  "neutral",
+  "happy",
+  "angry",
+  "afraid",
+  "embarrassed",
+  "sad",
+  "exhausted",
+  "confused"
+]);
 
 export function clamp01(value) {
   const number = Number(value);
