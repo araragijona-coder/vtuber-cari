@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: consultar PR #2; este bloque no fija SHA para evitar desactualización entre commits documentales.
+- Último head auditado: `eab7897a5c971a64acc9c31cdf5c4557ffaf4b8f`.
 
 ## Estados de trabajo
 
@@ -1513,3 +1513,50 @@ Para recursos D3D11 compartidos, Microsoft recomienda recursos con NT handles y 
 ### Siguiente foco
 
 P0: conseguir evidencia Windows observable para la ruta D3D11 → Libav/encoder y, en paralelo, cerrar la validación real de avatar/tracking/OBS sin reabrir los componentes ya establecidos.
+
+---
+
+## LOG-040 — Evidencia CI actual y cierre de continuidad
+
+Fecha: 2026-09-21
+Área: CI / Continuidad
+Estado: INFRASTRUCTURE BLOCKED
+
+### Problema
+
+Las ejecuciones de validación debían demostrar que las modificaciones recientes podían atravesar checkout, configuración, build y tests. GitHub Actions sigue finalizando los jobs antes de exponer pasos o logs.
+
+### Evidencia actual
+
+HEAD auditado: `eab7897a5c971a64acc9c31cdf5c4557ffaf4b8f`.
+
+Runs asociados al HEAD:
+- Native Windows Build: `failure`.
+- CI: `failure`.
+- Character Runtime Tests: `failure`.
+- Actions Runner Diagnostic: `failure`.
+
+Jobs:
+- Native Windows `build`: `failure`, `steps=null`, `logs_url=null`.
+- Native Windows `electron-shell-check`: `failure`, `steps=null`, `logs_url=null`.
+- CI Python 3.11/3.12: `failure`, `steps=null`, `logs_url=null`.
+- Character Runtime Python 3.11/3.12: `failure`, `steps=null`, `logs_url=null`.
+- Runner diagnostic `probe`: `failure`, `steps=null`, `logs_url=null`.
+
+### Decisión
+
+No se modifica código funcional para perseguir estos failures mientras no exista un step/log que identifique un fallo de compilación, dependencia, test o runner.
+
+### NO REPETIR
+
+- No rehacer WGC.
+- No rehacer WASAPI/mixer.
+- No rehacer MediaClock/Pacer/Interleaver.
+- No rehacer MediaPipe tracker.
+- No rehacer Three.js renderer.
+- No rehacer FFmpeg supervisor.
+- No seguir cambiando código solo porque Actions devuelve `failure` sin steps/logs.
+
+### Siguiente foco
+
+Continuar con el backlog P0 real: validación Windows del camino D3D11 → Libav/encoder, compositor final del avatar y validación OBS real/sesión larga. La corrección de CI se retoma únicamente cuando aparezca evidencia observable del runner.
