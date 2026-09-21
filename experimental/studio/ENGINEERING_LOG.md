@@ -213,3 +213,13 @@ A demo image is visual reference only.
 - No cambia el porcentaje canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - NO REPETIR: no crear otro pipeline Blender, manifest de bones, namespace facial, renderer ni tracker.
 - Siguiente foco: ejecutar con el FBX real y pasar los gates de rigging/tracking/composición.
+
+
+## 2026-09-21 — LOG-059 First launch incident
+- Se determinó que la experiencia de “descargó algo, pidió una tecla y se cerró” correspondía al `Cari-Setup.bat`, no al Studio.
+- Se modificó el setup para lanzar Cari Studio automáticamente tras éxito sin argumentos.
+- Se añadió `Cari-Launch.bat`.
+- Se amplió la detección del ejecutable al directorio `build-validation`.
+- No se reabren WGC/WASAPI/timing/tracker/renderer/FFmpeg supervisor.
+- Progreso canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Próximo gate: Setup → Electron → Native Engine sobre Windows real.
