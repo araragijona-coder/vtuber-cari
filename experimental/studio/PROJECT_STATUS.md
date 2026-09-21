@@ -262,3 +262,13 @@ Este bloque supersede los porcentajes históricos anteriores de este archivo.
 3. No crear otro Twitch transport.
 4. No crear otro Action Store/renderer/clock/interleaver.
 5. Empezar por timestamps A/V explícitos, compositor GPU final, E2E Windows y drift correction.
+## Twitch Control Plane — estado de continuidad
+
+- [x] `TwitchController` provider-neutral conectado a `TwitchLiveBot`.
+- [x] `EventBus` thread-safe y observable con journal acotado.
+- [x] `StudioActionRouter` ampliado para stream, recording, source, volume, mute, camera, avatar, expression, tracking y command, además de chat/sound/scene/overlay/music.
+- [x] Deduplicación bounded de eventos cuando existe `message_id`.
+- [x] Continuity ledger conectado a `session_welcome`.
+- [x] Puente Twitch experimental antiguo reducido a compatibilidad; no existe un segundo transporte.
+- [ ] Backend Native/OBS ejecutando `studio_*_requested` en runtime real.
+- [ ] Validación real Twitch de reconnect/resubscribe y canal.
