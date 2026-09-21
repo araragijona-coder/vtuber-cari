@@ -4,6 +4,7 @@
 #include "../core/types.h"
 
 #include <cstdint>
+#include <d3d11.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -43,6 +44,14 @@ public:
         std::uint32_t input_audio_sample_rate = 48000,
         std::uint16_t input_audio_channels = 2);
 
+    // Experimental hardware-video path. The supplied D3D11 device must be
+    // the device used to create the submitted textures.
+    bool start_d3d11(
+        const cari::studio::core::OutputProfile& profile,
+        ID3D11Device* device,
+        std::uint32_t input_audio_sample_rate = 48000,
+        std::uint16_t input_audio_channels = 2);
+
     bool submit_video(
         const cari::studio::core::Frame& frame,
         const std::shared_ptr<std::vector<std::uint8_t>>& bgra) noexcept;
@@ -50,11 +59,17 @@ public:
     bool submit_audio(
         const cari::studio::core::AudioPacket& packet) noexcept;
 
+    bool submit_video_d3d11(
+        const cari::studio::core::Frame& frame,
+        ID3D11Texture2D* texture,
+        std::intptr_t subresource_index = 0) noexcept;
+
     void stop() noexcept;
 
     [[nodiscard]] bool running() const noexcept;
     [[nodiscard]] std::string last_error() const;
     [[nodiscard]] LibavMediaOutputStats stats() const noexcept;
+    [[nodiscard]] bool hardware_video_enabled() const noexcept;
 
 private:
     struct Impl;
