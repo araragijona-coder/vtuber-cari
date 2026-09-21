@@ -183,6 +183,8 @@
 
 - [x] Arquitectura de salida desacoplada de plataformas.
 - [x] Controles de chat Twitch conectados a acciones locales del avatar y botones OBS conectados a su servicio real.
+- [x] OBS companion con control de mute/volumen, Scene Items, Replay Buffer, transición por batch y reconexión WebSocket acotada.
+- [x] Auditoría específica del alcance necesario cuando OBS es el streamer principal.
 - [ ] Adaptador Twitch RTMP probado en máquina real.
 - [ ] Adaptador YouTube RTMP probado en máquina real.
 - [ ] Adaptadores adicionales.
@@ -254,8 +256,8 @@ Cari estudia proyectos maduros y reutiliza librerías/componentes cuando sus lic
 La única fuente canónica de continuidad y anti-repetición es `BITACORA.md`.
 
 - HEAD canónico: consultar el HEAD actual del PR #2 y `BITACORA.md`
-- Avance de ingeniería vigente: **65%**.
-- Avance de producto usable vigente: **50%**.
+- Avance de ingeniería vigente: **71%**.
+- Avance de producto usable vigente: **58%**.
 - Los checkpoints anteriores son históricos y no deben usarse para decidir trabajo nuevo.
 
 ### Regla
@@ -503,3 +505,7 @@ Regla de progreso: el checkpoint vigente es Ingeniería ~71%, Producto usable ~5
 - CI: bloqueada porque los jobs recientes terminan sin `steps` ni `logs_url`.
 - Git: rama divergente y detrás de `main`; no se hace reescritura automática.
 - P0: validación Windows de Libav + D3D11 hardware y E2E observable.
+
+## OBS companion
+
+El escenario de uso con OBS como streamer principal está documentado en OBS_USAGE_AUDIT.md. OBS conserva encoder/mux/RTMP y la reconexión del stream; Cari aporta control VTuber, automatización y observabilidad. La integración todavía requiere validación contra OBS real.
