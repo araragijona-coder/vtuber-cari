@@ -81,6 +81,8 @@
 - [x] Reset de retry por nueva sesión manual, conservando intentos durante reconexiones automáticas.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
+- [x] Política de retry RTMP acotada por categoría de fallo y máximo de intentos.
+- [x] Native Windows CI ejecuta smoke tests de retry y diagnóstico de output.
 - [x] Retry RTMP acotado por backoff, con clasificación de fallos y cancelación al detener manualmente el output.
 - [x] Ruta Libav experimental D3D11 -> AVFrame hardware sin readback CPU en la entrega al encoder.
 - [x] Manual Talk gate: el motor de audio arranca con micrófono OFF y solo se habilita por acción explícita de Hablar.
