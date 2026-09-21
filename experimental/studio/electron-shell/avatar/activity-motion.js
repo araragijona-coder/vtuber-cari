@@ -71,8 +71,21 @@ export class AvatarActivityController {
     return this.current();
   }
 
+  setAutomatic(kind = "motion") {
+    const normalized = String(kind || "motion").toLowerCase();
+    this.mode = normalized === "camera" || normalized === "camera-actions"
+      ? "camera-actions"
+      : "auto-motion";
+    this.fullModeId = null;
+    this.currentState = this.#resolve(performance.now());
+    return this.current();
+  }
+
   setManual(patch = {}) {
-    const source = { ...this.manualState, ...(patch || {}) };
+    const normalizedPatch = typeof patch === "string"
+      ? getActivityPreset(patch)
+      : (patch || {});
+    const source = { ...this.manualState, ...normalizedPatch };
     this.manualState = {
       activity: normalizeActivity(source.activity),
       movementLevel: normalizeMovementLevel(source.movementLevel),
