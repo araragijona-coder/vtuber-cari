@@ -2324,3 +2324,102 @@ El loop de tracking consulta VAD en cada frame. Un router que vuelva a disparar 
 - Producto usable/end-user: ~58%
 - Seguimiento global: ~65%
 - Producción: NO listo
+## LOG-053 — Integración final del Editor 2D
+
+Fecha: 2026-09-21
+Área: Avatar 2D / Electron / Twitch / VAD / Persistencia / Overlay
+Estado: CORREGIDO / IMPLEMENTADO / TEST PREPARADO / WINDOWS PENDIENTE
+
+### Hallazgos nuevos
+
+1. AvatarActionStore buscaba el bridge de persistencia en window.cari.avatarActions, pero el preload expone el servicio en window.cari.native.avatarActions. La consecuencia era fallback silencioso a localStorage y pérdida del objetivo de persistencia en userData.
+2. El overlay transparente separado mostraba el renderer Three.js pero no recibía los frames del Editor 2D.
+3. La ruta de eventos Twitch y chat estaba acoplada en el renderer a dos llamadas distintas del router.
+4. El bloque twitch.event podía intentar evaluar una variable inexistente al activar TTS.
+5. El test de prioridad voz/chat contenía una expectativa invertida respecto de la prioridad declarada.
+
+### Correcciones
+
+- action-store.js usa ahora window.cari.native.avatarActions.
+- StudioActionRouter añade handleEvent(event) para centralizar chat y Twitch EventSub.
+- renderer/main.js envía al overlay solo la reproducción live; una selección de frame desde el editor se mantiene como preview.
+- Electron Main valida y retransmite avatar:set-action-frame.
+- preload.js expone setActionFrame.
+- avatar-overlay-preload.js expone onActionFrame.
+- overlay.html incorpora una capa img#action-frame sobre el canvas.
+- overlay-main.js reproduce URL/data URL, escala, opacidad y offsets del frame 2D.
+- El TTS de eventos Twitch usa la acción realmente enrutada y no una variable inexistente.
+- Se corrigió la expectativa del test para mantener chat=80 > voice=30.
+- Se añadieron pruebas de integración chat/EventSub/VAD y de resolución del bridge nativo de persistencia.
+
+### Contrato final de la cadena
+
+```
+Twitch chat/EventSub ─┐
+                      ├─> StudioActionRouter
+VAD / Audio Stream ───┤        │
+manual/editor ────────┘        ↓
+                         Avatar2DFramePlayer
+                                │
+                  ┌─────────────┴─────────────┐
+                  ↓                           ↓
+          editor/live renderer          detached overlay
+             IMG action frame             IMG action frame
+                  │                           │
+                  └────── AvatarActingBridge ┘
+```
+
+Las prioridades permanecen:
+
+```
+manual 100
+chat    80
+event   70
+voice   30
+```
+
+### Persistencia
+
+El Editor sigue usando una única fuente de verdad:
+
+```
+AvatarActionStore
+      ↓
+window.cari.native.avatarActions
+      ↓
+Electron Main
+      ↓
+userData/avatar-actions/
+├── actions.json
+└── frames/<action>/*
+```
+
+localStorage continúa como fallback local cuando el bridge de disco no está disponible.
+
+### Evidencia
+
+- Los archivos afectados pasan una revisión estática sin TODO, FIXME, XXX ni stubs de implementación.
+- Los tests nuevos quedaron incluidos bajo experimental/studio/electron-shell/test/ y la suite npm ya contempla test/*.test.mjs + avatar/*.test.mjs.
+- La evidencia de ejecución Windows/CI continúa bloqueada por jobs que terminan sin steps ni logs_url.
+- La validación de producción sigue requiriendo cámara/streaming/encoder Windows real.
+
+### NO REPETIR
+
+- No crear otro AvatarActionStore.
+- No crear otro Avatar2DFramePlayer.
+- No conectar Twitch directamente al renderer 2D sin pasar por StudioActionRouter.
+- No duplicar el transporte de frames entre renderer y overlay; usar avatar:set-action-frame.
+- No usar el frame seleccionado en el editor como si fuera necesariamente una acción live; los previews usan meta.preview.
+- No volver a cambiar la ruta de persistencia a window.cari.avatarActions.
+- No considerar la capa 2D validada en producción hasta medir captura sostenida y encoder Windows.
+
+### Próximo frente recomendado
+
+P0: ejecutar los tests Electron con un runner observable, probar el overlay 2D en Windows, medir FPS/memoria durante una animación prolongada y comprobar que el mismo frame que se ve en el overlay es el que entra al compositor/encoder.
+
+Porcentaje canónico sin aumento artificial:
+
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
