@@ -111,6 +111,21 @@ jobs:
       - name: Run control protocol smoke test
         run: ctest --test-dir build -C Release --output-on-failure -R cari-control-protocol-smoke
 
+      - name: Verify root Cari Studio launcher exists
+        shell: pwsh
+        run: |
+          $launcher = Join-Path $env:GITHUB_WORKSPACE 'CariStudioLauncher.exe'
+          if (-not (Test-Path -LiteralPath $launcher)) {
+            throw "Root launcher was not produced: $launcher"
+          }
+          Get-Item $launcher | Select-Object FullName, Length
+
+      - name: Upload root Cari Studio launcher
+        uses: actions/upload-artifact@v4
+        with:
+          name: CariStudioLauncher-Windows-x64
+          path: CariStudioLauncher.exe
+          if-no-files-found: error
       - name: Verify native executable exists
         shell: pwsh
         run: |
