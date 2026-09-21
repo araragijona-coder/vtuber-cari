@@ -22,7 +22,6 @@ jobs:
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
-          ref: fix/native-windows-foundation
           fetch-depth: 1
           persist-credentials: true
 
@@ -70,4 +69,4 @@ jobs:
           fi
 
           git commit -m "assets(cari): refresh gallery"
-          git push origin "HEAD:fix/native-windows-foundation"
+          git push origin "HEAD:${{ github.ref_name }}"
