@@ -12,6 +12,10 @@ O doble clic:
 
     .\experimental\studio\tools\windows\Cari-Setup.bat
 
+Tras un setup exitoso sin argumentos, el script abre **Cari Studio automáticamente**. Para abrirlo después sin reinstalar nada:
+
+    .\experimental\studio\tools\windows\Cari-Launch.bat
+
 El script hace, en orden:
 
 1. auditoría inicial del PC;
