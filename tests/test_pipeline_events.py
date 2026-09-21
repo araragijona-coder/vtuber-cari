@@ -2,6 +2,7 @@ import unittest
 
 from app.brain.event_bus import EventBus, RuntimeEvent
 from app.pipeline.runtime import LocalPipeline
+from app.studio.runtime_bindings import StudioRuntimeBindings
 from app.twitch.models import ChatMessage
 from app.voice.arbiter import VoiceItem
 from app.voice.director import VoiceRequest
@@ -47,6 +48,18 @@ class PipelineEventTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertFalse(pipeline.avatar.current.speaking)
         self.assertEqual(pipeline.voice_arbiter.pending(), 1)
+
+
+    def test_pipeline_uses_runtime_bindings_as_action_boundary(self) -> None:
+        pipeline = LocalPipeline()
+        self.assertIsInstance(pipeline.studio_actions, StudioRuntimeBindings)
+
+    def test_pipeline_rejects_bindings_on_a_different_event_bus(self) -> None:
+        bus = EventBus()
+        other_bus = EventBus()
+        bindings = StudioRuntimeBindings(other_bus)
+        with self.assertRaises(ValueError):
+            LocalPipeline(event_bus=bus, studio_bindings=bindings)
 
 
 if __name__ == "__main__":
