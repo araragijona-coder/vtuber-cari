@@ -269,7 +269,7 @@ void ResetOutputRetry() {
 
 #ifdef CARI_ENABLE_LIBAV_OUTPUT
 void UpdateLibavFailureCategory() {
-   const auto diagnostic = g_libav_runtime.last_error();
+    const auto diagnostic = g_libav_runtime.last_error();
    const auto category =
        cari::studio::core::classify_output_failure(diagnostic);
    g_last_output_category = OutputFailureCategoryName(category);
@@ -372,7 +372,6 @@ std::string BuildControlStatusMessage() {
         result += ";output_state=" + MediaOutputStateName(g_media_graph.output_state());
         result += ";output_exit_code=" + std::to_string(g_media_graph.output_exit_code());
     }
-    result += ";output_exit_code=" + std::to_string(g_media_graph.output_exit_code());
     result += ";output_retry_pending=" + std::string(g_output_retry.pending() ? "true" : "false");
     result += ";output_retry_attempts=" + std::to_string(g_output_retry.attempts());
     result += ";output_failure_category=" + g_last_output_category;
