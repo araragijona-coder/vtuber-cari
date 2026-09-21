@@ -3,7 +3,7 @@
 > **Fuente de continuidad:** `experimental/studio/BITACORA.md`.  
 > Los porcentajes y estados históricos que aparezcan más abajo no deben reemplazar este checkpoint.
 
-- HEAD actual auditado: `a6da0ed020b66ac10c2f319fb27d7b25e43af5b8`
+- HEAD actual: consultar el PR #2
 - Ingeniería: **~71%**
 - Producto usable/end-user: **~58%**
 - Seguimiento global: **~65%**
