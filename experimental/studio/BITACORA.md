@@ -1,8 +1,9 @@
 ## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — HABLA + REACCIONES + CARI V0
 
+- Este bloque supersede checkpoints históricos anteriores.
 - Rama: `fix/native-windows-foundation`
 - PR: #2
-- HEAD auditado: `4ccbb3fc679b630ae6f3bcb09401df7f5b44e8d0`
+- HEAD auditado: `2ffeb2c8db89421e4151d3ef6ab94e0ca9fd0915`
 - Estado: **EXPERIMENTAL / NO listo para producción**
 - Ingeniería: **~71%**
 - Producto usable/end-user: **~58%**
