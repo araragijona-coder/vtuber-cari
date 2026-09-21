@@ -84,6 +84,34 @@
             </div>
 
             <div class="card">
+              <div class="section-title">
+                <h3>Control manual de Cari</h3>
+                <span class="pill" id="mic-state">MIC OFF</span>
+              </div>
+              <div class="form-grid">
+                <button id="talk-toggle" class="primary">🎙 Hablar</button>
+                <button id="talk-auto">Auto</button>
+              </div>
+              <div class="small muted" id="speech-state" style="margin-top:8px">Habla: apagada · reacción: automática</div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-manual-expression="happy">☺ Feliz</button>
+                <button data-manual-expression="angry">△ Enojada</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-manual-expression="sad">◡ Triste</button>
+                <button data-manual-expression="afraid">! Asustada</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-manual-expression="embarrassed">〃 Avergonzada</button>
+                <button data-manual-expression="exhausted">z Agotada</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-manual-expression="confused">? Confundida</button>
+                <button data-manual-expression="neutral">○ Neutral</button>
+              </div>
+            </div>
+
+            <div class="card">
               <div class="section-title"><h3>Captura</h3><span class="pill" id="capture-state">stopped</span></div>
               <div class="form-row"><label>Ventana</label><div class="form-grid"><input id="window-index" type="number" min="1" value="1"><button id="capture-window">Capturar ventana</button></div></div>
               <div class="form-grid"><button id="capture-screen">Pantalla primaria</button><button id="capture-stop">Detener</button></div>
