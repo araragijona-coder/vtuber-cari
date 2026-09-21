@@ -50,6 +50,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Validate generator syntax
+        run: python -m py_compile scripts/generate_cari_assets.py
+
       - name: Install image normalization dependency
         run: python -m pip install --disable-pip-version-check -r scripts/requirements-assets.txt
 
