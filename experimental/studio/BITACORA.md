@@ -2488,3 +2488,160 @@ Porcentaje canónico:
 - Producto usable/end-user: ~58%
 - Seguimiento global: ~65%
 - Producción: NO listo
+
+## LOG-055 — Cierre funcional del runtime 2D / PNGTuber — 21/09/2026
+
+Área: Editor de Acciones 2D · Twitch/EventSub · VAD · persistencia · Electron Overlay
+Estado: IMPLEMENTADO / STATIC REVIEW / TEST PREPARADO / WINDOWS PENDIENTE
+
+### Hallazgo y corrección
+
+- El Avatar2DFramePlayer ya implementaba loops, prioridades y expiración de overrides, pero una acción loop=false con múltiples frames no avanzaba: quedaba permanentemente en frameIndex=0.
+- Se corrigió el scheduler de frames para:
+  - avanzar frame por frame según durationMs;
+  - reproducir una secuencia finita exactamente una vez cuando loop=false;
+  - conservar el último frame de una secuencia finita hasta que expire su override;
+  - reiniciar en frame 0 solo cuando loop=true;
+  - abortar la transición si otra fuente gana la prioridad o el override expira.
+
+### Unificación de eventos
+
+El único StudioActionRouter de Electron ahora acepta:
+
+- twitch.chat;
+- twitch.command;
+- twitch.event, incluyendo eventType, typeName, subscription.type y payload.subscription.type;
+- voice.activity.
+
+La cadena canónica queda:
+
+```text
+Twitch Chat / EventSub
+          │
+          ├── comandos !happy / !angry / !action <nombre>
+          │
+          v
+   StudioActionRouter
+          ^
+          │
+     voice.activity
+          ^
+          │
+   SpeechActivityDetector
+          ^
+          │
+ LocalSpeechController
+          │
+       micrófono
+```
+
+Las prioridades permanecen:
+
+```text
+manual 100
+chat    80
+event   70
+voice   30
+```
+
+### Corrección adicional de chat
+
+- Los mensajes salientes enviados por Cari ya no pasan por el trigger de acciones 2D.
+- Evita que un mensaje generado por el propio bot, por ejemplo !happy, reactive de forma accidental el avatar como si fuera un mensaje entrante.
+
+### VAD / Audio Stream
+
+- LocalSpeechController sigue siendo la única fuente local de actividad de voz.
+- SpeechActivityDetector conserva ataque/liberación, histéresis y hold-time.
+- El renderer ahora entrega el resultado al router mediante voice.activity, en lugar de tener un camino separado para cambiar frames.
+- Cambios silent -> talking y talking -> silent se registran en el event log del Studio.
+- El estado estable no reinicia la secuencia de frames.
+
+### Persistencia
+
+No se creó ningún almacenamiento nuevo.
+
+```text
+AvatarActionStore
+      ↓
+window.cari.native.avatarActions
+      ↓
+Electron Main
+      ↓
+userData/avatar-actions/
+├── actions.json
+└── frames/<action>/*
+```
+
+AvatarActionStore continúa siendo la única fuente de verdad del Editor 2D.
+La persistencia de disco ya estaba implementada y cubierta por sus tests; esta ronda no la duplicó.
+
+### Tests añadidos/actualizados
+
+- action-runtime.test.mjs:
+  - secuencias finitas loop=false;
+  - handleCommand();
+  - envelope twitch.command;
+  - envelope EventSub con payload.subscription.type;
+  - envelope voice.activity;
+  - VAD estable sin reiniciar la secuencia.
+- speech-activity.test.mjs:
+  - histéresis;
+  - hold-time;
+  - reset completo.
+
+### Revisión estática
+
+Los archivos afectados fueron revisados sin:
+
+- TODO;
+- FIXME;
+- XXX;
+- stubs de implementación;
+- segundo Action Store;
+- segundo Frame Player;
+- segundo router;
+- segundo EventSub WebSocket.
+
+### Bitácora / continuidad
+
+- CARI_STUDIO_BITACORA.md fue eliminado como copia duplicada para que experimental/studio/BITACORA.md sea la única fuente de verdad.
+- No se reabren WGC, WASAPI, MediaClock, RealtimePacer, MediaInterleaver, RawPipe, FFmpeg supervisor, compositor D3D11, MediaPipe tracker, Three.js renderer ni Twitch transport sin regresión reproducible.
+
+### Estado de validación
+
+- Código integrado en GitHub: SÍ.
+- Tests escritos/preparados: SÍ.
+- Ejecución local de Node/npm en este entorno: NO OBSERVADA.
+- CI observable: BLOQUEADA; los jobs recientes siguen terminando sin steps ni logs_url.
+- Windows overlay real: PENDIENTE.
+- Captura del overlay dentro del frame final/encoder: PENDIENTE.
+- Assets V0 disponibles: neutral, happy, angry.
+- Arte final, talking/silent artwork dedicado y validación de rendimiento: PENDIENTES.
+
+### NO REPETIR
+
+- No rehacer el Editor 2D.
+- No crear otro AvatarActionStore.
+- No crear otro Avatar2DFramePlayer.
+- No crear otro StudioActionRouter.
+- No crear otro VAD.
+- No crear otro WebSocket de Twitch.
+- No volver a implementar persistencia de frames.
+- No volver a convertir previews del editor en acciones live.
+- No considerar la integración 2D como PRODUCCIÓN hasta probar overlay + captura + encoder sostenidos en Windows.
+
+### Próximo gate
+
+1. Ejecutar npm test en un runner observable.
+2. Abrir overlay transparente en Windows y comprobar una secuencia de 3+ frames.
+3. Simular !happy, !action angry, channel.subscribe y voice.activity.
+4. Medir FPS/memoria durante animación prolongada.
+5. Comprobar que el mismo frame visible llegue al compositor/encoder final.
+
+### Porcentaje canónico
+
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
