@@ -92,6 +92,10 @@ test("voice does not override a higher-priority chat action and returns after ch
 
   router.setManualAction("angry");
   router.trigger("happy", { source: "chat", holdMs: 1000, priority: 80 });
+  router.setVoiceActivity({ speaking: false, active: true });
+  assert.equal(player.currentSource(), "voice");
+  assert.equal(player.currentAction().id, "silent");
+
   router.setVoiceActivity({ speaking: true });
   assert.equal(player.currentSource(), "chat");
   assert.equal(player.currentAction().id, "happy");
@@ -101,7 +105,7 @@ test("voice does not override a higher-priority chat action and returns after ch
   assert.equal(player.currentSource(), "voice");
   assert.equal(player.currentAction().id, "talking");
 
-  router.setVoiceActivity({ speaking: false });
+  router.setVoiceActivity({ speaking: false, active: false });
   assert.equal(player.currentSource(), "base");
   assert.equal(player.currentAction().id, "angry");
 });
