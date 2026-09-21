@@ -119,3 +119,10 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Se documenta la divergencia histórica creciente de la rama sin reescribir commits.
 - Se mantiene Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - Próximo foco: validación Windows de Libav + D3D11 hardware y E2E observable.
+
+
+## 2026-09-21 — LOG-039 continuity
+
+- Se actualiza la bitácora canónica con el estado de OutputRetryPolicy, clasificación de errores y cobertura CI explícita para los smoke de resiliencia.
+- No se crean subsistemas paralelos ni se reabren componentes marcados como NO REPETIR.
+- Progreso canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
