@@ -55,7 +55,7 @@ function normalizeAction(input, index = 0) {
 export class AvatarActionStore {
   constructor(
     storage = typeof window !== "undefined" ? window.localStorage : null,
-    persistence = typeof window !== "undefined" ? window.cari?.avatarActions : null
+    persistence = typeof window !== "undefined" ? window.cari?.native?.avatarActions : null
   ) {
     this.storage = storage;
     this.persistence = persistence;
