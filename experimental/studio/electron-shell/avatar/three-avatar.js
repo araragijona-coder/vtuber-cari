@@ -6,7 +6,13 @@ const MORPH_ALIASES = {
   blinkLeft: ["eyeBlinkLeft", "blinkLeft", "Blink_L", "EyeBlink_L"],
   blinkRight: ["eyeBlinkRight", "blinkRight", "Blink_R", "EyeBlink_R"],
   smileLeft: ["mouthSmileLeft", "smileLeft", "Smile_L"],
-  smileRight: ["mouthSmileRight", "smileRight", "Smile_R"]
+  smileRight: ["mouthSmileRight", "smileRight", "Smile_R"],
+  frownLeft: ["mouthFrownLeft", "frownLeft", "Frown_L"],
+  frownRight: ["mouthFrownRight", "frownRight", "Frown_R"],
+  browDownLeft: ["browDownLeft", "BrowDown_L"],
+  browDownRight: ["browDownRight", "BrowDown_R"],
+  eyeWideLeft: ["eyeWideLeft", "EyeWide_L"],
+  eyeWideRight: ["eyeWideRight", "EyeWide_R"]
 };
 
 export class ThreeAvatarRenderer {
