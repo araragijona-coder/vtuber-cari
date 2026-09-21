@@ -168,6 +168,38 @@ export class StudioSessionManager {
     return this.send("audio.start");
   }
 
+  async microphoneSet(enabled = true) {
+    const desired = Boolean(enabled);
+    if (!this.state.engine && !desired) {
+      return { ok: true, skipped: true, message: "microphone=off", state: this.snapshot() };
+    }
+    if (!this.state.engine) {
+      const started = await this.native.start();
+      if (!started?.running) {
+        return {
+          ok: false,
+          error: started?.error || "native engine failed to start",
+          state: this.snapshot()
+        };
+      }
+      this.state.engine = true;
+    }
+
+    if (!this.state.audio && desired) {
+      const audio = await this.native.send({ type: "audio.start" });
+      if (!acceptedResponse(audio)) {
+        return { ...audio, state: this.snapshot() };
+      }
+      this.state.audio = true;
+    }
+
+    const result = await this.native.send({
+      type: "microphone.set",
+      enabled: desired
+    });
+    return { ...result, state: this.snapshot() };
+  }
+
   async audioStop() {
     return this.#stopOnlyWhenRunning("audio.stop", "audio");
   }
@@ -397,6 +429,8 @@ export class StudioSessionManager {
       case "audio.stop":
         this.state.audio = false;
         this.state.audioOwnedByOutput = false;
+        break;
+      case "microphone.set":
         break;
       case "output.start":
         this.state.output = true;
