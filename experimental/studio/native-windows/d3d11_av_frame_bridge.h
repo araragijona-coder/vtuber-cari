@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <wrl/client.h>
 
 #include <cstdint>
 #include <string>
@@ -36,6 +37,14 @@ public:
         std::intptr_t subresource_index,
         std::string& error) const;
 
+    // Allocate a frame from FFmpeg's D3D11 hardware-frame pool and copy the
+    // supplied texture into that pool-owned surface on the GPU. This avoids
+    // reusing a compositor surface while an encoder may still reference it.
+    [[nodiscard]] AVFrame* copy_texture_to_hwframe(
+        ID3D11Texture2D* texture,
+        std::int64_t pts,
+        std::string& error) const;
+
     [[nodiscard]] bool initialized() const noexcept {
         return device_ != nullptr && frames_ref_ != nullptr;
     }
@@ -46,6 +55,7 @@ public:
 
 private:
     ID3D11Device* device_ = nullptr;
+    Microsoft::WRL::ComPtr<ID3D11DeviceContext> context_;
     AVBufferRef* device_ref_ = nullptr;
     AVBufferRef* frames_ref_ = nullptr;
     std::uint32_t width_ = 0;
