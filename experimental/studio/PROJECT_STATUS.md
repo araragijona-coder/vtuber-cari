@@ -36,6 +36,7 @@
 
 ### Continuidad
 - `BITACORA.md` es la fuente canónica de anti-repetición.
+- `ART_QUALITY_GATE.md` es la referencia del gate visual; el procedural V2 solo demuestra runtime, no calidad final.
 - No rehacer WGC, WASAPI, MediaClock/Pacer/Interleaver, FFmpeg supervisor, OBS service, Twitch transport, Action Store ni renderer Three.js salvo regresión reproducible.
 - Gates inmediatos: CI observable, E2E Windows, compositor GPU sin readback, PTS E2E, drift físico y validación en hardware.
 - La cámara Media Foundation y el compositor D3D11 ya existen en la rama; queda su validación física/E2E.
@@ -80,6 +81,7 @@
 - [x] Test contractual UI→IPC→ObsService para evitar regresiones de botones y API.
 - [x] Control Twitch ↔ avatar por comandos locales de chat y toggle de conexión desde Centro Twitch.
 - [x] Bitácora técnica versionada con inventario de trabajo realizado, evidencia y lista NO REPETIR.
+- [x] Gate visual medible para Cari V1 y reconciliación contra su canon visual.
 - [x] Action Store precarga las expresiones PNG base de Cari cuando no existen frames personalizados.
 - [x] Test de coherencia UI para menú, vistas e IDs HTML.
 - [x] Latest-frame worker fuera del callback WGC: el callback solo encola/reemplaza frames pendientes; el procesamiento pesado queda desacoplado del hilo de captura.
