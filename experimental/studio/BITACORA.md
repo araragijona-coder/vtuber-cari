@@ -9,8 +9,10 @@
 - Carpeta experimental: `experimental/studio/`
 - Estado del PR: abierto, draft.
 - Regla: ningún componente pasa a producción solo porque compile.
-- Estimación actual de ingeniería: **60%**.
-- Último head auditado: `faa522a9cf59f3e1e0561ea2d357954400daec0d`.
+- Ingeniería canónica actual: **68%**.
+- Producto usable/end-user: **54%**.
+- Seguimiento global: **62%**.
+- Último head auditado: `0f9639293201a9ae1509902b0d6a73f11a4d1e5c`.
 
 ## Estados de trabajo
 
@@ -367,3 +369,34 @@ logs_url = null
 Esto también ocurre en el job `probe` del workflow de diagnóstico. La bitácora debe conservar esta evidencia para evitar intentar corregir líneas de código sin un step/log que las implique.
 
 **NO REPETIR:** no asumir que un `failure` de Actions es una regresión del código mientras el job no tenga steps/logs ejecutados.
+
+
+### 17 — Hotkeys VTuber globales
+
+**Estado:** IMPLEMENTADO
+
+Electron registra atajos globales y los publica por el mismo canal de eventos del renderer:
+- Ctrl+Alt+1 -> happy;
+- Ctrl+Alt+2 -> angry;
+- Ctrl+Alt+3 -> sad;
+- Ctrl+Alt+4 -> afraid;
+- Ctrl+Alt+0 -> liberar override manual;
+- Ctrl+Alt+C -> iniciar calibración;
+- Ctrl+Alt+T -> activar/desactivar tracking.
+
+**NO REPETIR:** no implementar un segundo sistema de hotkeys dentro de otra capa; los hotkeys globales viven en Electron Main y la reacción del avatar en Renderer.
+
+### 18 — Borde de tracking corregido
+
+**Estado:** IMPLEMENTADO
+
+`FaceTracker` distingue:
+- frame nuevo con cara;
+- ausencia real de cara;
+- frame duplicado;
+- timestamp rechazado;
+- modelo/no-ready.
+
+Solo `no-face` entra al fade de pérdida. Los frames duplicados no degradan el avatar.
+
+**NO REPETIR:** no convertir cualquier `null` de MediaPipe en pérdida de tracking.
