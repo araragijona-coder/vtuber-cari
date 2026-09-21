@@ -747,7 +747,8 @@ function updateTalkUi({ level = 0, speaking = false, active = false } = {}) {
   const mic = $("#mic-state");
   const state = $("#speech-state");
   const button = $("#talk-toggle");
-  if (mic) mic.textContent = speechAutoEnabled ? "MIC ON" : "MIC OFF";
+  const nativeMicOn = session.snapshot().microphone === true;
+  if (mic) mic.textContent = nativeMicOn ? "MIC ON" : "MIC OFF";
   if (button) {
     button.textContent = manualTalk ? "🎙 Callar" : "🎙 Hablar";
     button.classList.toggle("primary", !manualTalk);
@@ -775,13 +776,18 @@ async function setManualTalk(enabled) {
 
   if (desired) {
     preTalkManualExpression = acting.manualExpression();
-    talkStartedAudio = !session.snapshot().audio;
+    const audioWasRunning = session.snapshot().audio === true;
     const audio = await session.audioStart();
     if (audio?.ok === false) {
       throw new Error(audio.error || "No se pudo iniciar el audio nativo");
     }
+    talkStartedAudio = !audioWasRunning;
 
-    await session.microphoneSet(true);
+    const microphone = await session.microphoneSet(true);
+    if (microphone?.ok === false) {
+      throw new Error(microphone.error || "No se pudo activar el micrófono");
+    }
+
     await startSpeechMonitor();
     manualTalk = true;
     const talkingAction = actionStore.get("talking");
@@ -1229,7 +1235,10 @@ $("#talk-auto").onclick = async () => {
     acting.clearManualExpression();
     lipSync.reset();
     if (!session.snapshot().microphone) {
-      await session.microphoneSet(true);
+      const microphone = await session.microphoneSet(true);
+      if (microphone?.ok === false) {
+        throw new Error(microphone.error || "No se pudo activar el micrófono");
+      }
     }
     await startSpeechMonitor();
     updateTalkUi(speech.sample());
