@@ -629,8 +629,6 @@ export class ThreeAvatarRenderer {
       ponytail,
       ahoge,
       noseBandage: bandage,
-      leftPupil,
-      rightPupil,
       torso,
       shorts
     };
