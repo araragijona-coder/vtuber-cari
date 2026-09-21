@@ -90,3 +90,16 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - FFmpeg API research confirma hw_frames_ctx, AV_PIX_FMT_D3D11 y AVCodecHWConfig como base del camino.
 - Estado: experimental; Windows, GPU/driver y encoder real pendientes.
 - Progreso canónico se mantiene en Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+## 2026-09-21 — Output resilience
+- Se añadió retry RTMP con backoff acotado.
+- Se añadió clasificación de errores para no reintentar indiscriminadamente fallos de encoder/mux/input.
+- Se añadió smoke de retry y diagnóstico.
+- Estado: experimental; no validado contra red/RTMP real.
+
+## 2026-09-21 — D3D11 → Libav hardware
+- Se integró el bridge D3D11 existente en `LibavMediaOutput`.
+- Se añadió API de salida hardware y smoke A/V dedicado.
+- El camino evita readback CPU en la entrega de textura al encoder.
+- Estado: experimental; requiere FFmpeg development build + Windows/GPU real.
+- Porcentaje canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
