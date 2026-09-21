@@ -20,6 +20,17 @@ let avatarOverlayState = {
   eyeX: 0,
   eyeY: 0
 };
+let avatarOverlayActionState = {
+  actionId: null,
+  frameId: null,
+  frameIndex: 0,
+  url: null,
+  dataUrl: null,
+  opacity: 1,
+  scale: 1,
+  offsetX: 0,
+  offsetY: 0
+};
 const subscribers = new Set();
 
 const AVATAR_ACTIONS_VERSION = 1;
@@ -282,6 +293,7 @@ function createAvatarOverlayWindow() {
   win.webContents.on("did-finish-load", () => {
     if (!win.isDestroyed()) {
       win.webContents.send("avatar:state", avatarOverlayState);
+      win.webContents.send("avatar:action-frame", avatarOverlayActionState);
     }
   });
   win.once("ready-to-show", () => {
@@ -384,6 +396,36 @@ ipcMain.handle("avatar:set-state", (event, state) => {
   avatarOverlayWindow.webContents.send("avatar:state", avatarOverlayState);
   return { ok: true };
 });
+ipcMain.handle("avatar:set-action-frame", (event, payload = {}) => {
+  requireTrustedSender(event);
+
+  const url = typeof payload.url === "string" && payload.url.startsWith("file://")
+    ? payload.url
+    : null;
+  const dataUrl = typeof payload.dataUrl === "string" &&
+      /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(payload.dataUrl) &&
+      Buffer.byteLength(payload.dataUrl, "utf8") <= AVATAR_FRAME_MAX_BYTES * 2
+    ? payload.dataUrl
+    : null;
+
+  avatarOverlayActionState = {
+    actionId: safeStorageSegment(payload.actionId, "action"),
+    frameId: safeStorageSegment(payload.frameId, "frame"),
+    frameIndex: Math.max(0, Number(payload.frameIndex) || 0),
+    url,
+    dataUrl: url ? null : dataUrl,
+    opacity: Math.max(0, Math.min(1, Number(payload.opacity) || 1)),
+    scale: Math.max(0.1, Math.min(3, Number(payload.scale) || 1)),
+    offsetX: Math.max(-50, Math.min(50, Number(payload.offsetX) || 0)),
+    offsetY: Math.max(-50, Math.min(50, Number(payload.offsetY) || 0))
+  };
+
+  if (avatarOverlayWindow && !avatarOverlayWindow.isDestroyed()) {
+    avatarOverlayWindow.webContents.send("avatar:action-frame", avatarOverlayActionState);
+  }
+  return { ok: true };
+});
+
 
 ipcMain.handle("avatar:choose-model", async event => {
   requireTrustedSender(event);
