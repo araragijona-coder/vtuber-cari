@@ -184,3 +184,13 @@ A demo image is visual reference only.
 - Estado: CODE_EXISTS / TEST_PREPARED / WINDOWS_PENDING.
 - Progreso canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - NO REPETIR: WGC, WASAPI/mixer, timing, tracker, renderer, compositor y FFmpeg supervisor.
+
+
+## 2026-09-21 — LOG-045 Cari V1 asset package
+- Se revisó BITACORA antes de tocar el runtime.
+- Se convirtió la dirección canónica de Cari en un paquete 2D/3D backend-neutral.
+- Manifest canónico de 29 entradas contando neck como soporte; piezas requeridas exactamente según dirección artística.
+- Se añadieron manifest de parámetros, expression sheet, checklist de artista/rigger, especificaciones 2D/3D y registro de licencia.
+- Validator de asset añadido y conectado a CI.
+- No se modifica el porcentaje global por SPEC_ONLY: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Próximo foco exclusivo: arte V1 real -> rigging -> tracking, sin reabrir renderer/tracker.
