@@ -1,3 +1,9 @@
+## 2026-09-21 — Status de cámara activa
+
+- El status nativo ahora reporta frames/FPS/errores de la fuente activa Media Foundation cuando corresponde.
+- WGC conserva sus métricas para ventana/pantalla.
+- Estado: corrección de coherencia; validación Windows pendiente.
+
 ## 2026-09-21 — PTS Libav
 
 - Se ampliaron métricas de paquetes codificados con primer PTS de audio y vídeo.
