@@ -914,6 +914,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 } // namespace
 
 void ProcessPrimaryCapturedFrame(const cari::native::CapturedFrame& captured) {
+    // There is no native preview consumer today. When no native output is active,
+    // discard the latest captured surface before any CPU readback/compositor work.
+    // This keeps source enumeration/capture lightweight without rendering frames
+    // into an unused sink.
+    if (!g_media_enabled.load(std::memory_order_relaxed)) {
+        return;
+    }
     const bool diagnostic_sample = (captured.sequence % kBridgeSampleEvery) == 0;
 
     cari::studio::core::Frame final_frame{};
