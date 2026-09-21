@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "asset_id": "cari-base-v1",
+  "control_namespace": "cari",
+  "backend_neutral": true,
+  "parameters": [
+    {
+      "id": "head.yaw",
+      "range": [
+        -1,
+        1
+      ],
+      "source": "tracking.head.x",
+      "priority": "P0"
+    },
+    {
+      "id": "head.pitch",
+      "range": [
+        -1,
+        1
+      ],
+      "source": "tracking.head.y",
+      "priority": "P0"
+    },
+    {
+      "id": "head.roll",
+      "range": [
+        -1,
+        1
+      ],
+      "source": "tracking.head.z",
+      "priority": "P0"
+    },
+    {
+      "id": "gaze.x",
+      "range": [
+        -1,
+        1
+      ],
+      "source": "tracking.gaze.x",
+      "priority": "P0"
+    },
+    {
+      "id": "gaze.y",
+      "range": [
+        -1,
+        1
+      ],
+      "source": "tracking.gaze.y",
+      "priority": "P0"
+    },
+    {
+      "id": "eye.blink.L",
+      "range": [
+        0,
+        1
+      ],
+      "source": "tracking.blink_left",
+      "priority": "P0"
+    },
+    {
+      "id": "eye.blink.R",
+      "range": [
+        0,
+        1
+      ],
+      "source": "tracking.blink_right",
+      "priority": "P0"
+    },
+    {
+      "id": "mouth.open",
+      "range": [
+        0,
+        1
+      ],
+      "source": "avatar.mouthOpen",
+      "priority": "P0"
+    },
+    {
+      "id": "expression.happy",
+      "range": [
+        0,
+        1
+      ],
+      "source": "avatar.expression",
+      "priority": "P0"
+    },
+    {
+      "id": "expression.angry",
+      "range": [
+        0,
+        1
+      ],
+      "source": "avatar.expression",
+      "priority": "P0"
+    },
+    {
+      "id": "expression.sad",
+      "range": [
+        0,
+        1
+      ],
+      "source": "avatar.expression",
+      "priority": "P0"
+    },
+    {
+      "id": "expression.afraid",
+      "range": [
+        0,
+        1
+      ],
+      "source": "avatar.expression",
+      "priority": "P0"
+    },
+    {
+      "id": "expression.embarrassed",
+      "range": [
+        0,
+        1
+      ],
+      "source": "avatar.expression",
+      "priority": "P0"
+    },
+    {
+      "id": "expression.surprised",
+      "range": [
+        0,
+        1
+      ],
+      "source": "avatar.expression",
+      "priority": "P0"
+    },
+    {
+      "id": "expression.sleepy",
+      "range": [
+        0,
+        1
+      ],
+      "source": "avatar.expression",
+      "priority": "P1"
+    },
+    {
+      "id": "expression.talking",
+      "range": [
+        0,
+        1
+      ],
+      "source": "avatar.speaking",
+      "priority": "P0"
+    },
+    {
+      "id": "body.breath",
+      "range": [
+        0,
+        1
+      ],
+      "source": "local_motion",
+      "priority": "P1"
+    },
+    {
+      "id": "pony.sway",
+      "range": [
+        -1,
+        1
+      ],
+      "source": "physics",
+      "priority": "P1"
+    },
+    {
+      "id": "ahoge.sway",
+      "range": [
+        -1,
+        1
+      ],
+      "source": "physics",
+      "priority": "P1"
+    },
+    {
+      "id": "hair.side.L.sway",
+      "range": [
+        -1,
+        1
+      ],
+      "source": "physics",
+      "priority": "P1"
+    },
+    {
+      "id": "hair.side.R.sway",
+      "range": [
+        -1,
+        1
+      ],
+      "source": "physics",
+      "priority": "P1"
+    }
+  ],
+  "adapter_rule": "Backends map these IDs to native parameters; renderer code must not depend on Live2D or Inochi2D IDs."
+}
