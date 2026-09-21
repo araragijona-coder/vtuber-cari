@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <winrt/Windows.Graphics.Capture.h>
 #include <winrt/base.h>
+#include <wrl/client.h>
 
 #include "audio_core_bridge.h"
 #include "audio_probe.h"
@@ -21,6 +22,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <cwchar>
 #include <string>
 #include <vector>
 #include <thread>
