@@ -247,10 +247,21 @@ def current_branch() -> str:
 
 
 def commit_generated_assets(output_dir: Path, message: str) -> bool:
-    run_git(["add", "--", str(output_dir.relative_to(REPO_ROOT))], REPO_ROOT)
+    relative_output = str(output_dir.relative_to(REPO_ROOT))
+    run_git(["add", "--", relative_output], REPO_ROOT)
+
+    user_name = run_git(["config", "--get", "user.name"], REPO_ROOT).stdout.strip()
+    user_email = run_git(["config", "--get", "user.email"], REPO_ROOT).stdout.strip()
+    if not user_name:
+        run_git(["config", "user.name", "Cari Studio Bot"], REPO_ROOT)
+    if not user_email:
+        run_git(
+            ["config", "user.email", "cari-studio-bot@users.noreply.github.com"],
+            REPO_ROOT,
+        )
 
     staged = run_git(
-        ["diff", "--cached", "--name-only", "--", str(output_dir.relative_to(REPO_ROOT))],
+        ["diff", "--cached", "--name-only", "--", relative_output],
         REPO_ROOT,
     ).stdout.strip()
     if not staged:
@@ -265,7 +276,7 @@ def commit_generated_assets(output_dir: Path, message: str) -> bool:
             "-m",
             message,
             "--",
-            str(output_dir.relative_to(REPO_ROOT)),
+            relative_output,
         ],
         REPO_ROOT,
     )
