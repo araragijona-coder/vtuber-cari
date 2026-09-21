@@ -15,6 +15,7 @@ class ObsService extends EventEmitter {
     this.sceneCollectionChanging = false;
     this.obsWebSocketVersion = null;
     this.negotiatedRpcVersion = null;
+    this.password = null;
     this.runtime = {
       streaming: false,
       streamState: "stopped",
@@ -117,13 +118,15 @@ class ObsService extends EventEmitter {
 
     this.reconnectWanted = true;
     this.#cancelReconnect();
-    const result = await this.client.connect(url, password, {
+    this.password = password ?? this.password;
+    const result = await this.client.connect(url, this.password, {
       rpcVersion: 1,
       eventSubscriptions:
         EventSubscription.All | EventSubscription.InputVolumeMeters
     });
     this.connected = true;
     this.url = url;
+    const completedAttempt = this.reconnectAttempt;
     this.reconnectAttempt = 0;
     this.obsWebSocketVersion = result?.obsWebSocketVersion || null;
     this.negotiatedRpcVersion = result?.negotiatedRpcVersion || null;
@@ -147,12 +150,19 @@ class ObsService extends EventEmitter {
     this.runtime.studioMode = studioMode?.studioModeEnabled === true;
 
     this.emit("status", this.status());
+    if (completedAttempt > 0) {
+      this.emit("event", {
+        type: "OBSReconnectSucceeded",
+        attempt: completedAttempt
+      });
+    }
     return result;
   }
 
   async disconnect() {
     this.reconnectWanted = false;
     this.#cancelReconnect();
+    this.password = null;
     if (!this.connected) {
       this.#resetRuntime();
       this.emit("status", this.status());
@@ -438,11 +448,11 @@ class ObsService extends EventEmitter {
     const delays = [1000, 2000, 4000, 8000, 15000];
     const delay = delays[Math.min(this.reconnectAttempt, delays.length - 1)];
     this.reconnectAttempt += 1;
+    const attempt = this.reconnectAttempt;
     this.reconnectTimer = setTimeout(async () => {
       this.reconnectTimer = null;
       try {
-        await this.connect({ url: this.url || undefined, password: process.env.CARI_OBS_PASSWORD });
-        this.emit("event", { type: "OBSReconnectSucceeded", attempt: this.reconnectAttempt });
+        await this.connect({ url: this.url || undefined });
       } catch (error) {
         this.emit("connection-error", error);
         this.#scheduleReconnect();
@@ -451,7 +461,7 @@ class ObsService extends EventEmitter {
     this.reconnectTimer.unref?.();
     this.emit("event", {
       type: "OBSReconnectScheduled",
-      attempt: this.reconnectAttempt,
+      attempt,
       delayMs: delay
     });
   }
