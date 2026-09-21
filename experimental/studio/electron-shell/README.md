@@ -70,7 +70,18 @@ Electron:
 - multistream;
 - instalador final.
 
-La bitácora de continuidad es:
-`experimental/studio/BITACORA_CARI_STUDIO.md`
+La bitácora canónica de continuidad es:
+`experimental/studio/BITACORA.md`
 
 Usarla antes de rehacer cualquier componente.
+
+
+### Backend GPU experimental
+
+El ejecutable nativo conserva `raw-ffmpeg` como backend por defecto. Cuando el build se realizó con `CARI_ENABLE_LIBAV_OUTPUT=ON` y existen las librerías de desarrollo de FFmpeg, puede seleccionarse el camino experimental D3D11→Libav con:
+
+```text
+CARI_OUTPUT_BACKEND=libav-d3d11
+```
+
+Este camino usa el compositor D3D11 y frames pertenecientes al pool hardware de FFmpeg, evitando el readback CPU del frame final antes del encoder. La validación Windows/hardware continúa pendiente.
