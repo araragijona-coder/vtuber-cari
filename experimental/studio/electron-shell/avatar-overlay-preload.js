@@ -6,5 +6,10 @@ contextBridge.exposeInMainWorld("cariAvatar", {
     const listener = (_, state) => callback(state);
     ipcRenderer.on("avatar:state", listener);
     return () => ipcRenderer.removeListener("avatar:state", listener);
+  },
+  onActionFrame: callback => {
+    const listener = (_, state) => callback(state);
+    ipcRenderer.on("avatar:action-frame", listener);
+    return () => ipcRenderer.removeListener("avatar:action-frame", listener);
   }
 });
