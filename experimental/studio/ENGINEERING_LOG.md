@@ -43,3 +43,10 @@ A demo image is visual reference only.
 - Canonical priority: P0 > P1 > P2 > P3.
 - Raw FFmpeg path no longer depends on use_wallclock_as_timestamps; explicit timestamp work remains on Libav gate.
 - Do not repeat already completed WGC/WASAPI/timing/tracker/renderer/supervisor work without regression evidence.
+
+## 2026-09-21 — LOG-026
+- Libav PTS hardening: encoded packet PTS bounds are now recorded and the audio clock re-anchors at empty FIFO boundaries.
+- Smoke expanded to verify encoded packet timestamp bounds, not only stream presence.
+- Bitácora canonical update: do not repeat timing/supervisor/tracker/renderer work without regression evidence.
+- Canonical progress remains Engineering ~71%, Product usable ~58%, Tracking ~65%.
+- Next focus remains P0 GPU compositor -> final frame + observable Windows E2E.
