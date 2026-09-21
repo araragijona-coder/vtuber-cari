@@ -38,6 +38,10 @@ public:
     [[nodiscard]] float current_mix_level() const noexcept {
         return current_mix_level_.load(std::memory_order_relaxed);
     }
+    [[nodiscard]] bool microphone_enabled() const noexcept {
+        return microphone_enabled_.load(std::memory_order_relaxed);
+    }
+    void set_microphone_enabled(bool enabled) noexcept;
     [[nodiscard]] std::vector<float> mixed_samples(std::size_t sample_count) const;
     bool pop_mixed_audio(cari::studio::core::AudioPacket& output);
     [[nodiscard]] std::wstring last_error() const;
@@ -64,6 +68,7 @@ private:
     std::atomic<std::uint64_t> errors_{0};
     std::atomic<float> peak_{0.0f};
     std::atomic<float> current_mix_level_{0.0f};
+    std::atomic<bool> microphone_enabled_{true};
 };
 
 } // namespace cari::native
