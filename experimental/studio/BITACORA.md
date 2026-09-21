@@ -2869,3 +2869,34 @@ También se actualizó el auditor del PC, la documentación de instalación y la
 La corrección requiere una ejecución Windows que confirme CMake configure, build Release, descubrimiento del ejecutable y pruebas del shell Electron.
 
 Este incidente queda cerrado como problema de descubrimiento/build local.
+## LOG-061 — Cierre del incidente de launcher
+Fecha: 2026-09-21
+Área: Windows / Arranque / Continuidad
+Estado: CORREGIDO EN CÓDIGO / HARDWARE PENDIENTE
+
+El caso observado por el usuario queda clasificado como ausencia del artefacto nativo en el checkout local.
+
+Se confirma que el único camino de lanzamiento sigue siendo `Cari-Launch.bat` → `electron-shell/run-local.ps1`.
+Desde esta corrección, el launcher:
+- descubre `CARI_NATIVE_EXECUTABLE` y builds conocidos;
+- genera `build-launch\Release` automáticamente si falta el ejecutable y existe CMake/toolchain;
+- instala `node_modules` solo cuando faltan;
+- no reutiliza `build-validation` como directorio de generación del launcher;
+- separa errores de toolchain, build y runtime.
+
+El error original no debe volver a disparar una auditoría del motor multimedia.
+
+### Criterio de cierre
+
+El incidente pasa a VERIFICADO cuando en Windows se observe el binario generado en:
+`experimental\studio\native-windows\build-launch\Release\cari-studio-native.exe`
+y `npm start` consiga conectar el NativeEngine.
+
+### Estado de producto
+
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
+
+Este porcentaje no aumenta por esta corrección porque no añade un nuevo subsistema funcional; elimina una fricción de arranque del entorno de desarrollo.
