@@ -32,3 +32,10 @@
 
 ## Regla
 No usar cantidad de commits, archivos o líneas como medida de progreso. El porcentaje depende de implementación, pruebas, validación y riesgo residual.
+
+## 2026-09-21 — P0-P3 continuity
+
+- Se fija el backlog ejecutivo P0 > P1 > P2 > P3 y se añade a BITACORA.md como memoria anti-repetición.
+- Se confirma Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65% como checkpoint vigente.
+- Se elimina la dependencia de use_wallclock_as_timestamps del camino raw de FFmpeg; la ruta Libav queda como candidata para PTS explícitos E2E.
+- Se documenta que V0/placeholder no es el asset Cari V1 final.
