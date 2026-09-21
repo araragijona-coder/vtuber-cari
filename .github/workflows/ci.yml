@@ -30,6 +30,10 @@ jobs:
         run: python -m unittest discover -s experimental/studio/tests -p 'test_verify_bitacora.py' -v
       - name: Compile production, experimental and engineering tools
         run: python -m compileall -q app tests experimental tools
+      - name: Check Blender VRM pipeline syntax
+        run: python -m py_compile experimental/studio/avatar-blender/cari_vrm_pipeline.py
+      - name: Validate Blender VRM pipeline config
+        run: python -m json.tool experimental/studio/avatar-blender/cari_v1_vrm_pipeline.json > /dev/null
       - name: Check experimental VRM web renderer syntax
         run: node --check experimental/avatar/vrm-web/src/main.js
       - name: Verify Twitch optional bridge import
