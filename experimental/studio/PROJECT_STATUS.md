@@ -1,3 +1,16 @@
+# Cari Studio — checkpoint canónico vigente
+
+> **Fuente de continuidad:** `experimental/studio/BITACORA.md`.  
+> Los porcentajes y estados históricos que aparezcan más abajo no deben reemplazar este checkpoint.
+
+- HEAD actual auditado: `a6da0ed020b66ac10c2f319fb27d7b25e43af5b8`
+- Ingeniería: **~71%**
+- Producto usable/end-user: **~58%**
+- Seguimiento global: **~65%**
+- Producción: **NO listo**
+
+---
+
 ## CHECKPOINT VIGENTE — 2026-09-21
 
 - HEAD canónico de esta rama: `82db3009aa8fe8b083cd1d0d2ed1d9e6c709d6ee`.
