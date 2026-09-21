@@ -209,7 +209,14 @@ function renderHotkeys() {
     ["Escenas", "Ctrl+6", "Abrir composición"],
     ["Audio", "Ctrl+7", "Abrir mixer"],
     ["Salidas", "Ctrl+8", "Abrir streaming/recording"],
-    ["Buscar", "Ctrl+K", "Enfocar el buscador de herramientas"]
+    ["Buscar", "Ctrl+K", "Enfocar el buscador de herramientas"],
+    ["Avatar feliz", "Ctrl+Alt+1", "Expresión global"],
+    ["Avatar enfadada", "Ctrl+Alt+2", "Expresión global"],
+    ["Avatar triste", "Ctrl+Alt+3", "Expresión global"],
+    ["Avatar asustada", "Ctrl+Alt+4", "Expresión global"],
+    ["Avatar neutral", "Ctrl+Alt+0", "Liberar expresión"],
+    ["Calibrar", "Ctrl+Alt+C", "Calibrar tracking facial"],
+    ["Tracking", "Ctrl+Alt+T", "Activar/desactivar cámara de tracking"]
   ];
   container.innerHTML = entries.map(([name, key, description]) =>
     '<div class="hotkey-card"><h4>' + esc(name) + '</h4><p>' +
@@ -1010,6 +1017,35 @@ window.cari.native.onEvent(event => {
     $("#twitch-center-status").textContent = twitchLabel;
     $("#service-twitch-text").textContent = twitchLabel;
     $("#service-twitch-dot").classList.toggle("on", twitchState.connected);
+    return;
+  }
+  if (event.type === "avatar.hotkey") {
+    if (event.type !== "avatar.hotkey") return;
+    if (event.value) {
+      setManualExpression(event.value);
+      showStatus("Hotkey VTuber: " + event.value);
+      return;
+    }
+    if (event.action === "calibrate") {
+      if (!faceTracker || !cameraStream) {
+        showStatus("Hotkey calibrar: inicia la cámara primero");
+        return;
+      }
+      const state = tracking.beginCalibration();
+      ui.trackingStatus.textContent = "calibrating";
+      ui.trackingQuality.textContent =
+        "Face: calibrando · " + state.samples + "/" + state.target;
+      showStatus("Calibración iniciada");
+      return;
+    }
+    if (event.action === "toggle-tracking") {
+      if (cameraStream) {
+        stopCamera();
+      } else {
+        startCamera().catch(error => showStatus("Hotkey tracking: " + error.message));
+      }
+      return;
+    }
     return;
   }
   if (event.type === "twitch.chat") {
