@@ -288,17 +288,29 @@ const char* MediaOutputStateName(cari::native::FfmpegAvOutputState state) {
 
 std::string BuildControlStatusMessage() {
     const auto capture = g_capture.stats();
+    const auto camera = g_camera.stats();
     const auto audio = g_audio_bridge.stats();
     const auto media = g_media_graph.stats();
     const auto transport = g_media_graph.transport_metrics();
+
+    const std::uint64_t reported_frames =
+        g_capture_source == "camera" ? camera.frames : capture.frames;
+    const double reported_fps =
+        g_capture_source == "camera"
+            ? (camera.fps_num > 0 && camera.fps_den > 0
+                ? static_cast<double>(camera.fps_num) / camera.fps_den
+                : 0.0)
+            : capture.fps;
+    const std::uint64_t reported_errors =
+        g_capture_source == "camera" ? camera.errors : capture.errors;
 
     std::string result = "capture=";
     result += CaptureIsRunning() ? "running" : "stopped";
     result += ";capture_source=" + g_capture_source;
     result += ";camera_index=" + std::to_string(g_selected_camera_index);
-    result += ";frames=" + std::to_string(capture.frames);
-    result += ";fps=" + std::to_string(capture.fps);
-    result += ";capture_errors=" + std::to_string(capture.errors);
+    result += ";frames=" + std::to_string(reported_frames);
+    result += ";fps=" + std::to_string(reported_fps);
+    result += ";capture_errors=" + std::to_string(reported_errors);
     result += ";audio_packets=" + std::to_string(audio.packets);
     result += ";audio_samples=" + std::to_string(audio.samples);
     result += ";audio_peak=" + std::to_string(audio.peak);
