@@ -9,6 +9,7 @@ import { LocalSpeechController } from "../avatar/local-speech-controller.js";
 import { AvatarActionStore } from "../avatar/action-store.js";
 import { AVATAR_EXPRESSIONS } from "../avatar/avatar-contract.js";
 import { AvatarActivityController } from "../avatar/activity-motion.js";
+import { Avatar2DFramePlayer, StudioActionRouter } from "../avatar/action-runtime.js";
 import { ChibiWorldController } from "../avatar/chibi-world.js";
 import { STUDIO_MENU, CAPABILITIES } from "./menu-config.js";
 
@@ -72,6 +73,7 @@ const tracking = new FaceTrackingBridge(acting, loadTrackingProfile());
 const lipSync = new AudioLipSync(acting);
 const speech = new LocalSpeechController();
 const actionStore = new AvatarActionStore();
+await actionStore.ready;
 const activity = new AvatarActivityController();
 activity.install(window);
 const chibiWorld = new ChibiWorldController($("#chibi-map"), { count: 3, seed: 42 });
@@ -83,12 +85,25 @@ let faceTracker = null;
 let cameraStream = null;
 let selectedActionId = actionStore.list()[0]?.id || null;
 let frameIndex = 0;
+const actionPlayer = new Avatar2DFramePlayer({
+  store: actionStore,
+  renderFrame: (action, index, meta) => renderActionFrame(action, index, meta),
+  onActionChange: action => {
+    if (action?.expression) acting.setManualExpression(action.expression);
+  }
+});
+const actionRouter = new StudioActionRouter({
+  actionStore,
+  player: actionPlayer,
+  acting
+});
 let actionTimer = null;
 let refreshBusy = false;
 let twitchRead = false;
 let manualTalk = false;
 let talkStartedAudio = false;
 let preTalkManualExpression = null;
+let preTalkActionId = null;
 let speechAutoEnabled = false;
 let lastTrackingUiUpdate = 0;
 
