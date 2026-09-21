@@ -13,7 +13,7 @@
 
 ## CHECKPOINT VIGENTE — 2026-09-21
 
-- HEAD canónico de esta rama: `82db3009aa8fe8b083cd1d0d2ed1d9e6c709d6ee`.
+- HEAD canónico de esta rama: consultar el PR #2; último head auditado en continuidad: `070c3481de17384bba353affb17a0f33abc38213`.
 - Ingeniería: **~71%**.
 - Producto usable/end-user: **~58%**.
 - Seguimiento global: **~65%**.
@@ -471,3 +471,13 @@ La regla evita confundir servicio disponible con consumidor multimedia. Antes de
 - [ ] Distribución.
 
 Regla de progreso: el checkpoint vigente es Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%. Los porcentajes no suben por volumen de código.
+
+## Continuidad — LOG-031
+
+- Se consolida BITACORA.md como memoria canónica.
+- No se reabren subsistemas ya cerrados sin regresión reproducible.
+- P0 vigente: D3D11Compositor → encoder Libav/D3D11 sin readback CPU por frame + E2E Windows observable.
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
+- Producción: **NO listo**.
