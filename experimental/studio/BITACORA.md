@@ -1,5 +1,92 @@
 # Cari Studio — Bitácora maestra
 
+## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — CONTINUIDAD VIVA
+
+> Usar este bloque para iniciar cualquier nueva iteración. Los bloques históricos inferiores sirven como registro y no deben reinterpretarse como tareas nuevas.
+
+- Rama: `fix/native-windows-foundation`
+- PR: #2
+- HEAD actual del PR: `af7617b3cd3c4e3ba345f4f369168e466425db63`
+- Estado: **EXPERIMENTAL / NO listo para producción**
+- Ingeniería: **~68%**
+- Producto usable/end-user: **~54%**
+- Seguimiento global: **~62%**
+
+### Realizado antes de esta iteración y protegido contra repetición
+- Windows Graphics Capture de ventana y pantalla primaria.
+- Enumeración de ventanas capturables.
+- WASAPI micrófono + system loopback.
+- AudioTimelineMixer con resampling inicial y métricas.
+- VoiceEffectProcessor local.
+- MediaClock 100 ns.
+- RealtimePacer.
+- Interleaver A/V global por PTS.
+- Bounded queues y máximo de eventos por polling.
+- FFmpeg supervisor + A/V boundary de dos named pipes.
+- EOF/flush y stderr limitado.
+- Clasificación de errores y RTMP retry/backoff acotado.
+- Cámara Media Foundation integrada como source experimental.
+- D3D11 compositor experimental y avatar overlay capturable.
+- Ruta Libav experimental para timestamps explícitos.
+- Three.js/glTF/GLB + contrato de avatar + MediaPipe.
+- Action Store/editor 2D.
+- Twitch EventSub único + lifecycle/reconnect base.
+- OBS WebSocket opcional + detección de proceso separada de conexión.
+- StudioRuntimeBindings + NativeBackend/OBSBackend.
+- NSIS/portable packaging y auditoría de licencias.
+- Resource policy para evitar consumidores multimedia ficticios.
+
+### Trabajo de continuidad de esta iteración
+- Se revisó el estado real del repo/PR antes de modificar componentes.
+- Se confirmó que retry/backoff, compositor GPU, cámara Media Foundation, Libav y E2E named-pipe ya existen; no se duplicaron.
+- Se mantuvo la clasificación IMPLEMENTADO / VERIFICADO / VALIDADO EN HARDWARE / PENDIENTE.
+- Se consolidó esta bitácora como entrada obligatoria antes de nuevas implementaciones.
+- Se mantuvo el output de producción bloqueado por los gates externos restantes.
+- Se verificaron nuevamente las invariantes de sesión, backpressure, orden A/V y diagnóstico.
+- Se dejó documentado que los tests portables y el FFmpeg sintético no sustituyen la validación Windows/hardware.
+
+### NO REPETIR — lista operativa
+| Componente | Estado | Acción futura válida |
+|---|---|---|
+| WGC desktop capture | IMPLEMENTADO | Solo corregir regresión reproducible |
+| WASAPI + mixer | IMPLEMENTADO | Solo drift correction/validación |
+| MediaClock/Pacer/Interleaver | IMPLEMENTADO + smoke | Solo PTS E2E/regresión |
+| FFmpeg A/V boundary | IMPLEMENTADO | Validar Windows sostenido |
+| RTMP retry | IMPLEMENTADO | Validar red real; no crear otro supervisor |
+| OBS service | IMPLEMENTADO | Añadir acciones faltantes en el servicio existente |
+| Twitch transport | IMPLEMENTADO | Validar canal/scopes/reconnect real |
+| Action Store | IMPLEMENTADO | Extender sin segundo almacenamiento |
+| Three.js avatar | IMPLEMENTADO | Integrar/validar modelo, no reemplazar sin evidencia |
+| D3D11 compositor | EXPERIMENTAL | Quitar readback CPU y conectar encoder |
+| Libav PTS | EXPERIMENTAL | Compilar/validar con FFmpeg dev kit Windows |
+| Media Foundation camera | EXPERIMENTAL | Probar cámara física/reconnect |
+| Game Capture | PENDIENTE | Diseñar backend separado; no reciclar WGC como Game Capture |
+| Multistream | EXPERIMENTAL | Validar outputs independientes; no duplicar FFmpeg supervisor |
+| CI | BLOQUEADO | Conseguir jobs con Checkout/CMake/npm/CTest y logs observables |
+
+### Orden de trabajo que sigue
+1. CI observable.
+2. E2E Windows named-pipe -> FFmpeg -> archivo.
+3. Compositor GPU sin CPU readback y conexión real al encoder.
+4. Verificación PTS explícitos con Libav.
+5. Drift correction/resampling basado en relojes WASAPI.
+6. Cámara Media Foundation + Game Capture en Windows real.
+7. Backend real de acciones Native/OBS.
+8. Validación real Twitch/OBS.
+9. Hardware objetivo.
+10. Multistream, redistribución FFmpeg, instalador y release.
+
+### Regla anti-repetición
+Antes de tocar código:
+1. Buscar el componente en `BITACORA.md`.
+2. Si figura IMPLEMENTADO/VERIFICADO, trabajar solamente en el gate restante o sobre una regresión reproducible.
+3. Si figura PENDIENTE, implementar dentro del componente existente.
+4. Registrar el resultado en esta bitácora con evidencia concreta.
+5. Nunca usar el porcentaje como sustituto de una prueba.
+
+---
+# Cari Studio — Bitácora maestra
+
 ## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — CONTINUIDAD Y ANTI-REPETICIÓN
 
 > Este bloque es la referencia operativa actual. Los checkpoints históricos inferiores no deben sustituirlo.
