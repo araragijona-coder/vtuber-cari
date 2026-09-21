@@ -6,10 +6,10 @@ Fuente canónica de continuidad: experimental/studio/BITACORA.md.
 
 - Branch: fix/native-windows-foundation
 - PR: #2
-- HEAD: a962dbea8890acae80178defd1bfe5010c6f2734
-- Engineering: ~68%
-- Product usable: ~54%
-- Tracking global: ~62%
+- HEAD: consultar PR #2
+- Engineering: ~71%
+- Product usable: ~58%
+- Tracking global: ~65%
 - Production: NOT READY
 
 ## Current focus
@@ -19,6 +19,7 @@ Fuente canónica de continuidad: experimental/studio/BITACORA.md.
 4. Drift correction físico.
 5. Validación de cámara/Game Capture/RTMP en Windows.
 6. Validación del asset Cari V1 sobre el renderer existente.
+7. Construcción/evaluación del asset visual V1; el procedural V2 es fallback técnico, no arte final.
 
 ## Do not repeat
 - Windows Graphics Capture
