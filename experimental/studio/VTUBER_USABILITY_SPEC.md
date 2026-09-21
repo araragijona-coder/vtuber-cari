@@ -56,6 +56,16 @@ Tras la gracia configurada, movimiento de cabeza, mirada, boca y parpadeo vuelve
 
 Esto evita saltos bruscos cuando el usuario gira la cabeza, una mano cubre parcialmente la cara o la cámara pierde temporalmente el rostro.
 
+## Hotkeys globales
+
+Para uso durante una transmisión, Electron registra hotkeys globales:
+- Ctrl+Alt+1/2/3/4: expresiones rápidas;
+- Ctrl+Alt+0: liberar override manual;
+- Ctrl+Alt+C: calibrar;
+- Ctrl+Alt+T: activar/desactivar tracking.
+
+Las teclas solo publican eventos. El Renderer mantiene la lógica del avatar para evitar dos fuentes de verdad.
+
 ## Controles de usuario
 
 La vista Tracking proporciona:
@@ -113,7 +123,7 @@ Three.js es el backend activo:
 - morph target aliases;
 - placeholder técnico cuando no hay modelo.
 
-El renderer no distribuye un modelo comercial ni una identidad visual propietaria.
+El renderer no distribuye un modelo comercial ni una identidad visual propietaria. PNGTuber y Three.js/glTF reutilizan la estrategia definida en `VTUBER_ASSET_STRATEGY.md`.
 
 ## Live2D
 
