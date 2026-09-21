@@ -96,8 +96,8 @@ test("voice does not override a higher-priority chat action and returns after ch
   router.setManualAction("angry");
   router.trigger("happy", { source: "chat", holdMs: 1000, priority: 80 });
   router.setVoiceActivity({ speaking: false, active: true });
-  assert.equal(player.currentSource(), "voice");
-  assert.equal(player.currentAction().id, "silent");
+  assert.equal(player.currentSource(), "chat");
+  assert.equal(player.currentAction().id, "happy");
 
   router.setVoiceActivity({ speaking: true });
   assert.equal(player.currentSource(), "chat");
@@ -154,5 +154,8 @@ test("router maps chat commands and Twitch EventSub events", () => {
   assert.equal(router.handleChatMessage("!happy"), "happy");
   assert.equal(player.currentAction().id, "happy");
   assert.equal(router.handleTwitchEvent("channel.subscribe"), "happy");
+  const bridged = router.handleEvent({ type: "twitch.event", eventType: "channel.cheer", payload: { bits: 100 } });
+  assert.equal(bridged?.kind, "event");
+  assert.equal(bridged?.action, "happy");
   assert.ok(expressions.includes("happy"));
 });
