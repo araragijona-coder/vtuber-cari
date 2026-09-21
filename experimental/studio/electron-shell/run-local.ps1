@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [switch]$NoBuild,
-    [switch]$SkipNpm
+    [switch]$SkipNpm,
+    [switch]$NoSetup
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,6 +11,97 @@ $StudioRoot = Split-Path -Parent $PSScriptRoot
 $NativeProject = Join-Path $StudioRoot "native-windows"
 $BuildDir = Join-Path $NativeProject "build-launch"
 
+function Refresh-ProcessPath {
+    $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $user = [Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path = (($machine -split ';') + ($user -split ';') + ($env:Path -split ';') |
+        Where-Object { $_ } |
+        Select-Object -Unique) -join ';'
+}
+
+function Find-CMake {
+    Refresh-ProcessPath
+
+    $command = Get-Command cmake.exe -ErrorAction SilentlyContinue
+    if ($command) {
+        return $command
+    }
+
+    $programFilesX86 = ${env:ProgramFiles(x86)}
+    $candidates = @(
+        (Join-Path $env:ProgramFiles "CMake\bin\cmake.exe"),
+        (Join-Path $programFilesX86 "CMake\bin\cmake.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\CMake\bin\cmake.exe")
+    )
+
+    $vswhere = Join-Path $programFilesX86 "Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path -LiteralPath $vswhere -PathType Leaf) {
+        $vsCmake = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Workload.VCTools -find "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" 2>$null |
+            Select-Object -First 1
+        if ($vsCmake) {
+            $candidates += $vsCmake
+        }
+    }
+
+    foreach ($candidate in $candidates) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+            return Get-Item -LiteralPath $candidate
+        }
+    }
+
+    return $null
+}
+
+function Ensure-CMake {
+    $cmake = Find-CMake
+    if ($cmake) {
+        return $cmake
+    }
+
+    if ($NoSetup) {
+        return $null
+    }
+
+    $setup = Join-Path $StudioRoot "tools\windows\Cari-Setup.ps1"
+    $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
+
+    if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) {
+        return $null
+    }
+
+    if (-not $winget) {
+        throw @"
+Cari Studio needs CMake to build the native engine, but cmake.exe is not installed.
+
+The automatic setup script is present, but WinGet is not available in this Windows session.
+Run:
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$setup"
+
+Or install CMake + Visual Studio C++ Build Tools manually.
+"@
+    }
+
+    Write-Host "CMake was not found. Running Cari-Setup.ps1 for the missing Windows toolchain..." -ForegroundColor Yellow
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $setup -SkipBuild -SkipNpm
+    if ($LASTEXITCODE -ne 0) {
+        throw "Cari-Setup.ps1 could not prepare the Windows toolchain. Exit code $LASTEXITCODE."
+    }
+
+    $cmake = Find-CMake
+    if ($cmake) {
+        return $cmake
+    }
+
+    throw @"
+Cari Studio setup completed, but cmake.exe is still unavailable.
+
+Use:
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$setup" -CheckOnly
+
+Then inspect:
+  experimental\studio\validation-evidence\pc-audit\pc-compatibility.txt
+"@
+}
 function Find-NativeEngine {
     $candidates = @()
 
@@ -39,16 +131,9 @@ function Build-NativeEngine {
         return $false
     }
 
-    $cmake = Get-Command cmake.exe -ErrorAction SilentlyContinue
+    $cmake = Ensure-CMake
     if (-not $cmake) {
-        throw @"
-Cari Studio native engine is not built and CMake was not found.
-
-Run the full environment setup first:
-  .\..\tools\windows\Cari-Setup.ps1
-
-Or install CMake + Visual Studio C++ Build Tools and run this launcher again.
-"@
+        throw "CMake was not found and automatic setup is disabled. Run Cari-Setup.ps1 or remove -NoSetup."
     }
 
     if (-not (Test-Path -LiteralPath $NativeProject -PathType Container)) {
@@ -109,6 +194,10 @@ function Ensure-ElectronDependencies {
     finally {
         Pop-Location
     }
+}
+
+if ($NoSetup) {
+    Write-Host "Automatic toolchain setup disabled by -NoSetup." -ForegroundColor DarkYellow
 }
 
 $Native = Find-NativeEngine
