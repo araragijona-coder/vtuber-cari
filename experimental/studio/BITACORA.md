@@ -365,3 +365,89 @@ Pendientes prioritarios que no deben reemplazarse por trabajo repetido:
 - Global de seguimiento: ~61%.
 
 HEAD registrado de esta actualización: f10bd6ef024c52c077f5c69a29b2ea497e6eb297.
+
+## Actualización 2026-09-21 — presencia OBS/Twitch y ahorro de recursos
+
+### Objetivo
+
+Evitar que Cari Studio interprete una integración disponible como un consumidor de multimedia. OBS y Twitch quedan desacoplados del Native Engine: pueden estar abiertos/conectados sin provocar captura, composición o encode innecesarios.
+
+### Implementado
+
+| Área | Estado | Evidencia / código |
+|---|---|---|
+| Detección local de OBS | IMPLEMENTADO | electron-shell/runtime/obs-discovery.js; detecta obs64.exe/obs32.exe/obs.exe con cache de 2 s |
+| OBS abierto vs controlable | IMPLEMENTADO | ObsService expone processDetected/processName/controlReady por separado de connected |
+| Salud integrada | IMPLEMENTADO | IntegrationHealthMonitor publica snapshot OBS + Twitch cada 2 s; no abre conexiones por sí solo |
+| Twitch estado | IMPLEMENTADO | TwitchChatService expone authorized/connected/streamOnline/lastEventAt/lastKeepaliveAt |
+| Twitch como sink | NO | Resource policy lo clasifica como plano de control/eventos, no video sink |
+| Política de recursos | IMPLEMENTADO | electron-shell/runtime/resource-policy.mjs |
+| Voice config sin audio | IMPLEMENTADO | SessionManager no inicia Native Engine para guardar voice preference |
+| Limpieza de recursos propios del output | IMPLEMENTADO | OutputStop detiene captura/audio que el output levantó; preserva recursos iniciados independientemente |
+| Captura nativa sin sink | IMPLEMENTADO | main.cpp corta ProcessPrimaryCapturedFrame antes de readback/compositor cuando no hay output nativo |
+| Estado visible | IMPLEMENTADO | preload + renderer reciben health OBS/Twitch y distinguen offline/open/connected/live |
+| Regresión de ciclo de vida | IMPLEMENTADO | session-and-avatar.test.mjs cubre idle engine y cleanup ownership |
+| Recurso sin consumidor | PROTEGIDO | No se generan frames CPU/GPU hacia un sink nativo inexistente |
+
+### Matriz de comportamiento
+
+- Ningún output + OBS cerrado + Twitch desconectado: Native Engine no se inicia automáticamente.
+- OBS abierto pero no conectado por WebSocket: se informa OPEN; no se genera media por OBS.
+- OBS conectado sin stream/record/virtual camera: solo control; no activa Native Engine.
+- OBS con output activo: OBS es un consumidor externo; Cari no inicia su propia captura/encoder por ese hecho.
+- Twitch conectado: solo chat/eventos; no activa captura, encoder ni avatar por sí mismo.
+- Cari local record/RTMP: Native Engine sí activa captura/audio/output porque existe un sink real.
+- Configurar voz antes de iniciar audio: solo se almacena la preferencia.
+- Al detener un output que creó captura/audio: esos recursos se liberan y el engine queda apagado si no quedan otras demandas.
+
+### Reglas de conversación entre aplicaciones
+
+1. Cari → OBS: conexión WS solo para control/estado; no asumir que OBS consume media solo porque responde.
+2. OBS → Cari: Stream/Record/VirtualCam activos cuentan como sink externo; OBS abierto sin outputs activos no.
+3. Cari → Twitch: OAuth/EventSub/chat son control/eventos; no son una ruta de video.
+4. Twitch → Cari: stream.online/offline actualiza estado informativo, no enciende el media graph.
+5. Native Engine → FFmpeg: solo debe procesar frames cuando existe output nativo activo.
+6. Native Engine → renderer: hoy no existe preview de captura nativa; por eso el heavy readback/compositor queda inhibido sin output.
+
+### NO REPETIR
+
+- No crear otro ObsService.
+- No crear otro TwitchChatService ni otro EventSub WebSocket.
+- No usar tasklist como sustituto de una conexión WS: proceso abierto y controlable son estados diferentes.
+- No iniciar Native Engine al conectar OBS.
+- No iniciar Native Engine al conectar Twitch.
+- No usar Twitch conectado como motivo para capturar video.
+- No hacer readback/composición de captura cuando no existe sink.
+- No crear un segundo resource policy.
+- No rehacer el session manager; extenderlo sobre ownership/demand existente.
+- No declarar preview de captura nativa terminado: falta un consumidor de frame real en renderer.
+
+### Evidencia y límites
+
+- Los módulos de policy/SessionManager tienen tests de regresión añadidos, pero la ejecución completa del workflow sigue bloqueada por GitHub Actions que termina jobs con steps/logs nulos.
+- La detección local de OBS solo establece presencia de proceso; la capacidad de control sigue dependiendo de obs-websocket y su configuración.
+- La evidencia de Twitch real continúa pendiente de canal/credenciales.
+
+### Trabajo descartado / no volver a hacer
+
+- Intentos de implementar otro transporte Twitch: descartados porque TwitchChatService ya es el transporte único.
+- Usar OBS como dependencia del Native Engine: descartado por arquitectura.
+- Lanzar captura nativa para alimentar un preview inexistente: descartado; el worker ahora evita el trabajo pesado.
+
+### Siguiente orden
+
+1. Transporte A/V con timestamps explícitos extremo a extremo.
+2. Compositor GPU D3D11 final sin readback CPU.
+3. E2E Windows named pipes + FFmpeg.
+4. Drift correction WASAPI.
+5. Validación real OBS/Twitch.
+6. Game Capture y cámara final.
+7. Hardware, multistream y distribución.
+
+### Porcentaje de seguimiento al cierre de esta entrada
+
+- Ingeniería: ~68%.
+- Producto usable: ~54%.
+- Global: ~62%.
+
+Esta entrada es la referencia para no repetir la auditoría de presencia/integraciones y para empezar directamente por los gates restantes.
