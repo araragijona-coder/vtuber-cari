@@ -1,4 +1,5 @@
 #include "libav_media_output.h"
+#include "d3d11_av_frame_bridge.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -19,6 +20,7 @@ extern "C" {
 #include <cstring>
 #include <mutex>
 #include <utility>
+#include <string_view>
 
 namespace cari::native {
 namespace {
@@ -40,6 +42,25 @@ bool has_pix_fmt(const AVCodec* codec, AVPixelFormat format) {
          *current != AV_PIX_FMT_NONE;
          ++current) {
         if (*current == format) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool supports_d3d11_hw_frames(const AVCodec* codec) {
+    if (codec == nullptr) {
+        return false;
+    }
+
+    for (int index = 0;; ++index) {
+        const AVCodecHWConfig* config = avcodec_get_hw_config(codec, index);
+        if (config == nullptr) {
+            break;
+        }
+        if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_FRAMES_CTX) != 0 &&
+            config->device_type == AV_HWDEVICE_TYPE_D3D11VA &&
+            config->pix_fmt == AV_PIX_FMT_D3D11) {
             return true;
         }
     }
@@ -121,6 +142,8 @@ struct LibavMediaOutput::Impl {
     bool header_written = false;
     bool running = false;
     bool network_initialized = false;
+    bool hardware_video = false;
+    std::unique_ptr<D3D11AvFrameBridge> d3d11_bridge;
 
     LibavMediaOutputStats stats{};
     std::string error;
@@ -378,6 +401,8 @@ struct LibavMediaOutput::Impl {
         if (video_codec != nullptr) {
             avcodec_free_context(&video_codec);
         }
+        d3d11_bridge.reset();
+        hardware_video = false;
         if (format != nullptr) {
             avformat_free_context(format);
         }
@@ -393,7 +418,8 @@ struct LibavMediaOutput::Impl {
     }
 
     bool configure(
-        const cari::studio::core::OutputProfile& profile) {
+        const cari::studio::core::OutputProfile& profile,
+        ID3D11Device* d3d11_device = nullptr) {
         if (profile.width == 0 || profile.height == 0 || profile.fps == 0 ||
             input_audio_sample_rate == 0 || input_audio_channels == 0) {
             set_error("invalid libav media output profile");
@@ -448,12 +474,44 @@ struct LibavMediaOutput::Impl {
             return false;
         }
 
-        video_pixel_format = choose_video_format(video_encoder);
+        if (d3d11_device != nullptr) {
+            if (!supports_d3d11_hw_frames(video_encoder)) {
+                set_error(
+                    std::string("video encoder does not expose D3D11 hardware frames: ") +
+                    profile.video_codec);
+                return false;
+            }
+
+            d3d11_bridge = std::make_unique<D3D11AvFrameBridge>();
+            std::string bridge_error;
+            if (!d3d11_bridge->initialize(
+                    d3d11_device,
+                    profile.width,
+                    profile.height,
+                    bridge_error)) {
+                set_error(
+                    std::string("D3D11 frame bridge initialization failed: ") +
+                    bridge_error);
+                return false;
+            }
+            video_pixel_format = AV_PIX_FMT_D3D11;
+            hardware_video = true;
+        } else {
+            video_pixel_format = choose_video_format(video_encoder);
+        }
+
         video_codec->codec_type = AVMEDIA_TYPE_VIDEO;
         video_codec->codec_id = video_encoder->id;
         video_codec->width = static_cast<int>(profile.width);
         video_codec->height = static_cast<int>(profile.height);
         video_codec->pix_fmt = video_pixel_format;
+        if (hardware_video) {
+            video_codec->hw_frames_ctx = av_buffer_ref(d3d11_bridge->frames_ref());
+            if (video_codec->hw_frames_ctx == nullptr) {
+                set_error("failed to reference D3D11 hardware frame context");
+                return false;
+            }
+        }
         video_codec->time_base = AVRational{
             1,
             static_cast<int>(profile.fps)};
@@ -547,20 +605,22 @@ struct LibavMediaOutput::Impl {
             return false;
         }
 
-        scaler = sws_getContext(
-            static_cast<int>(profile.width),
-            static_cast<int>(profile.height),
-            AV_PIX_FMT_BGRA,
-            static_cast<int>(profile.width),
-            static_cast<int>(profile.height),
-            video_pixel_format,
-            SWS_BILINEAR,
-            nullptr,
-            nullptr,
-            nullptr);
-        if (scaler == nullptr) {
-            set_error("failed to create BGRA video scaler");
-            return false;
+        if (!hardware_video) {
+            scaler = sws_getContext(
+                static_cast<int>(profile.width),
+                static_cast<int>(profile.height),
+                AV_PIX_FMT_BGRA,
+                static_cast<int>(profile.width),
+                static_cast<int>(profile.height),
+                video_pixel_format,
+                SWS_BILINEAR,
+                nullptr,
+                nullptr,
+                nullptr);
+            if (scaler == nullptr) {
+                set_error("failed to create BGRA video scaler");
+                return false;
+            }
         }
 
         AVChannelLayout input_layout{};
@@ -636,6 +696,62 @@ struct LibavMediaOutput::Impl {
         header_written = true;
         running = true;
         return true;
+    }
+
+    bool submit_video_d3d11_locked(
+        const cari::studio::core::Frame& input_frame,
+        ID3D11Texture2D* texture,
+        std::intptr_t subresource_index) {
+        if (!hardware_video || !running || format == nullptr ||
+            d3d11_bridge == nullptr || texture == nullptr) {
+            ++stats.video_packets_dropped;
+            set_error("D3D11 video submitted without a hardware video output");
+            return false;
+        }
+
+        D3D11_TEXTURE2D_DESC desc{};
+        texture->GetDesc(&desc);
+        if (desc.Width != static_cast<UINT>(video_codec->width) ||
+            desc.Height != static_cast<UINT>(video_codec->height) ||
+            desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
+            ++stats.video_packets_dropped;
+            set_error("D3D11 texture does not match configured BGRA dimensions");
+            return false;
+        }
+
+        ensure_origin(input_frame.pts);
+        if (stats.last_video_input_pts >= 0 &&
+            input_frame.pts < stats.last_video_input_pts) {
+            ++stats.video_packets_dropped;
+            set_error("video PTS moved backwards");
+            return false;
+        }
+        stats.last_video_input_pts = input_frame.pts;
+        ++stats.video_frames_submitted;
+
+        const std::int64_t normalized =
+            normalize_pts(input_frame.pts, media_origin);
+        const std::int64_t encoder_pts = av_rescale_q(
+            normalized,
+            kSourceTimeBase,
+            video_codec->time_base);
+
+        std::string bridge_error;
+        AVFrame* hardware_frame = d3d11_bridge->wrap_texture(
+            texture,
+            encoder_pts,
+            subresource_index,
+            bridge_error);
+        if (hardware_frame == nullptr) {
+            ++stats.video_packets_dropped;
+            set_error(
+                std::string("D3D11 frame wrap failed: ") + bridge_error);
+            return false;
+        }
+
+        const bool encoded = encode_video(hardware_frame);
+        av_frame_free(&hardware_frame);
+        return encoded;
     }
 
     bool submit_video_locked(
@@ -844,6 +960,42 @@ bool LibavMediaOutput::start(
     return impl_->configure(profile);
 }
 
+bool LibavMediaOutput::start_d3d11(
+    const cari::studio::core::OutputProfile& profile,
+    ID3D11Device* device,
+    std::uint32_t input_audio_sample_rate,
+    std::uint16_t input_audio_channels) {
+    if (device == nullptr) {
+        std::lock_guard lock(impl_->mutex);
+        impl_->error = "D3D11 device is required for hardware output";
+        return false;
+    }
+
+    std::lock_guard lock(impl_->mutex);
+    impl_->stop_locked();
+    impl_->error.clear();
+    impl_->stats = {};
+    impl_->input_audio_sample_rate = input_audio_sample_rate;
+    impl_->input_audio_channels = input_audio_channels;
+    impl_->media_origin = -1;
+    impl_->next_audio_pts = 0;
+    impl_->audio_pts_ready = false;
+
+    if (profile.kind == cari::studio::core::OutputKind::rtmp) {
+        avformat_network_init();
+        impl_->network_initialized = true;
+    }
+
+    const auto validation =
+        cari::studio::core::validate_output_profile(profile);
+    if (!validation.valid) {
+        impl_->set_error(validation.error);
+        return false;
+    }
+
+    return impl_->configure(profile, device);
+}
+
 bool LibavMediaOutput::submit_video(
     const cari::studio::core::Frame& frame,
     const std::shared_ptr<std::vector<std::uint8_t>>& bgra) noexcept {
@@ -856,6 +1008,28 @@ bool LibavMediaOutput::submit_video(
         return false;
     } catch (...) {
         impl_->set_error("video submit unknown exception");
+        ++impl_->stats.video_packets_dropped;
+        return false;
+    }
+}
+
+bool LibavMediaOutput::submit_video_d3d11(
+    const cari::studio::core::Frame& frame,
+    ID3D11Texture2D* texture,
+    std::intptr_t subresource_index) noexcept {
+    std::lock_guard lock(impl_->mutex);
+    try {
+        return impl_->submit_video_d3d11_locked(
+            frame,
+            texture,
+            subresource_index);
+    } catch (const std::exception& exception) {
+        impl_->set_error(
+            std::string("D3D11 video submit exception: ") + exception.what());
+        ++impl_->stats.video_packets_dropped;
+        return false;
+    } catch (...) {
+        impl_->set_error("D3D11 video submit unknown exception");
         ++impl_->stats.video_packets_dropped;
         return false;
     }
@@ -893,6 +1067,11 @@ std::string LibavMediaOutput::last_error() const {
     if (impl_ == nullptr) return {};
     std::lock_guard lock(impl_->mutex);
     return impl_->error;
+}
+
+bool LibavMediaOutput::hardware_video_enabled() const noexcept {
+    std::lock_guard lock(impl_->mutex);
+    return impl_->hardware_video;
 }
 
 LibavMediaOutputStats LibavMediaOutput::stats() const noexcept {
