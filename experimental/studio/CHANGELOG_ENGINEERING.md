@@ -103,3 +103,10 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - El camino evita readback CPU en la entrega de textura al encoder.
 - Estado: experimental; requiere FFmpeg development build + Windows/GPU real.
 - Porcentaje canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+
+## 2026-09-21 — LOG-035 continuity checkpoint
+- Se documenta el bloqueo persistente de GitHub Actions sin steps/logs.
+- Se documenta la divergencia histórica creciente de la rama sin reescribir commits.
+- Se mantiene Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Próximo foco: validación Windows de Libav + D3D11 hardware y E2E observable.
