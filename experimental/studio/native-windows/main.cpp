@@ -869,8 +869,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
             if (g_audio_bridge.running()) {
                 g_audio_bridge.stop();
             } else {
+                // Starting the audio engine must not implicitly open the microphone.
+                // Microphone capture remains controlled by the explicit microphone.set
+                // command / Talk gate.
                 g_audio_bridge.start();
-                g_audio_bridge.set_microphone_enabled(true);
             }
             RefreshStatus(hwnd);
             return 0;
