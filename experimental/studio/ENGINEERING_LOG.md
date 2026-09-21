@@ -138,3 +138,11 @@ A demo image is visual reference only.
 - Scene Items visibility control added to OBS Center.
 - Reuses existing ObsService and preload/IPC contracts.
 - Canonical progress unchanged: Engineering ~71%, Product usable ~58%, Tracking ~65%.
+
+
+## 2026-09-21 — LOG-039
+- Bitácora canónica actualizada con el estado de resiliencia de output y la nueva cobertura explícita de CI.
+- OutputRetryPolicy ya integrado y restringido a fallos de red.
+- Native Windows workflow ejecuta smoke de retry y diagnóstico.
+- Progreso canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Siguiente foco: evidencia Windows de D3D11 → Libav/encoder y E2E observable.
