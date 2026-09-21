@@ -26,12 +26,10 @@ jobs:
         run: python -m pip install -e .[twitch]
       - name: Verify engineering continuity ledger
         run: python experimental/studio/tools/verify_bitacora.py
-      - name: Run continuity validator test
-        run: python -m unittest experimental.studio.tests.test_verify_bitacora -v
+      - name: Run continuity validator tests
+        run: python -m unittest discover -s experimental/studio/tests -p 'test_verify_bitacora.py' -v
       - name: Compile production, experimental and engineering tools
         run: python -m compileall -q app tests experimental tools
-      - name: Validate engineering memory
-        run: python tools/verify_bitacora.py
       - name: Check experimental VRM web renderer syntax
         run: node --check experimental/avatar/vrm-web/src/main.js
       - name: Verify Twitch optional bridge import
