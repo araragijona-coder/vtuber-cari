@@ -85,6 +85,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Interleave temporal A/V con reloj maestro lógico de audio.
 - [x] Pacing de emisión raw por PTS mediante un reloj monotónico compartido y colas acotadas.
 - [x] Interleaver global de audio/video por PTS con empate determinista a favor de audio.
+- [x] Manual Talk gate sin activación automática del micrófono.
 - [x] Límite de eventos despachados por polling para acotar ráfagas durante recuperación de atraso.
 - [x] Smoke tests de orden, tolerancia y late-drop.
 - [x] Mezclador temporal de audio para micrófono + sistema + futuras pistas como TTS.
@@ -216,6 +217,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 
 - [x] Acting state independent of appearance.
+- [x] Modos completos deterministas de actividad con objeto, brazos, intensidad y pose.
 - [x] Appearance profile.
 - [x] Hair/outfit/accessories.
 - [x] Accessory anchors and transforms.
@@ -225,6 +227,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Canonical Cari personality bible with explicit invariants and data classification.
 - [ ] Character behavior engine consuming personality/value/state layers.
 - [x] Neutral avatar contract consumed by the Three.js renderer.
+- [x] Mapa chibi procedural de preview, separado de la señal de streaming.
 - [x] Manual talk/reaction control layer sobre el Action Store existente.
 
 - [x] Overlay Three.js/glTF capturable e integrado experimentalmente al compositor D3D11 existente.
