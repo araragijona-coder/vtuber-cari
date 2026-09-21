@@ -124,10 +124,16 @@ test("stable VAD state does not restart the frame sequence", () => {
   const router = new StudioActionRouter({ actionStore: store, player });
 
   assert.equal(router.setVoiceActivity({ speaking: false, active: true }), true);
-  const firstSequence = player.currentAction().id;
-  assert.equal(firstSequence, "silent");
+  assert.equal(player.currentAction().id, "silent");
   assert.equal(router.setVoiceActivity({ speaking: false, active: true }), false);
   assert.equal(player.currentAction().id, "silent");
+
+  assert.equal(router.setVoiceActivity({ speaking: true, active: true }), true);
+  assert.equal(player.currentAction().id, "talking");
+  assert.equal(router.setVoiceActivity({ speaking: true, active: true }), false);
+
+  assert.equal(router.setVoiceActivity({ speaking: false, active: false }), true);
+  assert.equal(player.currentSource(), "base");
 });
 
 test("router maps chat commands and Twitch EventSub events", () => {
