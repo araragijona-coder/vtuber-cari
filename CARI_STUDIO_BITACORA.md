@@ -3,8 +3,8 @@
 > **Fuente canónica única de continuidad.**
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
-**Última auditoría:** 20/09/2026 15:40 ART
-**HEAD canónico:** 0457b643c99ba3fa0522c674b2c0d623b55be920
+**Última auditoría:** 21/09/2026
+**HEAD canónico:** b3b0184b7c3dde6c6d397359875bcf8f20795165
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
@@ -1521,3 +1521,46 @@ Twitch documenta entrega al menos una vez y reutiliza el mismo `message_id` al r
 
 ### Próximo bloque
 Conectar las salidas `studio_*_requested` con un backend dual Native/OBS mediante `StudioRuntimeBindings`, y después validar en canal real. La implementación debe conservar la regla: Native Engine es backend principal; OBS es opcional.
+
+## 34. Cierre Twitch Control Plane — 21/09/2026
+
+**Estado:** IMPLEMENTADO; VALIDACIÓN REAL PENDIENTE.
+**Avance global:** **63%** (sin incremento por scaffolding; ningún gate productivo se cerró en esta ronda).
+
+### Cadena consolidada
+- TwitchIO es únicamente transporte/EventSub.
+- `TwitchController` concentra normalización, deduplicación, comandos, voz pública, automatización y acciones.
+- `EventBus` es el único bus compartido del runtime y ahora es seguro para publicación concurrente.
+- `LocalPipeline` conserva su único `StudioActionRouter`.
+- `LocalCariActionHandler` conecta automatización Twitch con `studio_action`.
+- `StudioActionRouter` traduce el contrato a eventos `studio_*_requested` para backends locales.
+- OBS continúa siendo opcional; el Native Engine sigue siendo el backend objetivo principal.
+
+### Controles cubiertos por el contrato
+`chat`, `sound`, `scene`, `overlay`, `music`, `stream`, `recording`, `source`, `volume`, `mute`, `camera`, `avatar`, `expression`, `tracking`, `command` y `voice`.
+
+### Idempotencia
+- Cache bounded de 1024 IDs en `TwitchController`.
+- Chat uses `ChatMessage.id` explícito.
+- Otros eventos solo se deduplican cuando el transport adapter expone `message_id`; nunca se sustituye ese ID por un ID de entidad.
+- Twitch documenta entrega al menos una vez y reutiliza `message_id` al reenviar la misma notificación.
+
+### NO REPETIR
+- No volver a crear `TwitchController`.
+- No crear segundo EventSub WebSocket.
+- No duplicar `TwitchLiveBot`.
+- No crear segundo `EventBus` para Twitch.
+- No crear segundo `StudioActionRouter` en el pipeline.
+- No rehacer `TwitchContinuityLedger` ni mover la reconexión de TwitchIO al controller.
+- No rehacer comandos/cooldowns/chat voice existentes; ampliar únicamente cuando exista un requisito o regresión reproducible.
+- No volver a usar `experimental/twitch/twitchio_bridge.py` como implementación independiente: es alias de compatibilidad.
+
+### Evidencia pendiente
+- CI sigue terminando a nivel job con `steps=null` y `logs_url=null`; no existe build/test observable de GitHub Actions.
+- Falta validación con Twitch real.
+- Falta prueba real de reconnect/resubscribe.
+- Falta conectar físicamente los eventos `studio_*_requested` con los backends Native/OBS.
+- Falta validar concurrencia sostenida y carga del EventBus.
+
+### Próximo foco obligatorio
+Implementar el adaptador dual Native/OBS sobre `StudioRuntimeBindings`: Native Engine como backend primario, OBS WebSocket como backend opcional, con selección de backend, estado, errores y métricas. Después ejecutar validación de acciones en un flujo de stream real.
