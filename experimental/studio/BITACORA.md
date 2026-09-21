@@ -2796,3 +2796,31 @@ Se verificaron las rutas actuales de WinGet para Git, Node.js 22, CMake, Visual 
 - Producto usable/end-user: ~58%
 - Seguimiento global: ~65%
 - Producción: NO listo
+
+## LOG-059 — Incidente de primer arranque: setup confundido con la aplicación
+Fecha: 2026-09-21
+Área: Windows / Setup / UX de arranque / Continuidad
+Estado: DIAGNOSTICADO / CORREGIDO EN CÓDIGO / WINDOWS REAL PENDIENTE
+
+### Observación
+Al abrir lo descargado se instalaron/descargaron componentes, apareció una espera de pulsación de tecla y después la ventana se cerró.
+
+### Diagnóstico
+Ese comportamiento corresponde a `experimental/studio/tools/windows/Cari-Setup.bat`, que ejecutaba `Cari-Setup.ps1` y terminaba con `pause`.
+El `CariStudio.exe` nativo actual es una aplicación GUI WIN32 y no contiene una espera de tecla para finalizar durante su arranque.
+
+### Corrección
+- `Cari-Setup.bat` ahora abre Cari Studio automáticamente después de un setup exitoso sin argumentos.
+- Si el setup falla, la consola permanece abierta para mostrar el error.
+- Se añadió `Cari-Launch.bat` para iniciar el Studio sin reinstalar.
+- `run-local.ps1` detecta también `native-windows/build-validation/Release/cari-studio-native.exe`.
+- La documentación distingue explícitamente Setup y Launch.
+
+### NO REPETIR
+- No interpretar la pausa de `Cari-Setup.bat` como crash del Studio.
+- No diagnosticar el instalador como si fuera `CariStudio.exe`.
+- No crear otro launcher paralelo.
+- Si el Studio real se cierra, conservar código/mensaje del launcher antes de modificar el motor.
+
+### Próximo gate
+Ejecutar el flujo corregido Setup → Cari Studio y registrar cualquier error real de Electron/native engine antes de tocar subsistemas cerrados.
