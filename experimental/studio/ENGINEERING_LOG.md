@@ -13,13 +13,12 @@ Fuente canónica de continuidad: experimental/studio/BITACORA.md.
 - Production: NOT READY
 
 ## Current focus
-1. Obtener CI/E2E Windows observable.
-2. Compositor GPU sin readback CPU por frame.
-3. Transporte temporal explícito y validación A/V extremo a extremo.
-4. Drift correction físico.
-5. Validación de cámara/Game Capture/RTMP en Windows.
-6. Validación del asset Cari V1 sobre el renderer existente.
-7. Construcción/evaluación del asset visual V1; el procedural V2 es fallback técnico, no arte final.
+1. P0 — Asset Cari V1 real + revisión visual + tracking sobre V1.
+2. P0 — Compositor GPU → frame final sin readback CPU por frame + E2E Windows observable.
+3. P1 — PTS extremo a extremo con la ruta Libav explícita.
+4. P1 — Drift físico + FFmpeg sostenido + grabación larga + RTMP/reconexión real.
+5. P2 — Game Capture + optimización GPU + hardware real.
+6. P3 — Live2D adapter + multistream + installer + distribución.
 
 ## Do not repeat
 - Windows Graphics Capture
@@ -37,3 +36,10 @@ Fuente canónica de continuidad: experimental/studio/BITACORA.md.
 CODE_EXISTS | UNIT_TESTED | INTEGRATION_TESTED | CI_VERIFIED | WINDOWS_VERIFIED | HARDWARE_VALIDATED | PRODUCTION_VALIDATED
 
 A demo image is visual reference only.
+
+## 2026-09-21 — LOG-023 continuity
+
+- Canonical progress: Engineering ~71%, Product usable ~58%, Tracking ~65%.
+- Canonical priority: P0 > P1 > P2 > P3.
+- Raw FFmpeg path no longer depends on use_wallclock_as_timestamps; explicit timestamp work remains on Libav gate.
+- Do not repeat already completed WGC/WASAPI/timing/tracker/renderer/supervisor work without regression evidence.
