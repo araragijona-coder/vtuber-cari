@@ -45,7 +45,9 @@ bool AudioCoreBridge::start() {
     errors_.store(0);
     peak_.store(0.0f);
     current_mix_level_.store(0.0f);
-    microphone_enabled_.store(true, std::memory_order_relaxed);
+    // Microphone capture is opt-in. Starting the audio engine must never
+    // open the microphone path for recording or lip-sync by itself.
+    microphone_enabled_.store(false, std::memory_order_relaxed);
     timeline_mixer_.clear();
     {
         std::lock_guard lock(error_mutex_);
