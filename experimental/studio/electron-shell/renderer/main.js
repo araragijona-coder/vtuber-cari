@@ -268,6 +268,52 @@ function obsListItems(target, values, buttonLabel, callback) {
   }
 }
 
+async function renderObsSceneItems(sceneName) {
+  const container = $("#obs-scene-items");
+  const label = $("#obs-scene-items-scene");
+  if (!container) return;
+
+  const normalized = String(sceneName || "").trim();
+  if (!normalized) {
+    container.innerHTML = '<div class="small muted">Seleccioná una escena.</div>';
+    if (label) label.textContent = "—";
+    return;
+  }
+
+  if (label) label.textContent = normalized;
+  container.innerHTML = '<div class="small muted">Cargando…</div>';
+
+  try {
+    const data = await window.cari.native.obs.sceneItems(normalized);
+    const items = data?.sceneItems || [];
+    container.innerHTML = "";
+
+    for (const item of items) {
+      const row = document.createElement("div");
+      row.className = "obs-item";
+      const name = document.createElement("span");
+      name.textContent = String(item.sourceName || item.inputName || item.sceneItemId || "item");
+      const button = document.createElement("button");
+      const enabled = item.sceneItemEnabled !== false;
+      button.textContent = enabled ? "Ocultar" : "Mostrar";
+      button.onclick = async () => {
+        await command(window.cari.native.obs.setSceneItemEnabled(
+          normalized, Number(item.sceneItemId), !enabled
+        ));
+        button.textContent = enabled ? "Mostrar" : "Ocultar";
+      };
+      row.append(name, button);
+      container.appendChild(row);
+    }
+
+    if (!container.children.length) {
+      container.innerHTML = '<div class="small muted">La escena no tiene items.</div>';
+    }
+  } catch (error) {
+    container.innerHTML = '<div class="small muted">No disponible: ' + esc(error.message) + '</div>';
+  }
+}
+
 async function renderObsInputControls(inputs) {
   const container = $("#obs-inputs");
   if (!container) return;
@@ -350,10 +396,11 @@ async function refreshObsCenter() {
       const scenes = scenesData?.scenes || [];
       obsListItems("#obs-scenes", scenes, "Program", scene => {
         const name = scene.sceneName || scene.name;
-        command(window.cari.native.obs.setScene ? window.cari.native.obs.setScene(name) : Promise.reject(new Error("OBS scene control unavailable")));
+        command(window.cari.native.obs.setScene(name)).then(() => renderObsSceneItems(name));
       });
       const currentScene = scenesData?.currentProgramSceneName || "—";
       $("#obs-current-scene").textContent = "Program: " + currentScene;
+      if (currentScene !== "—") await renderObsSceneItems(currentScene);
 
       const inputs = inputsData?.inputs || [];
       await renderObsInputControls(inputs);
@@ -384,6 +431,8 @@ async function refreshObsCenter() {
     }
   } else {
     $("#obs-scenes").innerHTML = '<div class="small muted">Conectá OBS para cargar escenas.</div>';
+    $("#obs-scene-items").innerHTML = '<div class="small muted">Conectá OBS para cargar escenas.</div>';
+    $("#obs-scene-items-scene").textContent = "—";
     $("#obs-inputs").innerHTML = '<div class="small muted">Conectá OBS para cargar sources.</div>';
     $("#obs-profiles").innerHTML = '<div class="small muted">Conectá OBS para cargar perfiles.</div>';
     $("#obs-collections").innerHTML = '<div class="small muted">Conectá OBS para cargar colecciones.</div>';
