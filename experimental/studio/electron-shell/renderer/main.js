@@ -7,6 +7,7 @@ import { AvatarActingBridge } from "../avatar/acting-bridge.js";
 import { AudioLipSync } from "../avatar/audio-lipsync.js";
 import { LocalSpeechController } from "../avatar/local-speech-controller.js";
 import { AvatarActionStore } from "../avatar/action-store.js";
+import { AVATAR_EXPRESSIONS } from "../avatar/avatar-contract.js";
 import { STUDIO_MENU, CAPABILITIES } from "./menu-config.js";
 
 const $ = selector => document.querySelector(selector);
@@ -69,6 +70,7 @@ let refreshBusy = false;
 let twitchRead = false;
 let manualTalk = false;
 let talkStartedAudio = false;
+let preTalkManualExpression = null;
 let speechAutoEnabled = false;
 
 const scenes = loadScenes();
@@ -405,11 +407,12 @@ function playAction(action) {
   }, Math.max(80, Number(action.durationMs) || 800));
 }
 
-function setAction(id) {
+function setAction(id, { manual = true } = {}) {
   const action = actionStore.get(id);
   if (!action) return;
   selectedActionId = action.id;
-  acting.setManualExpression(action.expression || "neutral");
+  if (manual) acting.setManualExpression(action.expression || "neutral");
+  else acting.clearManualExpression();
   acting.set({
     mouthOpen: Number(action.mouthOpen) || 0
   });
@@ -427,7 +430,7 @@ function setActionByIdOrLabel(value) {
   const found = actionStore.list().find(action =>
     action.id === value || action.label.toLowerCase() === normalized
   );
-  if (found) setAction(found.id);
+  if (found) setAction(found.id, { manual: true });
 }
 
 function renderActionGrid() {
@@ -470,7 +473,7 @@ function renderActionInspector() {
     '<div class="form-grid">' +
     '<div class="form-row"><label>Icono</label><input id="action-icon" maxlength="4" value="' + esc(action.icon) + '"></div>' +
     '<div class="form-row"><label>Expresión base</label><select id="action-expression">' +
-    opt("neutral", action.expression) + opt("happy", action.expression) + opt("angry", action.expression) +
+    AVATAR_EXPRESSIONS.map(expression => opt(expression, action.expression)).join("") +
     '</select></div></div>' +
     '<div class="form-grid">' +
     '<div class="form-row"><label>Frame (ms)</label><input id="action-duration" type="number" min="80" max="10000" value="' + Number(action.durationMs) + '"></div>' +
@@ -771,6 +774,7 @@ async function setManualTalk(enabled) {
   }
 
   if (desired) {
+    preTalkManualExpression = acting.manualExpression();
     talkStartedAudio = !session.snapshot().audio;
     const audio = await session.audioStart();
     if (audio?.ok === false) {
@@ -780,7 +784,13 @@ async function setManualTalk(enabled) {
     await session.microphoneSet(true);
     await startSpeechMonitor();
     manualTalk = true;
-    acting.setManualExpression("neutral");
+    const talkingAction = actionStore.get("talking");
+    if (talkingAction) {
+      setAction(talkingAction.id, { manual: true });
+    } else {
+      acting.setManualExpression("neutral");
+      acting.set({ mouthOpen: 0.9 });
+    }
   } else {
     manualTalk = false;
     await session.microphoneSet(false).catch(() => undefined);
@@ -790,20 +800,29 @@ async function setManualTalk(enabled) {
     }
     talkStartedAudio = false;
     lipSync.reset();
+    if (preTalkManualExpression) {
+      acting.setManualExpression(preTalkManualExpression);
+    } else {
+      acting.clearManualExpression();
+    }
+    preTalkManualExpression = null;
   }
 
-  updateTalkUi(speech.sample());
+  updateTalkUi(speechAutoEnabled ? speech.sample() : { level: 0, speaking: false, active: false });
 }
 
 function setManualExpression(expression) {
-  acting.setManualExpression(expression);
-  const action = actionStore.list().find(item => item.expression === expression);
+  const normalized = String(expression || "neutral").toLowerCase();
+  const action = actionStore.list().find(item =>
+    item.expression === normalized || item.id === normalized
+  );
   if (action) {
-    selectedActionId = action.id;
-    ui.previewAction.textContent = action.label;
-  } else {
-    ui.previewAction.textContent = expression;
+    setAction(action.id, { manual: true });
+    return;
   }
+
+  acting.setManualExpression(normalized);
+  ui.previewAction.textContent = normalized;
 }
 
 async function startCamera() {
@@ -853,11 +872,7 @@ function trackingLoop(timestamp) {
 
   if (speechAutoEnabled) {
     const voice = speech.sample(timestamp);
-    const drivenLevel = manualTalk
-      ? Math.max(voice.level, 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(timestamp / 85)))
-      : voice.speaking
-        ? voice.level
-        : 0;
+    const drivenLevel = voice.speaking ? voice.level : 0;
     if (drivenLevel > 0) lipSync.update(drivenLevel);
     else lipSync.reset();
 
@@ -1207,13 +1222,21 @@ $("#talk-toggle").onclick = async () => {
     showStatus("Hablar: " + error.message);
   }
 };
-$("#talk-auto").onclick = () => {
-  manualTalk = false;
-  talkStartedAudio = false;
-  acting.clearManualExpression();
-  lipSync.reset();
-  updateTalkUi(speech.sample());
-  showStatus("Cari vuelve a reacción automática");
+$("#talk-auto").onclick = async () => {
+  try {
+    manualTalk = false;
+    talkStartedAudio = false;
+    acting.clearManualExpression();
+    lipSync.reset();
+    if (!session.snapshot().microphone) {
+      await session.microphoneSet(true);
+    }
+    await startSpeechMonitor();
+    updateTalkUi(speech.sample());
+    showStatus("Cari vuelve a reacción automática");
+  } catch (error) {
+    showStatus("Auto: " + error.message);
+  }
 };
 document.querySelectorAll("[data-manual-expression]").forEach(button => {
   button.onclick = () => {
@@ -1248,7 +1271,7 @@ renderAssets();
 renderActionGrid();
 renderActionInspector();
 renderLiveActions();
-setAction(selectedActionId);
+setAction(selectedActionId, { manual: false });
 trackingLoop(performance.now());
 refresh().catch(() => undefined);
 setInterval(() => refresh().catch(() => undefined), 500);
