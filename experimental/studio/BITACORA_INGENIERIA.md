@@ -36,6 +36,7 @@
 | Multistream | PENDIENTE | Arquitectura aún no validada | No implementar antes de estabilizar single-output |
 | Instalador | NO NECESARIO AHORA | Electron + runtime portable es suficiente para fase experimental | No gastar trabajo en instalador todavía |
 | CI Windows | PARCIAL | Workflow existe; ejecuciones recientes no son verdes | No declarar CI verde hasta runner/steps reales |
+| Blender FBX -> VRM 1.0 | IMPLEMENTADO / CONTRATO VERIFICADO | Pipeline único + preflight + audit + Humanoid/expressions/MToon/export/reimport | Falta FBX real + ejecución Windows |
 | Hardware validation | PENDIENTE | No equivale a compilar | Requiere Windows + captura + audio + FFmpeg sostenido |
 
 ## 2. Decisiones arquitectónicas ya tomadas
@@ -88,6 +89,7 @@
 ### P2 — cámara/tracking
 - [ ] Benchmark MediaPipe.
 - [ ] Evaluar LIVE_STREAM para cámara si mejora latencia.
+- [x] Preflight Blender/VRM permite validar dependencias sin asset.
 - [ ] Media Foundation/cámara nativa si el camino web no alcanza.
 - [ ] Lip-sync y mapping fino.
 
