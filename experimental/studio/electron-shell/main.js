@@ -79,7 +79,7 @@ const GLOBAL_AVATAR_HOTKEYS = Object.freeze({
   "CommandOrControl+Alt+2": { type: "expression", value: "angry" },
   "CommandOrControl+Alt+3": { type: "expression", value: "sad" },
   "CommandOrControl+Alt+4": { type: "expression", value: "afraid" },
-  "CommandOrControl+Alt+0": { type: "expression", value: "neutral" },
+  "CommandOrControl+Alt+0": { type: "clear-expression" },
   "CommandOrControl+Alt+C": { type: "calibrate" },
   "CommandOrControl+Alt+T": { type: "toggle-tracking" }
 });
