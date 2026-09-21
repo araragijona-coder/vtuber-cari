@@ -2172,3 +2172,83 @@ El checkpoint global permanece:
 - Producto usable/end-user: ~58%
 - Seguimiento global: ~65%
 - Producción: NO listo
+
+## LOG-050 — Integración 2D/PNGTuber + Twitch EventSub + VAD
+
+Fecha: 2026-09-21
+Área: Avatar 2D / Electron / Twitch / VAD / Continuidad
+Estado: IMPLEMENTADO / TEST PREPARADO / WINDOWS-RUNTIME PENDIENTE
+
+### Objetivo
+
+Conectar el Editor de Acciones 2D existente con un único runtime determinista de frames, de manera que comandos de chat, eventos EventSub, estado de voz local y selección manual usen la misma prioridad y el mismo reproductor de PNGs.
+
+### Hallazgo previo
+
+El Editor ya tenía AvatarActionStore, persistencia localStorage, subida/orden/borrado de frames, animación, SpeechActivityDetector, LocalSpeechController y Twitch EventSub en Electron.
+El problema era que cada camino podía cambiar la expresión por separado. No existía un árbitro común para prioridad, duración y retorno al estado base.
+
+### Implementación
+
+Se creó experimental/studio/electron-shell/avatar/action-runtime.js con Avatar2DFramePlayer y StudioActionRouter.
+Prioridades: manual=100, chat=80, evento=70, voz=30.
+El runtime resuelve overrides por prioridad, aplica expiración determinista, reproduce loops usando durationMs, retorna al estado base y sincroniza AvatarActingBridge.
+Los comandos soportados incluyen !happy, !angry, !talk, !silent, !neutral y aliases en español.
+Los eventos soportados incluyen follow, subscribe, subscription gift/message, cheer, channel points, raid, stream online/offline y shared chat.
+
+renderer/main.js ahora utiliza el nuevo reproductor y router; chat entra por handleChatMessage(), EventSub por handleTwitchEvent() y VAD por setVoiceActivity(). Se eliminó el timer paralelo del Editor.
+
+### Persistencia
+
+AvatarActionStore mantiene localStorage como fallback y añade hidratación desde disco, cola de persistencia y flush().
+Electron Main persiste en app.getPath(userData)/avatar-actions/ con actions.json y frames por acción.
+Se aplican límites de 24 frames por acción, 8 MiB por frame y PNG/JPEG/WebP, con escritura atómica del JSON.
+
+### Twitch
+
+Se ampliaron scopes y suscripciones EventSub para channel.follow v2, channel.subscribe v1, channel.subscription.gift v1, channel.subscription.message v1, channel.cheer v1 y channel.channel_points_custom_reward_redemption.add v1.
+Los requisitos de autorización corresponden a la documentación actual de Twitch. citeturn568761search0
+
+### Pruebas creadas
+
+avatar/action-runtime.test.mjs verifica loops, prioridad chat > voz, expiración, retorno al base y comandos/eventos Twitch.
+avatar/action-store.test.mjs verifica hydration, flush y fallback a localStorage.
+package.json incluye las suites avatar/*.test.mjs y scripts/check-esm.cjs incluye action-runtime.js.
+
+### Estado de evidencia
+
+- CODE_EXISTS: confirmado.
+- STATIC_REVIEW: confirmado.
+- TEST_PREPARED: confirmado.
+- TEST_EXECUTED: pendiente de ejecución real.
+- WINDOWS_VERIFIED: pendiente.
+- TWITCH_LIVE_VALIDATED: pendiente.
+- HARDWARE_VALIDATED: pendiente.
+- PRODUCTION_VALIDATED: pendiente.
+
+### NO REPETIR
+
+- No crear otro reproductor PNG/2D.
+- No crear otro scheduler de frames para el Editor.
+- No volver a conectar chat directamente a setAction(); debe pasar por StudioActionRouter.
+- No duplicar VAD logic en el renderer.
+- No volver a crear persistencia paralela de acciones fuera de AvatarActionStore + avatar-actions:*.
+- No añadir EventSub nuevo al renderer sin pasar por el router.
+- No considerar Twitch validado hasta una sesión real con OAuth y eventos recibidos.
+- No considerar la integración 2D terminada para producción hasta comprobar render sostenido en Windows.
+
+### Siguiente P0
+
+1. Ejecutar Electron tests/checks y corregir errores de sintaxis o contrato.
+2. Ejecutar una sesión Twitch real con follow/sub/gift/cheer/points.
+3. Validar VAD real y continuidad talking/silent.
+4. Integrar la capa 2D final con el compositor que alimenta el encoder.
+5. Medir latencia/fps/memoria durante sesión prolongada.
+
+### Porcentaje canónico
+
+Se mantiene sin incremento artificial por volumen de código:
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
