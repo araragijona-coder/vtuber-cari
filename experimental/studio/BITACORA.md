@@ -1431,3 +1431,85 @@ PARTIAL: control operativo cubierto a nivel de código/UI; falta validación con
 ### Siguiente acción
 
 Validar en OBS real junto con Replay Buffer, mute/volume, Studio Mode, reconexión y sesión larga.
+
+
+---
+
+## LOG-039 — Bitácora maestra + resiliencia de output + continuidad CI
+
+Fecha: 2026-09-21
+Área: Continuidad / Output / CI / Auditoría
+Estado: IMPLEMENTADO / TEST PREPARED / WINDOWS PENDIENTE
+
+### Problema
+
+La memoria de ingeniería tenía que absorber los cambios recientes sin crear otra bitácora paralela y sin volver a abrir subsistemas ya cerrados.
+
+### Acción realizada
+
+- Se confirma `experimental/studio/BITACORA.md` como memoria canónica.
+- Se mantienen `ENGINEERING_LOG.md`, `CHANGELOG_ENGINEERING.md`, `PROJECT_STATUS.md` y `AUDIT_MATRIX.md` como documentos especializados que deben quedar sincronizados.
+- Output resiliente:
+  - `OutputRetryPolicy` con backoff acotado 1s → 2s → 4s… hasta 30s.
+  - máximo de 5 intentos;
+  - retry solamente para fallos clasificados como `network`;
+  - encoder/mux/input/permission no se reintentan automáticamente.
+- Diagnóstico:
+  - `OutputFailureCategory`;
+  - estado y código de salida de FFmpeg;
+  - stderr retenido con límite de 256 KiB;
+  - métricas de retries/failure category expuestas al runtime/UI.
+- Sesión/media:
+  - orden global A/V por PTS;
+  - máximo de 8 eventos por polling;
+  - backpressure de arranque;
+  - rechazo de cambios de formato de audio durante una salida.
+- CI:
+  - workflows preparados para push en la rama de desarrollo y `workflow_dispatch`;
+  - Native Windows Build ejecuta explícitamente los smoke tests de retry y diagnóstico.
+
+### Investigación vigente
+
+La arquitectura mantiene el patrón modular de OBS: sources → composición → encoder → output. OBS documenta que los outputs pueden recibir datos raw o encoded y que el sistema mantiene una cola/interleave temporal para los paquetes A/V. citeturn852340search0turn852340search5
+
+Para GPU/FFmpeg, `AVCodecContext::hw_frames_ctx` representa el contexto de frames hardware usado por el encoder, y `AVHWFramesContext` exige formato hardware y formato de almacenamiento subyacente. citeturn852340search6turn852340search10
+
+Para recursos D3D11 compartidos, Microsoft recomienda recursos con NT handles y documenta `IDXGIKeyedMutex` para sincronización cuando se comparte una textura entre dispositivos. citeturn852340search1turn852340search3
+
+### Evidencia
+
+- Smoke portable de retry/diagnóstico: PASS.
+- Smoke portable de MediaClock/RealtimePacer/MediaInterleaver: PASS.
+- FFmpeg sintético BGRA + PCM → H.264/AAC → Matroska: PASS en entorno Linux.
+- Validación Windows/hardware: pendiente.
+- CI disponible en la rama de desarrollo sigue terminando antes de registrar steps/logs observables; no se marca CI verde.
+
+### Estado canónico
+
+- Ingeniería: **~71%**
+- Producto usable/end-user: **~58%**
+- Seguimiento global: **~65%**
+- Producción: **NO listo**
+
+### Riesgos restantes
+
+- PTS explícito extremo a extremo dentro del transporte;
+- GPU compositor → frame final → encoder sin readback CPU por frame;
+- D3D11/encoder hardware real en Windows;
+- cámara/Game Capture;
+- drift físico;
+- OBS real y sesión prolongada;
+- RTMP/red real;
+- hardware objetivo.
+
+### NO REPETIR
+
+- No crear otra bitácora de continuidad.
+- No rediseñar WGC/WASAPI/MediaClock/MediaPipe/Three.js/FFmpeg supervisor sin regresión.
+- No duplicar el cliente OBS ni el scene manager.
+- No reimplementar retry sin nueva evidencia.
+- No declarar CI verde mientras los jobs no entreguen steps/logs ejecutados.
+
+### Siguiente foco
+
+P0: conseguir evidencia Windows observable para la ruta D3D11 → Libav/encoder y, en paralelo, cerrar la validación real de avatar/tracking/OBS sin reabrir los componentes ya establecidos.
