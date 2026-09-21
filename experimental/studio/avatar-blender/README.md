@@ -42,3 +42,16 @@ El namespace de actuacion continua siendo backend-neutral y se comparte con el m
 ## Licencias
 
 No se distribuyen Cubism Core, el VRM Add-on ni assets finales de terceros dentro del repositorio. Registrar la procedencia final en assets/cari/ASSET_LICENSE.md.
+## Preflight sin FBX
+
+Permite comprobar Blender + VRM Add-on + operadores FBX/VRM sin tener todavía el asset Cari V1:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File experimental/studio/avatar-blender/run-cari-vrm-pipeline.ps1 -Preflight -Report C:\Assets\Cari\preflight.json
+```
+
+El preflight no modifica la escena ni intenta fabricar un avatar. Devuelve la versión de Blender, disponibilidad del importador FBX y disponibilidad de import/export VRM.
+
+## Compatibilidad FBX
+
+El script intenta primero `bpy.ops.wm.fbx_import`, la API actual documentada por Blender, y luego `bpy.ops.import_scene.fbx` como compatibilidad. Las opciones de importación se filtran según las propiedades RNA del operador para evitar pasar argumentos obsoletos a Blender 5.x.
