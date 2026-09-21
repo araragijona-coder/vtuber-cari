@@ -66,26 +66,57 @@ test("frame player loops frames deterministically", () => {
 
 
 test("non-loop frame sequences advance once and stop on the final frame", () => {
+  const store = {
+    list: () => [
+      {
+        id: "once",
+        label: "Una vez",
+        expression: "happy",
+        durationMs: 100,
+        loop: false,
+        frames: [
+          { id: "o0", name: "one-0", dataUrl: "data:image/png;base64,a" },
+          { id: "o1", name: "one-1", dataUrl: "data:image/png;base64,b" },
+          { id: "o2", name: "one-2", dataUrl: "data:image/png;base64,c" }
+        ]
+      }
+    ],
+    get: id => id === "once"
+      ? {
+          id: "once",
+          label: "Una vez",
+          expression: "happy",
+          durationMs: 100,
+          loop: false,
+          frames: [
+            { id: "o0", name: "one-0", dataUrl: "data:image/png;base64,a" },
+            { id: "o1", name: "one-1", dataUrl: "data:image/png;base64,b" },
+            { id: "o2", name: "one-2", dataUrl: "data:image/png;base64,c" }
+          ]
+        }
+      : null
+  };
+
   const rendered = [];
-  let callback = null;
+  const callbacks = [];
   const player = new Avatar2DFramePlayer({
-    store: makeStore(),
+    store,
     renderFrame: (action, index) => rendered.push([action?.id || null, index]),
-    timerFactory: cb => { callback = cb; return 1; },
+    timerFactory: cb => {
+      callbacks.push(cb);
+      return callbacks.length;
+    },
     clearTimer: () => undefined
   });
 
-  player.trigger("talking", { source: "event", holdMs: 2000 });
-  assert.deepEqual(rendered.at(-1), ["talking", 0]);
+  player.trigger("once", { source: "event", holdMs: 2000 });
+  assert.deepEqual(rendered.at(-1), ["once", 0]);
 
-  callback();
-  assert.deepEqual(rendered.at(-1), ["talking", 1]);
+  callbacks[0]();
+  assert.deepEqual(rendered.at(-1), ["once", 1]);
 
-  player.store.get = id => id === "talking"
-    ? { ...actions.find(action => action.id === "talking"), loop: false }
-    : actions.find(action => action.id === id);
-  callback();
-  assert.deepEqual(rendered.at(-1), ["talking", 1]);
+  callbacks[1]();
+  assert.deepEqual(rendered.at(-1), ["once", 2]);
 });
 
 
