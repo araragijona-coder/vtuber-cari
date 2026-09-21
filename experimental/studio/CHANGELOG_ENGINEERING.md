@@ -181,3 +181,11 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Se añadió test contractual y gate de sintaxis/configuración.
 - El asset final no está incluido; el arte y rigging real continúan pendientes.
 - Porcentaje canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+
+## 2026-09-21 — LOG-059 First launch UX
+- Se aclara Setup vs Launch.
+- Cari-Setup.bat abre el Studio tras setup exitoso sin argumentos.
+- Se añade Cari-Launch.bat.
+- run-local.ps1 descubre la salida build-validation.
+- Porcentaje canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
