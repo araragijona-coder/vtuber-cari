@@ -60,8 +60,18 @@ try{
     Invoke-WingetInstall 'Gyan.FFmpeg'
     Refresh-Path
 
-    foreach($tool in @('git.exe','node.exe','npm.cmd','cmake.exe','ctest.exe','ffmpeg.exe','ffprobe.exe')){
+    foreach($tool in @('git.exe','node.exe','npm.cmd','cmake.exe','ctest.exe')){
         if(-not (Get-Command $tool -ErrorAction SilentlyContinue)){throw "No se encontró $tool después de la instalación."}
+    }
+    if(-not (Get-Command 'ffmpeg.exe' -ErrorAction SilentlyContinue)){
+        $wingetRoot=Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
+        $found=Get-ChildItem $wingetRoot -Filter 'ffmpeg.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if($found){$env:CARI_FFMPEG_EXECUTABLE=$found.FullName}
+        else{throw 'No se encontró ffmpeg.exe después de la instalación.'}
+    }
+    if(-not (Get-Command 'ffprobe.exe' -ErrorAction SilentlyContinue)){
+        $probe=Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages') -Filter 'ffprobe.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if($probe){$env:Path += ';' + $probe.DirectoryName}
     }
 
     if(-not $SkipNpm){
