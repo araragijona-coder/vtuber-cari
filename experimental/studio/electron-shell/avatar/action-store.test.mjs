@@ -12,8 +12,12 @@ async function loadStore() {
   const source = await fs.readFile(path.join(root, "avatar", "action-store.js"), "utf8");
   const contract = await fs.readFile(path.join(root, "avatar", "avatar-contract.js"), "utf8");
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "cari-action-store-"));
-  await fs.writeFile(path.join(tempRoot, "action-store.mjs"), source, "utf8");
-  await fs.writeFile(path.join(tempRoot, "avatar-contract.js"), contract, "utf8");
+  const esmSource = source.replace(
+    'from "./avatar-contract.js";',
+    'from "./avatar-contract.mjs";'
+  );
+  await fs.writeFile(path.join(tempRoot, "action-store.mjs"), esmSource, "utf8");
+  await fs.writeFile(path.join(tempRoot, "avatar-contract.mjs"), contract, "utf8");
   return import(pathToFileURL(path.join(tempRoot, "action-store.mjs")).href);
 }
 
