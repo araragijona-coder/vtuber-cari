@@ -934,15 +934,16 @@ function trackingLoop(timestamp) {
     const result = faceTracker.detect(ui.camera, timestamp);
     if (result) {
       tracking.apply(result);
-    } else {
+    } else if (faceTracker.status() === "no-face") {
       tracking.tickNoFace();
     }
 
     if (timestamp - lastTrackingUiUpdate >= 120) {
       const state = tracking.status();
-      ui.trackingStatus.textContent = state.status;
+      const trackerStatus = faceTracker.status();
+      ui.trackingStatus.textContent = trackerStatus;
       ui.trackingQuality.textContent =
-        "Face: " + state.status +
+        "Face: " + trackerStatus +
         " · Calibrado: " + (state.calibrated ? "sí" : "no") +
         (state.active ? " · " + state.samples + "/" + state.target : "");
       lastTrackingUiUpdate = timestamp;
