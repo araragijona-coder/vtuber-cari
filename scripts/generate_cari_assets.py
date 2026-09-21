@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate Cari gallery images through the public Pollinations image endpoint.
 
-No Hugging Face account, API key, token, model selection, or provider selection
+No account, API key, token, model selection, provider selection, or repository secret
 is required. Each image is downloaded with a plain HTTP GET and stored as a
 validated PNG under assets/cari-gallery/ by default.
 
