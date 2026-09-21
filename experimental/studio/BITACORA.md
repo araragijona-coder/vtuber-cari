@@ -1115,3 +1115,48 @@ Evitar que Cari Studio interprete una integración disponible como un consumidor
 - Global: ~62%.
 
 Esta entrada es la referencia para no repetir la auditoría de presencia/integraciones y para empezar directamente por los gates restantes.
+## Actualización 2026-09-21 — regresión del atajo de audio corregida
+
+### Objetivo
+Mantener la política canónica: iniciar el motor de audio no debe abrir el micrófono automáticamente.
+
+### Estado antes
+- La política de micrófono ya estaba definida como OFF por defecto y con apertura explícita mediante el gate Hablar / `microphone.set`.
+- El comando nativo `audio_start` respetaba esa política.
+- El atajo físico `A` todavía llamaba `set_microphone_enabled(true)` al arrancar el motor de audio, creando una ruta alternativa que violaba el contrato.
+
+### Trabajo realizado
+- Se eliminó la activación automática del micrófono del atajo `A`.
+- El atajo `A` ahora solo inicia/detiene el motor de audio.
+- El micrófono continúa OFF hasta una acción explícita de micrófono/Hablar.
+
+### Archivos modificados
+- `experimental/studio/native-windows/main.cpp`
+
+### Herramientas utilizadas
+- GitHub connector
+- auditoría de código del repositorio
+- revisión de `BITACORA.md`
+
+### Pruebas
+- Revisión estática del camino `A` y del comando `microphone_set`.
+- No se marca CI como evidencia: los runners siguen fallando antes de registrar steps.
+
+### Resultado
+**PASS — corrección integrada.**
+
+### Problemas encontrados
+- Había dos rutas conceptuales para iniciar audio: comando IPC y atajo local. Solo la ruta del atajo rompía la política de micrófono opt-in.
+
+### Qué NO se debe repetir
+- No volver a activar el micrófono desde `audio_start`, el atajo `A`, polling, VAD, auto-motion o status.
+- No crear otro gate de micrófono.
+- No duplicar la lógica de privacidad fuera del contrato existente.
+
+### Pendientes
+- Validación con dispositivo WASAPI real.
+- CI observable.
+- Prueba Windows de la política completa durante una sesión real.
+
+### Próxima prioridad
+**CI observable → E2E Windows named-pipe/FFmpeg**, manteniendo el compositor GPU y los timestamps explícitos como siguientes gates multimedia.
