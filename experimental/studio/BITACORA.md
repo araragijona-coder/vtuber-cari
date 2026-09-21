@@ -2,6 +2,103 @@
 
 Última actualización: 2026-09-21
 Rama: fix/native-windows-foundation
+
+
+## Checkpoint canónico — 2026-09-21
+
+### HEAD
+- PR #2: `fix/native-windows-foundation`
+- HEAD auditado al iniciar esta entrada: `3f9736c894a2c0331a0e962bfa2956976dc21af3`
+- La rama continúa separada de `main`; no reescribir historial ni intentar “limpiar” commits sin evidencia de un problema que lo requiera.
+
+### Estado vigente
+- Ingeniería: **68%**
+- Producto usable/end-user: **54%**
+- Seguimiento global: **62%**
+- Producción: **NO listo**
+
+Estos tres porcentajes son los únicos valores vigentes. Las cifras 50/52/53/60/61/65/66/67 de entradas históricas quedan archivadas y NO se usan para decidir trabajo nuevo.
+
+### Auditoría de errores de este ciclo
+- Corregido: atajo `R` detenía el media graph pero podía dejar activo el capture del overlay/avatar y el retry pendiente.
+- Corregido: selección de ventana desde atajo podía ignorar una cámara activa porque solo comprobaba `g_capture.is_running()`.
+- Corregido previamente: serialización del campo `output` en el status nativo.
+- Corregido previamente: clasificación de fallos de red demasiado amplia para no tratar errores de input/locales como reconectables.
+- Verificado por inspección: `StartOutput()` mantiene rollback de captura/audio cuando el arranque del output falla.
+- Verificado por inspección: el retry automático está limitado a perfil RTMP y categoría `network`; no se reintenta encoder/mux/permission/input por ceguera.
+- Pendiente de evidencia: build MSVC/CTest completo y E2E named-pipe en Windows, porque GitHub Actions continúa terminando jobs sin steps/logs observables.
+
+### Multimedia ya existente — NO REPETIR
+- Windows Graphics Capture: IMPLEMENTADO.
+- Pantalla primaria + ventana: IMPLEMENTADO.
+- WASAPI micrófono + loopback: IMPLEMENTADO.
+- AudioTimelineMixer: IMPLEMENTADO + smoke.
+- MediaClock 100 ns: IMPLEMENTADO + smoke.
+- RealtimePacer: IMPLEMENTADO + smoke.
+- Interleaver global A/V por PTS: IMPLEMENTADO + smoke.
+- RawPipe: IMPLEMENTADO + smoke/harness.
+- FFmpeg A/V boundary: IMPLEMENTADO.
+- FFmpeg EOF/flush: IMPLEMENTADO.
+- stderr acotado: IMPLEMENTADO.
+- Failure categories: IMPLEMENTADO.
+- RTMP retry/backoff: IMPLEMENTADO, **no validado en servicio real**.
+- D3D11 compositor: IMPLEMENTADO experimental.
+- Readback CPU: solo fallback/diagnóstico; **no convertirlo en producción**.
+- Media Foundation camera: IMPLEMENTADO experimental; hardware/reconexión pendiente.
+- Libav con PTS explícitos: IMPLEMENTADO experimental; kit FFmpeg Windows pendiente.
+- Named-pipe E2E: IMPLEMENTADO en código; **VERIFICACIÓN Windows pendiente**.
+- Drift estimator: IMPLEMENTADO; corrección/resampling físico pendiente.
+- Multi-stream supervisor: IMPLEMENTADO experimental; endpoints reales pendientes.
+
+### VTuber ya existente — NO REPETIR
+- Contrato de avatar: IMPLEMENTADO.
+- Three.js + GLTF/GLB: IMPLEMENTADO.
+- MediaPipe Face Landmarker + guard de timestamps: IMPLEMENTADO.
+- FaceTrackingBridge / acting state: IMPLEMENTADO.
+- Audio lip-sync por amplitud como fallback: IMPLEMENTADO.
+- Editor de acciones PNG/JPG/WebP con frames/persistencia: IMPLEMENTADO.
+- Overlay transparente capturable: IMPLEMENTADO experimental.
+- Avatar GPU placeholder/compositor: IMPLEMENTADO experimental.
+- Live2D: NO integrado.
+- VRM nativo de producción sin readback CPU: PENDIENTE.
+
+### Política de creación de Cari
+- **PNGTuber:** ruta ya compatible con el editor de acciones actual; es la vía con menor deuda técnica para tener un Cari funcional visualmente sin introducir un nuevo runtime.
+- **2DTuber abierto:** Inochi2D/Inochi Creator es candidato externo abierto bajo BSD-2-Clause. Los modelos producidos con esas herramientas quedan bajo la licencia decidida por artista/rigger/cliente. urlInochi2D legal infohttps://github.com/Inochi2D/inochi2d/wiki/Legal-Info
+- **2DTuber Live2D:** Cubism puede producir modelos 2D con physics/lip-sync, pero su editor/SDK no es open source y la distribución del runtime tiene sus propias condiciones de licencia; mantenerlo como adapter opcional, no como dependencia del core. urlLive2D Cubism Editorhttps://www.live2d.com/en/cubism/about/
+- **3DTuber:** VRoid Studio permite crear y exportar personajes a VRM y establece condiciones de uso del contenido del modelo; assets de terceros siguen sus propias licencias. urlVRoid Studiohttps://vroid.com/en/studio
+- **3D open tooling:** Blender es GPL y el artwork creado con Blender pertenece al creador según la documentación oficial; `three-vrm` es MIT y encaja con nuestro renderer Three.js. urlBlender licensehttps://www.blender.org/about/license/ urlthree-vrm licensehttps://github.com/pixiv/three-vrm/blob/dev/LICENSE
+- **Creación asistida por IA:** puede servir para producir arte base/expresiones PNG, pero no debe interpretarse como un rig Live2D/VRM terminado. La integración final sigue necesitando preparar/rigear el asset y respetar la licencia del material usado.
+
+### Decisión de arquitectura de asset
+1. No añadir un segundo renderer 2D/3D todavía.
+2. Mantener PNGTuber como fallback universal y ruta de prueba.
+3. Mantener Three.js/glTF/VRM como ruta 3D principal del proyecto.
+4. Evaluar Inochi2D solo detrás de un adapter si se necesita un 2D abierto real.
+5. Mantener Live2D como integración opcional y separada del core.
+6. Toda nueva herramienta de avatar debe registrarse aquí antes de incorporarse.
+
+### Orden de trabajo siguiente — máximo impacto
+1. Conseguir una ejecución Windows observable que llegue a Checkout → CMake → CTest → E2E FFmpeg.
+2. Cerrar composición GPU sin readback CPU para el frame que entra al encoder.
+3. Validar PTS explícitos extremo a extremo con la ruta Libav/transport correcto.
+4. Implementar drift correction/resampling usando relojes WASAPI.
+5. Validar cámara Media Foundation y reconexión.
+6. Implementar Game Capture.
+7. Conectar backend real Native/OBS para `studio_*_requested`.
+8. Validar OBS/Twitch con servicio real.
+9. Preparar modelo Cari 3D VRM o 2D Inochi2D sin modificar el contrato de actuación.
+10. Hardware objetivo, instalador, FFmpeg/codec redistribution y release.
+
+### Pruebas descartadas / no repetir
+- No usar `capturePage()` como compositor de producción.
+- No usar OBS como dependencia del motor nativo.
+- No crear otro EventSub WebSocket.
+- No crear otro `ObsService`, `TwitchChatService`, `StudioRuntimeBindings`, `ActionStore`, `MediaClock` o `RealtimePacer`.
+- No rehacer captura de escritorio con OpenCV mientras WGC cubra ese requisito.
+- No marcar una capacidad como validada porque exista el botón, el módulo o el workflow.
+- No perseguir errores de GitHub Actions sin steps/logs como si fueran fallos de código.
+
 PR: #2
 
 Regla: no repetir una tarea ya cerrada; continuar desde la evidencia registrada.
