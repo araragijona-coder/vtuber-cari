@@ -1020,7 +1020,6 @@ window.cari.native.onEvent(event => {
     return;
   }
   if (event.type === "avatar.hotkey") {
-    if (event.type !== "avatar.hotkey") return;
     if (event.value) {
       setManualExpression(event.value);
       showStatus("Hotkey VTuber: " + event.value);
@@ -1045,6 +1044,10 @@ window.cari.native.onEvent(event => {
         startCamera().catch(error => showStatus("Hotkey tracking: " + error.message));
       }
       return;
+    }
+    if (event.action === "clear-expression") {
+      acting.clearManualExpression();
+      showStatus("Hotkey VTuber: expresión automática");
     }
     return;
   }
