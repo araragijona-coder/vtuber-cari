@@ -2,16 +2,19 @@
 """
 Generate Cari reference/gallery images through Pollinations.ai.
 
-The generator is intentionally provider-local to GitHub Actions:
+The generator intentionally uses a public, unauthenticated Pollinations image
+endpoint:
 - no OpenAI/DALL-E usage;
-- no API key is hard-coded;
-- the Pollinations key is read from POLLINATIONS_KEY;
+- no API key or secret is read;
 - generated images are written as real PNG files;
 - existing files are preserved unless --overwrite is passed.
 
-Pollinations current API uses https://gen.pollinations.ai/image/{prompt} for
-simple image GET generation. Generation requires authentication; model
-catalogue endpoints are public.
+The endpoint is the public image route:
+https://image.pollinations.ai/prompt/{prompt}
+
+The public endpoint can be rate-limited or changed by the provider; the script
+therefore keeps retries/backoff and treats provider failure as a failed asset
+generation rather than silently producing placeholder files.
 """
 
 from __future__ import annotations
@@ -19,7 +22,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import sys
 import time
@@ -39,7 +41,7 @@ except ImportError as exc:
     ) from exc
 
 
-API_BASE = "https://gen.pollinations.ai/image"
+API_BASE = "https://image.pollinations.ai/prompt"
 DEFAULT_OUTPUT_DIR = Path("assets/cari-gallery")
 DEFAULT_MODEL = "zimage"
 DEFAULT_WIDTH = 1024
@@ -135,16 +137,15 @@ def build_url(prompt: str, model: str, width: int, height: int, seed: int, safe:
     return f"{API_BASE}/{encoded_prompt}?{query}"
 
 
-def request_bytes(url: str, key: str, timeout: int, retries: int) -> tuple[bytes, str]:
+def request_bytes(url: str, timeout: int, retries: int) -> tuple[bytes, str]:
     last_error: Exception | None = None
 
     for attempt in range(1, retries + 1):
         request = urllib.request.Request(
             url,
             headers={
-                "Authorization": f"Bearer {key}",
                 "Accept": "image/png, image/jpeg, image/webp, image/*;q=0.8",
-                "User-Agent": "vtuber-cari-asset-generator/1.0",
+                "User-Agent": "vtuber-cari-asset-generator/1.1-public-endpoint",
             },
             method="GET",
         )
@@ -224,13 +225,6 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.timeout <= 0:
         raise SystemExit("timeout must be positive.")
 
-    key = os.environ.get("POLLINATIONS_KEY", "").strip()
-    if not key:
-        raise SystemExit(
-            "POLLINATIONS_KEY is required. Set it as a GitHub Actions secret "
-            "named POLLINATIONS_KEY; never commit it to the repository."
-        )
-
     prompts = selected_prompts(args.prompt_file)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -261,7 +255,6 @@ def main(argv: Iterable[str] | None = None) -> int:
         try:
             raw, _ = request_bytes(
                 url,
-                key=key,
                 timeout=args.timeout,
                 retries=args.retries,
             )
