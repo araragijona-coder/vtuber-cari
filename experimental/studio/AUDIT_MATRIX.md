@@ -101,6 +101,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Ruta experimental directa libavcodec/libavformat con PTS explícitos.
 - [x] P04: ruta experimental Libav con PTS explícitos.
 - [ ] Encoder real conectado.
+- [x] D3D11 hardware AVFrame output path prepared in Libav.
   - Smoke de encoder hardware D3D11 preparado para h264_nvenc/h264_amf; requiere kit de desarrollo FFmpeg, Windows y GPU/driver compatibles.
   - FFmpeg recibe actualmente el frame final de la ruta experimental; falta validación sostenida y eliminación del readback CPU para producción.
 - [ ] Mux/record real sostenido en Windows.
@@ -519,3 +520,10 @@ El camino raw de FFmpeg no usa `use_wallclock_as_timestamps`. La documentación 
 ### Regla anti-repetición
 
 Antes de implementar una tarea, consultar BITACORA.md. Si el componente figura como IMPLEMENTADO/VERIFICADO y no existe regresión, la tarea se trata como cerrada y se avanza al siguiente gate.
+
+## Evidence update — LOG-034
+
+- `LibavMediaOutput::start_d3d11()` y `submit_video_d3d11()` reutilizan `D3D11AvFrameBridge`.
+- El encoder hardware debe declarar D3D11 + HW_FRAMES_CTX antes de abrirse.
+- El smoke produce archivo A/V solamente cuando el entorno Windows dispone de encoder hardware compatible; en caso contrario el smoke hace SKIP.
+- Esto sigue en estado CODE_EXISTS/TEST PREPARED, no WINDOWS_VERIFIED ni HARDWARE_VALIDATED.
