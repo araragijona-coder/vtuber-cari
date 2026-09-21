@@ -1693,6 +1693,8 @@ async function refresh() {
       "Drops V/A " + (metrics.video_dropped ?? 0) + "/" + (metrics.audio_dropped ?? 0) + " · " +
       "Late V/A " + (metrics.video_dropped_late ?? 0) + "/" + (metrics.audio_late ?? 0) + " · " +
       "Pacing " + (metrics.pacing_budget_exhausted ?? 0) + " · " +
+      "GPU cache " + (metrics.gpu_overlay_cache_hits ?? 0) + "/" + (metrics.gpu_overlay_uploads ?? 0) + " · " +
+      "GPU readback " + (metrics.gpu_cpu_readbacks ?? 0) + " · " +
       "Video " + formatBytes(metrics.video_bytes) + " · Audio " + formatBytes(metrics.audio_bytes);
     ui.metrics.textContent = text;
     ui.sideDiagnostics.textContent = text;
