@@ -962,3 +962,114 @@ No modificar código funcional para intentar arreglar estos failures mientras Gi
 ### Siguiente acción
 
 Continuar con el siguiente gate técnico P0 sin tocar los subsistemas ya cerrados; volver al CI únicamente cuando aparezca una ejecución con steps/logs observables.
+
+---
+
+## LOG-031 — Reconciliación canónica y continuidad viva
+
+Fecha: 2026-09-21
+Área: Continuidad / Auditoría / GPU / CI
+Estado: DOCUMENTADO / BLOQUEADO EN CI / P0 ACTIVO
+
+### Punto de partida
+
+HEAD auditado al comenzar esta entrada: `070c3481de17384bba353affb17a0f33abc38213`.
+PR: #2.
+Branch: `fix/native-windows-foundation`.
+
+### Estado canónico
+
+- Ingeniería: **~71%**
+- Producto usable/end-user: **~58%**
+- Seguimiento global: **~65%**
+- Producción: **NO listo**
+
+No se incrementa el porcentaje porque esta iteración no cerró un gate de validación Windows/hardware/producción.
+
+### Auditoría de continuidad
+
+Se revisaron antes de modificar cualquier componente:
+- `PROJECT_STATUS.md`
+- `ENGINEERING_LOG.md`
+- `CHANGELOG_ENGINEERING.md`
+- `AUDIT_MATRIX.md`
+- este archivo `BITACORA.md)
+
+Los siguientes sistemas se consideran cerrados o con implementación consolidada y no deben rehacerse sin regresión demostrable:
+- Windows Graphics Capture;
+- WASAPI + AudioTimelineMixer;
+- MediaClock + RealtimePacer + MediaInterleaver;
+- FaceTracker/FaceTrackingBridge;
+- ThreeAvatarRenderer;
+- D3D11Compositor experimental;
+- FFmpeg supervisor;
+- RawPipe;
+- OutputRetryPolicy;
+- OutputFailureCategory;
+- Electron security foundation;
+- OBS optional bridge;
+- Twitch EventSub/EventBus/ActionStore;
+- asset registry GLB/GLTF;
+- validador de continuidad.
+
+### Investigación relevante
+
+La documentación actual de FFmpeg confirma que:
+- `AVCodecContext::hw_frames_ctx` es la vía para proporcionar frames hardware a un encoder;
+- `AVHWFramesContext` describe el pool de superficies hardware;
+- el backend D3D11VA expone `AV_PIX_FMT_D3D11`;
+- NVENC reconoce `AV_PIX_FMT_D3D11` en su configuración de frames hardware. citeturn420566search0turn420566search4turn420566search2
+
+Microsoft documenta que D3D11.1 permite compartir Texture2D y que `IDXGIKeyedMutex` permite sincronizar acceso exclusivo cuando se usan recursos compartidos apropiadamente. citeturn293684search0turn293684search6
+
+FFmpeg documenta que `av_interleaved_write_frame()` requiere PTS/DTS correctos en el timebase del stream y realiza el interleaving del muxer. Esto respalda mantener la ruta Libav como gate para PTS explícitos, en lugar de depender del transporte raw para conservar timestamps. citeturn293684search5turn293684search9
+
+### Estado GPU
+
+Existe:
+- compositor D3D11;
+- overlay GPU;
+- frame final BGRA;
+- smoke WARP;
+- integración experimental del overlay al runtime.
+
+Pero:
+- el camino de producción todavía hace readback CPU del frame final;
+- aún no existe validación Windows sostenida del camino D3D11 → encoder hardware;
+- no se considera cerrado el gate GPU.
+
+### Estado CI
+
+Los workflows ya se ejecutan sobre la rama de desarrollo, pero los runs asociados al HEAD auditado siguen terminando:
+- Native Windows Build: failure;
+- CI: failure;
+- Character Runtime Tests: failure;
+- Actions Runner Diagnostic: failure.
+
+Los jobs aparecen sin `steps` ni `logs_url` observables. No existe evidencia suficiente para atribuir el fallo al código. No se vuelve a modificar el media engine para ese motivo.
+
+### NO REPETIR
+
+- No reconstruir el compositor D3D11.
+- No crear un segundo renderer Three.js.
+- No crear otro tracker MediaPipe.
+- No sustituir la ruta Libav por otra librería sin evidencia de que la actual sea inviable.
+- No volver a diseñar MediaClock/RealtimePacer/Interleaver.
+- No reintentar indefinidamente CI sin steps/logs.
+- No considerar NVENC/D3D11 compatible en documentación como validación de hardware.
+- No considerar el smoke Linux de FFmpeg como validación Windows.
+- No considerar el fallback procedural como Cari V1 final.
+- No subir el porcentaje por commits, archivos o líneas.
+
+### Siguiente foco ejecutivo
+
+P0 único:
+1. cerrar el camino GPU → encoder sin readback CPU por frame;
+2. preparar una prueba E2E Windows observable que mida composición, encoder, timestamps y estabilidad;
+3. después promover/validar PTS Libav sobre Windows;
+4. luego drift físico, FFmpeg sostenido y RTMP/reconexión;
+5. finalmente Game Capture/hardware/distribución.
+
+### Regla de continuidad
+
+El siguiente arquitecto debe leer LOG-031 y continuar desde ese backlog. No debe volver a auditar desde cero los componentes listados en NO REPETIR salvo que exista una regresión reproducible.
