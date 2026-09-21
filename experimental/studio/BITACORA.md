@@ -1227,3 +1227,57 @@ PARTIAL: la integración existe y el smoke está preparado, pero la build FFmpeg
 ### Siguiente acción
 
 Validar primero `CARI_ENABLE_LIBAV_OUTPUT=ON` con FFmpeg development kit en Windows; después integrar la superficie real del compositor/captura y medir CPU/GPU/readback.
+
+
+---
+
+## LOG-035 — Checkpoint de continuidad y estado CI/Git
+
+Fecha: 2026-09-21
+Área: Continuidad / CI / Integración
+Estado: DOCUMENTADO / CI BLOQUEADA / INTEGRACIÓN DE HISTORIAL PENDIENTE
+
+### Punto de control
+
+- PR: #2.
+- Rama: `fix/native-windows-foundation`.
+- El último head debe consultarse en PR #2 para evitar referencias obsoletas entre commits documentales.
+- Ingeniería canónica: **71%**.
+- Producto usable/end-user: **58%**.
+- Seguimiento global: **65%**.
+- Producción: **NO listo**.
+
+### Evidencia de CI
+
+En los runs más recientes asociados al head auditado:
+- Native Windows Build: failure; `build` y `electron-shell-check` sin steps/logs observables.
+- Actions Runner Diagnostic: failure; `probe` sin steps/logs observables.
+- CI: failure; matriz Python sin steps/logs observables.
+- Character Runtime Tests: failure; matriz sin steps/logs observables.
+
+El patrón se repite sobre heads consecutivos. No existe evidencia suficiente para atribuir un fallo a una línea concreta del repositorio.
+
+### Git history
+
+El compare de `main...fix/native-windows-foundation` muestra divergencia creciente mientras `main` recibe cambios por otra ruta. El estado actual observado es aproximadamente **1301 commits ahead / 67 behind**.
+
+Decisión:
+- no hacer rebase/force-push ni reescritura automática;
+- conservar la historia hasta disponer de una operación de integración que preserve correctamente los cambios;
+- no tratar esta divergencia administrativa como regresión del motor multimedia.
+
+### NO REPETIR
+
+- No volver a implementar WGC, WASAPI mixer, MediaClock/RealtimePacer/Interleaver, FaceTrackingBridge, renderer Three.js, RawPipe, FFmpeg supervisor, asset registry o D3D11 bridge sin regresión.
+- No repetir los mismos reintentos de Actions sin steps/logs observables.
+- No subir el porcentaje por cantidad de commits o archivos.
+- No sustituir Libav/D3D11 por otra librería sin evidencia de inviabilidad.
+
+### Siguiente foco único
+
+P0:
+1. validar en Windows la ruta Libav + D3D11 hardware;
+2. conectar la superficie final real del compositor al encoder;
+3. medir CPU/GPU/readback;
+4. después cerrar PTS E2E y drift físico;
+5. recién entonces avanzar a RTMP real, Game Capture, hardware final y distribución.
