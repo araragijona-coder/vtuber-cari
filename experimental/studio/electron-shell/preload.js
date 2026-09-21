@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld("cari", {
     send: command => ipcRenderer.invoke("native:send", command),
     stop: () => ipcRenderer.invoke("native:stop"),
     status: () => ipcRenderer.invoke("native:status"),
+    integrations: {
+      status: () => ipcRenderer.invoke("integrations:status")
+    },
     config: () => ipcRenderer.invoke("app:config"),
     obs: {
       connect: options => ipcRenderer.invoke("obs:connect", options),
