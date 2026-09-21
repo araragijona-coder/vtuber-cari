@@ -68,3 +68,9 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Investigación oficial registrada para MediaPipe LIVE_STREAM y FFmpeg D3D11/NVENC.
 - El camino GPU directo sigue experimental y no está validado en Windows/hardware.
 - Porcentaje canónico sin incremento: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+## 2026-09-21 — Runner evidence LOG-030
+
+- Se registra evidencia actual de GitHub Actions con jobs que fallan antes de registrar steps/logs, incluido el job probe del workflow diagnóstico.
+- Se mantiene CI como bloqueado por infraestructura.
+- No se modifica el porcentaje canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
