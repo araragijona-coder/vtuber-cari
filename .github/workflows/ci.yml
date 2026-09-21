@@ -24,6 +24,10 @@ jobs:
           node-version: "22"
       - name: Install test dependencies
         run: python -m pip install -e .[twitch]
+      - name: Verify engineering continuity ledger
+        run: python experimental/studio/tools/verify_bitacora.py
+      - name: Run continuity validator test
+        run: python -m unittest experimental.studio.tests.test_verify_bitacora -v
       - name: Compile production and experimental code
         run: python -m compileall -q app tests experimental
       - name: Check experimental VRM web renderer syntax
