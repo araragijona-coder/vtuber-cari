@@ -157,3 +157,12 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - El backend raw CLI continúa como default.
 - Estado experimental; Windows/hardware pendiente.
 - Porcentaje canónico sin incremento: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+
+## 2026-09-21 — Cari V1 asset package
+- Se consolidó el manifest canónico de capas para Cari V1.
+- Se definió namespace de parámetros backend-neutral.
+- Se añadió checklist de entrega artista/rigger y gate de licencia.
+- Se añadió validator automático y test del manifest.
+- No se crean renderers ni trackers adicionales.
+- Progreso canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
