@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, session, dialog, globalShortcut } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
-const { pathToFileURL } = require("node:url");
+const { pathToFileURL, fileURLToPath } = require("node:url");
 const { NativeEngine } = require("./runtime/native-engine");
 const { ObsService } = require("./runtime/obs-service");
 const { TwitchAuth } = require("./runtime/twitch-auth");
@@ -21,6 +21,159 @@ let avatarOverlayState = {
   eyeY: 0
 };
 const subscribers = new Set();
+
+const AVATAR_ACTIONS_VERSION = 1;
+const AVATAR_ACTION_MAX_FRAMES = 24;
+const AVATAR_FRAME_MAX_BYTES = 8 * 1024 * 1024;
+const AVATAR_ACTION_ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+function avatarActionsRoot() {
+  return path.join(app.getPath("userData"), "avatar-actions");
+}
+
+function safeStorageSegment(value, fallback = "item") {
+  const normalized = String(value || "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/^\.+/, "")
+    .slice(0, 120);
+  return normalized || fallback;
+}
+
+function frameExtension(mime) {
+  if (mime === "image/jpeg") return ".jpg";
+  if (mime === "image/webp") return ".webp";
+  return ".png";
+}
+
+function decodeAvatarDataUrl(dataUrl) {
+  const match = /^data:(image\\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/i.exec(String(dataUrl || ""));
+  if (!match) return null;
+  const mime = match[1].toLowerCase();
+  if (!AVATAR_ACTION_ALLOWED_MIME.has(mime)) return null;
+  try {
+    const bytes = Buffer.from(match[2], "base64");
+    if (!bytes.length || bytes.length > AVATAR_FRAME_MAX_BYTES) return null;
+    return { mime, bytes };
+  } catch {
+    return null;
+  }
+}
+
+function avatarActionsConfigPath() {
+  return path.join(avatarActionsRoot(), "actions.json");
+}
+
+async function loadAvatarActions() {
+  const configPath = avatarActionsConfigPath();
+  try {
+    const parsed = JSON.parse(await fs.promises.readFile(configPath, "utf8"));
+    if (parsed?.version !== AVATAR_ACTIONS_VERSION || !Array.isArray(parsed.actions)) {
+      return { version: AVATAR_ACTIONS_VERSION, actions: [] };
+    }
+    return {
+      version: AVATAR_ACTIONS_VERSION,
+      actions: parsed.actions.slice(0, 64)
+    };
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return { version: AVATAR_ACTIONS_VERSION, actions: [] };
+    }
+    throw new Error("Avatar action preset could not be read.");
+  }
+}
+
+async function saveAvatarActions(payload) {
+  if (!payload || payload.version !== AVATAR_ACTIONS_VERSION || !Array.isArray(payload.actions)) {
+    throw new Error("Invalid avatar action preset.");
+  }
+
+  const root = avatarActionsRoot();
+  const framesRoot = path.join(root, "frames");
+  await fs.promises.mkdir(framesRoot, { recursive: true });
+
+  const persisted = [];
+  for (const input of payload.actions.slice(0, 64)) {
+    if (!input || typeof input !== "object") continue;
+    const actionId = safeStorageSegment(input.id, "action");
+    const frameDir = path.join(framesRoot, actionId);
+    await fs.promises.mkdir(frameDir, { recursive: true });
+
+    const frames = [];
+    for (const frame of (Array.isArray(input.frames) ? input.frames : []).slice(0, AVATAR_ACTION_MAX_FRAMES)) {
+      if (!frame || typeof frame !== "object") continue;
+      const frameId = safeStorageSegment(frame.id, "frame");
+
+      let url = typeof frame.url === "string" ? frame.url : "";
+      const decoded = decodeAvatarDataUrl(frame.dataUrl);
+      if (decoded) {
+        const outputPath = path.join(frameDir, frameId + frameExtension(decoded.mime));
+        await fs.promises.writeFile(outputPath, decoded.bytes);
+        url = pathToFileURL(outputPath).href;
+      } else if (url.startsWith("file://")) {
+        try {
+          const sourcePath = fileURLToPath(url);
+          const resolvedSource = path.resolve(sourcePath);
+          const resolvedRoot = path.resolve(root);
+          if (!resolvedSource.toLowerCase().startsWith(resolvedRoot.toLowerCase() + path.sep)) {
+            const stat = await fs.promises.stat(resolvedSource);
+            if (!stat.isFile() || stat.size > AVATAR_FRAME_MAX_BYTES) throw new Error("invalid avatar frame");
+            const sourceBytes = await fs.promises.readFile(resolvedSource);
+            const mime = AVATAR_ACTION_ALLOWED_MIME.has(String(frame.mime || "").toLowerCase())
+              ? String(frame.mime).toLowerCase()
+              : "image/png";
+            const outputPath = path.join(frameDir, frameId + frameExtension(mime));
+            await fs.promises.writeFile(outputPath, sourceBytes);
+            url = pathToFileURL(outputPath).href;
+          }
+        } catch {
+          url = "";
+        }
+      }
+
+      if (!url || !url.startsWith("file://")) continue;
+      frames.push({
+        id: frameId,
+        name: safeStorageSegment(frame.name, "image").slice(0, 120),
+        dataUrl: "",
+        url,
+        mime: AVATAR_ACTION_ALLOWED_MIME.has(String(frame.mime || "").toLowerCase())
+          ? String(frame.mime).toLowerCase()
+          : "image/png",
+        size: Number(frame.size) || 0,
+        bundled: frame.bundled === true
+      });
+    }
+
+    persisted.push({
+      id: actionId,
+      label: String(input.label || "Nueva acción").slice(0, 48),
+      icon: String(input.icon || "+").slice(0, 4),
+      expression: String(input.expression || "neutral"),
+      mouthOpen: Math.max(0, Math.min(1, Number(input.mouthOpen) || 0)),
+      durationMs: Math.max(80, Math.min(10000, Number(input.durationMs) || 800)),
+      loop: input.loop !== false,
+      opacity: Math.max(0, Math.min(1, Number(input.opacity) || 1)),
+      scale: Math.max(0.1, Math.min(3, Number(input.scale) || 1)),
+      offsetX: Math.max(-50, Math.min(50, Number(input.offsetX) || 0)),
+      offsetY: Math.max(-50, Math.min(50, Number(input.offsetY) || 0)),
+      frames
+    });
+  }
+
+  const tempPath = path.join(root, "actions.json.tmp");
+  const finalPath = avatarActionsConfigPath();
+  await fs.promises.writeFile(
+    tempPath,
+    JSON.stringify({
+      version: AVATAR_ACTIONS_VERSION,
+      updatedAt: new Date().toISOString(),
+      actions: persisted
+    }, null, 2),
+    "utf8"
+  );
+  await fs.promises.rename(tempPath, finalPath);
+  return { version: AVATAR_ACTIONS_VERSION, actions: persisted };
+}
 
 function resolveNativeExecutable() {
   const configured = process.env.CARI_NATIVE_EXECUTABLE;
@@ -212,6 +365,16 @@ ipcMain.handle("native:send", (event, command) => {
   requireTrustedSender(event);
 
   return engine.send(command);
+});
+
+ipcMain.handle("avatar-actions:load", async event => {
+  requireTrustedSender(event);
+  return loadAvatarActions();
+});
+
+ipcMain.handle("avatar-actions:save", async (event, payload) => {
+  requireTrustedSender(event);
+  return saveAvatarActions(payload);
 });
 
 ipcMain.handle("avatar:set-state", (event, state) => {
