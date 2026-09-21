@@ -605,3 +605,56 @@ El proyecto tenía checkpoints históricos con porcentajes y estados diferentes.
 ### Siguiente foco
 
 Crear/evaluar un asset V1 real que cumpla ART_QUALITY_GATE.md y conectarlo al renderer/rigging existente; en paralelo, mantener como P0 el compositor GPU y la evidencia CI/E2E Windows.
+
+---
+
+## LOG-023 — Continuidad P0→P3 y saneamiento temporal
+
+Fecha: 2026-09-21
+Área: Continuidad / Multimedia / Output / VTuber
+Estado: IMPLEMENTADO / DOCUMENTADO / PENDIENTES EXPLÍCITOS
+
+Objetivo:
+Fijar la prioridad ejecutiva para impedir repetir subsistemas ya resueltos y concentrar el trabajo en los gates pendientes.
+
+Prioridad canónica:
+- P0: asset Cari V1 real; revisión visual real; tracking sobre V1; compositor GPU → frame final; validación Windows/E2E.
+- P1: PTS extremo a extremo; drift correction físico; FFmpeg sostenido; grabación prolongada; RTMP/reconexión real.
+- P2: Game Capture; optimización GPU; hardware real.
+- P3: Live2D adapter; multistream; installer; distribución.
+
+Auditoría:
+- Se consultó BITACORA.md antes de modificar componentes.
+- WGC, WASAPI, AudioTimelineMixer, MediaClock, RealtimePacer, MediaInterleaver, FaceTrackingBridge, Three.js/glTF, FFmpeg supervisor, RawPipe y seguridad Electron no se reconstruyen.
+- El arte V0 existente no se considera equivalente al asset Cari V1 final.
+- El compositor D3D11 existente sigue siendo experimental porque todavía requiere readback CPU para entregar el frame al camino raw.
+- Existe una ruta Libav experimental con PTS explícitos, pero aún no se promueve a producción.
+
+Investigación externa:
+- Microsoft documenta SystemRelativeTime como tiempo QPC del render capturado y lo presenta como utilizable para sincronizar otros medios. citeturn349667search0turn349667search11
+- Media Foundation Source Reader puede trabajar con dispositivos de captura como webcams y requiere examinar/seleccionar el media type. citeturn501700search1turn501700search2
+- FFmpeg documenta use_wallclock_as_timestamps y advierte en AVFormatContext sobre resultados indefinidos con B-frames. citeturn349667search4turn349667search10
+- Live2D indica que Cubism Core se distribuye dentro del SDK y no se publica en GitHub bajo la licencia propietaria. citeturn501700search0turn501700search4
+- Three.js mantiene GLTFLoader como loader de glTF 2.0 y WebGLRenderer como renderer WebGL2. citeturn349667search8turn349667search3
+
+Cambios de esta iteración:
+- Se eliminó use_wallclock_as_timestamps del perfil FFmpeg raw; el camino raw ya no depende de ese atajo para generar timestamps.
+- Se mantuvo la ruta Libav como gate para PTS explícitos extremo a extremo.
+- Se añadió/confirmó retry RTMP restringido a fallos clasificados como network y backoff acotado.
+- Se añadió/confirmó diagnóstico de estado/código de salida y stderr limitado.
+- La CI fue configurada para ejecutarse también en la rama de desarrollo y acepta workflow_dispatch.
+
+Resultado:
+PARTIAL. Se redujo riesgo de temporización y se formalizó la memoria de continuidad, pero PTS E2E, validación Windows y composición final siguen abiertos.
+
+NO REPETIR:
+- No reconstruir WGC, WASAPI/mixer, scheduler/pacer/interleaver, tracker MediaPipe, renderer Three.js ni supervisor FFmpeg sin regresión demostrada.
+- No copiar Cubism Core.
+- No tratar V0 procedural/PNG como Cari V1 final.
+- No usar una demo visual como evidencia Windows/E2E.
+- No reintroducir use_wallclock_as_timestamps como sustituto de timestamps explícitos.
+- No declarar RTMP resiliente sin prueba real de caída y reconexión.
+- No elevar el porcentaje por cantidad de commits, archivos o líneas.
+
+Siguiente foco:
+P0 — Asset Cari V1 real y validación visual/tracking sobre el renderer existente; en paralelo, compositor GPU → frame final sin readback y CI/E2E Windows.
