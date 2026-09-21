@@ -5,6 +5,8 @@ export class FaceTrackingBridge {
     this.currentExpression = "neutral";
     this.candidateExpression = "neutral";
     this.candidateFrames = 0;
+    this.smoothHead = { x: 0, y: 0, z: 0 };
+    this.smoothGaze = { x: 0, y: 0 };
   }
 
   setEnabled(enabled) {
@@ -69,15 +71,26 @@ export class FaceTrackingBridge {
     const expression = this.currentExpression;
 
     const pose = readPose(result.facialTransformationMatrixes?.[0]?.data);
+    this.smoothHead = smoothVector(this.smoothHead, pose, 0.35);
 
-    this.acting.set({
+    const gaze = readGaze(shapes);
+    this.smoothGaze = smoothVector2(this.smoothGaze, gaze, 0.30);
+
+    this.acting.setFace({
       expression,
       mouthOpen,
       blink,
-      head: pose
+      head: this.smoothHead,
+      gaze: this.smoothGaze
     });
 
-    return { expression, mouthOpen, blink, head: pose };
+    return {
+      expression,
+      mouthOpen,
+      blink,
+      head: this.smoothHead,
+      gaze: this.smoothGaze
+    };
   }
 }
 
@@ -113,4 +126,48 @@ function readPose(data) {
 
 function clampAngle(value) {
   return Math.max(-0.8, Math.min(0.8, value));
+}
+
+
+function readGaze(shapes) {
+  const lookLeft = Math.max(
+    shapes.get("eyeLookInLeft") ?? 0,
+    shapes.get("eyeLookOutRight") ?? 0
+  );
+  const lookRight = Math.max(
+    shapes.get("eyeLookOutLeft") ?? 0,
+    shapes.get("eyeLookInRight") ?? 0
+  );
+  const lookUp = Math.max(
+    shapes.get("eyeLookUpLeft") ?? 0,
+    shapes.get("eyeLookUpRight") ?? 0
+  );
+  const lookDown = Math.max(
+    shapes.get("eyeLookDownLeft") ?? 0,
+    shapes.get("eyeLookDownRight") ?? 0
+  );
+
+  return {
+    x: clampSigned(lookRight - lookLeft),
+    y: clampSigned(lookUp - lookDown)
+  };
+}
+
+function clampSigned(value) {
+  return Math.max(-1, Math.min(1, Number(value) || 0));
+}
+
+function smoothVector(previous, next, factor) {
+  return {
+    x: previous.x + (next.x - previous.x) * factor,
+    y: previous.y + (next.y - previous.y) * factor,
+    z: previous.z + (next.z - previous.z) * factor
+  };
+}
+
+function smoothVector2(previous, next, factor) {
+  return {
+    x: previous.x + (next.x - previous.x) * factor,
+    y: previous.y + (next.y - previous.y) * factor
+  };
 }
