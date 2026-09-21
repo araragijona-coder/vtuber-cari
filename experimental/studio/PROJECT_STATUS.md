@@ -1,25 +1,28 @@
 ## CHECKPOINT VIGENTE — 2026-09-21
 
-- HEAD canónico de esta rama: `bad7030857221782baba42c1a811614e667c20ac`.
-- Ingeniería: **~69%**.
-- Producto usable/end-user: **~55%**.
-- Seguimiento global: **~63%**.
+- HEAD canónico de esta rama: `4ccbb3fc679b630ae6f3bcb09401df7f5b44e8d0`.
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
 - Estado: **EXPERIMENTAL / NO listo para producción**.
 
-### Avatar Cari V0
+### Cari V0 y control de habla
 - [x] Avatar procedural de cuerpo completo en Three.js.
-- [x] Invariantes visuales: piel morena/tan, cabello marrón medio, inner hair marrón claro, cola de caballo, ahoge, ojos marrones con pupilas blancas y curita nasal.
-- [x] Vestimenta deportiva con minishorts negros.
-- [x] Estados runtime: neutral, happy, angry, afraid, embarrassed, sad, exhausted, confused.
-- [x] Acciones: talking y silent.
-- [x] Tracking facial y comandos de chat reutilizan el mismo Action Store.
-- [x] `CARI_ACTIONS.md` documenta el catálogo canónico.
+- [x] Estados canónicos: neutral, happy, angry, afraid, embarrassed, sad, exhausted, confused.
+- [x] Acciones canónicas: talking y silent, además de acciones emocionales del Action Store.
+- [x] Tracking facial con MediaPipe y estabilización de expresión.
+- [x] Botón manual **Hablar** conectado al Action Store y al gate nativo del micrófono.
+- [x] Botón **Auto** para devolver el control de boca/reacción al detector local.
+- [x] Botones manuales de reacción para las expresiones canónicas.
+- [x] Detector local de habla por amplitud/histéresis, sin speech-to-text ni cloud.
+- [ ] Reconocimiento semántico del contenido hablado; no es requisito para activar la acción talking y no se añade IA obligatoria.
 - [ ] Rig VRM/Live2D de producción; no mezclarlo con el V0 procedural.
 
 ### Continuidad
 - `BITACORA.md` es la fuente canónica de anti-repetición.
-- No rehacer WGC, WASAPI, MediaClock/Pacer/Interleaver, FFmpeg supervisor, OBS service, Twitch transport ni Action Store salvo regresión reproducible.
-- Gates inmediatos: CI observable, E2E Windows named-pipe→FFmpeg, compositor GPU sin readback, PTS E2E, drift físico, cámara/Game Capture y hardware.
+- No rehacer WGC, WASAPI, MediaClock/Pacer/Interleaver, FFmpeg supervisor, OBS service, Twitch transport, Action Store ni renderer Three.js salvo regresión reproducible.
+- Gates inmediatos: CI observable, E2E Windows, compositor GPU sin readback, PTS E2E, drift físico y validación en hardware.
+- La cámara Media Foundation y el compositor D3D11 ya existen en la rama; queda su validación física/E2E.
 
 # Cari Studio — estado de implementación
 
@@ -133,9 +136,11 @@
 - [x] Fallback Three.js de cuerpo completo para validación de tracking/composición; ya no es un placeholder de solo cabeza.
 - [x] Overlay Three.js/glTF integrado experimentalmente al compositor nativo mediante la ventana transparente capturada con WGC.
 - [ ] Integración de avatar de producción sin readback CPU.
-- [x] Lip-sync local por amplitud del audio mezclado cuando MediaPipe no está conduciendo `mouthOpen`.
-- [ ] Tracking/cámara final.
-  - MediaPipe Face Landmarker está integrado como adaptador local; falta validación final de rendimiento y modelo real.
+- [x] Lip-sync local por amplitud/VAD de micrófono conectado al `AvatarActingBridge`.
+- [x] Tracking facial local integrado como adaptador MediaPipe.
+  - [x] Estabilización de expresión y guard de timestamps.
+  - [x] VAD local de micrófono para distinguir habla/silencio.
+  - [ ] Validación final de rendimiento/modelo en hardware.
 - [x] Cadena de voz local de baja latencia: HPF + presencia + compresión + saturación suave + limitador.
   - [ ] Validación integrada en Windows y medición sostenida.
 
@@ -190,7 +195,7 @@
 
 ## Estimación de avance
 
-**Estimación vigente: ingeniería ~68% · producto usable ~54% · seguimiento global ~62%.**
+**Estimación vigente: ingeniería ~71% · producto usable ~58% · seguimiento global ~65%.**
 
 Los porcentajes vigentes se mantienen sincronizados con `BITACORA.md`: miden cierre de requisitos, no líneas de código ni disponibilidad para producción.
 
