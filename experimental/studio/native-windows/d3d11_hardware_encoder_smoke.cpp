@@ -192,10 +192,9 @@ int main() {
 
     std::uint64_t packets = 0;
     for (int index = 0; index < frame_count; ++index) {
-        AVFrame* frame = bridge.wrap_texture(
+        AVFrame* frame = bridge.copy_texture_to_hwframe(
             textures[index].Get(),
             index,
-            0,
             error);
         if (frame == nullptr) {
             std::cerr << "D3D11 hardware encoder smoke: wrap failed: "
