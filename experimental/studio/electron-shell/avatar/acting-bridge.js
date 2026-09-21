@@ -6,7 +6,8 @@ export class AvatarActingBridge {
     this.listeners = new Set();
     this.manualOverrides = {
       expression: null,
-      mouthOpen: null
+      mouthOpen: null,
+      mouthMode: "max"
     };
     this.faceMouthOpen = 0;
     this.speechMouthOpen = 0;
@@ -14,7 +15,14 @@ export class AvatarActingBridge {
 
   #composedMouth() {
     if (this.manualOverrides.mouthOpen !== null) {
-      return this.manualOverrides.mouthOpen;
+      if (this.manualOverrides.mouthMode === "hard") {
+        return this.manualOverrides.mouthOpen;
+      }
+      return Math.max(
+        this.manualOverrides.mouthOpen,
+        this.faceMouthOpen,
+        this.speechMouthOpen
+      );
     }
     return Math.max(this.faceMouthOpen, this.speechMouthOpen);
   }
@@ -67,9 +75,11 @@ export class AvatarActingBridge {
     return this.setSpeech({ mouthOpen: 0, speaking: false, level: 0 });
   }
 
-  setManualMouth(value = null) {
+  setManualMouth(value = null, { mode = "max" } = {}) {
     this.manualOverrides.mouthOpen =
       value === null ? null : clamp01(value);
+    this.manualOverrides.mouthMode =
+      mode === "hard" ? "hard" : "max";
     this.state = normalizeAvatarState(this.state, {
       mouthOpen: this.#composedMouth()
     });
