@@ -126,3 +126,10 @@ A demo image is visual reference only.
 - Contrato UI/preload actualizado.
 - OBS_USAGE_AUDIT.md añadido.
 - Porcentaje canónico se mantiene: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65.
+## 2026-09-21 — LOG-037
+- OBS companion audit cerrado y registrado en OBS_USAGE_AUDIT.md.
+- OBS queda como streamer principal en ese modo; Cari controla VTuber/automation.
+- Added audio mute/volume, Scene Items, Replay Buffer, callBatch transition and bounded OBS WebSocket reconnect.
+- Fixed OBS event envelope and preserved manual password only in memory for reconnect.
+- Contract test expanded.
+- Canonical progress unchanged: Engineering ~71%, Product usable ~58%, Tracking ~65%.
