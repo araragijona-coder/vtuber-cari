@@ -95,11 +95,13 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] P08: estimador independiente de drift implementado y testeable.
 - [ ] Drift correction / resampling de producción basado en relojes de dispositivos.
 - [x] D3D11 compositor GPU experimental con overlay RGBA y output texture.
+- [x] D3D11 -> AVFrame hardware bridge experimental sin CPU readback.
 - [x] Readback de captura CPU lazy: diagnóstico/fallback solamente.
 - [x] Smoke D3D11 compositor con WARP.
 - [x] Ruta experimental directa libavcodec/libavformat con PTS explícitos.
 - [x] P04: ruta experimental Libav con PTS explícitos.
 - [ ] Encoder real conectado.
+  - Smoke de encoder hardware D3D11 preparado para h264_nvenc/h264_amf; requiere kit de desarrollo FFmpeg, Windows y GPU/driver compatibles.
   - FFmpeg recibe actualmente el frame final de la ruta experimental; falta validación sostenida y eliminación del readback CPU para producción.
 - [ ] Mux/record real sostenido en Windows.
 - [ ] RTMP real sostenido desde el pipeline.
