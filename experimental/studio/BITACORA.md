@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: `313baa3be82ece0e6cbe2d2699bfad8bf9fe170b`.
+- Último head auditado: `f49c882a2982e7eed38ec4f6a8d72a8da7c90931`.
 
 ## Estados de trabajo
 
@@ -1634,3 +1634,56 @@ La gobernanza de continuidad ya es código ejecutable y tiene tests definidos. F
 ### Siguiente acción
 
 P0 continúa sin cambiar: conseguir evidencia Windows observable para D3D11 → Libav/encoder y el E2E final; en paralelo, validar OBS real y sesión prolongada. La continuidad ya tiene un mecanismo ejecutable, por lo que no debe volver a tratarse como tarea de diseño.
+
+## LOG-042 — Retry RTMP: presupuesto persistente y checkpoint de CI
+
+Fecha: 2026-09-21
+Área: Output / Resiliencia / Continuidad / CI
+Estado: IMPLEMENTADO / SMOKE DEFINIDO / CI BLOQUEADA
+
+### Problema
+La política OutputRetryPolicy ya existía y distinguía fallos de red de encoder/mux/input/permission, pero la revisión encontró que el camino de reconexión automática podía reiniciar el contador de intentos al volver a ejecutar StartOutput(). Eso podía invalidar el límite de intentos.
+
+### Acción realizada
+- StartOutput() distingue sesión manual de reconexión automática mediante reset_retry_on_success.
+- Una nueva sesión manual limpia el presupuesto de retry.
+- Una reconexión automática exitosa conserva los intentos realizados.
+- El contador se limpia después de una sesión estable durante el período configurado.
+- Se mantienen los smoke tests de OutputRetryPolicy y OutputFailureCategory.
+
+### Archivos
+- experimental/studio/native-windows/main.cpp
+- experimental/studio/core/output_retry.h
+- experimental/studio/core/output_retry_smoke.cpp
+- experimental/studio/core/output_diagnostics.h
+- experimental/studio/core/output_diagnostics_smoke.cpp
+- experimental/studio/native-windows/CMakeLists.txt
+- workflows de GitHub Actions relacionados
+
+### Resultado
+PASS — corrección lógica integrada.
+
+### Evidencia CI del HEAD
+HEAD auditado de esta iteración: f49c882a2982e7eed38ec4f6a8d72a8da7c90931.
+- Native Windows Build: failure
+- CI: failure
+- Character Runtime Tests: failure
+- Actions Runner Diagnostic: failure
+- Installer workflow: failure
+Los jobs consultados devuelven steps=null y no ofrecen logs observables. CI continúa bloqueada por observabilidad del runner y no se atribuyen estos failures al código.
+
+### Riesgos restantes
+- La reconexión RTMP no está validada contra una caída de red real.
+- El transport raw sigue sin transportar PTS explícitos.
+- El compositor GPU → encoder continúa siendo experimental.
+- Falta validación Windows/hardware de la cadena completa.
+
+### NO REPETIR
+- No volver a diseñar OutputRetryPolicy.
+- No reiniciar el contador de retry durante reconexión automática.
+- No reintentar encoder/mux/input/permission como si fueran fallos de red.
+- No tocar WGC/WASAPI/MediaClock/MediaPipe/Three.js/FFmpeg supervisor sin regresión demostrada.
+- No modificar código por un failure de Actions mientras el job no muestre steps/logs reproducibles.
+
+### Siguiente acción
+P0: obtener evidencia Windows observable del camino D3D11 → Libav/encoder y del E2E final; después validar sesión prolongada, PTS E2E y drift físico.
