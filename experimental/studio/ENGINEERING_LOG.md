@@ -56,3 +56,9 @@ A demo image is visual reference only.
 - Camera metrics now follow the active source instead of always reading WGC counters.
 - No new metrics architecture added; existing status path corrected.
 - Engineering ~71%, Product usable ~58%, Tracking ~65%.
+
+
+## 2026-09-21 — LOG-028
+- Added automated BITACORA continuity validator for canonical percentages, monotonic log IDs and required no-repeat sections.
+- Added unit test and wired it into CI.
+- Canonical progress unchanged: Engineering ~71%, Product usable ~58%, Tracking ~65%.
