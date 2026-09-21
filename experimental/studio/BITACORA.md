@@ -9,10 +9,10 @@
 - Carpeta experimental: `experimental/studio/`
 - Estado del PR: abierto, draft.
 - Regla: ningún componente pasa a producción solo porque compile.
-- Ingeniería canónica actual: **68%**.
-- Producto usable/end-user: **54%**.
-- Seguimiento global: **62%**.
-- Último head auditado: `0f9639293201a9ae1509902b0d6a73f11a4d1e5c`.
+- Ingeniería canónica actual: **71%**.
+- Producto usable/end-user: **58%**.
+- Seguimiento global: **65%**.
+- Último head auditado: `753bebc993d15616221e836066dae7f53db58482`.
 
 ## Estados de trabajo
 
@@ -400,3 +400,13 @@ Electron registra atajos globales y los publica por el mismo canal de eventos de
 Solo `no-face` entra al fade de pérdida. Los frames duplicados no degradan el avatar.
 
 **NO REPETIR:** no convertir cualquier `null` de MediaPipe en pérdida de tracking.
+
+
+## Checkpoint canónico — 2026-09-21 — VTuber usability
+
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
+- Producción: **NO listo**.
+- Las mejoras VTuber verificadas/presentes en el head actual incluyen hotkeys globales y el puente de tracking con perfil/calibración.
+- Próximo foco P0: validación real de cámara/tracking y composición final del avatar, no recrear el tracker ni el renderer.
