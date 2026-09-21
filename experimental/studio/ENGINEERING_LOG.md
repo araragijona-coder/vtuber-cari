@@ -62,3 +62,13 @@ A demo image is visual reference only.
 - Added automated BITACORA continuity validator for canonical percentages, monotonic log IDs and required no-repeat sections.
 - Added unit test and wired it into CI.
 - Canonical progress unchanged: Engineering ~71%, Product usable ~58%, Tracking ~65%.
+
+
+## 2026-09-21 — LOG-029
+- Se actualiza la memoria canónica con investigación actual de MediaPipe y FFmpeg D3D11.
+- Se añade avatar/asset-registry.js con GLB/GLTF y límite de 64 MiB cuando se conoce el tamaño.
+- Se integra validación previa al renderer del overlay.
+- Test portable del registry: PASS.
+- Estado canónico sin cambio de porcentaje: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- P0 confirmado: compositor GPU -> encoder sin readback CPU por frame + evidencia Windows/E2E.
+- No repetir: renderer, tracker, scheduler, supervisor FFmpeg ni boundary Live2D.
