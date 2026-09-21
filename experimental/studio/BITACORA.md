@@ -826,3 +826,36 @@ NO REPETIR:
 
 Siguiente acción:
 P0 compositor GPU -> frame final y E2E Windows observable.
+
+
+---
+
+## LOG-028 — Validador automático de continuidad
+
+Fecha: 2026-09-21
+Área: Continuidad / Testing / CI
+Estado: IMPLEMENTADO / TESTEABLE LOCALMENTE
+
+Problema:
+La cantidad de cambios del proyecto y los checkpoints históricos hacían posible volver a introducir porcentajes contradictorios, IDs de log duplicados o perder la lista NO REPETIR.
+
+Acción realizada:
+- Se creó experimental/studio/tools/verify_bitacora.py.
+- Verifica existencia de BITACORA, PROJECT_STATUS, ENGINEERING_LOG y CHANGELOG.
+- Verifica secciones obligatorias y LOG IDs únicos/monotónicos.
+- Compara los porcentajes canónicos de Ingeniería, Producto usable y Seguimiento entre BITACORA y PROJECT_STATUS.
+- Verifica que producción conserve un estado explícito NO listo.
+- Verifica que ENGINEERING_LOG contenga el último LOG.
+- Se añadió un test unitario para el validador.
+- CI ejecutará el validador cuando los runners vuelvan a entregar steps/logs.
+
+Resultado:
+IMPLEMENTADO. El ledger pasa a tener una comprobación automática de continuidad.
+
+NO REPETIR:
+- No crear otra fuente de verdad para porcentajes.
+- No mantener un segundo sistema de bitácora.
+- No ignorar un fallo del validador; corregir la inconsistencia documental antes de continuar.
+
+Siguiente acción:
+P0 compositor GPU -> frame final y E2E Windows; el validador de continuidad permanece como gate de documentación.
