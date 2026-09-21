@@ -233,6 +233,130 @@ Remaining external/operational items for literal **100% stream-ready**:
 These cannot honestly be marked green from repository CI alone because they require the user's local assets, accounts and streaming environment.
 
 
+## Generación de galería Cari con Hugging Face
+
+El generador de imágenes usa **Hugging Face Inference Providers** en lugar de instalar Stable Diffusion completo en GitHub Actions. El SDK oficial permite seleccionar el modelo con `model=` y usar `provider="auto"` para que Hugging Face elija un proveedor disponible para ese modelo. citeturn838471view0turn838471view1
+
+> **Coste:** la cuenta gratuita de Hugging Face incluye actualmente **US$0,10/mes** de créditos para Inference Providers, sujetos a cambio. No es una API ilimitada/gratuita; cualquier consumo adicional requiere créditos/pago. citeturn351374search0
+
+Instala el generador:
+
+```bash
+python -m pip install -r scripts/requirements-assets.txt
+```
+
+Configura tu token de Hugging Face como `HF_TOKEN` y crea un User Access Token con permiso de **Inference Providers**. El script no escribe el token en archivos ni en Git. citeturn838471view0turn838471view1
+
+### Cambiar modelo
+
+El modelo se cambia directamente con `--model`:
+
+```bash
+python scripts/generate_cari_assets.py \
+  --model stabilityai/stable-diffusion-xl-base-1.0 \
+  --provider auto
+```
+
+También puedes seleccionar un proveedor concreto:
+
+```bash
+python scripts/generate_cari_assets.py \
+  --model black-forest-labs/FLUX.1-schnell \
+  --provider fal-ai
+```
+
+Para buscar modelos disponibles mediante Hugging Face puedes usar el filtro **Inference Providers** o:
+
+```bash
+hf models ls --pipeline-tag text-to-image --warm --sort trending_score
+```
+
+La compatibilidad real depende de que el modelo tenga un proveedor disponible. Por ejemplo, modelos anime especializados como `cagliostrolab/animagine-xl-3.1`, `Lykon/AAM_XL_AnimeMix` y `Lykon/dreamshaper-xl-v2-turbo` aparecen actualmente sin despliegue en un Inference Provider; por eso no se deben asumir como compatibles con `provider=auto` hasta que Hugging Face muestre un proveedor para ellos. citeturn443196search1turn374301search1turn374301search2
+
+### Estilos de Cari
+
+El script incluye presets para probar rápidamente:
+
+```bash
+# anime clásico
+python scripts/generate_cari_assets.py --style anime-classic
+
+# cel-shading
+python scripts/generate_cari_assets.py --style cel-shading
+
+# ecchi no explícito, con personaje adulto y completamente vestido
+python scripts/generate_cari_assets.py --style ecchi
+
+# ilustración anime suave
+python scripts/generate_cari_assets.py --style soft-illustration
+```
+
+También puedes reemplazar el sufijo artístico sin modificar el código:
+
+```bash
+python scripts/generate_cari_assets.py \
+  --style none \
+  --style-suffix "clean 2D cel shading, crisp line art, urban pop palette"
+```
+
+Los estilos no intentan saltarse las políticas del proveedor; el proveedor/modelo seleccionado sigue determinando las restricciones aplicables.
+
+### Prompts propios
+
+Usa un JSON como:
+
+```json
+[
+  {
+    "name": "cari-streetwear",
+    "prompt": "Cari anime girl, adult character, modern city streetwear, full body"
+  },
+  {
+    "name": "cari-happy",
+    "prompt": "Cari anime girl, adult character, happy smile, upper body portrait"
+  }
+]
+```
+
+Y ejecútalo con:
+
+```bash
+python scripts/generate_cari_assets.py --prompt-file prompts/cari-gallery.json
+```
+
+### Reproducibilidad y Git
+
+El seed se deriva de un hash estable de nombre + prompt + seed base, de modo que cambiar el modelo o el estilo queda separado del mecanismo de selección de seed.
+
+Por defecto el script **no hace commit ni push**. Para hacerlo de forma explícita:
+
+```bash
+python scripts/generate_cari_assets.py \
+  --model stabilityai/stable-diffusion-xl-base-1.0 \
+  --provider auto \
+  --git-commit \
+  --git-push \
+  --git-branch fix/native-windows-foundation
+```
+
+El commit se limita a `assets/cari-gallery/` para no incluir archivos ajenos que estuvieran staged.
+
+### GitHub Actions
+
+Existe un workflow manual en `.github/workflows/generate-cari-assets.yml`. Recibe:
+
+```text
+branch
+model
+provider
+style
+overwrite
+```
+
+y ejecuta el generador con `--git-commit --git-push` usando el secreto `HF_TOKEN`. El workflow necesita permisos `contents: write`.
+
+El workflow está pensado para generar y versionar la galería, no para ejecutar Stable Diffusion en el runner. Esto reduce el coste de CPU/GPU del runner y mueve la inferencia al proveedor de modelos.
+
 ## Cari Studio
 
 El estado y la bitácora de continuidad de la aplicación están en [`experimental/studio/BITACORA.md`](experimental/studio/BITACORA.md). Los componentes que todavía no tienen validación suficiente permanecen en la única zona `experimental/`.
