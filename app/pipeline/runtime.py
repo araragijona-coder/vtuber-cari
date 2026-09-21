@@ -15,6 +15,7 @@ from app.memory.persistent import PersistentMemoryStore
 from app.memory.session import SessionMemory
 from app.monitor.usage import UsageStats
 from app.studio.actions import StudioActionRouter
+from app.studio.runtime_bindings import StudioRuntimeBindings
 from app.twitch.models import ChatMessage
 from app.voice.arbiter import VoiceArbiter, VoiceItem
 from app.voice.director import VoiceDirector, VoiceRequest
@@ -56,7 +57,9 @@ class LocalPipeline:
             raise ValueError("provide event_bus or event_journal, not both")
         self.event_bus = event_bus or EventBus(journal=event_journal if event_journal is not None else EventJournal())
         self.event_journal = self.event_bus.journal
-        self.studio_actions = StudioActionRouter(self.event_bus)
+        if studio_bindings is not None and studio_bindings.event_bus is not self.event_bus:
+            raise ValueError("studio_bindings must use the pipeline event bus")
+        self.studio_actions = studio_bindings or StudioRuntimeBindings(self.event_bus)
         if persistent_memory is not None:
             for item in persistent_memory.load():
                 self.memory.remember(item.key, item.value, source=item.source, timestamp=item.timestamp)
