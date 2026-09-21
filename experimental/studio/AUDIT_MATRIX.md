@@ -67,6 +67,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Activación de acciones desde UI y comandos básicos del chat.
 - [x] Action Store puede precargar el arte base empaquetado de Cari sin crear un segundo sistema de assets.
 - [x] Bitácora `BITACORA.md` con estados y lista NO REPETIR.
+- [x] Validator canónico de continuidad con cobertura unittest para deriva de porcentajes, IDs y HEAD.
 
 ## Gates
 
