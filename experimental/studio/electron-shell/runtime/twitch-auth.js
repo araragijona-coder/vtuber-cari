@@ -5,7 +5,14 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 
 const DEFAULT_REDIRECT_URI = "http://127.0.0.1:37845/oauth/callback";
-const SCOPES = ["user:read:chat", "user:write:chat"];
+const SCOPES = [
+  "user:read:chat",
+  "user:write:chat",
+  "moderator:read:followers",
+  "channel:read:subscriptions",
+  "bits:read",
+  "channel:read:redemptions"
+];
 
 class TwitchAuth {
   constructor() {
