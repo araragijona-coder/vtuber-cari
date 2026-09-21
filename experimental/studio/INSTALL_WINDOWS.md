@@ -73,3 +73,17 @@ Los modelos MediaPipe/avatar no se descargan automáticamente. Se auditan las va
 La rama todavía no es un instalador final de usuario. Es una ruta de desarrollo reproducible para preparar una máquina Windows y obtener evidencia objetiva de compatibilidad antes de seguir adaptando el runtime.
 
 La redistribución de FFmpeg dentro del instalador final sigue separada de su instalación local por las implicaciones de licencia y distribución.
+
+## Arranque directo desde la raíz
+
+El build Release de `experimental/studio/native-windows` genera automáticamente `CariStudioLauncher.exe` en la raíz del checkout.
+
+Uso:
+
+    .\CariStudioLauncher.exe
+
+El launcher no reemplaza al motor multimedia ni al shell Electron. Selecciona automáticamente la instalación de escritorio o el shell de desarrollo; solo usa el runtime nativo como fallback de diagnóstico.
+
+El shell de desarrollo registra sus errores de arranque en:
+
+    %LOCALAPPDATA%\CariStudio\launcher.log
