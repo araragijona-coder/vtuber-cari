@@ -72,6 +72,20 @@ std::int32_t read_int_field(const std::string& compact, const char* field) {
     return negative ? -value : value;
 }
 
+bool read_bool_field(
+    const std::string& compact,
+    const char* field,
+    bool fallback) {
+    const std::string prefix = std::string("\"") + field + "\":";
+    const auto begin = compact.find(prefix);
+    if (begin == std::string::npos) return fallback;
+
+    const auto index = begin + prefix.size();
+    if (compact.compare(index, 4, "true") == 0) return true;
+    if (compact.compare(index, 5, "false") == 0) return false;
+    return fallback;
+}
+
 std::string read_string_field(const std::string& compact, const char* field) {
     const std::string prefix = std::string("\"") + field + "\":\"";
     const auto begin = compact.find(prefix);
@@ -113,6 +127,7 @@ ControlCommand parse_control_command(const std::string& line) noexcept {
     else if (has(compact, "\"type\":\"capture.stop\"")) command.type = ControlCommandType::capture_stop;
     else if (has(compact, "\"type\":\"audio.start\"")) command.type = ControlCommandType::audio_start;
     else if (has(compact, "\"type\":\"audio.stop\"")) command.type = ControlCommandType::audio_stop;
+    else if (has(compact, "\"type\":\"microphone.set\"")) command.type = ControlCommandType::microphone_set;
     else if (has(compact, "\"type\":\"output.start\"")) command.type = ControlCommandType::output_start;
     else if (has(compact, "\"type\":\"output.stop\"")) command.type = ControlCommandType::output_stop;
     else if (has(compact, "\"type\":\"voice.set\"")) command.type = ControlCommandType::voice_set;
@@ -125,6 +140,7 @@ ControlCommand parse_control_command(const std::string& line) noexcept {
     if (has(compact, "\"effect\":\"anime-bright\"")) command.effect = "anime-bright";
     if (has(compact, "\"effect\":\"off\"")) command.effect = "off";
     command.target = read_string_field(compact, "target");
+    command.microphone_enabled = read_bool_field(compact, "enabled", true);
     command.window_index = read_int_field(compact, "window_index");
     command.camera_index = read_int_field(compact, "camera_index");
     command.request_id = read_string_field(compact, "id");
