@@ -20,5 +20,15 @@
 - Se mantiene Three.js/glTF/VRM como ruta 3D actual y Live2D como adapter opcional.
 - No se crea un segundo tracker, scheduler, renderer ni supervisor FFmpeg.
 
+## 2026-09-21 — Continuidad y arte
+
+- Se confirma BITACORA.md como memoria canónica.
+- El estado vigente se mantiene en Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Se corrige la dirección artística V1 para respetar las restricciones canónicas de CARI_CHARACTER_BIBLE.md.
+- Se elimina la deriva hacia prendas y accesorios no definidos.
+- Se eleva el fallback procedural Three.js con iluminación de presentación, materiales toon, ojos/iris/pupilas, mechones frontales y lectura atlética.
+- El fallback sigue clasificado como CODE_EXISTS, no como asset de producción.
+- Se añade ART_QUALITY_GATE.md.
+
 ## Regla
 No usar cantidad de commits, archivos o líneas como medida de progreso. El porcentaje depende de implementación, pruebas, validación y riesgo residual.
