@@ -107,7 +107,8 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] WASAPI foundation.
 - [x] Camera enumeration.
 - [x] Frame-pool recreate ante cambios de tamaño.
-- [ ] Media Foundation camera streaming.
+- [x] Media Foundation camera streaming implementado como source nativa experimental.
+  - [ ] Validación física y reconexión en hardware Windows.
   - Implementación nativa e integración al control plane/output ya realizadas; falta verificación Windows con cámara real y reconexión.
 - [ ] Dedicated game capture.
 - [x] Device-loss recovery para removed/reset/hung.
@@ -182,6 +183,17 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ### Cari / Avatar
 
+### Cari V0 — habla y reacciones
+
+- [x] Acción canónica `talking` existente en el Action Store.
+- [x] Gate nativo `microphone.set` para mutear/activar el micrófono sin detener system loopback.
+- [x] Botón manual **Hablar**: activa audio/mic y selecciona `talking`.
+- [x] Modo **Auto**: devuelve la expresión al tracking y usa VAD local para disparar lip-sync.
+- [x] Botones manuales para las expresiones canónicas.
+- [x] VAD local por RMS + HPF/LPF + histéresis; no requiere reconocimiento de voz ni cloud.
+- [ ] VAD comparado en hardware con ruido, música y micrófonos diferentes.
+
+
 - [x] Acting state independent of appearance.
 - [x] Appearance profile.
 - [x] Hair/outfit/accessories.
@@ -192,6 +204,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Canonical Cari personality bible with explicit invariants and data classification.
 - [ ] Character behavior engine consuming personality/value/state layers.
 - [x] Neutral avatar contract consumed by the Three.js renderer.
+- [x] Manual talk/reaction control layer sobre el Action Store existente.
 
 - [x] Overlay Three.js/glTF capturable e integrado experimentalmente al compositor D3D11 existente.
 - [ ] Native VRM renderer de producción sin readback CPU.
@@ -267,7 +280,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~68%.**
+**Estimación global de ingeniería: ~71%.**
 
 El 65% refleja que la ruta principal y varios componentes experimentales ya están implementados, mientras permanecen abiertos los gates de validación Windows/hardware, PTS extremo a extremo, compositor de producción, cámara, drift, RTMP sostenido y distribución.
 
