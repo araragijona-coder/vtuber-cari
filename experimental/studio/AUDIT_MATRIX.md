@@ -463,3 +463,10 @@ El compositor D3D11 ya compone captura + overlay, pero el frame final se hace CP
 - [x] Dirección estilizada entre chibi 2D y 3D, evitando realismo y anime extremo.
 - [x] Prohibición de diademas, hairpins, joyería, props, objetos y prendas extra.
 - [ ] Arte final profesional / rig Live2D / VRM: todavía pendiente.
+
+## Evidencia adicional — privacidad de micrófono — 2026-09-21
+
+- El camino de atajo `A` fue auditado contra el contrato `microphone_set`.
+- El atajo ya no habilita el micrófono de forma implícita.
+- Invariante: arrancar audio != arrancar micrófono.
+- Estado del gate: IMPLEMENTADO; validación de dispositivo real pendiente.
