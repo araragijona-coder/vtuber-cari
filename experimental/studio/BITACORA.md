@@ -1,3 +1,128 @@
+# CHECKPOINT CANÓNICO — 2026-09-21 — ACTIVIDAD MANUAL/AUTO + MICRÓFONO OPT-IN + CHIBIS
+
+> Este bloque tiene precedencia sobre checkpoints históricos. Revisar antes de volver a modificar avatar, actividad, habla o UI.
+
+- Rama: `fix/native-windows-foundation`
+- PR: #2
+- HEAD observado al cerrar esta revisión: `35658821477f147d3067a1c6afbac6578c3677c6`
+- Estado: **EXPERIMENTAL / NO listo para producción**
+- Ingeniería: **~71%**
+- Producto usable/end-user: **~58%**
+- Seguimiento global: **~65%**
+
+## Requisitos del usuario incorporados
+
+### Regla absoluta de IA
+- **NO usar IA para operar Cari Studio.**
+- Tracking facial significa MediaPipe/local deterministic processing, no IA generativa/cloud.
+- Movimiento automático significa reglas deterministas, keyboard/gamepad/timers/estado, no toma de decisiones generativa.
+- Lectura por cámara significa traducción de landmarks/blendshapes a estados definidos, no comprensión semántica.
+
+### Micrófono
+- El motor de audio inicia con **micrófono OFF**.
+- El system loopback puede permanecer activo para audio del sistema.
+- **Hablar** es la puerta explícita que habilita el micrófono.
+- **Callar**/desactivar Hablar vuelve el micrófono a OFF.
+- El polling de estado no puede abrir micrófono.
+- VAD/lip-sync solo pueden analizar el micrófono después del gate explícito de Hablar.
+- No implementar apertura automática del micrófono basada en volumen/VAD.
+
+### Actividad de Cari
+El contrato existente se amplió sin crear otro renderer:
+
+- modo `manual`;
+- modo `auto-motion`;
+- modo `camera-actions`;
+- movimiento `quiet / normal / restless`;
+- brazos `relaxed / keyboard / controller / phone / hug / sleeping`;
+- objeto `none / phone / joystick / keyboard / pillow`;
+- pose `standing / sleeping`.
+
+Modos completos:
+- `gaming-angry-happy`: joystick + inquieta + brazos de mando + angry/happy.
+- `keyboard-tired-focused`: teclado + quieta + brazos de teclado + exhausted/focused.
+- `pillow-hug-sleeping`: almohada + quieta + abrazar + agotada/dormida.
+
+## Chibis
+
+Implementado en preview local:
+- capibaras procedurales;
+- mini-Cari procedural;
+- movimiento determinista alrededor de Cari;
+- máximo 8 unidades;
+- canvas 2D independiente.
+
+Decisión de rendimiento:
+- no usar física compleja;
+- no usar modelos 3D pesados para decoración;
+- no aplicar sombras/postprocesado por unidad;
+- mantener chibis separados del frame final hasta cerrar el compositor GPU.
+
+El coste esperado de unos pocos chibis es bajo frente a la captura/composición/encoder. El cuello de botella futuro será draw calls, texturas, skinning, sombras y postprocesado, no el simple conteo de personajes.
+
+## Integración y reutilización
+
+NO CREAR:
+- otro Action Store;
+- otro Avatar Renderer;
+- otro VAD;
+- otro lip-sync;
+- otro scheduler/interleaver;
+- otro FFmpeg supervisor;
+- otro OBS service;
+- otro Twitch transport;
+- otra bitácora.
+
+Se reutilizan:
+- `activity-motion.js`;
+- `activity-presets.js`;
+- `avatar-contract.js`;
+- `acting-bridge.js`;
+- `action-store.js`;
+- `three-avatar.js`;
+- `audio-lipsync.js`;
+- `session-manager.js`.
+
+## Verificación
+
+Confirmado en código:
+- estado de micrófono expuesto por el Native Engine;
+- renderer no activa micrófono desde el polling;
+- Auto movimiento fuerza micrófono OFF;
+- actividad y objetos se propagan al contrato del avatar;
+- el modo dormir modifica también postura del cuerpo procedural;
+- mapa chibi está aislado del renderer de salida.
+
+Evidencia previa conservada:
+- smoke C++20 estricto de timing/interleaver/retry/diagnóstico;
+- smoke JavaScript de sesión/avatar;
+- FFmpeg sintético BGRA + PCM float32 → H.264/AAC → Matroska.
+
+Pendiente:
+- ejecutar los nuevos tests ESM de actividad/privacy en CI observable;
+- validar Windows E2E real;
+- validar cámara/overlay en hardware;
+- integrar chibis al compositor final solo después de resolver el compositor GPU;
+- validar el comportamiento del micrófono con dispositivo real.
+
+## CI
+
+Los workflows ya pueden dispararse sobre la rama de desarrollo y mediante `workflow_dispatch`, pero los runs recientes siguen muriendo antes de registrar steps/logs útiles.
+
+Regla: no marcar CI verde hasta obtener Checkout/CMake/npm/CTest reales.
+
+## Próximo trabajo válido
+
+1. CI observable.
+2. E2E Windows named-pipe → FFmpeg → archivo.
+3. Compositor GPU sin CPU readback.
+4. PTS explícitos extremo a extremo.
+5. Drift correction WASAPI.
+6. Validación cámara/Game Capture/hardware.
+7. Backends reales de acciones Native/OBS.
+8. Twitch/OBS/RTMP reales.
+9. Distribución FFmpeg, instalador y release.
+
 ## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — CARI V1 RUNTIME + CONTINUIDAD
 
 > Este bloque tiene precedencia sobre todos los checkpoints históricos inferiores.
