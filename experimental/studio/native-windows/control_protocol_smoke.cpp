@@ -38,6 +38,12 @@ int main() {
     assert(output.target == "capture.mkv");
     assert(output.request_id == "req-17");
 
+    const auto microphone = cari::native::parse_control_command(
+        R"({"type":"microphone.set","enabled":false,"id":"mic-01"})");
+    assert(microphone.type == ControlCommandType::microphone_set);
+    assert(microphone.microphone_enabled == false);
+    assert(microphone.request_id == "mic-01");
+
     const auto voice = cari::native::parse_control_command(
         R"({"type":"voice.set","effect":"anime-bright","id":"voice-01"})");
     assert(voice.type == ControlCommandType::voice_set);
