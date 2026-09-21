@@ -380,6 +380,29 @@ ipcMain.handle("obs:set-scene-collection", async (event, sceneCollectionName) =>
   return obs.setCurrentSceneCollection(sceneCollectionName);
 });
 
+function resolveCariExpressionRoot() {
+  const candidates = [
+    path.join(process.resourcesPath, "assets", "cari", "expressions"),
+    path.resolve(__dirname, "../../../assets/cari/expressions")
+  ];
+  return candidates.find(candidate => fs.existsSync(candidate)) || null;
+}
+
+ipcMain.handle("assets:cari-expressions", event => {
+  requireTrustedSender(event);
+  const root = resolveCariExpressionRoot();
+  if (!root) return {};
+  const names = {
+    neutral: "cari_neutral.png",
+    happy: "cari_happy.png",
+    angry: "cari_angry.png"
+  };
+  return Object.fromEntries(
+    Object.entries(names)
+      .map(([key, filename]) => [key, pathToFileURL(path.join(root, filename)).href])
+  );
+});
+
 ipcMain.handle("app:config", event => {
   requireTrustedSender(event);
 
