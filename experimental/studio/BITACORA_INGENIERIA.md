@@ -30,7 +30,7 @@
 | Three.js avatar | IMPLEMENTADO / EXPERIMENTAL | GLB/glTF + placeholder + morph aliases | Falta composición nativa en frame final |
 | MediaPipe Face Landmarker | IMPLEMENTADO / VERIFICADO | VIDEO mode + timestamp monotónico | Falta benchmark real y posible LIVE_STREAM |
 | Live2D | ADAPTADOR PENDIENTE | Boundary definido, sin runtime/asset propietario | No incluir SDK propietario en repo |
-| Avatar 2D action runtime | IMPLEMENTADO / TEST LOCAL | Action Store + frame player + router + VAD/Twitch + persistence | Falta Windows sustained + encoder compositor |
+| Avatar 2D action runtime | IMPLEMENTADO / VERIFICADO LOCAL | Action Store + frame player + router + VAD/Twitch + persistence; 7/7 tests locales | Falta Windows sustained + encoder compositor |
 | Avatar overlay | IMPLEMENTADO | BrowserWindow transparente separado | Falta integración GPU/native compositor |
 | Twitch UI/backend | PARCIAL | Chat/EventSub surface y servicios presentes | Falta cerrar permisos/OAuth/flujo real |
 | OBS integración | OPCIONAL / IMPLEMENTADO | obs-websocket 5.x | No convertir OBS en dependencia del motor |
