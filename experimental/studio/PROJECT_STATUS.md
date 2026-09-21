@@ -169,6 +169,7 @@
 - [x] Editor de Acciones 2D conectado a un runtime único de frames y prioridades.
 - [x] Chat/EventSub/VAD sincronizados con el reproductor PNG 2D.
 - [x] Persistencia de presets y frames 2D en userData de Electron con fallback local.
+- [x] Tests locales de routing, loops y persistencia del Editor 2D.
 - [ ] Validación sostenida del PNGTuber sobre Windows y del frame final que entra al encoder.
 
 - [x] Contratos de avatar y actuación existentes.
