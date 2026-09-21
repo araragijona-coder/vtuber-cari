@@ -1,6 +1,6 @@
 ## CHECKPOINT VIGENTE — 2026-09-21
 
-- HEAD canónico de esta rama: `4ccbb3fc679b630ae6f3bcb09401df7f5b44e8d0`.
+- HEAD canónico de esta rama: `2ffeb2c8db89421e4151d3ef6ab94e0ca9fd0915`.
 - Ingeniería: **~71%**.
 - Producto usable/end-user: **~58%**.
 - Seguimiento global: **~65%**.
@@ -14,7 +14,7 @@
 - [x] Botón manual **Hablar** conectado al Action Store y al gate nativo del micrófono.
 - [x] Botón **Auto** para devolver el control de boca/reacción al detector local.
 - [x] Botones manuales de reacción para las expresiones canónicas.
-- [x] Detector local de habla por amplitud/histéresis, sin speech-to-text ni cloud.
+- [x] Detector local de habla por amplitud/HPF/LPF/histéresis, sin speech-to-text ni cloud.
 - [ ] Reconocimiento semántico del contenido hablado; no es requisito para activar la acción talking y no se añade IA obligatoria.
 - [ ] Rig VRM/Live2D de producción; no mezclarlo con el V0 procedural.
 
