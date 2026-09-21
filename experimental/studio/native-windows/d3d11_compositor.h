@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -14,6 +15,8 @@ struct GpuOverlay {
     std::uint32_t width = 0;
     std::uint32_t height = 0;
     std::shared_ptr<std::vector<std::uint8_t>> rgba;
+    // Content generation. Increment when the bytes referenced by rgba change.
+    std::uint64_t generation = 0;
     float opacity = 1.0f;
     std::int32_t x = 0;
     std::int32_t y = 0;
@@ -23,6 +26,7 @@ struct GpuOverlay {
 struct D3D11CompositorStats {
     std::uint64_t composed_frames = 0;
     std::uint64_t overlay_uploads = 0;
+    std::uint64_t overlay_cache_hits = 0;
     std::uint64_t rejected_frames = 0;
     std::uint64_t cpu_readbacks = 0;
     std::uint64_t shader_failures = 0;
@@ -83,6 +87,17 @@ private:
         std::uint32_t& texture_height,
         std::wstring& error);
 
+    struct CachedOverlay {
+        const void* identity = nullptr;
+        std::uint64_t generation = 0;
+        std::uint32_t width = 0;
+        std::uint32_t height = 0;
+        std::uint64_t last_used = 0;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+    };
+
+    static constexpr std::size_t kOverlayCacheEntries = 8;
+
     static std::wstring hresult_error(HRESULT hr, const wchar_t* operation);
     static std::wstring shader_error(ID3DBlob* errors, const wchar_t* fallback);
 
@@ -103,6 +118,8 @@ private:
 
     std::uint32_t width_ = 0;
     std::uint32_t height_ = 0;
+    std::uint64_t overlay_cache_clock_ = 0;
+    std::array<CachedOverlay, kOverlayCacheEntries> overlay_cache_{};
     D3D11CompositorStats stats_{};
 };
 
