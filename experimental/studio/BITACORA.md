@@ -1281,3 +1281,77 @@ P0:
 3. medir CPU/GPU/readback;
 4. después cerrar PTS E2E y drift físico;
 5. recién entonces avanzar a RTMP real, Game Capture, hardware final y distribución.
+
+---
+
+## LOG-036 — Auditoría de uso con OBS como streamer principal
+
+Fecha: 2026-09-21
+Área: OBS / Control Plane / Continuidad
+Estado: IMPLEMENTADO / TEST CONTRATO / VALIDACIÓN OBS PENDIENTE
+
+### Problema
+Se necesitaba determinar si Cari Studio requiere reproducir las funciones internas de OBS para el uso previsto: OBS como streamer/encoder principal.
+
+### Investigación
+- OBS mantiene scenes/sources, Studio Mode, audio mixer, Game Capture, Virtual Camera, estadísticas y reconexión como funciones propias del streamer.
+- obs-websocket 5.x ofrece RPC, eventos, subscriptions y batches.
+- obs-websocket-js 5.0.8 es la versión de cliente actualmente fijada en el shell y su documentación incluye InputVolumeMeters y callBatch.
+- El protocolo actual incluye mute/volume de inputs, Scene Items, Replay Buffer, outputs y requests de transición.
+
+### Decisión
+Cari funciona mejor en este escenario como control-plane VTuber especializado alrededor de OBS, no como un segundo frontend/encoder completo de OBS.
+
+OBS queda como fuente de verdad para:
+- encoder;
+- muxing;
+- RTMP/RTMPS;
+- reconexión del stream;
+- canvas/output;
+- Game Capture;
+- composición principal.
+
+Cari aporta:
+- avatar;
+- tracking;
+- acciones/reacciones;
+- chat/EventSub;
+- automatización;
+- hotkeys;
+- control de escenas;
+- control operativo de audio;
+- observabilidad.
+
+### Acción realizada
+- OBS_USAGE_AUDIT.md creado como matriz de readiness para el escenario companion.
+- ObsService ampliado con InputVolumeMeters, mute/volume, Scene Items enable/disable, Replay Buffer, transición de escena mediante callBatch, guard durante cambios de Scene Collection, reconexión WebSocket con backoff acotado y versión OBS WebSocket/RPC negociado en status.
+- IPC y preload ampliados con esos comandos.
+- UI añadida con Replay Buffer y controles operativos de inputs.
+- Corregido el envelope de eventos OBS entre Electron Main y Renderer mediante eventType.
+- Test de contrato actualizado para proteger el envelope y los nuevos comandos.
+
+### Resultado
+PARTIAL: el alcance funcional del companion ya cubre el mínimo necesario para un streamer OBS, pero faltan pruebas sobre OBS real, caída/reinicio del proceso y sesiones prolongadas.
+
+### Riesgos restantes
+- La voz procesada por Cari aún necesita una ruta validada hacia OBS si se desea que el audio DSP sea la fuente emitida.
+- El overlay transparente de Cari es un puente de integración, no todavía una textura nativa compartida con el compositor de OBS.
+- OBS stream reconnect y Cari WebSocket reconnect son mecanismos diferentes y deben mantenerse separados.
+- InputVolumeMeters es un evento de alta frecuencia y debe mantenerse limitado al uso operativo necesario.
+
+### NO REPETIR
+- No implementar un segundo encoder para el modo companion.
+- No reemplazar el sistema de escenas de OBS por otro paralelo.
+- No crear otro cliente WebSocket.
+- No crear otro mixer de streaming para OBS.
+- No reimplementar la reconexión del stream de Twitch/YouTube que ya gestiona OBS.
+- No reauditar WGC/WASAPI/MediaClock/MediaPipe/Three.js/FFmpeg supervisor salvo regresión o nueva evidencia.
+
+### Siguiente acción
+1. Ejecutar prueba real contra OBS con contraseña y RPC 1.
+2. Validar Start/Stop Stream + Scene + Studio Mode + Record.
+3. Validar mute/volume y Replay Buffer.
+4. Reiniciar OBS y verificar reconexión de Cari.
+5. Cambiar Scene Collection y verificar que el guard evita requests durante el cambio.
+6. Hacer sesión larga avatar + tracking + OBS y medir CPU/GPU/memoria.
+7. Mantener en paralelo el gate P0 GPU compositor → encoder para el modo standalone.
