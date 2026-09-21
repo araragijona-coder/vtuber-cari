@@ -1,6 +1,6 @@
 ## CHECKPOINT VIGENTE — 2026-09-21
 
-- HEAD canónico de esta rama: `2ffeb2c8db89421e4151d3ef6ab94e0ca9fd0915`.
+- HEAD canónico de esta rama: `d401f9e5ec95bdadd5845b7c36f430e288052272`.
 - Ingeniería: **~71%**.
 - Producto usable/end-user: **~58%**.
 - Seguimiento global: **~65%**.
@@ -14,6 +14,9 @@
 - [x] Botón manual **Hablar** conectado al Action Store y al gate nativo del micrófono.
 - [x] Botón **Auto** para devolver el control de boca/reacción al detector local.
 - [x] Botones manuales de reacción para las expresiones canónicas.
+- [x] Movimiento libre/idle procedural del avatar.
+- [x] Actividades teclado, mando y móvil con control manual/automático.
+- [x] Cámara de tracking oculta: no se renderiza la cara del usuario en Preview/Tracking.
 - [x] Detector local de habla por amplitud/HPF/LPF/histéresis, sin speech-to-text ni cloud.
 - [ ] Reconocimiento semántico del contenido hablado; no es requisito para activar la acción talking y no se añade IA obligatoria.
 - [ ] Rig VRM/Live2D de producción; no mezclarlo con el V0 procedural.
