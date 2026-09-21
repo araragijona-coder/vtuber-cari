@@ -62,6 +62,7 @@
 - [x] Reset de retry por nueva sesión manual, conservando intentos durante reconexiones automáticas.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
+- [x] Manual Talk gate: el motor de audio arranca con micrófono OFF y solo se habilita por acción explícita de Hablar.
 - [x] Auditoría de botones renderer y alineación de handlers OBS/Twitch/VTuber.
 - [x] Test contractual UI→IPC→ObsService para evitar regresiones de botones y API.
 - [x] Control Twitch ↔ avatar por comandos locales de chat y toggle de conexión desde Centro Twitch.
