@@ -12,7 +12,8 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: `cafcc2a0291f8ca107d3857c7bf2819108c22747`.
+- Generador de galería: Hugging Face Inference Providers configurable por modelo/proveedor.
+- Último head auditado: `cfab0b0be6b373402b40e39bd9082adeaf369049`.
 
 ## Estados de trabajo
 
