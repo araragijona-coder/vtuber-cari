@@ -6,7 +6,7 @@ param(
     [switch]$NoElevation
 )
 $ErrorActionPreference='Stop'
-$repoRoot=(Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+$repoRoot=(Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
 $audit=Join-Path $PSScriptRoot 'Cari-PC-Audit.ps1'
 $validator=Join-Path $repoRoot 'experimental\studio\native-windows\validate-windows.ps1'
 $logDir=Join-Path $repoRoot 'experimental\studio\validation-evidence\setup'
