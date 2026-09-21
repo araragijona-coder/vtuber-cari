@@ -2253,3 +2253,38 @@ Se mantiene sin incremento artificial por volumen de código:
 - Producto usable/end-user: ~58%
 - Seguimiento global: ~65%
 - Producción: NO listo
+## LOG-051 — Corrección del harness ESM del Action Store
+
+Fecha: 2026-09-21
+Área: Avatar 2D / Tests / Continuidad
+Estado: CORREGIDO / VERIFICACIÓN LOCAL ACTUALIZADA
+
+### Hallazgo
+
+El test de persistencia copiaba avatar-contract.js con extensión .js dentro de un entorno de prueba CommonJS, aunque el contrato real es ESM. El comportamiento de producción no era el problema; el harness podía producir un fallo artificial por el sistema de módulos.
+
+### Corrección
+
+- action-store.test.mjs ahora convierte la dependencia a avatar-contract.mjs en el directorio temporal.
+- El source de action-store se ajusta solo dentro del harness para apuntar a ese módulo ESM.
+- No se modifica el módulo de producción por una limitación artificial del test.
+
+### NO REPETIR
+
+- No cambiar action-store.js a CommonJS solo para acomodar tests.
+- No crear una segunda copia del avatar contract.
+- No atribuir fallos de módulo del harness al runtime del avatar sin reproducirlos con la estructura real.
+
+### Evidencia
+
+- action-runtime: 4/4 tests locales PASS.
+- action-store: 3/3 pruebas de comportamiento PASS sobre una réplica de ejecución ESM compatible.
+- main.js auditado: node --check PASS.
+- La ejecución completa npm test/check en el checkout GitHub sigue pendiente porque los runners disponibles terminan antes de registrar steps.
+
+### Porcentaje canónico
+
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
