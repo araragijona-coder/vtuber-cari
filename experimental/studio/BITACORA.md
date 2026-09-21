@@ -2116,3 +2116,59 @@ No se incrementa el porcentaje global por cantidad de código. El checkpoint can
 - Ingeniería ~71%
 - Producto usable/end-user ~58%
 - Seguimiento global ~65%
+
+
+## LOG-049 — Corrección del preflight sin asset y cierre de continuidad P0
+
+Fecha: 2026-09-21
+Área: VTuber / Blender / CI / Continuidad
+Estado: IMPLEMENTADO / CONTRATO VERIFICADO / FBX REAL PENDIENTE
+
+### Hallazgo
+El nuevo modo `--preflight` permitía omitir el FBX, pero la primera implementación evaluaba `Path(args.input)` antes de entrar al branch de preflight. El flujo se corrigió para que un preflight sin `--input` ni `--output` sea realmente ejecutable.
+
+### Corrección
+- `source` y `output` ahora se construyen condicionalmente.
+- El preflight usa una salida lógica determinista solo para generar el nombre del reporte.
+- La ejecución normal exige `--input` y `--output`.
+- El wrapper PowerShell mantiene `-Preflight` sin exigir FBX.
+- El test contractual ya bloquea regresiones del modo preflight y del operador FBX compatible.
+
+### Estado P0 del avatar
+IMPLEMENTADO:
+- un único pipeline Blender;
+- importador FBX compatible con Blender actual + fallback;
+- auditoría geométrica/UV/skinning;
+- reparación de weights;
+- shape-key namespace;
+- VRM 1.0 Humanoid;
+- bindings de expressions;
+- MToon/metadata;
+- export/reimport audit;
+- preflight sin asset.
+
+PENDIENTE:
+- FBX Cari V1 real;
+- ejecución real del pipeline;
+- revisión visual de pesos;
+- autoría de deformaciones faciales reales;
+- export + reimport sobre Windows;
+- carga en ThreeAvatarRenderer;
+- tracking;
+- lip-sync;
+- compositor final.
+
+### NO REPETIR
+- No crear otro `cari_vrm_pipeline.py`.
+- No crear otro wrapper Blender.
+- No volver a investigar el operador `bpy.ops.wm.fbx_import` salvo cambio de Blender objetivo.
+- No convertir shape-key placeholders en rig facial terminado.
+- No declarar VRM listo antes de export + reimport audit.
+- No subir el porcentaje por contar archivos.
+
+### Porcentaje canónico
+El checkpoint global permanece:
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
