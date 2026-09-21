@@ -55,6 +55,14 @@ test("acting bridge composes face and speech mouth sources without clobbering ea
   assert.equal(acting.state.mouthOpen, 0.90);
   acting.setManualMouth(null);
   assert.equal(acting.state.mouthOpen, 0.20);
+
+  acting.setManualMouth(0.25);
+  assert.equal(acting.state.mouthOpen, 0.25);
+  acting.setSpeech({ mouthOpen: 0.80, speaking: true, level: 0.80 });
+  assert.equal(acting.state.mouthOpen, 0.80);
+  acting.setManualMouth(0, { mode: "hard" });
+  assert.equal(acting.state.mouthOpen, 0);
+  acting.setManualMouth(null);
 });
 
 test("activity controller provides idle, keyboard, controller and phone modes", () => {
