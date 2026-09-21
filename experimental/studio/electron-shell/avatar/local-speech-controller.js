@@ -10,6 +10,8 @@ export class LocalSpeechController {
     this.stream = null;
     this.context = null;
     this.source = null;
+    this.highpass = null;
+    this.lowpass = null;
     this.analyser = null;
     this.buffer = new Float32Array(this.fftSize);
     this.started = false;
@@ -32,10 +34,23 @@ export class LocalSpeechController {
     await this.context.resume();
 
     this.source = this.context.createMediaStreamSource(this.stream);
+    this.highpass = this.context.createBiquadFilter();
+    this.highpass.type = "highpass";
+    this.highpass.frequency.value = 100;
+    this.highpass.Q.value = 0.7;
+
+    this.lowpass = this.context.createBiquadFilter();
+    this.lowpass.type = "lowpass";
+    this.lowpass.frequency.value = 5000;
+    this.lowpass.Q.value = 0.7;
+
     this.analyser = this.context.createAnalyser();
     this.analyser.fftSize = this.fftSize;
     this.analyser.smoothingTimeConstant = 0.12;
-    this.source.connect(this.analyser);
+
+    this.source.connect(this.highpass);
+    this.highpass.connect(this.lowpass);
+    this.lowpass.connect(this.analyser);
 
     this.started = true;
     this.detector.reset();
@@ -70,9 +85,13 @@ export class LocalSpeechController {
     this.stream = null;
 
     try { this.source?.disconnect(); } catch {}
+    try { this.highpass?.disconnect(); } catch {}
+    try { this.lowpass?.disconnect(); } catch {}
     try { this.analyser?.disconnect(); } catch {}
 
     this.source = null;
+    this.highpass = null;
+    this.lowpass = null;
     this.analyser = null;
 
     if (this.context) {
