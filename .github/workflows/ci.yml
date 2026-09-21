@@ -36,5 +36,7 @@ jobs:
         run: python -c "from experimental.twitch.twitchio_bridge import CariTwitchBot; print('Twitch bridge import OK')"
       - name: Unit tests
         run: python -m unittest discover -s tests -q
+      - name: Validate Cari V1 asset manifests
+        run: python experimental/studio/tools/validate_cari_asset.py
       - name: Experimental avatar tests
         run: python -m unittest discover -s experimental -p 'test_*.py' -q
