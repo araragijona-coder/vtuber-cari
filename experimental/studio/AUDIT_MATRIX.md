@@ -321,3 +321,19 @@ La existencia de botón, módulo o workflow no equivale por sí sola a validaci�
 - Contractual UI test is part of the Electron shell test suite.
 - Production gates still open: explicit A/V timestamps, final GPU compositor, Windows E2E, physical drift correction, real Twitch/OBS validation, hardware and installer release validation.
 - No-repeat: continue on existing ObsService, TwitchChatService, StudioSessionManager, AvatarActionStore, MediaClock, RealtimePacer and compositor bridge; do not fork parallel implementations without reproducible regression.
+## Twitch control plane — 21/09/2026
+
+| Componente | Estado | Evidencia faltante |
+|---|---|---|
+| TwitchController provider-neutral | IMPLEMENTADO | canal real |
+| EventBus thread-safe | IMPLEMENTADO | carga concurrente real |
+| StudioActionRouter ampliado | IMPLEMENTADO | backend runtime real |
+| Chat dedup por message ID | IMPLEMENTADO | canal real |
+| EventSub continuity ledger | IMPLEMENTADO | reconexión real |
+| Native/OBS dual backend execution | PENDIENTE | integrar StudioRuntimeBindings con backends |
+
+### No repetir
+- No crear otro EventSub WebSocket.
+- No crear otro EventBus ni router.
+- No copiar la reconexión interna de TwitchIO.
+- No usar IDs de entidad como sustitutos de `message_id`.
