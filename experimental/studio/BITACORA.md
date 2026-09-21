@@ -3099,3 +3099,55 @@ Estado: IMPLEMENTADO / DOCUMENTADO / VALIDACIÓN WINDOWS PENDIENTE
 ### Próximo dato útil
 
 El siguiente avance real debe provenir de una ejecución Windows que confirme: CMake detectado → configure → build Release → CTest → NativeEngine → Electron. Si vuelve a fallar, conservar el primer mensaje de error real posterior a la fase de toolchain.
+## LOG-066 — Incidente real: bootstrap CMake falló desde run-local.ps1 — 21/09/2026
+
+Área: Windows / Toolchain / Launcher / Continuidad
+Estado: DIAGNOSTICADO / CORREGIDO EN CÓDIGO / VALIDACIÓN WINDOWS PENDIENTE
+
+### Síntoma
+
+Desde el checkout local, run-local.ps1 detectó que cmake.exe faltaba, ejecutó Cari-Setup.ps1 y recibió código de salida 1. Después, -NoSetup confirmó que el bloqueo inmediato era la ausencia de CMake.
+
+### Causa encontrada
+
+La ruta interna de experimental/studio/tools/windows/Cari-Setup.ps1 calculaba repoRoot con un nivel de profundidad insuficiente. Desde tools/windows eso resolvía a experimental, no a la raíz del repositorio.
+
+El auditor Cari-PC-Audit.ps1 tenía el mismo problema de raíz y su OutputDir por defecto tampoco coincidía con la ubicación documentada.
+
+El launcher además ocultaba demasiado el fallo del setup: mostraba el código 1 pero no la ruta del diagnóstico.
+
+### Correcciones integradas
+
+- Cari-Setup.ps1 ahora calcula la raíz real del repositorio.
+- Cari-PC-Audit.ps1 usa la raíz correcta y guarda el reporte bajo experimental/studio/validation-evidence/pc-audit.
+- Cari-Setup.ps1 crea validation-evidence/setup/winget.
+- Cada instalación WinGet conserva un log individual por paquete.
+- Antes de instalar se ejecuta winget show con ID exacto para detectar un paquete inexistente antes del install.
+- run-local.ps1 muestra las rutas LAST_SETUP_ERROR.txt y LAST_SETUP.txt cuando el bootstrap falla.
+- El único camino de desarrollo sigue siendo Cari-Launch.bat → run-local.ps1 → Cari-Setup.ps1 cuando hace falta.
+- No se modifica el motor multimedia por este incidente.
+
+### Evidencia externa usada
+
+Microsoft documenta el uso de WinGet con --id, --exact, --source y las opciones de aceptación de acuerdos. citeturn348407search0
+
+Microsoft identifica Microsoft.VisualStudio.Workload.VCTools como el workload de desarrollo C++ para Windows y documenta las herramientas CMake para Windows en ese entorno. citeturn348407search6turn348407search1
+
+Los IDs actuales de CMake, Node.js 22 y FFmpeg usados por el setup están publicados en el ecosistema WinGet. citeturn820019search11turn820019search6turn820019search0
+
+### NO REPETIR
+
+- No volver a auditar WGC, WASAPI, FFmpeg, tracking o avatar por una ausencia de cmake.exe.
+- No crear otro instalador alternativo.
+- No pedir CARI_NATIVE_EXECUTABLE como solución permanente cuando el checkout puede construir el runtime.
+- No mover carpetas manualmente para compensar rutas incorrectas del setup.
+- Si vuelve a fallar, revisar primero validation-evidence/setup/LAST_SETUP_ERROR.txt y el log del paquete afectado.
+
+### Evidencia pendiente
+
+Una ejecución Windows debe confirmar: CMake detectado o instalado → Visual Studio C++ → configure → build Release → CTest → NativeEngine → Electron.
+
+### Porcentaje
+
+Esta corrección no aumenta por sí sola el porcentaje de ingeniería: elimina un bloqueo del entorno de desarrollo.
+Porcentajes canónicos: Ingeniería ~71% · Producto usable/end-user ~58% · Seguimiento global ~65% · Producción NO listo.
