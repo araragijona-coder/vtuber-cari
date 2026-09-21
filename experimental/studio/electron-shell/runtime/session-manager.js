@@ -1,4 +1,4 @@
-import { evaluateResourceDemand, isNativeCommand } from "./resource-policy.js";
+import { evaluateResourceDemand, isNativeCommand } from "./resource-policy.mjs";
 
 const DEFAULT_RTMP_RE = /^rtmps?:\/\//i;
 
