@@ -62,13 +62,13 @@ int main() {
         return 0;
     }
 
-    AVFrame* frame = bridge.wrap_texture(texture, 1234, 0, error);
+    AVFrame* frame = bridge.copy_texture_to_hwframe(texture, 1234, error);
     assert(frame != nullptr);
     assert(frame->format == AV_PIX_FMT_D3D11);
     assert(frame->width == static_cast<int>(width));
     assert(frame->height == static_cast<int>(height));
     assert(frame->pts == 1234);
-    assert(frame->data[0] == reinterpret_cast<std::uint8_t*>(texture));
+    assert(frame->data[0] != nullptr);
     assert(frame->data[1] == nullptr);
 
     av_frame_free(&frame);
