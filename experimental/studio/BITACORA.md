@@ -3288,3 +3288,67 @@ La documentación actual del servicio de Pollinations también indica que sus AP
 ### Impacto en progreso
 
 No cambia por sí solo el porcentaje de ingeniería del Studio. Es una corrección del flujo de assets y elimina una dependencia de credenciales externas.
+
+
+---
+
+## LOG-023 — Generador de galería Cari migrado a Hugging Face
+
+**Fecha:** 2026-09-21  
+**Área:** Assets / automatización / continuidad  
+**Estado:** IMPLEMENTADO / pendiente de ejecución con token
+
+### Problema
+
+El generador anterior dependía de un endpoint público de Pollinations. Eso no daba control explícito sobre el modelo/proveedor y no encajaba bien con el objetivo de probar distintos modelos desde GitHub Actions.
+
+### Acción realizada
+
+Se reemplazó la ruta del generador por Hugging Face Inference Providers mediante el SDK oficial `huggingface_hub.InferenceClient`.
+
+El script actual:
+- acepta `--model`;
+- acepta `--provider` y por defecto usa `auto`;
+- acepta `--style` para presets anime-classic, cel-shading, ecchi no explícito y soft-illustration;
+- acepta `--style-suffix` para estilos personalizados;
+- acepta `--negative-prompt`, `--guidance-scale`, `--steps`, tamaño y seed;
+- lee `HF_TOKEN` por variable de entorno;
+- mantiene reintentos y no escribe placeholders falsos;
+- normaliza la respuesta a PNG;
+- conserva archivos existentes salvo `--overwrite`;
+- puede hacer commit explícito solo de `assets/cari-gallery/`;
+- puede hacer push explícito a la rama indicada;
+- ofrece `--dry-run` sin necesitar token.
+
+Se añadió:
+- `scripts/requirements-assets.txt` con `huggingface_hub`;
+- `scripts/test_generate_cari_assets.py`;
+- `.github/workflows/generate-cari-assets.yml`;
+- documentación de uso y cambio de modelos/estilos en `README.md`.
+
+### Decisiones importantes
+
+Hugging Face Inference Providers no es una cuota ilimitada gratuita. La cuenta Free dispone actualmente de US$0,10/mes de créditos para Inference Providers, sujeto a cambios. El workflow por tanto requiere un `HF_TOKEN` y no se presenta como generación gratuita ilimitada.
+
+Los modelos específicos de anime deben comprobarse por compatibilidad real con Inference Providers. Modelos como Animagine XL 3.1 y AAM XL AnimeMix siguen apareciendo sin proveedor de Inference Providers en sus páginas actuales.
+
+### NO REPETIR
+
+- No volver a instalar Stable Diffusion completo en GitHub Actions.
+- No introducir otro cliente HTTP paralelo si `huggingface_hub.InferenceClient` cubre el flujo.
+- No asumir que cualquier modelo Hugging Face está disponible en Inference Providers.
+- No guardar `HF_TOKEN` en el repositorio.
+- No activar `--git-push` implícitamente en ejecución local.
+- No confundir el crédito mensual Free con API ilimitada.
+- No reemplazar `assets/cari-gallery/` con otra carpeta sin una decisión de arquitectura nueva.
+
+### Gate pendiente
+
+**VERIFICADO:** estructura, opciones CLI y contratos de generación mediante tests sin red.
+
+**PENDIENTE:** ejecutar el workflow con un `HF_TOKEN` válido y un modelo que aparezca como disponible para el proveedor seleccionado; después verificar el commit generado y el PNG real en `assets/cari-gallery/`.
+
+### Relación con Cari Studio
+
+Este cambio no incrementa el porcentaje de la ruta multimedia de Cari Studio por sí solo. Es automatización de assets y facilita probar arte/estilos sin meter Stable Diffusion en el runtime de streaming.
+
