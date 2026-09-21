@@ -507,3 +507,35 @@ Los runs del HEAD auditado para Native Windows Build, CI, Character Runtime Test
 ### Siguiente foco
 
 CI/E2E Windows observable y compositor GPU que conecte el avatar al frame final sin readback CPU por frame, seguido por PTS extremo a extremo y drift correction.
+
+
+---
+
+## LOG-021 — Dirección artística Cari V1
+
+Fecha: 2026-09-21
+Área: Continuidad / VTuber / arte
+Estado: DOCUMENTADO
+
+Problema:
+El arte V0 cumple una función de prueba pero no representa la calidad visual objetivo del producto.
+
+Acción realizada:
+- Se mantiene el runtime actual y el contrato de actuación sin rediseñarlos por motivos artísticos.
+- Se define una dirección Cari V1 independiente del engine.
+- La referencia visual será original y no copiará diseños distintivos de otros VTubers.
+- La especificación contempla silueta fuerte, rostro legible, outfit urbano/pop modular, piezas separables para rigging, expresiones y compatibilidad futura 2D/3D.
+
+Evidencia:
+- VTUBER_ASSET_STRATEGY.md identifica BASE_ART_V0 como funcional.
+- VTUBER_CARI_ART_DIRECTION.md define el target V1.
+- La demo visual generada en esta iteración es referencia artística, no prueba de runtime.
+
+NO REPETIR:
+- No reconstruir MediaPipe.
+- No crear otro renderer para resolver el arte.
+- No usar la demo como evidencia Windows/FFmpeg.
+- No aumentar el porcentaje por una ilustración conceptual.
+
+Siguiente acción:
+Validar el asset V1 sobre el renderer/overlay existente y medir composición, tracking, lip-sync y rendimiento.
