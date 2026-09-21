@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: `6c89e566c3da56aac5d45d5bd02f985f1f2fb246`.
+- Último head auditado: `cafcc2a0291f8ca107d3857c7bf2819108c22747`.
 
 ## Estados de trabajo
 
