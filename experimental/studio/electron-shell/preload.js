@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld("cari", {
     },
     avatar: {
       setState: state => ipcRenderer.invoke("avatar:set-state", state),
+      setActionFrame: payload => ipcRenderer.invoke("avatar:set-action-frame", payload),
       chooseModel: () => ipcRenderer.invoke("avatar:choose-model"),
       overlay: {
         show: () => ipcRenderer.invoke("avatar:overlay-show"),
