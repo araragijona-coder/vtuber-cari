@@ -1,3 +1,12 @@
+## 2026-09-21 — OBS Companion
+
+- Se auditó el escenario con OBS como streamer principal.
+- Se confirma que Cari no debe duplicar encoder/mux/RTMP de OBS en modo companion.
+- ObsService incorpora mute/volume, Scene Items, Replay Buffer, batch transition y reconexión WebSocket acotada.
+- Se corrigió el envelope de eventos para que el renderer preserve obs.event y reciba eventType.
+- OBS_USAGE_AUDIT.md documenta MUST/SHOULD/NICE TO HAVE y los gates de validación real.
+- Progreso canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65.
+
 ## 2026-09-21 — Continuidad automática
 
 - Se añadió `tools/verify_bitacora.py` para validar la memoria de ingeniería y evitar divergencias documentales.
