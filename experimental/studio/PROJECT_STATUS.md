@@ -18,7 +18,7 @@
 
 ## CHECKPOINT VIGENTE — 2026-09-21
 
-- HEAD canónico de esta rama: consultar el PR #2; último head auditado en esta iteración `f49c882a2982e7eed38ec4f6a8d72a8da7c90931`.
+- HEAD canónico de esta rama: consultar el PR #2; último head auditado en esta iteración: consultar el PR #2.
 - Ingeniería: **~71%**.
 - Producto usable/end-user: **~58%**.
 - Seguimiento global: **~65%**.
@@ -566,6 +566,7 @@ El escenario de uso con OBS como streamer principal está documentado en OBS_USA
 ## Arranque Windows
 - [x] `run-local.ps1` descubre CMake en PATH, rutas estándar y Visual Studio antes de declarar toolchain ausente.
 - [x] `run-local.ps1` puede ejecutar `Cari-Setup.ps1 -SkipBuild -SkipNpm` automáticamente cuando CMake falta.
+- [x] `Cari-Setup.ps1` y `Cari-PC-Audit.ps1` corrigen la raíz del repositorio y la ubicación de evidencia; WinGet deja logs por paquete.
 - [x] `-NoSetup` permite desactivar el bootstrap automático para entornos controlados.
 
 - [x] Target CMake `cari-studio-launcher`.
