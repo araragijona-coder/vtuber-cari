@@ -238,6 +238,7 @@
 
 ## Distribución
 
+- [x] Setup automático de dependencias Windows + auditoría de compatibilidad.
 - [x] Workflow reproducible de compilación Release x64 en Windows CI.
 - [x] Paquete portable x64 generado por CI como artifact.
 - [ ] Bundle de assets de producción y modelo artístico final.
