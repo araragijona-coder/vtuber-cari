@@ -162,6 +162,30 @@ int main() {
     std::filesystem::remove(target, remove_error);
 
     const auto stats = output.stats();
+    if (!check(stats.video_packets_written > 0 && stats.audio_packets_written > 0,
+               "encoded packet counts were not recorded")) {
+        return 1;
+    }
+    if (!check(stats.first_video_packet_pts >= 0 && stats.last_video_packet_pts >= stats.first_video_packet_pts,
+               "video packet PTS bounds are invalid")) {
+        return 1;
+    }
+    if (!check(stats.first_audio_packet_pts >= 0 && stats.last_audio_packet_pts >= stats.first_audio_packet_pts,
+               "audio packet PTS bounds are invalid")) {
+        return 1;
+    }
+    if (!check(stats.last_video_input_pts == origin +
+               static_cast<Timestamp>(video_frames - 1) *
+               (MediaClock::kTicksPerSecond / fps),
+               "video input PTS changed during encoding")) {
+        return 1;
+    }
+    if (!check(stats.last_audio_input_pts == origin +
+               static_cast<Timestamp>(video_frames - 1) *
+               320'000,
+               "audio input PTS changed during encoding")) {
+        return 1;
+    }
     if (!check(stats.video_frames_submitted == video_frames,
                "unexpected submitted video frame count")) {
         return 1;
