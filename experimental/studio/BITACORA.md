@@ -2715,3 +2715,84 @@ Este workflow separa la distribución del código fuente de la validación/build
 3. Confirmar artifact `CariStudio-download`.
 4. Descargarlo y comprobar que contiene `experimental/studio/` completo.
 5. Separar después el paquete fuente del paquete binario Windows cuando exista build validado.
+
+
+## LOG-058 — Instalación automática y auditoría del PC Windows — 21/09/2026
+
+Área: Windows / Setup / Toolchain / Compatibilidad / Continuidad
+
+Estado: IMPLEMENTADO / STATIC REVIEW / WINDOWS OBJETIVO PENDIENTE
+
+### Objetivo
+
+Eliminar el procedimiento de ir página por página para preparar Cari Studio en Windows. La máquina debe poder instalar las herramientas necesarias y después auditarse con un único entrypoint.
+
+### Cambios
+
+Se añadieron:
+
+- experimental/studio/tools/windows/Cari-Setup.ps1
+- experimental/studio/tools/windows/Cari-PC-Audit.ps1
+- experimental/studio/tools/windows/Cari-Setup.bat
+- experimental/studio/tools/windows/README.md
+
+También se actualizó experimental/studio/INSTALL_WINDOWS.md para que esta sea la ruta principal de instalación de desarrollo.
+
+### Flujo automático
+
+Cari-Setup.ps1:
+
+1. comprueba Windows x64;
+2. realiza auditoría inicial;
+3. instala Git, Node.js 22, CMake, Visual Studio Build Tools + VCTools y FFmpeg usando WinGet;
+4. refresca PATH y busca FFmpeg si el alias todavía no aparece;
+5. instala dependencias Electron con npm;
+6. ejecuta npm run check y npm test;
+7. llama al harness existente validate-windows.ps1;
+8. realiza auditoría final;
+9. deja logs e informe objetivo en validation-evidence.
+
+### Auditoría
+
+Cari-PC-Audit.ps1 registra CPU, RAM, GPU, driver, arquitectura, D3D11, versión/build de Windows, toolchain, Visual Studio C++ workload, FFmpeg/ffprobe, encoders H.264/AAC, ejecutable nativo, node_modules, cámaras, dispositivos de audio, OBS opcional y rutas locales de modelos.
+
+Estados: READY, READY_WITH_WARNINGS, NOT_READY.
+
+La auditoría es un inventario/compatibilidad de entorno; no certifica rendimiento sostenido.
+
+### Correcciones aplicadas durante la implementación
+
+- se evitó una dependencia de PATH inmediatamente actualizado después de WinGet;
+- la auditoría ahora reconoce tanto build/Release como build-validation/Release;
+- OBS no se instala porque no es dependencia del motor nativo;
+- modelos/avatar no se descargan automáticamente;
+- FFmpeg instalado localmente queda separado de la decisión de redistribución del producto;
+- el script puede ejecutarse con -CheckOnly para diagnosticar antes de instalar.
+
+### Decisión de producto
+
+Cari Studio puede apuntar a esta máquina solo después de observar el resultado de pc-compatibility.txt/json. El proyecto actual es Windows x64; la compatibilidad específica del PC del usuario no se debe inferir sin ejecutar el auditor.
+
+### NO REPETIR
+
+- No volver a crear scripts paralelos para instalar las mismas dependencias.
+- No volver a convertir INSTALL_WINDOWS.md en una lista manual de páginas como camino principal.
+- No reimplementar el inventario de hardware fuera de Cari-PC-Audit.ps1.
+- No declarar funciona en el PC solo porque el instalador termina.
+- No descargar assets/modelos propietarios desde el setup.
+- No instalar OBS como requisito.
+
+### Próximo gate
+
+Ejecutar Cari-Setup.ps1 en el PC objetivo. Después usar únicamente los FAIL/WARN del informe para decidir el siguiente trabajo.
+
+### Evidencia externa
+
+Se verificaron las rutas actuales de WinGet para Git, Node.js 22, CMake, Visual Studio Build Tools y FFmpeg, además de la documentación oficial de Microsoft sobre WinGet y el workload C++.
+
+### Porcentaje canónico
+
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
