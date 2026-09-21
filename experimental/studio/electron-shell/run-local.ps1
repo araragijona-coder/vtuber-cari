@@ -84,7 +84,10 @@ Or install CMake + Visual Studio C++ Build Tools manually.
     Write-Host "CMake was not found. Running Cari-Setup.ps1 for the missing Windows toolchain..." -ForegroundColor Yellow
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $setup -SkipBuild -SkipNpm
     if ($LASTEXITCODE -ne 0) {
-        throw "Cari-Setup.ps1 could not prepare the Windows toolchain. Exit code $LASTEXITCODE."
+        $setupLogDir = Join-Path $StudioRoot "validation-evidence\setup"
+        $lastError = Join-Path $setupLogDir "LAST_SETUP_ERROR.txt"
+        $lastSetup = Join-Path $setupLogDir "LAST_SETUP.txt"
+        throw "Cari-Setup.ps1 failed with exit code $LASTEXITCODE. Setup diagnostics: $lastError ; $lastSetup"
     }
 
     $cmake = Find-CMake
