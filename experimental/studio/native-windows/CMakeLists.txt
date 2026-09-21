@@ -489,6 +489,28 @@ if(CARI_ENABLE_LIBAV_OUTPUT)
         ${CARI_SWSCALE_LIBRARY}
         ${CARI_SWRESAMPLE_LIBRARY}
     )
+
+    target_sources(cari-studio-native PRIVATE
+        libav_media_output.cpp
+        d3d11_av_frame_bridge.cpp
+        libav_runtime_backend.cpp
+    )
+
+    target_include_directories(cari-studio-native PRIVATE
+        ${CARI_LIBAV_INCLUDE_DIR}
+    )
+
+    target_compile_definitions(cari-studio-native PRIVATE
+        CARI_ENABLE_LIBAV_OUTPUT=1
+    )
+
+    target_link_libraries(cari-studio-native PRIVATE
+        ${CARI_AVCODEC_LIBRARY}
+        ${CARI_AVFORMAT_LIBRARY}
+        ${CARI_AVUTIL_LIBRARY}
+        ${CARI_SWSCALE_LIBRARY}
+        ${CARI_SWRESAMPLE_LIBRARY}
+    )
 endif()
 
 add_executable(cari-media-foundation-camera-smoke
