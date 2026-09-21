@@ -9,7 +9,8 @@
     "check": "node --check main.js && node --check preload.js && node --check runtime/native-engine.js && node --check runtime/obs-service.js && node --check runtime/twitch-auth.js && node --check runtime/twitch-api.js && node --check runtime/twitch-chat-service.js && node --check runtime/integration-health.js && node --check runtime/resource-policy.mjs && node --check avatar-overlay-preload.js && node scripts/check-esm.cjs",
     "test": "node --test test/*.test.mjs avatar/*.test.mjs",
     "dist": "electron-builder --win nsis",
-    "build": "npm run check && npm test && npm run dist"
+    "build": "npm run check && npm test && npm run dist",
+    "verify:avatar2d": "node --test avatar/action-runtime.test.mjs avatar/action-store.test.mjs avatar/speech-activity.test.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.0.1",
