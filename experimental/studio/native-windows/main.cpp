@@ -11,6 +11,9 @@
 #include "compositor_bridge.h"
 #include "d3d11_compositor.h"
 #include "avatar_gpu_overlay.h"
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+#include "libav_runtime_backend.h"
+#endif
 #include "window_sources.h"
 #include "media_graph_controller.h"
 #include "control_protocol.h"
@@ -82,6 +85,10 @@ cari::studio::core::OutputRetryPolicy g_output_retry{};
 std::string g_last_output_profile;
 std::string g_last_output_target;
 std::string g_last_output_category = "none";
+std::string g_output_backend = "raw-ffmpeg";
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+cari::native::LibavRuntimeBackend g_libav_runtime;
+#endif
 cari::studio::core::LatestItemQueue<cari::native::CapturedFrame> g_primary_capture_queue;
 std::thread g_primary_capture_worker;
 std::atomic<bool> g_primary_capture_worker_running{false};
@@ -545,6 +552,15 @@ bool StartAvatarOverlayCapture() {
     }
 
     return true;
+}
+
+std::string configured_output_backend() {
+    wchar_t buffer[64]{};
+    constexpr DWORD capacity = static_cast<DWORD>(sizeof(buffer) / sizeof(buffer[0]));
+    const DWORD length = GetEnvironmentVariableW(L"CARI_OUTPUT_BACKEND", buffer, capacity);
+    if (length == 0 || length >= capacity) return "raw-ffmpeg";
+    const std::wstring value(buffer, buffer + length);
+    return value == L"libav-d3d11" ? "libav-d3d11" : "raw-ffmpeg";
 }
 
 std::wstring configured_ffmpeg_executable() {
