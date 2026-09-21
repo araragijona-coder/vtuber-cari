@@ -8,6 +8,7 @@ const files = [
   "runtime/studio-controller.js",
   "runtime/session-manager.js",
   "avatar/avatar-contract.js",
+  "avatar/asset-registry.js",
   "avatar/acting-bridge.js",
   "avatar/face-tracker.js",
   "avatar/face-tracking-bridge.js",
