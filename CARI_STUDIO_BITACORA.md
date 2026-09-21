@@ -4,7 +4,7 @@
 > Antes de tocar un módulo, una prueba o un workflow, revisar este archivo. Los checkpoints históricos anteriores quedan archivados aquí como referencia y **no deben usarse para decidir el estado actual**.
 
 **Última auditoría:** 21/09/2026
-**HEAD canónico:** b3b0184b7c3dde6c6d397359875bcf8f20795165
+**HEAD canónico:** a26242a290ec78f3420a29cb9d030cf5bce50bdd
 **PR:** #2 — `fix/native-windows-foundation`  
 **PR:** abierto / draft / no mergeable  
 **Avance global de ingeniería:** **63%**
