@@ -1398,3 +1398,36 @@ PARTIAL: la superficie de control es suficiente para el flujo diario básico, pe
 4. Validar Scene Collection change guard.
 5. Validar sesión prolongada.
 6. Retomar P0 GPU compositor → encoder y PTS E2E del modo standalone.
+
+---
+
+## LOG-038 — OBS Scene Items
+
+Fecha: 2026-09-21
+Área: OBS / UI / Control Plane
+Estado: IMPLEMENTADO / CONTRATO TESTEADO / VALIDACIÓN OBS REAL PENDIENTE
+
+### Problema
+
+El control diario con OBS todavía tenía un hueco MUST: activar/desactivar elementos concretos dentro de una escena.
+
+### Acción
+
+- Se agregó un panel Scene Items al centro OBS.
+- El panel reutiliza ObsService.getSceneItems() y setSceneItemEnabled(); no se crea otro Scene Manager.
+- Al seleccionar una escena se consulta su lista de items y cada item puede mostrarse/ocultarse.
+- El flujo sigue protegido por el guard de cambio de Scene Collection.
+
+### Resultado
+
+PARTIAL: control operativo cubierto a nivel de código/UI; falta validación con una instancia OBS real y una sesión prolongada.
+
+### NO REPETIR
+
+- No crear otro Scene Manager.
+- No duplicar el estado de escenas dentro de Cari cuando OBS sea la fuente de verdad.
+    - No implementar nuevamente Scene Item visibility salvo nueva regresión.
+
+### Siguiente acción
+
+Validar en OBS real junto con Replay Buffer, mute/volume, Studio Mode, reconexión y sesión larga.
