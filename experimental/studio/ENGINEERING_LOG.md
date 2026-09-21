@@ -78,3 +78,13 @@ A demo image is visual reference only.
 - Estado: bloqueo de infraestructura; no se atribuye regresión a código.
 - No repetir modificaciones funcionales para corregir estos failures sin evidencia de un step.
 - Porcentaje canónico sin cambio: Ingeniería ~71%, Producto ~58%, Seguimiento ~65%.
+
+## 2026-09-21 — LOG-031
+- Reconciliación canónica: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%, Producción NO listo.
+- HEAD de partida auditado: 070c3481de17384bba353affb17a0f33abc38213.
+- Bitácora consultada antes de continuar; no se reabrieron WGC/WASAPI/timing/tracker/renderer/supervisor.
+- Investigación FFmpeg/D3D11 actualizada: AVCodecContext.hw_frames_ctx + AVHWFramesContext + AV_PIX_FMT_D3D11 son la ruta técnica para entregar superficies D3D11 a un encoder hardware compatible. citeturn420566search0turn420566search4turn420566search2
+- Microsoft confirma recursos Texture2D compartibles D3D11 y sincronización con IDXGIKeyedMutex cuando corresponde. citeturn293684search0turn293684search6
+- PTS E2E continúa en Libav: av_interleaved_write_frame exige timestamps correctos en el timebase del stream. citeturn293684search5
+- CI sigue bloqueada porque los jobs del HEAD auditado terminan sin steps/logs observables.
+- Siguiente foco: GPU compositor → encoder sin readback CPU por frame + E2E Windows observable.
