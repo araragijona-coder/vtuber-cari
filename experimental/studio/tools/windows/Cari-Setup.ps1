@@ -26,8 +26,8 @@ function Ensure-Admin {
         $args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$PSCommandPath,'-NoElevation')
         if($SkipBuild){$args+='-SkipBuild'}
         if($SkipNpm){$args+='-SkipNpm'}
-        Start-Process powershell.exe -Verb RunAs -ArgumentList $args|Out-Null
-        exit 0
+        $process = Start-Process powershell.exe -Verb RunAs -ArgumentList $args -Wait -PassThru
+        exit $process.ExitCode
     }
 }
 function Invoke-WingetInstall([string]$Id,[string]$Override='') {
