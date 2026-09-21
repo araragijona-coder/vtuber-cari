@@ -20,6 +20,10 @@ if (-not $Native -or -not (Test-Path $Native)) {
 $Native = (Resolve-Path $Native).Path
 $env:CARI_NATIVE_EXECUTABLE = $Native
 
+if ($env:CARI_OUTPUT_BACKEND -eq "libav-d3d11") {
+    Write-Host "Using experimental D3D11 -> Libav backend."
+}
+
 if (-not $env:CARI_FFMPEG_EXECUTABLE) {
     $ffmpeg = Get-Command ffmpeg.exe -ErrorAction SilentlyContinue
     if ($ffmpeg) {
