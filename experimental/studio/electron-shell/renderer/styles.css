@@ -479,3 +479,9 @@ kbd { border: 1px solid var(--line); padding: 2px 7px; border-radius: 5px; color
   .source-matrix { grid-template-columns:repeat(2,1fr); }
   .obs-grid, .output-grid { grid-template-columns:1fr; }
 }
+
+
+.talking-active {
+  outline: 2px solid var(--accent, currentColor);
+  outline-offset: 2px;
+}
