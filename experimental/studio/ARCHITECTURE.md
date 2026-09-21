@@ -67,6 +67,22 @@ FFmpeg
 
 The first built-in profile is `anime-bright`. It changes tone/dynamics locally without changing sample rate, channel count or duration. This is a voice-effect stage, not a pitch/formant engine.
 
+## Privacidad y actuación local
+
+La cámara del renderer es únicamente una superficie de entrada para tracking. El vídeo bruto no se presenta en Preview/Tracking: los elementos `video` quedan ocultos y el output nativo no consume ese bitmap.
+
+La actuación se compone desde tres fuentes separadas:
+
+```
+Face Landmarker ──┐
+                  ├─→ AvatarActingBridge → Renderer
+Local VAD/LipSync ┤
+                  │
+ActivityController┘
+```
+
+El VAD indica actividad de voz probable por energía/histéresis; no es reconocimiento semántico del habla. Las actividades `idle`, `keyboard`, `controller` y `phone` son estados procedurales/manuales y no presuponen que la cámara haya reconocido el objeto físico.
+ 
 ## Avatar y tracking
 
 El avatar permanece desacoplado del motor multimedia:
@@ -153,3 +169,7 @@ La carpeta sigue siendo `experimental/` hasta validar en CI y hardware Windows:
 - integración real de avatar;
 - streaming/RTMP.
 
+
+## Actividad del avatar
+
+El runtime procedural añade movimiento libre de baja amplitud y poses de actividad para teclado, mando y móvil. Keyboard/Gamepad pueden marcar actividad automáticamente; móvil requiere control manual porque el runtime no infiere un teléfono físico a partir del tracking facial.
