@@ -33,7 +33,7 @@ def main() -> int:
     layer = load_json(MANIFEST)
     params = load_json(PARAMETERS)
 
-    if layer.get("schema_version") != 1:
+    if layer.get("schema_version") != 2:
         fail("unsupported layer manifest schema")
     if layer.get("asset_id") != "cari-base-v1":
         fail("unexpected asset_id")
@@ -45,6 +45,24 @@ def main() -> int:
         fail("required_parts must be a non-empty list")
     if len(parts) != len(set(parts)):
         fail("required_parts contains duplicate IDs")
+
+    layer_groups = layer.get("layer_groups")
+    if not isinstance(layer_groups, list) or not layer_groups:
+        fail("layer_groups must be a non-empty list")
+    group_orders = [group.get("order") for group in layer_groups]
+    if any(not isinstance(order, int) for order in group_orders):
+        fail("layer group order must be integer")
+    if len(group_orders) != len(set(group_orders)):
+        fail("layer group order contains duplicates")
+    declared_group_parts = [part for group in layer_groups for part in group.get("parts", [])]
+    if set(declared_group_parts) != set(parts) | set(layer.get("support_parts", [])):
+        fail("layer_groups do not account for all required/support parts")
+
+    part_specs = layer.get("parts")
+    if not isinstance(part_specs, dict):
+        fail("parts specifications must be an object")
+    if set(part_specs) != set(parts) | set(layer.get("support_parts", [])):
+        fail("parts specifications do not match declared parts")
 
     forbidden_found = {
         str(part).lower()
