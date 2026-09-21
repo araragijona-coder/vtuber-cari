@@ -1,3 +1,9 @@
+## 2026-09-21 — Continuidad automática
+
+- Se añadió `tools/verify_bitacora.py` para validar la memoria de ingeniería y evitar divergencias documentales.
+- Se añadieron tests y ejecución desde CI.
+- No modifica el porcentaje del producto: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
 ## 2026-09-21 — Status de cámara activa
 
 - El status nativo ahora reporta frames/FPS/errores de la fuente activa Media Foundation cuando corresponde.
