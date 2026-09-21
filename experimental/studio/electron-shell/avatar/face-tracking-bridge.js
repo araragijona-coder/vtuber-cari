@@ -63,6 +63,10 @@ export class FaceTrackingBridge {
     return this.tracking.calibrationState();
   }
 
+  trackingStatus() {
+    return this.tracking.calibrationState().status;
+  }
+
   apply(result) {
     if (!this.enabled || !result) {
       return this.tickNoFace();
