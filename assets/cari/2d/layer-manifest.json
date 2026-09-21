@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "asset_id": "cari-base-v1",
+  "character": "Cari",
+  "state": "ASSET_SPEC",
+  "backend_neutral": true,
+  "source_of_truth": "experimental/studio/CARI_CHARACTER_BIBLE.md",
+  "required_parts": [
+    "head",
+    "hair_back",
+    "hair_side_L",
+    "hair_side_R",
+    "hair_front",
+    "ahoge",
+    "eye_L",
+    "eye_R",
+    "iris_L",
+    "iris_R",
+    "pupil_L",
+    "pupil_R",
+    "brow_L",
+    "brow_R",
+    "mouth",
+    "nose_bandage",
+    "torso",
+    "shirt",
+    "arm_L",
+    "arm_R",
+    "hand_L",
+    "hand_R",
+    "leg_L",
+    "leg_R",
+    "shorts",
+    "shoe_L",
+    "shoe_R",
+    "ponytail"
+  ],
+  "additional_support_parts": [
+    "neck"
+  ],
+  "separation_rules": {
+    "hidden_geometry": "Fully paint hidden/occluded regions needed for deformation.",
+    "lineart": "Keep lineart separated from fill when deformation would otherwise distort edges.",
+    "shadows": "Keep high-value facial/body shadows separable when they must follow deformation cleanly.",
+    "clipping": "Prefer mask relationships over destructive flattening.",
+    "symmetry": "Mirror only source art that is truly symmetric; preserve intentionally asymmetric details.",
+    "draw_order": "Use explicit stable integer order in authoring files; do not infer order from filenames."
+  },
+  "export_targets": {
+    "live2d": [
+      "PSD",
+      "texture atlases"
+    ],
+    "inochi2d": [
+      "layered source",
+      "INP"
+    ],
+    "pngtuber": [
+      "transparent PNG/WebP"
+    ],
+    "three_d": [
+      "GLB",
+      "glTF",
+      "VRM"
+    ]
+  }
+}
