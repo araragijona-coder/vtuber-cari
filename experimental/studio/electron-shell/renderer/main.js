@@ -1144,7 +1144,7 @@ window.cari.native.onEvent(event => {
   }
   if (event.type === "obs.event") {
     const data = event.data || {};
-    const type = String(event.type || "OBS");
+    const type = String(event.eventType || "OBS");
     const labelMap = {
       StreamStateChanged: data.outputActive ? "OBS stream: ON" : "OBS stream: OFF",
       RecordStateChanged: data.outputActive ? "OBS recording: ON" : "OBS recording: OFF",
