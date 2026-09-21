@@ -267,6 +267,14 @@ void ResetOutputRetry() {
     g_last_output_category = "none";
 }
 
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+void UpdateLibavFailureCategory() {
+   const auto diagnostic = g_libav_runtime.last_error();
+   const auto category =
+       cari::studio::core::classify_output_failure(diagnostic);
+   g_last_output_category = OutputFailureCategoryName(category);
+}
+#endif
 bool ScheduleOutputRetryIfEligible() {
     if (g_last_output_profile != "rtmp") return false;
     const std::string diagnostic =
@@ -351,7 +359,19 @@ std::string BuildControlStatusMessage() {
         if (!libav_error.empty()) result += ";libav_error=" + libav_error;
     }
 #endif
-    result += ";output_state=" + MediaOutputStateName(g_media_graph.output_state());
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+    if (g_output_backend == "libav-d3d11") {
+        result += ";output_state=" + std::string(
+            g_libav_runtime.running()
+                ? "running"
+                : (g_libav_runtime.configured() ? "starting" : "stopped"));
+        result += ";output_exit_code=0";
+    } else
+#endif
+    {
+        result += ";output_state=" + MediaOutputStateName(g_media_graph.output_state());
+        result += ";output_exit_code=" + std::to_string(g_media_graph.output_exit_code());
+    }
     result += ";output_exit_code=" + std::to_string(g_media_graph.output_exit_code());
     result += ";output_retry_pending=" + std::string(g_output_retry.pending() ? "true" : "false");
     result += ";output_retry_attempts=" + std::to_string(g_output_retry.attempts());
@@ -398,7 +418,7 @@ void PollMediaGraph(HWND hwnd) {
         if (!g_libav_runtime.running()) {
             if (g_output_started_at > 0 &&
                 cari::studio::core::MediaClock::monotonic_now() - g_output_started_at > 50'000'000) {
-                g_last_output_category = "encoder";
+                UpdateLibavFailureCategory();
                 g_media_enabled.store(false, std::memory_order_relaxed);
                 StopAvatarOverlayCapture();
                 g_libav_runtime.stop();
@@ -1211,7 +1231,7 @@ void ProcessPrimaryCapturedFrame(const cari::native::CapturedFrame& captured) {
                                 !g_libav_runtime.ensure_started(device.Get())) {
                                 g_gpu_compositor_error =
                                     g_libav_runtime.last_error();
-                                g_last_output_category = "encoder";
+                                UpdateLibavFailureCategory();
                                 g_media_enabled.store(
                                     false,
                                     std::memory_order_relaxed);
@@ -1237,7 +1257,7 @@ void ProcessPrimaryCapturedFrame(const cari::native::CapturedFrame& captured) {
                                     g_gpu_compositor.output_texture())) {
                                 g_gpu_compositor_error =
                                     g_libav_runtime.last_error();
-                                g_last_output_category = "encoder";
+                                UpdateLibavFailureCategory();
                                 g_media_enabled.store(
                                     false,
                                     std::memory_order_relaxed);
