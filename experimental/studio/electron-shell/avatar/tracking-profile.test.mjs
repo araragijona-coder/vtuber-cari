@@ -7,12 +7,12 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
 
-const profile = normalizeTrackingProfile({
+const minimumProfile = normalizeTrackingProfile({
   smoothing: 0.5,
   deadzone: 0.05,
   calibrationSamples: 3
 });
-assert(profile.calibrationSamples === 10, "minimum calibration samples must be safe");
+assert(minimumProfile.calibrationSamples === 10, "minimum calibration samples must be safe");
 
 const tracking = new TrackingProfileController({
   smoothing: 1,
@@ -26,10 +26,13 @@ tracking.statusValue = "tracking";
 const raw = {
   head: { x: 0.1, y: -0.05, z: 0.02 },
   gaze: { x: 0.2, y: -0.1 },
-  mouthOpen: 0.2,
+  mouthOpen: 0.02,
   blink: 0.05
 };
-for (let i = 0; i < 10; i += 1) tracking.beginCalibration(), tracking.addCalibrationSample(raw);
+tracking.beginCalibration();
+for (let i = 0; i < 10; i += 1) {
+  tracking.addCalibrationSample(raw);
+}
 assert(tracking.calibrationState().calibrated === true, "calibration should commit");
 
 const result = tracking.apply({
