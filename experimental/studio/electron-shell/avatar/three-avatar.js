@@ -279,6 +279,15 @@ export class ThreeAvatarRenderer {
       if (pose === "sleeping") {
         this.placeholderFace.rotation.x = 0.10;
         this.placeholderFace.rotation.z = 0.04;
+        parts.torso.rotation.z = 0.03;
+        leftShoulder = -0.42;
+        rightShoulder = 0.42;
+        leftElbow = 0.70;
+        rightElbow = -0.70;
+        leftHandY = -0.20;
+        rightHandY = -0.20;
+        leftHandZ = 0.22;
+        rightHandZ = 0.22;
       }
 
       if (parts.leftShoulder) parts.leftShoulder.rotation.z = leftShoulder;
