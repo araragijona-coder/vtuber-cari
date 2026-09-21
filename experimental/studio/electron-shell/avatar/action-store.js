@@ -13,6 +13,7 @@ const DEFAULT_ACTIONS = [
   { id: "embarrassed", label: "Avergonzada", icon: "〃", expression: "embarrassed" },
   { id: "exhausted", label: "Agotada", icon: "z", expression: "exhausted" },
   { id: "confused", label: "Confundida", icon: "?", expression: "confused" },
+  { id: "focused", label: "Concentrada", icon: "●", expression: "focused" },
   { id: "talking", label: "Hablar", icon: "◉", expression: "neutral", mouthOpen: 0.9 },
   { id: "silent", label: "Callar", icon: "○", expression: "neutral", mouthOpen: 0 }
 ];
