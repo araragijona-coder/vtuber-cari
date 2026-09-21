@@ -6,7 +6,7 @@ Fuente canónica de continuidad: experimental/studio/BITACORA.md.
 
 - Branch: fix/native-windows-foundation
 - PR: #2
-- HEAD: 6ca4117b5a2416deaa31c2a21ee421e93d1b4f1c
+- HEAD: a962dbea8890acae80178defd1bfe5010c6f2734
 - Engineering: ~68%
 - Product usable: ~54%
 - Tracking global: ~62%
