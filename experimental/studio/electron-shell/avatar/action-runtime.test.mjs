@@ -113,6 +113,23 @@ test("voice does not override a higher-priority chat action and returns after ch
   assert.equal(player.currentAction().id, "angry");
 });
 
+test("stable VAD state does not restart the frame sequence", () => {
+  const store = makeStore();
+  const player = new Avatar2DFramePlayer({
+    store,
+    renderFrame: () => undefined,
+    timerFactory: () => 1,
+    clearTimer: () => undefined
+  });
+  const router = new StudioActionRouter({ actionStore: store, player });
+
+  assert.equal(router.setVoiceActivity({ speaking: false, active: true }), true);
+  const firstSequence = player.currentAction().id;
+  assert.equal(firstSequence, "silent");
+  assert.equal(router.setVoiceActivity({ speaking: false, active: true }), false);
+  assert.equal(player.currentAction().id, "silent");
+});
+
 test("router maps chat commands and Twitch EventSub events", () => {
   const store = makeStore();
   const player = new Avatar2DFramePlayer({
