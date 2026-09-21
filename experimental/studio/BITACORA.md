@@ -4,7 +4,88 @@
 Rama: fix/native-windows-foundation
 
 
-## Checkpoint canónico — 2026-09-21
+## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21
+
+> Esta sección tiene precedencia sobre cualquier porcentaje o estado de las entradas históricas inferiores.
+
+### Identidad del estado
+- Rama: `fix/native-windows-foundation`
+- PR: #2
+- HEAD auditado: `97e0de6bb3421d8e2e6d9a63e94302ffce87fc14`
+- Estado: experimental; **NO listo para producción**.
+- Ingeniería: **~68%**.
+- Producto usable/end-user: **~54%**.
+- Seguimiento global: **~62%**.
+
+### Trabajo confirmado existente
+- Captura Windows Graphics Capture de ventana y pantalla primaria.
+- Captura de cámara Media Foundation integrada como `source=camera` (hardware/reconexión aún no validados).
+- WASAPI micrófono + loopback y `AudioTimelineMixer`.
+- `MediaClock` de 100 ns, `RealtimePacer`, interleaver A/V por PTS y presupuesto máximo de 8 eventos por polling.
+- `RawPipe` y boundary A/V FFmpeg con EOF/flush.
+- Diagnóstico stderr acotado a 256 KiB.
+- Clasificación de fallos y retry RTMP exponencial acotado, solo para errores de red.
+- Compositor D3D11 experimental y overlay de avatar; readback CPU sigue siendo fallback/diagnóstico.
+- Ruta Libav experimental para PTS explícitos.
+- Smoke E2E Windows de named pipes + FFmpeg implementado en código, pendiente de ejecución observable.
+- Estimator de drift implementado; corrección/resampling físico pendiente.
+- Supervisor multistream experimental.
+- Three.js/glTF/GLB + MediaPipe + FaceTrackingBridge + lip-sync por amplitud.
+- Editor de acciones PNG/WebP y Action Store.
+- OBS Service opcional y Twitch/EventSub con un único transporte.
+- StudioRuntimeBindings como frontera única Native/OBS.
+- Installer NSIS x64 configurado; validación/firma pendiente.
+- `VTUBER_ASSET_STRATEGY.md` documenta las rutas PNGTuber, Inochi2D/2D, Live2D y VRM/Blender/Three.js.
+
+### Regresiones detectadas y corregidas
+- El atajo `R` podía dejar vivo el overlay/avatar capture y retry; ahora detiene ambos y limpia retry.
+- Seleccionar una ventana con una cámara activa podía ignorar la cámara; ahora se detiene cualquier fuente activa antes de cambiar.
+- El campo `output` del status nativo estaba mal serializado; corregido.
+- La clasificación de red era demasiado amplia; se estrechó para evitar retries falsos.
+- Los workflows CI tenían `workflow_dispatch.paths` mal estructurado; corregido.
+- Los includes Windows de `ComPtr`/conversión wide se hicieron explícitos donde correspondía.
+
+### CI — estado no repetir
+- CI sí está configurada para la rama de desarrollo y `workflow_dispatch`.
+- Los runs observados siguen terminando antes de registrar steps/logs útiles; no existe evidencia de compilación CMake/CTest en esos runs.
+- Esto se registra como **BLOQUEO DE RUNNER**, no como diagnóstico de código.
+- No gastar ciclos rehaciendo código exclusivamente para explicar jobs cuyo `steps=null`; volver a hacerlo solo con logs/steps nuevos.
+
+### Política de avatar — estado
+- PNGTuber: ya soportado por el Action Store/editor existente; no crear otro editor.
+- 2D abierto: Inochi2D/Inochi Creator, BSD-2-Clause; candidato a adapter futuro.
+- 2D propietario: Live2D Cubism, solo adapter opcional.
+- 3D: ruta principal actual Three.js + glTF/VRM; VRoid Studio es authoring externo rápido y Blender es authoring open-source.
+- La generación de arte puede producir assets base, pero no equivale por sí sola a un rig Live2D/VRM final.
+- No introducir otro renderer hasta que un asset real demuestre la necesidad.
+
+### NO REPETIR — gates cerrados
+1. Captura desktop WGC.
+2. WASAPI + mixer.
+3. MediaClock/Pacer/interleaver.
+4. Parser de control.
+5. Action Store/editor.
+6. Three.js renderer base.
+7. Twitch transport/EventSub único.
+8. ObsService.
+9. StudioRuntimeBindings.
+10. Resource policy.
+11. Bitácora/ledger.
+
+### PRÓXIMO ORDEN OBLIGATORIO
+1. Log/steps observable de CI → build CMake + CTest.
+2. E2E Windows named-pipe → FFmpeg → archivo.
+3. Eliminar readback CPU del compositor y conectar textura GPU final al encoder.
+4. PTS explícitos extremo a extremo / ruta Libav validada en Windows.
+5. Drift correction/resampling WASAPI.
+6. Cámara Media Foundation real + reconexión.
+7. Game Capture.
+8. Backend runtime real de `studio_*_requested` para Native/OBS.
+9. Validación real OBS/Twitch y scopes.
+10. Asset Cari real: PNG primero como fallback; VRM/3D o Inochi2D después, sin cambiar el contrato.
+11. Hardware objetivo, FFmpeg redistribution, instalador y release.
+
+\n## Checkpoint canónico — 2026-09-21
 
 ### HEAD
 - PR #2: `fix/native-windows-foundation`
