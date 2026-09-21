@@ -582,3 +582,18 @@ Fuente de continuidad: OBS_USAGE_AUDIT.md y BITACORA.md.
 - Jobs reportan `steps=null` y `logs_url=null`.
 - Estado: INFRASTRUCTURE BLOCKED.
 - No se reabre código funcional mientras no exista evidencia del step responsable.
+
+## Evidence update — LOG-043 — D3D11 -> Libav runtime
+
+- `LibavRuntimeBackend`: CODE_EXISTS.
+- `D3D11AvFrameBridge::copy_texture_to_hwframe`: CODE_EXISTS.
+- `LibavMediaOutput::submit_video_d3d11`: usa frame del pool hardware.
+- `CARI_OUTPUT_BACKEND=libav-d3d11`: runtime opt-in.
+- Smokes Libav/D3D11: TEST_PREPARED bajo `CARI_ENABLE_LIBAV_OUTPUT=ON`.
+- Readback CPU del frame final: eliminado en el camino `libav-d3d11` a nivel de código; falta medición Windows para comprobar ausencia de fallback.
+- CI_VERIFIED / WINDOWS_VERIFIED / HARDWARE_VALIDATED / PRODUCTION_VALIDATED: pendientes.
+- No repetir el wrapper directo de la textura reusable del compositor; el contrato vigente es pool-owned hardware frame + CopyResource.
+
+### Gate siguiente
+
+P0: Windows observable con encoder D3D11 real, PTS de entrada/paquete, mux final, shutdown/flush y sesión sostenida.
