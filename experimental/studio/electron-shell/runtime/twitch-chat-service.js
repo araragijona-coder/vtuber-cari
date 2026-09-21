@@ -1,5 +1,6 @@
 const { EventEmitter } = require("node:events");
 const WebSocket = require("ws");
+const { TWITCH_CHAT_SCOPES } = require("./twitch-auth");
 const {
   validateToken,
   getUser,
@@ -7,6 +8,11 @@ const {
   subscribeChat,
   subscribeEventSub
 } = require("./twitch-api");
+
+function missingScopes(scopes) {
+  const granted = new Set(Array.isArray(scopes) ? scopes : []);
+  return TWITCH_CHAT_SCOPES.filter(scope => !granted.has(scope));
+}
 
 class TwitchChatService extends EventEmitter {
   constructor({ auth, WebSocketImpl = WebSocket } = {}) {
@@ -66,9 +72,19 @@ class TwitchChatService extends EventEmitter {
     });
 
     this.token = this.auth.loadToken(this.clientId);
+    let validated = null;
+
     if (this.token) {
       try {
-        await validateToken(this.clientId, this.token);
+        validated = await validateToken(this.clientId, this.token);
+        const missing = missingScopes(validated.scopes);
+        if (missing.length) {
+          this.token = "";
+          this.auth.clearToken();
+          this.emit("error", new Error(
+            "Twitch authorization is missing scopes: " + missing.join(", ")
+          ));
+        }
       } catch {
         this.token = "";
         this.auth.clearToken();
@@ -80,11 +96,26 @@ class TwitchChatService extends EventEmitter {
         clientId: this.clientId,
         redirectUri: redirectUri || undefined
       });
-      await validateToken(this.clientId, this.token);
+      validated = await validateToken(this.clientId, this.token);
+      const missing = missingScopes(validated.scopes);
+      if (missing.length) {
+        this.token = "";
+        this.auth.clearToken();
+        throw new Error(
+          "Twitch authorization did not grant required scopes: " +
+          missing.join(", ")
+        );
+      }
       this.auth.saveToken(this.clientId, this.token);
     }
 
-    const validated = await validateToken(this.clientId, this.token);
+    validated = validated || await validateToken(this.clientId, this.token);
+    const missing = missingScopes(validated.scopes);
+    if (missing.length) {
+      throw new Error(
+        "Twitch token is missing required scopes: " + missing.join(", ")
+      );
+    }
     this.user = {
       id: validated.user_id,
       login: validated.login,
