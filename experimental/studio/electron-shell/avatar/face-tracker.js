@@ -10,10 +10,12 @@ export class FaceTracker {
     this.landmarker = null;
     this.lastVideoTime = -1;
     this.lastTimestampMs = -1;
+    this.lastStatus = "idle";
   }
 
   async init() {
     if (!this.modelPath) {
+      this.lastStatus = "model-missing";
       throw new Error("MediaPipe face model path is required.");
     }
 
@@ -28,20 +30,44 @@ export class FaceTracker {
       outputFaceBlendshapes: true,
       outputFacialTransformationMatrixes: true
     });
+    this.lastStatus = "ready";
   }
 
   detect(video, timestampMs) {
-    if (!this.landmarker || video.readyState < 2) return null;
+    if (!this.landmarker || video.readyState < 2) {
+      this.lastStatus = "not-ready";
+      return null;
+    }
 
     const timestamp = Number(timestampMs);
     if (!Number.isFinite(timestamp) || timestamp <= this.lastTimestampMs) {
+      // MediaPipe VIDEO requires monotonically increasing timestamps. This is
+      // a timing guard, not evidence that the user's face disappeared.
+      this.lastStatus = "timestamp-rejected";
       return null;
     }
-    if (video.currentTime === this.lastVideoTime) return null;
+
+    if (video.currentTime === this.lastVideoTime) {
+      // requestAnimationFrame can run more often than the camera produces new
+      // frames. Duplicate frames are simply skipped, not treated as tracking loss.
+      this.lastStatus = "duplicate-frame";
+      return null;
+    }
 
     this.lastVideoTime = video.currentTime;
     this.lastTimestampMs = timestamp;
-    return this.landmarker.detectForVideo(video, timestamp);
+
+    const result = this.landmarker.detectForVideo(video, timestamp);
+    const hasFace =
+      Boolean(result?.faceLandmarks?.length) ||
+      Boolean(result?.faceBlendshapes?.length);
+
+    this.lastStatus = hasFace ? "tracking" : "no-face";
+    return result;
+  }
+
+  status() {
+    return this.lastStatus;
   }
 
   close() {
@@ -49,5 +75,6 @@ export class FaceTracker {
     this.landmarker = null;
     this.lastVideoTime = -1;
     this.lastTimestampMs = -1;
+    this.lastStatus = "idle";
   }
 }
