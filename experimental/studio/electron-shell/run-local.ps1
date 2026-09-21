@@ -136,7 +136,8 @@ function Build-NativeEngine {
 
     $cmake = Ensure-CMake
     if (-not $cmake) {
-        throw "CMake was not found and automatic setup is disabled. Run Cari-Setup.ps1 or remove -NoSetup."
+        $setup = Join-Path $StudioRoot "tools\windows\Cari-Setup.ps1"
+        throw "CMake was not found. Automatic setup is disabled or could not provide CMake. Run $setup or remove -NoSetup."
     }
 
     if (-not (Test-Path -LiteralPath $NativeProject -PathType Container)) {
