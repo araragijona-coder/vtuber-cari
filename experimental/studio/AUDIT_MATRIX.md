@@ -246,7 +246,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 
 ## Estimación de avance
 
-**Estimación global de ingeniería: ~65%.**
+**Estimación global de ingeniería: ~68%.**
 
 El 65% refleja que la ruta principal y varios componentes experimentales ya están implementados, mientras permanecen abiertos los gates de validación Windows/hardware, PTS extremo a extremo, compositor de producción, cámara, drift, RTMP sostenido y distribución.
 
@@ -337,3 +337,31 @@ La existencia de botón, módulo o workflow no equivale por sí sola a validaci�
 - No crear otro EventBus ni router.
 - No copiar la reconexión interna de TwitchIO.
 - No usar IDs de entidad como sustitutos de `message_id`.
+## Continuidad 2026-09-21 — integración opcional y gobernanza de recursos
+
+### OBS
+- [x] Detección de proceso local independiente de la conexión WebSocket.
+- [x] Separación explícita entre proceso detectado, control WS conectado y outputs activos.
+- [ ] Validación OBS real con websocket/credenciales y cambios de outputs.
+
+### Twitch
+- [x] Estado de autorización y conexión expuesto al desktop shell.
+- [x] Estado stream online/offline derivado de EventSub.
+- [x] Keepalive/reconnect state observable.
+- [ ] Validación real de canal y reconexión.
+
+### Resource gating
+- [x] Conexión OBS no arranca Native Engine.
+- [x] Conexión Twitch no arranca Native Engine.
+- [x] Voice config sin audio no arranca Native Engine.
+- [x] OutputStop libera captura/audio que el propio output levantó.
+- [x] Captura nativa evita readback/composición cuando no existe sink de salida.
+- [x] Política central resource-policy.mjs y tests.
+- [ ] Preview de captura nativa real: todavía no existe un consumidor de frame en el renderer; por eso el gate nativo descarta el trabajo pesado cuando no hay output.
+
+### No-repeat gate
+- No crear otro detector OBS.
+- No crear otro supervisor Twitch.
+- No convertir Twitch conectado en razón para capturar vídeo.
+- No convertir OBS abierto en razón para iniciar encoder.
+- No ejecutar compositor/readback de frames si no hay sink explícito.
