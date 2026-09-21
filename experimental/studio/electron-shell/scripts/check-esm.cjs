@@ -15,6 +15,7 @@ const files = [
   "avatar/action-store.js",
   "avatar/speech-activity.js",
   "avatar/local-speech-controller.js",
+  "avatar/activity-motion.js",
   "avatar/overlay-main.js",
   "renderer/main.js",
   "renderer/menu-config.js"
