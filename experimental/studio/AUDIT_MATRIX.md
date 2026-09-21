@@ -563,6 +563,7 @@ Antes de implementar una tarea, consultar BITACORA.md. Si el componente figura c
 - [x] Input mute/volume control.
 - [x] Replay Buffer control.
 - [x] Scene Item enable/disable API.
+- [x] Scene Item visibility controls in UI.
 - [x] High-volume InputVolumeMeters subscription.
 - [x] Scene Collection changing guard.
 - [x] Bounded WebSocket reconnect.
