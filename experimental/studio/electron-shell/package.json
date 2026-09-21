@@ -36,6 +36,10 @@
       {
         "from": "native",
         "to": "native"
+      },
+      {
+        "from": "../../../assets/cari/expressions",
+        "to": "assets/cari/expressions"
       }
     ],
     "win": {
