@@ -40,6 +40,8 @@
 - [ ] Rig VRM/Live2D de producción; no mezclarlo con el V0 procedural.
 
 ### Continuidad
+- [x] Pipeline Blender FBX→VRM 1.0 con auditoría, limpieza de weights, shape-key contract, Humanoid, metadata, MToon, export y reimport audit.
+- [x] Gate CI de sintaxis/configuración del pipeline Blender.
 - `BITACORA.md` es la fuente canónica de anti-repetición.
 - `ART_QUALITY_GATE.md` es la referencia del gate visual; el procedural V2 solo demuestra runtime, no calidad final.
 - No rehacer WGC, WASAPI, MediaClock/Pacer/Interleaver, FFmpeg supervisor, OBS service, Twitch transport, Action Store ni renderer Three.js salvo regresión reproducible.
