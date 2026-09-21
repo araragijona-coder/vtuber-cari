@@ -75,6 +75,31 @@ target_link_libraries(cari-studio-native PRIVATE
     windowsapp
 )
 
+
+# Root convenience launcher. The executable is generated during the build and
+# copied to the repository root; it does not replace the native media engine.
+add_executable(cari-studio-launcher WIN32
+    cari_studio_launcher.cpp
+)
+
+target_compile_definitions(cari-studio-launcher PRIVATE
+    UNICODE
+    _UNICODE
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+)
+
+target_link_libraries(cari-studio-launcher PRIVATE
+    user32
+)
+
+add_custom_command(TARGET cari-studio-launcher POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:cari-studio-launcher>"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../../CariStudioLauncher.exe"
+    VERBATIM
+)
+
 add_executable(cari-core-smoke
     core_smoke.cpp
     process_runner.cpp
