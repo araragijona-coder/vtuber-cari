@@ -241,7 +241,7 @@ El generador de imágenes usa el endpoint público de Pollinations mediante una 
 https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true
 ```
 
-No requiere una cuenta, una API key, un `HF_TOKEN`, un repository secret propio ni una selección de modelo/proveedor.
+No requiere una cuenta, una API key, un token ni un repository secret propio.
 
 Instala el único paquete de validación de imágenes:
 
