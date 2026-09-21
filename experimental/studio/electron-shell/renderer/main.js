@@ -318,9 +318,16 @@ function addChat(message, outbound = false) {
 
   const command = String(message.text || "").trim().toLowerCase();
   const map = {
-    "!happy": "happy", "!feliz": "happy", "!sad": "sad", "!triste": "sad",
-    "!talk": "talking", "!hablar": "talking", "!silent": "silent", "!callar": "silent",
-    "!angry": "angry", "!enojada": "angry", "!neutral": "neutral"
+    "!happy": "happy", "!feliz": "happy",
+    "!sad": "sad", "!triste": "sad",
+    "!talk": "talking", "!hablar": "talking",
+    "!silent": "silent", "!callar": "silent",
+    "!angry": "angry", "!enojada": "angry",
+    "!afraid": "afraid", "!miedo": "afraid",
+    "!embarrassed": "embarrassed", "!avergonzada": "embarrassed",
+    "!exhausted": "exhausted", "!agotada": "exhausted",
+    "!confused": "confused", "!confundida": "confused",
+    "!neutral": "neutral"
   };
   if (map[command]) setActionByIdOrLabel(map[command]);
 
@@ -398,8 +405,7 @@ function setAction(id) {
   if (!action) return;
   selectedActionId = action.id;
   acting.set({
-    expression: ["neutral", "happy", "angry"].includes(action.expression)
-      ? action.expression : "neutral",
+    expression: action.expression || "neutral",
     mouthOpen: Number(action.mouthOpen) || 0
   });
   ui.previewAction.textContent = action.label;
