@@ -7,6 +7,7 @@ $Native = $env:CARI_NATIVE_EXECUTABLE
 if (-not $Native) {
     $candidates = @(
         (Join-Path $StudioRoot "native-windows\build\Release\cari-studio-native.exe"),
+        (Join-Path $StudioRoot "native-windows\build-validation\Release\cari-studio-native.exe"),
         (Join-Path $StudioRoot "native\cari-studio-native.exe"),
         (Join-Path $StudioRoot "native\CariStudio.exe")
     )
