@@ -692,3 +692,46 @@ NO REPETIR:
 Siguiente foco ejecutivo:
 P0: asset Cari V1 real → revisión visual → tracking sobre V1 → compositor GPU → frame final → E2E Windows.
 P1 queda después de cerrar P0, empezando por PTS E2E y drift físico.
+
+
+---
+
+## LOG-025 — Checkpoint de continuidad y auditoría final del ciclo
+
+Fecha: 2026-09-21
+Área: Continuidad / CI / P0-P3
+Estado: DOCUMENTADO
+
+HEAD actual auditado: 241a88bc6f5c84c0f4adc8547e5cec92ca762c8b.
+PR: #2, draft, abierto, mergeable=false.
+Branch: fix/native-windows-foundation.
+
+Progreso canónico:
+- Ingeniería: ~71%.
+- Producto usable/end-user: ~58%.
+- Seguimiento global: ~65%.
+- Producción: NO listo.
+
+Backlog ejecutivo no repetible:
+- P0 primero: asset Cari V1 real, revisión visual, tracking sobre V1, compositor GPU → frame final, Windows/E2E.
+- P1 después: PTS E2E, drift físico, FFmpeg sostenido, grabación larga, RTMP/reconexión real.
+- P2: Game Capture, optimización GPU, hardware real.
+- P3: Live2D adapter, multistream, installer, distribución.
+
+CI:
+- Native Windows Build, CI y Character Runtime Tests siguen fallando sin steps ni logs observables.
+- Actions Runner Diagnostic también falla con steps=null.
+- No existe evidencia para atribuir estos fallos a una línea del código.
+- No declarar CI verde hasta disponer de ejecución con steps/logs.
+
+Git history:
+- compare main...branch continúa divergente y la rama está detrás de main; no se fuerza reescritura mientras no exista una necesidad de integración que preserve el historial.
+
+NO REPETIR:
+- no reimplementar subsistemas cerrados por falta de logs de Actions;
+- no convertir el V0/procedural en V1 final;
+- no recrear compositor/tracker/renderer/scheduler/supervisor existentes;
+- no usar cantidad de commits/archivos para subir progreso.
+
+Siguiente foco único:
+P0 — obtener/validar el asset Cari V1 real y probarlo sobre el renderer/actuación existentes; la ruta GPU→frame final debe continuar en paralelo sin crear un renderer nuevo.
