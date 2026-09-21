@@ -96,3 +96,21 @@ Un avatar real puede sustituir el placeholder únicamente cuando pase:
 - licencia/documentación del asset.
 
 Hasta entonces el placeholder y el contrato neutral siguen siendo válidos y no deben eliminarse.
+
+
+## Asset V1 technical package — 2026-09-21
+
+El paquete técnico canónico de Cari V1 está en:
+- assets/cari/2d/
+- assets/cari/3d/
+
+Incluye manifest de capas, manifest de parámetros, expression sheet, checklist de entrega, especificaciones 2D/3D y registro de licencia.
+
+Estado:
+- SPECIFICATION: IMPLEMENTED
+- ART V1: PENDING
+- RIG V1: PENDING
+- TRACKING_TESTED: PENDING
+- WINDOWS/HARDWARE: PENDING
+
+No crear un segundo package ni una segunda convención de nombres.
