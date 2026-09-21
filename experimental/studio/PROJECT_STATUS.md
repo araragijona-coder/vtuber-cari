@@ -91,6 +91,7 @@
 - [x] Control Twitch ↔ avatar por comandos locales de chat y toggle de conexión desde Centro Twitch.
 - [x] Bitácora técnica versionada con inventario de trabajo realizado, evidencia y lista NO REPETIR.
 - [x] Validador automático de continuidad para detectar porcentajes desalineados, LOG duplicados y pérdida de reglas NO REPETIR.
+  - Canonical: `experimental/studio/tools/verify_bitacora.py`; `tools/verify_bitacora.py` solo actúa como wrapper de compatibilidad.
 - [x] Gate visual medible para Cari V1 y reconciliación contra su canon visual.
 - [x] Action Store precarga las expresiones PNG base de Cari cuando no existen frames personalizados.
 - [x] Test de coherencia UI para menú, vistas e IDs HTML.
