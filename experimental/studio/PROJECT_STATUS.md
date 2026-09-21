@@ -77,6 +77,7 @@
 - [x] Auditoría de licencias de dependencias runtime fijadas.
   - No habilita por sí sola redistribución de FFmpeg/codec; esa decisión sigue pendiente.
 - [x] Perfil de tracking facial calibrable con smoothing, deadzone, sensibilidad y recuperación ante pérdida de rostro.
+- [x] Hotkeys globales para expresiones, calibración y toggle de tracking.
 - [x] Controles de cámara, calibración, reset, sensibilidad y suavizado en la vista Tracking.
 - [x] Guardia que distingue frame duplicado de pérdida real de rostro.
 - [x] Smoke test nativo para contratos core.
