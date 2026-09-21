@@ -75,6 +75,11 @@
               <div class="camera-box" aria-hidden="true"><video id="camera" autoplay muted playsinline></video><span class="camera-label">CAM · SOLO TRACKING</span></div>
               <div class="action-badge" id="tracking-badge">tracking idle</div>
             </div>
+            <div class="chibi-world-wrap">
+              <div class="section-title"><h4>Mini mundo alrededor de Cari</h4><span class="pill">preview · sin IA</span></div>
+              <canvas id="chibi-map" class="chibi-map" aria-label="Mapa local con pequeños chibis"></canvas>
+              <div class="small muted">Capibaras y mini-Cari usan movimiento determinista; la composición en el frame final queda pendiente del compositor nativo.</div>
+            </div>
           </div>
 
           <div class="stack">
@@ -109,10 +114,28 @@
                 <button data-manual-expression="confused">? Confundida</button>
                 <button data-manual-expression="neutral">○ Neutral</button>
               </div>
+              <div class="section-title" style="margin-top:12px"><h4>Modo</h4><span class="pill">100% local · sin IA</span></div>
+              <div class="form-grid">
+                <button data-auto-mode="motion">Auto movimiento</button>
+                <button data-auto-mode="camera">Lectura por cámara</button>
+              </div>
               <div class="section-title" style="margin-top:12px"><h4>Movimiento</h4><span class="pill">sin IA</span></div>
               <div class="form-grid">
                 <button data-avatar-activity="idle">Movimiento libre</button>
                 <button data-avatar-activity="auto">Auto actividad</button>
+              </div>              <div class="form-grid" style="margin-top:9px">
+                <button data-movement-level="quiet">Quieta</button>
+                <button data-movement-level="normal">Normal</button>
+                <button data-movement-level="restless">Inquieta</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-avatar-object="none">Nada</button>
+                <button data-avatar-object="phone">📱 Teléfono</button>
+                <button data-avatar-object="joystick">🎮 Joystick</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-avatar-object="keyboard">⌨ Teclado</button>
+                <button data-avatar-object="pillow">🛏 Almohada</button>
               </div>
               <div class="form-grid" style="margin-top:9px">
                 <button data-avatar-activity="keyboard">⌨ Teclado</button>
@@ -120,6 +143,15 @@
               </div>
               <div class="form-grid" style="margin-top:9px">
                 <button data-avatar-activity="phone">📱 Móvil</button>
+              </div>
+              <div class="section-title" style="margin-top:12px"><h4>Modos completos</h4><span class="pill">sin IA</span></div>
+              <div class="form-grid">
+                <button data-full-mode="gaming-angry-happy">🎮 Joystick · 😠↔☺</button>
+                <button data-full-mode="keyboard-tired-focused">⌨ Teclado · 😴↔●</button>
+              </div>
+              <div class="form-grid" style="margin-top:9px">
+                <button data-full-mode="pillow-hug-sleeping">🛏 Almohada · abrazar/dormir</button>
+                <button data-full-mode="stop">Detener modo</button>
               </div>
             </div>
 
