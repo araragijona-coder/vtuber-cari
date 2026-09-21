@@ -88,3 +88,9 @@ A demo image is visual reference only.
 - PTS E2E continúa en Libav: av_interleaved_write_frame exige timestamps correctos en el timebase del stream. citeturn293684search5
 - CI sigue bloqueada porque los jobs del HEAD auditado terminan sin steps/logs observables.
 - Siguiente foco: GPU compositor → encoder sin readback CPU por frame + E2E Windows observable.
+
+## 2026-09-21 — LOG-032
+- Añadido bridge D3D11 texture -> AVFrame hardware sin CPU readback.
+- Añadido smoke experimental de encoder hardware que consulta AVCodecHWConfig y prueba h264_nvenc/h264_amf cuando el entorno lo permite.
+- No se eleva el porcentaje: el gate sigue CODE_EXISTS y Windows/hardware pendiente.
+- Siguiente foco: integrar el bridge en LibavMediaOutput y demostrar paquetes codificados D3D11 con PTS.
