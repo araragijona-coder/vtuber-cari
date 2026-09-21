@@ -4,100 +4,156 @@ Fecha: 2026-09-21
 Estado: SPEC / NO ES ASSET FINAL
 
 ## Objetivo
-Reemplazar el aspecto provisional V0 de Cari por una identidad visual original de nivel comercial para una VTuber, sin acoplar el arte al motor, tracking ni a un modelo concreto.
 
-## Principios visuales
-- Silueta reconocible en thumbnail y plano medio.
-- Diseño original; no recrear personajes existentes.
-- Contraste suficiente para lectura en streaming.
-- Dos o tres masas de color principales y acentos controlados.
-- Rostro prioritario: ojos, cejas y boca legibles a tamaño reducido.
-- Cabello agrupado en capas/mecas, preparado para rigging.
-- Accesorios memorables con función identitaria.
-- Ligera asimetría para evitar una silueta genérica.
-- Outfit urbano/pop moderno y modular.
+Elevar Cari desde el fallback técnico V0 a un personaje VTuber original con calidad visual de presentación comercial, sin acoplar el arte al motor, tracking ni a un modelo concreto.
 
-## Cari V1 — concepto
-Identidad: VTuber original de estética felina urbana/pop, energética, simpática y ligeramente traviesa.
+La referencia de calidad se toma de propiedades observables en hojas de personaje y presentaciones VTuber maduras —silhueta clara, rostro legible, paleta consistente, asimetría controlada, expresiones y piezas preparadas para rigging—, no de copiar un personaje concreto.
 
-Paleta objetivo:
-- base oscura neutra;
-- magenta/coral como acento;
-- cyan eléctrico como segundo acento;
-- pequeños detalles luminosos;
+## Restricciones canónicas obligatorias
+
+Estas reglas vienen de `CARI_CHARACTER_BIBLE.md` y tienen prioridad sobre cualquier propuesta artística:
+
+- piel morena/tan;
+- cabello marrón de longitud media;
+- inner hair castaño claro;
+- coleta mediana;
+- ahoge centrado;
+- ojos marrones;
+- pupilas blancas visibles;
+- bandage visible en la nariz;
+- presentación atlética / runner;
+- camiseta deportiva ajustada o camiseta atada a la cintura;
+- minishorts negros o bike shorts negros.
+
+No añadir sin una nueva decisión de canon:
+
+- headbands;
+- hairpins/decorative clips;
+- joyería;
+- bolsos;
+- armas;
+- prendas extra no definidas;
+- accesorios de cabello adicionales;
+- objetos ornamentales ajenos.
+
+## Dirección visual V1
+
+### Objetivo de calidad
+
+Cari debe conservar lectura inmediata en:
+
+- thumbnail pequeño;
+- plano medio de streaming;
+- cuerpo completo;
+- frame congelado;
+- expresión facial extrema.
+
+La silueta debe reconocerse antes de depender de texturas pequeñas.
+
+### Rostro
+
+Prioridad visual máxima:
+
+- ojos grandes pero proporcionados;
+- iris marrón limpio y con profundidad;
+- pupilas blancas claramente visibles;
+- cejas animables;
+- boca con shapes suficientes para talking/lip-sync;
+- bandage de nariz siempre identificable;
+- expresiones con cambios de ojos, cejas, boca y postura.
+
+### Cabello
+
+El cabello debe verse como masa diseñada, no como casco:
+
+- volumen medio;
+- mechones frontales separados;
+- coleta con silueta dinámica;
+- ahoge central reconocible;
+- inner hair más claro;
+- piezas separadas para rigging y física.
+
+### Ropa
+
+La mejora estilística debe ocurrir dentro del outfit deportivo canónico:
+
+- cortes atléticos modernos;
+- bloques de color;
+- ribetes/piping;
+- contraste de materiales;
+- proporciones limpias;
+- shorts negros;
+- calzado deportivo estilizado.
+
+No usar un accesorio nuevo para resolver un problema que puede resolverse mediante color, silueta o corte de una prenda ya canónica.
+
+### Color sugerido
+
+`SUGGESTED`, no canon:
+
+- base neutra oscura;
+- coral/magenta como acento;
+- cyan como acento secundario;
 - piel/cabello con gradientes suaves.
 
-Cabello:
-- volumen medio/largo;
-- mechones frontales expresivos;
-- elemento felino reconocible dentro de la silueta;
-- gradiente sutil y zonas separables.
+## Referencia de benchmark
 
-Rostro:
-- ojos grandes pero proporcionados;
-- iris con detalle radial limpio;
-- cejas claramente animables;
-- boca con shapes suficientes para talking/lip-sync;
-- base neutral compatible con happy, angry, sad, surprised y shy.
+El objetivo de calidad toma como referencia la disciplina de character design observable en VTubers de alto nivel:
 
-Ropa:
-- chaqueta corta/bolero urbano;
-- top limpio;
-- shorts o falda-short;
-- medias altas;
-- calzado estilizado;
-- accesorio principal de firma;
-- capas separadas para cambios futuros.
+- silueta que funciona a escala pequeña;
+- motivos visuales consistentes;
+- contraste de paleta;
+- detalles localizados en cara/cabello;
+- variaciones de expresión claramente legibles;
+- hojas/model sheets que contemplan varios ángulos y estado neutral.
 
-## Rigging / 2D
-Separación mínima prevista:
+Esto se documenta como benchmark técnico. No se copian diseños, modelos, logos, texturas ni elementos distintivos de personajes existentes.
 
-head, hair_back, hair_side_L, hair_side_R, hair_front, ear_L, ear_R,
-eye_L, eye_R, brow_L, brow_R, mouth, face_shadow, neck, torso, jacket,
-top, arm_L, arm_R, hand_L, hand_R, leg_L, leg_R, shorts, stocking_L,
-stocking_R, shoe_L, shoe_R, accessory_main
+## Separación para rigging
 
-Debe existir margen visual alrededor de articulaciones y piezas móviles.
+Piezas mínimas:
 
-## 3D / VRM / GLB
-El diseño debe poder traducirse a un flujo 2D o 3D sin modificar el estado de actuación:
-
-arte → capas 2D → Inochi2D/Live2D adapter
-
-o
-
-arte → authoring 3D → VRM/glTF/GLB → ThreeAvatarRenderer
+`head, hair_back, hair_side_L, hair_side_R, hair_front, ahoge, eye_L, eye_R, iris_L, iris_R, pupil_L, pupil_R, brow_L, brow_R, mouth, nose_bandage, neck, torso, shirt, arm_L, arm_R, hand_L, hand_R, leg_L, leg_R, shorts, shoe_L, shoe_R, ponytail`.
 
 ## Expression pack mínimo
+
 - neutral
 - happy
 - angry
 - sad
 - surprised
-- shy
+- embarrassed
 - sleepy
 - talking
 
-Cada expresión debe permanecer compatible con blink, mouth_open, smile, brow, head rotation y gaze.
+Cada expresión debe seguir compatible con blink, mouth_open, smile, brow, head rotation y gaze.
 
-## Stream readability
-Es fallo de diseño si a tamaño pequeño el rostro pierde expresión, la silueta se mezcla con el fondo o desaparecen los accesorios principales.
+## 2D / 3D
 
-## Restricciones legales
-- No incorporar assets de terceros sin licencia documentada.
-- No copiar modelos, texturas, logos ni diseños distintivos de VTubers concretas.
-- Live2D permanece como adapter opcional.
-- Three.js/glTF/VRM sigue siendo la ruta actual de runtime.
-- La demo conceptual no constituye un modelo riggeado.
+El mismo diseño debe poder convertirse en:
+
+`arte → capas 2D → Inochi2D/Live2D adapter`
+
+o
+
+`arte → authoring 3D → VRM/glTF/GLB → ThreeAvatarRenderer`
+
+sin cambiar `AvatarActingState`.
 
 ## Gate BASE_ART_V1
-1. licencia/documentación;
+
+Un asset real no se marca como V1 solo por verse mejor. Debe superar:
+
+1. restricciones canónicas;
 2. lectura visual;
-3. carga en renderer elegido;
+3. carga en renderer;
 4. tracking;
 5. expresiones;
 6. lip-sync;
 7. overlay/composición;
 8. rendimiento;
 9. sesión sostenida;
-10. cierre/reinicio.
+10. cierre/reinicio;
+11. licencia/documentación.
+
+Hasta entonces el fallback estilizado sigue siendo una herramienta de validación, no el arte final.
