@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("cari", {
+  assets: {
+    cariExpressions: () => ipcRenderer.invoke("assets:cari-expressions")
+  },
   native: {
     start: () => ipcRenderer.invoke("native:start"),
     send: command => ipcRenderer.invoke("native:send", command),
