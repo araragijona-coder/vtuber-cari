@@ -126,3 +126,10 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Se actualiza la bitácora canónica con el estado de OutputRetryPolicy, clasificación de errores y cobertura CI explícita para los smoke de resiliencia.
 - No se crean subsistemas paralelos ni se reabren componentes marcados como NO REPETIR.
 - Progreso canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+## 2026-09-21 — LOG-040 CI evidence
+
+- Se registra la evidencia de ejecución en HEAD eab7897a5c971a64acc9c31cdf5c4557ffaf4b8f.
+- Native Windows, CI, Character Runtime y Runner Diagnostic continúan terminando sin steps/logs.
+- No se incrementa el porcentaje por este bloqueo.
+- Progreso canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
