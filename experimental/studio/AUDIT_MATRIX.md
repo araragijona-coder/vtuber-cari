@@ -551,3 +551,25 @@ Antes de implementar una tarea, consultar BITACORA.md. Si el componente figura c
 
 - main y la rama experimental permanecen divergentes.
 - No se reescribe historial automáticamente.
+
+### OBS companion readiness
+
+- [x] OBS WebSocket client pinned to obs-websocket-js 5.0.8.
+- [x] Stream start/stop/status.
+- [x] Record start/stop/status.
+- [x] Scene program/preview and Studio Mode transition.
+- [x] Profiles and Scene Collections.
+- [x] Input list/kinds.
+- [x] Input mute/volume control.
+- [x] Replay Buffer control.
+- [x] Scene Item enable/disable API.
+- [x] High-volume InputVolumeMeters subscription.
+- [x] Scene Collection changing guard.
+- [x] Bounded WebSocket reconnect.
+- [x] OBS event envelope contract test.
+- [ ] OBS real Windows validation.
+- [ ] Long-session validation.
+- [ ] Validated audio route from Cari voice DSP into OBS.
+- [ ] Validated avatar overlay/compositor handoff.
+
+Fuente de continuidad: OBS_USAGE_AUDIT.md y BITACORA.md.
