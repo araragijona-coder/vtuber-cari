@@ -169,8 +169,11 @@
 - [x] Editor de Acciones 2D conectado a un runtime único de frames y prioridades.
 - [x] Chat/EventSub/VAD sincronizados con el reproductor PNG 2D.
 - [x] Persistencia de presets y frames 2D en userData de Electron con fallback local.
-- [x] Tests locales de routing, loops y persistencia del Editor 2D.
+- [x] Bridge de frames 2D al overlay transparente separado de Electron.
+- [x] Router genérico para eventos Twitch/chat y VAD con el mismo runtime de frames.
+- [x] Tests de routing, loops, persistencia, bridge nativo y sincronización Twitch/VAD preparados.
 - [ ] Validación sostenida del PNGTuber sobre Windows y del frame final que entra al encoder.
+  - La capa 2D ya puede alimentar el overlay transparente; falta demostrar captura/encoder sostenidos del resultado final.
 
 - [x] Contratos de avatar y actuación existentes.
 - [x] Contrato normalizado de expresión/pose/gaze para renderer Three.js.
