@@ -42,5 +42,7 @@ jobs:
         run: python -m unittest discover -s tests -q
       - name: Validate Cari V1 asset manifests
         run: python experimental/studio/tools/validate_cari_asset.py
+      - name: Run Blender pipeline contract tests
+        run: python -m unittest experimental.studio.tests.test_blender_pipeline_contract -v
       - name: Experimental avatar tests
         run: python -m unittest discover -s experimental -p 'test_*.py' -q
