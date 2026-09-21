@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#111318">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Cari Racing — Telegram</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <main id="game-root" aria-label="Cari Racing">
+    <canvas id="game-canvas" aria-label="Prototipo de carreras"></canvas>
+    <div id="hud" aria-live="polite">
+      <span id="speed">SPEED 000</span>
+      <span id="fps">FPS 00</span>
+    </div>
+    <div id="hint" role="status">Toca y arrastra para mover</div>
+  </main>
+  <script src="./js/game.js" defer></script>
+</body>
+</html>
