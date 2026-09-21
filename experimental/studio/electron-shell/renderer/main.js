@@ -886,6 +886,13 @@ function trackingLoop(timestamp) {
 
   activity.pollGamepads(timestamp);
   const activityState = activity.current(timestamp);
+  if (activityState.expression && activity.fullMode()) {
+    if (acting.manualExpression() !== activityState.expression) {
+      acting.setManualExpression(activityState.expression);
+    }
+  } else if (activityState.mode !== "manual" && acting.manualExpression()) {
+    acting.clearManualExpression();
+  }
   if (JSON.stringify({
     mode: acting.state.mode,
     activity: acting.state.activity,
@@ -1425,11 +1432,15 @@ async function refresh() {
     ui.liveState.innerHTML = '<span class="dot"></span><span>' + (metrics.output === "running" ? "LIVE" : "OFFLINE") + "</span>";
     ui.fps.textContent = Number(metrics.fps ?? 0).toFixed(1);
     ui.audio.textContent = String(metrics.audio_packets ?? 0);
-    if (!speechAutoEnabled && metrics.microphone === "on") {
-      startSpeechMonitor().catch(() => undefined);
-    }
-    if (speechAutoEnabled && metrics.microphone === "off") {
+    // Microphone activation is controlled exclusively by the explicit Talk button.
+    // Status polling must never open the microphone or start a speech monitor.
+    if (!manualTalk && speechAutoEnabled) {
       stopSpeechMonitor();
+    }
+    if (manualTalk && metrics.microphone !== "on") {
+      manualTalk = false;
+      stopSpeechMonitor();
+      updateTalkUi({ level: 0, speaking: false, active: false });
     }
     const peak = Math.max(0, Math.min(1, Number(metrics.audio_peak ?? 0)));
     $("#mix-mic").style.width = (peak * 100).toFixed(1) + "%";
