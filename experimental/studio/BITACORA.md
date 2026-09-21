@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado antes de LOG-046: `a9752ca16a95a032f7e4764a2c1ad2ec32365c57`.
+- Último head auditado: `dc9ec22ec99d13253ab33d09276a1ef8878cf9a4`.
 
 ## Estados de trabajo
 
@@ -2050,3 +2050,69 @@ PENDIENTE: ejecutar con FBX real, revisar arte/weights, completar shape keys, va
 P0 del avatar:
 FBX real aprobado → ejecutar pipeline → corregir warnings/errors → completar rig facial → export VRM 1.0 → reimport audit → cargar en ThreeAvatarRenderer → tracking → lip-sync → compositor.
 
+
+
+## LOG-048 — Endurecimiento del pipeline Blender/VRM y continuidad
+
+Fecha: 2026-09-21
+Área: VTuber / Blender / VRM 1.0 / Continuidad
+Estado: IMPLEMENTADO / CONTRATO VERIFICADO / FBX REAL PENDIENTE
+
+### Objetivo
+Avanzar el P0 del avatar sin crear un segundo pipeline y sin bloquear el proyecto por la ausencia del FBX o Blender en el entorno de desarrollo.
+
+### Investigación verificada
+- La documentación oficial actual del VRM Add-on for Blender declara soporte de Blender 2.93–5.2 y API de automatización Python. citeturn791871search0turn791871search6
+- Para Blender actual, la API documentada de importación FBX usa `bpy.ops.wm.fbx_import`; el pipeline conserva `bpy.ops.import_scene.fbx` como fallback compatible. citeturn791871search7turn791871search4
+- El VRM 1.0 requiere exactamente los 15 human bones obligatorios definidos por la especificación: hips, spine, head, upper/lower arm + hand, upper/lower leg + foot en ambos lados. citeturn556625search0turn556625search1turn556625search3
+- El Add-on expone expresiones VRM 1.0 con `morph_target_binds`, incluyendo presets `aa`, `happy`, `angry`, `sad`, `surprised`, `blink`, etc., y expresiones custom. citeturn666759search1
+
+### Cambios implementados
+- `cari_vrm_pipeline.py` selecciona automáticamente el importador FBX disponible.
+- Las opciones de importación se filtran contra las propiedades RNA del operador, evitando enviar parámetros obsoletos a Blender 5.x.
+- Auditoría adicional de UV y vertex groups.
+- Auditoría de unicidad de assignments Humanoid.
+- Validación de cadenas padre/hijo del Humanoid para los bones requeridos, permitiendo bones intermedios no humanoides.
+- Nuevo `configure_expressions()`:
+  - `aa` <- `cari_mouth_open`
+  - `blink_left` <- `cari_blink_l`
+  - `blink_right` <- `cari_blink_r`
+  - `happy` <- `cari_happy`
+  - `angry` <- `cari_angry`
+  - `sad` <- `cari_sad`
+  - `surprised` <- `cari_surprised`
+  - `relaxed` <- `cari_sleepy`
+  - custom `cari_embarrassed`
+  - custom `cari_talking`
+- Shape keys automáticos siguen marcados como PLACEHOLDER; el binding no se presenta como deformación facial real.
+- Nuevo modo `--preflight` para revisar Blender/FBX/VRM APIs sin importar un FBX.
+- Wrapper PowerShell admite `-Preflight`.
+- Test contractual Python con AST/JSON asegura que no exista un segundo pipeline Blender y que config/binding mantengan el contrato.
+- README y especificación VRM documentan el flujo real y la compatibilidad.
+
+### Estado de evidencia
+- CODE_EXISTS: confirmado.
+- CONTRACT_VERIFIED: test contractual incorporado.
+- WINDOWS_VERIFIED: pendiente.
+- HARDWARE_VALIDATED: pendiente.
+- PRODUCTION_VALIDATED: pendiente.
+- FBX Cari V1 real: pendiente de disponibilidad del asset real.
+
+### NO REPETIR
+- No crear otro pipeline FBX→VRM.
+- No crear otra convención de Humanoid.
+- No crear otro sistema de expression bindings.
+- No volver a revisar desde cero la API de importación FBX hasta que cambie la versión objetivo de Blender.
+- No tratar placeholders como rig facial terminado.
+- No declarar VRM listo sin export + reimport audit.
+- No generar un avatar propietario como sustituto del FBX real.
+- No crear un segundo renderer/tracker.
+
+### Siguiente P0
+FBX Cari V1 real → preflight → import → audit → reparación de warnings/errors → rig facial real → VRM export → reimport audit → ThreeAvatarRenderer → MediaPipe → lip-sync → compositor nativo.
+
+### Porcentaje
+No se incrementa el porcentaje global por cantidad de código. El checkpoint canónico permanece:
+- Ingeniería ~71%
+- Producto usable/end-user ~58%
+- Seguimiento global ~65%
