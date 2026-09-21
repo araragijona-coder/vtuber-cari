@@ -95,6 +95,32 @@ export class AvatarActingBridge {
     return this.state.activity;
   }
 
+  setActivityState(patch = {}) {
+    this.state = normalizeAvatarState(this.state, patch);
+    this.#emit();
+    return this.state;
+  }
+
+  setMode(mode = "manual") {
+    return this.setActivityState({ mode });
+  }
+
+  setMovementLevel(level = "normal") {
+    return this.setActivityState({ movementLevel: level });
+  }
+
+  setArms(arms = "relaxed") {
+    return this.setActivityState({ arms });
+  }
+
+  setObject(object = "none") {
+    return this.setActivityState({ object });
+  }
+
+  setPose(pose = "standing") {
+    return this.setActivityState({ pose });
+  }
+
   setManualExpression(expression = null) {
     this.manualOverrides.expression =
       expression === null ? null : String(expression).toLowerCase();
