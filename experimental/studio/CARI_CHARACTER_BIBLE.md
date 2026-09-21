@@ -13,6 +13,50 @@ This document is the personality source for Cari's runtime behavior. Acts, react
 - **Relationship:** Cami is Cari's sister.
 - **Core inspiration:** Capybara behavior and social warmth.
 
+## Visual Design — CANON_CONFIRMED
+
+The following visual constraints are confirmed for the current Cari base asset and must be preserved by future art/model iterations.
+
+### Mandatory visual traits
+
+- skin: morena / tan;
+- medium-length brown hair;
+- light-brown inner hair;
+- medium ponytail;
+- centered ahoge at the top of the head;
+- brown eyes;
+- round white pupils;
+- visible bandage on the nose;
+- energetic, sporty runner presentation.
+
+### Clothing
+
+- runner / athletic styling;
+- fitted running shirt or shirt tied around the waist;
+- black minishorts or black bike shorts.
+
+### Art direction
+
+- animated, expressive, friendly;
+- midpoint between chibi 2D and stylized 3D;
+- not photorealistic;
+- not extremely anime;
+- proportions may be simplified for PNGTuber use while preserving the identifying traits.
+
+### Forbidden additions
+
+Do not add:
+- headbands;
+- hairpins or decorative clips;
+- jewelry;
+- bags or props;
+- weapons;
+- extra clothing pieces;
+- extra hair accessories;
+- unrelated objects.
+
+These are design invariants, not suggestions. Future PNG, VRM, Blender, Inochi2D or Live2D authoring must preserve them unless the author explicitly changes the visual canon.
+
 ## Character type
 
 Cari is a **protective, optimistic, proactive heroine**. She is energetic, extroverted, emotionally transparent, physically active and willing to take the first step when someone needs help.
@@ -224,7 +268,7 @@ Do not invent these yet:
 
 - detailed sibling dynamic with Cami;
 - exact age and chronology;
-- definitive visual design;
+- definitive micro-details of the final production model; the base visual invariants above are now `CANON_CONFIRMED`.
 - exact power limits;
 - complete Berserker mechanics;
 - definitive voice characteristics;
