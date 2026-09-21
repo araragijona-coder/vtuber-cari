@@ -76,6 +76,9 @@
 - [x] Bitácora maestra con ledger de trabajo realizado, descartado y pendiente.
 - [x] Auditoría de licencias de dependencias runtime fijadas.
   - No habilita por sí sola redistribución de FFmpeg/codec; esa decisión sigue pendiente.
+- [x] Perfil de tracking facial calibrable con smoothing, deadzone, sensibilidad y recuperación ante pérdida de rostro.
+- [x] Controles de cámara, calibración, reset, sensibilidad y suavizado en la vista Tracking.
+- [x] Guardia que distingue frame duplicado de pérdida real de rostro.
 - [x] Smoke test nativo para contratos core.
 - [x] Smoke D3D11 compositor con WARP, incluyendo composición alpha de overlay.
 - [x] Reconstrucción del compositor ante cambio de ID3D11Device después de device-loss recovery.
