@@ -8,6 +8,7 @@ import { AudioLipSync } from "../avatar/audio-lipsync.js";
 import { LocalSpeechController } from "../avatar/local-speech-controller.js";
 import { AvatarActionStore } from "../avatar/action-store.js";
 import { AVATAR_EXPRESSIONS } from "../avatar/avatar-contract.js";
+import { AvatarActivityController } from "../avatar/activity-motion.js";
 import { STUDIO_MENU, CAPABILITIES } from "./menu-config.js";
 
 const $ = selector => document.querySelector(selector);
@@ -58,6 +59,8 @@ const tracking = new FaceTrackingBridge(acting);
 const lipSync = new AudioLipSync(acting);
 const speech = new LocalSpeechController();
 const actionStore = new AvatarActionStore();
+const activity = new AvatarActivityController();
+activity.install(window);
 const bundledCariAssets = await window.cari.assets.cariExpressions().catch(() => ({}));
 await actionStore.seedBundledFrames(bundledCariAssets);
 
@@ -413,9 +416,13 @@ function setAction(id, { manual = true } = {}) {
   selectedActionId = action.id;
   if (manual) acting.setManualExpression(action.expression || "neutral");
   else acting.clearManualExpression();
-  acting.set({
-    mouthOpen: Number(action.mouthOpen) || 0
-  });
+  if (action.id === "talking") {
+    acting.setManualMouth(0.9);
+  } else if (action.id === "silent") {
+    acting.setManualMouth(0);
+  } else if (!manualTalk) {
+    acting.setManualMouth(null);
+  }
   ui.previewAction.textContent = action.label;
   ui.editorTitle.textContent = action.label;
   ui.workspace.textContent = "Acción: " + action.label;
@@ -871,6 +878,12 @@ function stopCamera() {
 function trackingLoop(timestamp) {
   requestAnimationFrame(trackingLoop);
 
+  activity.pollGamepads(timestamp);
+  const activityState = activity.current(timestamp);
+  if (acting.state.activity !== activityState) {
+    acting.setActivity(activityState);
+  }
+
   if (faceTracker && cameraStream && ui.camera.readyState >= 2) {
     const result = faceTracker.detect(ui.camera, timestamp);
     if (result) tracking.apply(result);
@@ -879,8 +892,11 @@ function trackingLoop(timestamp) {
   if (speechAutoEnabled) {
     const voice = speech.sample(timestamp);
     const drivenLevel = voice.speaking ? voice.level : 0;
-    if (drivenLevel > 0) lipSync.update(drivenLevel);
-    else lipSync.reset();
+    if (drivenLevel > 0) {
+      lipSync.update(drivenLevel);
+    } else {
+      lipSync.reset();
+    }
 
     updateTalkUi({ ...voice, level: drivenLevel });
     const trackingState = $("#tracking");
@@ -1252,6 +1268,18 @@ document.querySelectorAll("[data-manual-expression]").forEach(button => {
     const expression = button.dataset.manualExpression;
     setManualExpression(expression);
     showStatus("Reacción manual: " + expression);
+  };
+});
+
+document.querySelectorAll("[data-avatar-activity]").forEach(button => {
+  button.onclick = () => {
+    const selected = activity.setManual(button.dataset.avatarActivity);
+    acting.setActivity(selected || "idle");
+    showStatus(
+      selected
+        ? "Movimiento manual: " + selected
+        : "Movimiento automático: idle/teclado/mando"
+    );
   };
 });
 
