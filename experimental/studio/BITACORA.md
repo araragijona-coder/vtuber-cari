@@ -859,3 +859,70 @@ NO REPETIR:
 
 Siguiente acción:
 P0 compositor GPU -> frame final y E2E Windows; el validador de continuidad permanece como gate de documentación.
+
+---
+
+## LOG-029 — Bitácora canónica + asset registry + investigación GPU/tracking
+
+Fecha: 2026-09-21  
+Área: Continuidad / Avatar / GPU / Tracking  
+Estado: IMPLEMENTADO / VERIFICADO PORTABLE / WINDOWS PENDIENTE
+
+### Problema
+
+La bitácora ya existía, pero necesitaba registrar de forma inequívoca qué trabajo queda cerrado y qué no debe repetirse. Además, el renderer aceptaba un avatarModelPath directamente sin una frontera declarativa de asset.
+
+### Investigación
+
+- MediaPipe documenta VIDEO y LIVE_STREAM. LIVE_STREAM está destinado a datos de cámara, trabaja mediante callback y puede descartar imágenes para reducir latencia; VIDEO conserva la ruta síncrona actual y exige timestamps crecientes.
+- FFmpeg expone AV_PIX_FMT_D3D11 en su hwcontext D3D11VA y el encoder NVENC actual declara soporte para frames D3D11.
+- Microsoft recomienda IDXGIResource1::CreateSharedHandle con recursos D3D11_RESOURCE_MISC_SHARED_NTHANDLE para nuevos recursos compartidos.
+
+### Acción realizada
+
+- Se creó avatar/asset-registry.js.
+- El registry acepta exclusivamente glb y gltf.
+- Se impone un límite de 64 MiB cuando se conoce el tamaño.
+- overlay-main.js valida el asset antes de pasarlo a ThreeAvatarRenderer.
+- Se añadió avatar/asset-registry.test.mjs.
+- Se añadió el registry al comprobador ESM.
+- No se creó otro renderer ni otro sistema de actuación.
+
+### Verificación
+
+- Test Node del registry: PASS.
+- GLB aceptado.
+- GLTF forma parte del contrato.
+- FBX rechazado.
+- Límite exacto aceptado.
+- Tamaño superior rechazado.
+- Tamaño negativo rechazado.
+
+### Decisión
+
+Mantener el tracker actual en VIDEO hasta disponer de una medición real que justifique LIVE_STREAM. El cambio de modo debe extender FaceTracker sin reconstruir FaceTrackingBridge.
+
+Mantener D3D11Compositor y ThreeAvatarRenderer existentes. El siguiente trabajo GPU debe conectar el texture output al encoder sin readback CPU por frame, preferentemente mediante la ruta Libav/D3D11 experimental.
+
+### Riesgos restantes
+
+- Asset Cari V1 real pendiente.
+- Revisión visual y tracking sobre V1 pendiente.
+- Readback CPU pendiente de eliminar del camino de producción.
+- PTS E2E Windows pendiente.
+- Soporte/driver NVENC o AMF pendiente de validar en hardware.
+- LIVE_STREAM pendiente de medición.
+
+### NO REPETIR
+
+- No crear otro renderer Three.js.
+- No crear otro tracker MediaPipe.
+- No reemplazar FaceTrackingBridge para introducir LIVE_STREAM.
+- No tratar compatibilidad D3D11 de NVENC como prueba de hardware.
+- No copiar runtime Live2D/Cubism.
+- No tratar el asset registry como el asset Cari V1.
+- No aumentar el porcentaje por volumen de archivos.
+
+### Siguiente foco único
+
+P0: compositor GPU -> encoder sin readback CPU por frame y evidencia Windows/E2E. Usar el registry existente para introducir Cari V1 cuando el asset real esté disponible.
