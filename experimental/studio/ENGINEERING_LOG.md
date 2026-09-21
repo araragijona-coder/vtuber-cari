@@ -203,3 +203,13 @@ A demo image is visual reference only.
 - Estructura 2D/3D de source/layers/exports completa.
 - No cambio de porcentaje: Ingeniería 71%, Producto usable 58%, Seguimiento 65%.
 - Próximo foco: arte V1 real y rigging; no reabrir renderer/tracker.
+
+
+## 2026-09-21 — LOG-047 Blender FBX → VRM 1.0
+- Se añadió un único pipeline Blender para importar FBX, auditar malla/UV/Armature, reparar weights, preparar shape keys, mapear Humanoid VRM 1.0, configurar metadata/MToon, exportar y reimportar.
+- Se añadieron configuración JSON, binding backend-neutral, wrapper PowerShell, especificación técnica y test contractual.
+- CI incorpora py_compile y validación JSON del pipeline.
+- Blender no está instalado en el entorno de auditoría actual; la ejecución con FBX real y el reimport audit quedan pendientes en Windows/Blender.
+- No cambia el porcentaje canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- NO REPETIR: no crear otro pipeline Blender, manifest de bones, namespace facial, renderer ni tracker.
+- Siguiente foco: ejecutar con el FBX real y pasar los gates de rigging/tracking/composición.
