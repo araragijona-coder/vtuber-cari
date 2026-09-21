@@ -655,8 +655,6 @@ bool StartOutput(
         return false;
     }
 
-    ResetOutputRetry();
-
     g_last_output_target = resolved_target;
     g_output_started_at = cari::studio::core::MediaClock::monotonic_now();
     if (!StartAvatarOverlayCapture()) {
