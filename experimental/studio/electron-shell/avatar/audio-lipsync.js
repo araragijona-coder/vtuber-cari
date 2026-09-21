@@ -22,12 +22,24 @@ export class AudioLipSync {
     const factor = normalized > this.value ? this.attack : this.release;
     this.value += (normalized - this.value) * factor;
 
-    this.acting.set({ mouthOpen: this.value });
+    if (typeof this.acting.setSpeech === "function") {
+      this.acting.setSpeech({
+        mouthOpen: this.value,
+        speaking: this.value > 0,
+        level: input
+      });
+    } else {
+      this.acting.set({ mouthOpen: this.value });
+    }
     return this.value;
   }
 
   reset() {
     this.value = 0;
-    this.acting.set({ mouthOpen: 0 });
+    if (typeof this.acting.clearSpeech === "function") {
+      this.acting.clearSpeech();
+    } else {
+      this.acting.set({ mouthOpen: 0 });
+    }
   }
 }
