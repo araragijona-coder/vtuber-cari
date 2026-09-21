@@ -486,3 +486,34 @@ El compositor D3D11 ya compone captura + overlay, pero el frame final se hace CP
 - [ ] Validación Windows/hardware del asset V1.
 
 **No repetir:** no introducir accesorios o prendas extra para mejorar la silueta mientras contradigan el canon; resolver primero mediante proporción, color, material y construcción de las prendas ya definidas.
+
+
+## Executive gate map — P0/P1/P2/P3 — 2026-09-21
+
+| Prioridad | Gate | Estado | Evidencia que falta |
+|---|---|---|---|
+| P0 | Asset Cari V1 real | PENDIENTE | Asset que cumpla ART_QUALITY_GATE y entrada al renderer existente |
+| P0 | Revisión visual real | PENDIENTE | Revisión visual de thumbnail/plano medio/cuerpo completo |
+| P0 | Tracking sobre V1 | PENDIENTE | Sesión real con V1, expresiones, tracking y rendimiento medidos |
+| P0 | GPU → frame final | PARCIAL | El compositor D3D11 existe; falta eliminar readback CPU del camino de producción |
+| P0 | Windows/E2E | BLOQUEADO | Runner debe entregar steps/logs; después prueba sostenida en Windows |
+| P1 | PTS E2E | PARCIAL | Promover/validar ruta Libav con timestamps explícitos |
+| P1 | Drift físico | PENDIENTE | Relojes de dispositivos + corrección/resampling sostenido |
+| P1 | FFmpeg sostenido | PENDIENTE | Sesión real larga con named pipes |
+| P1 | Grabación prolongada | PENDIENTE | Archivo válido durante sesión larga y cierre limpio |
+| P1 | RTMP/reconexión real | PENDIENTE | Prueba de caída de red y recuperación controlada |
+| P2 | Game Capture | PENDIENTE | Backend dedicado y validación Windows |
+| P2 | Optimización GPU | PARCIAL | Medir y reducir readbacks/stalls |
+| P2 | Hardware real | PENDIENTE | Prueba sobre máquina objetivo |
+| P3 | Live2D adapter | ADAPTER ONLY | Licencia/runtime compatible y prueba de integración |
+| P3 | Multistream | EXPERIMENTAL | Outputs múltiples, aislamiento de fallos y límites |
+| P3 | Installer | PENDIENTE | Bundle de runtime/dependencias legalmente distribuible |
+| P3 | Distribución | PENDIENTE | Paquete final, logs, rollback y release smoke test |
+
+### Decisión temporal
+
+El camino raw de FFmpeg no usa `use_wallclock_as_timestamps`. La documentación actual de FFmpeg advierte que esta opción puede producir resultados indefinidos con B-frames; el diseño de PTS explícitos queda en la ruta Libav experimental. citeturn349667search10turn349667search4
+
+### Regla anti-repetición
+
+Antes de implementar una tarea, consultar BITACORA.md. Si el componente figura como IMPLEMENTADO/VERIFICADO y no existe regresión, la tarea se trata como cerrada y se avanza al siguiente gate.
