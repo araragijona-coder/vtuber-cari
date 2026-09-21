@@ -107,6 +107,7 @@ int main() {
         .width = 16,
         .height = 16,
         .rgba = make_overlay(16, 16),
+        .generation = 1,
         .opacity = 1.0f,
         .x = 24,
         .y = 10,
@@ -121,6 +122,24 @@ int main() {
     assert(compositor.output_texture() != nullptr);
     assert(compositor.stats().composed_frames == 1);
     assert(compositor.stats().overlay_uploads == 1);
+    assert(compositor.stats().overlay_cache_hits == 0);
+
+    assert(compositor.compose_capture(
+        capture.Get(),
+        std::vector<cari::native::GpuOverlay>{overlay},
+        error));
+    assert(compositor.stats().composed_frames == 2);
+    assert(compositor.stats().overlay_uploads == 1);
+    assert(compositor.stats().overlay_cache_hits == 1);
+
+    auto changed_overlay = overlay;
+    changed_overlay.generation = 2;
+    assert(compositor.compose_capture(
+        capture.Get(),
+        std::vector<cari::native::GpuOverlay>{changed_overlay},
+        error));
+    assert(compositor.stats().composed_frames == 3);
+    assert(compositor.stats().overlay_uploads == 2);
 
     D3D11_TEXTURE2D_DESC output_desc{};
     compositor.output_texture()->GetDesc(&output_desc);
