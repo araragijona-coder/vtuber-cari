@@ -64,6 +64,31 @@ test("frame player loops frames deterministically", () => {
   assert.deepEqual(rendered.at(-1), ["neutral", 1]);
 });
 
+
+test("non-loop frame sequences advance once and stop on the final frame", () => {
+  const rendered = [];
+  let callback = null;
+  const player = new Avatar2DFramePlayer({
+    store: makeStore(),
+    renderFrame: (action, index) => rendered.push([action?.id || null, index]),
+    timerFactory: cb => { callback = cb; return 1; },
+    clearTimer: () => undefined
+  });
+
+  player.trigger("talking", { source: "event", holdMs: 2000 });
+  assert.deepEqual(rendered.at(-1), ["talking", 0]);
+
+  callback();
+  assert.deepEqual(rendered.at(-1), ["talking", 1]);
+
+  player.store.get = id => id === "talking"
+    ? { ...actions.find(action => action.id === "talking"), loop: false }
+    : actions.find(action => action.id === id);
+  callback();
+  assert.deepEqual(rendered.at(-1), ["talking", 1]);
+});
+
+
 test("chat override expires back to the selected base action", () => {
   let now = 1000;
   const player = new Avatar2DFramePlayer({
@@ -151,11 +176,18 @@ test("router maps chat commands and Twitch EventSub events", () => {
     acting: { setManualExpression(value) { expressions.push(value); } }
   });
 
-  assert.equal(router.handleChatMessage("!happy"), "happy");
+  assert.equal(router.handleCommand("happy"), "happy");
   assert.equal(player.currentAction().id, "happy");
+  assert.equal(router.handleChatMessage("!happy"), "happy");
   assert.equal(router.handleTwitchEvent("channel.subscribe"), "happy");
-  const bridged = router.handleEvent({ type: "twitch.event", eventType: "channel.cheer", payload: { bits: 100 } });
+  const bridged = router.handleEvent({
+    type: "twitch.event",
+    payload: { subscription: { type: "channel.cheer" }, event: { bits: 100 } }
+  });
   assert.equal(bridged?.kind, "event");
   assert.equal(bridged?.action, "happy");
+  const commandEvent = router.handleEvent({ type: "twitch.command", command: "angry" });
+  assert.equal(commandEvent?.kind, "command");
+  assert.equal(commandEvent?.action, "angry");
   assert.ok(expressions.includes("happy"));
 });
