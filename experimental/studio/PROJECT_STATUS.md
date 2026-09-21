@@ -70,6 +70,7 @@
 - [x] Emisión raw temporizada por PTS con `RealtimePacer` y colas acotadas.
 - [x] Interleaver A/V global por PTS con prioridad determinista de audio en empate.
 - [x] Compositor D3D11 experimental conectado al frame final mediante readback BGRA.
+- [x] Adaptador experimental D3D11 texture -> AVFrame hardware sin readback CPU.
 - [x] Readback de captura CPU lazy: solo diagnóstico/fallback; no se ejecuta antes de cada composición GPU.
 - [x] Diagnóstico de salida FFmpeg con estado/código de salida y buffer stderr acotado.
 - [x] Retry/backoff RTMP restringido a errores de red y métricas de categoría.
@@ -98,6 +99,7 @@
 - [x] Guardia que distingue frame duplicado de pérdida real de rostro.
 - [x] Smoke test nativo para contratos core.
 - [x] Smoke D3D11 compositor con WARP, incluyendo composición alpha de overlay.
+- [x] Smoke D3D11 hardware encoder preparado para validar h264_nvenc/h264_amf; requiere Windows + driver + FFmpeg dev kit.
 - [x] Reconstrucción del compositor ante cambio de ID3D11Device después de device-loss recovery.
 - [ ] CI Windows verde sobre el head actual (los últimos runs y el workflow de diagnóstico siguen fallando antes de registrar steps/logs; no existe evidencia de ejecución del build).
 
