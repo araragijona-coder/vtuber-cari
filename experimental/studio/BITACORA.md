@@ -11,7 +11,7 @@ Rama: fix/native-windows-foundation
 ### Identidad del estado
 - Rama: `fix/native-windows-foundation`
 - PR: #2
-- HEAD auditado: `97e0de6bb3421d8e2e6d9a63e94302ffce87fc14`
+- HEAD auditado: `a49860c3393345759703e65090836a70f48c05bf`
 - Estado: experimental; **NO listo para producción**.
 - Ingeniería: **~68%**.
 - Producto usable/end-user: **~54%**.
@@ -144,20 +144,14 @@ Estos tres porcentajes son los únicos valores vigentes. Las cifras 50/52/53/60/
 - VRM nativo de producción sin readback CPU: PENDIENTE.
 
 ### Política de creación de Cari
-- **PNGTuber:** ruta ya compatible con el editor de acciones actual; es la vía con menor deuda técnica para tener un Cari funcional visualmente sin introducir un nuevo runtime.
-- **2DTuber abierto:** Inochi2D/Inochi Creator es candidato externo abierto bajo BSD-2-Clause. Los modelos producidos con esas herramientas quedan bajo la licencia decidida por artista/rigger/cliente. urlInochi2D legal infohttps://github.com/Inochi2D/inochi2d/wiki/Legal-Info
-- **2DTuber Live2D:** Cubism puede producir modelos 2D con physics/lip-sync, pero su editor/SDK no es open source y la distribución del runtime tiene sus propias condiciones de licencia; mantenerlo como adapter opcional, no como dependencia del core. urlLive2D Cubism Editorhttps://www.live2d.com/en/cubism/about/
-- **3DTuber:** VRoid Studio permite crear y exportar personajes a VRM y establece condiciones de uso del contenido del modelo; assets de terceros siguen sus propias licencias. urlVRoid Studiohttps://vroid.com/en/studio
-- **3D open tooling:** Blender es GPL y el artwork creado con Blender pertenece al creador según la documentación oficial; `three-vrm` es MIT y encaja con nuestro renderer Three.js. urlBlender licensehttps://www.blender.org/about/license/ urlthree-vrm licensehttps://github.com/pixiv/three-vrm/blob/dev/LICENSE
-- **Creación asistida por IA:** puede servir para producir arte base/expresiones PNG, pero no debe interpretarse como un rig Live2D/VRM terminado. La integración final sigue necesitando preparar/rigear el asset y respetar la licencia del material usado.
 
-### Decisión de arquitectura de asset
-1. No añadir un segundo renderer 2D/3D todavía.
-2. Mantener PNGTuber como fallback universal y ruta de prueba.
-3. Mantener Three.js/glTF/VRM como ruta 3D principal del proyecto.
-4. Evaluar Inochi2D solo detrás de un adapter si se necesita un 2D abierto real.
-5. Mantener Live2D como integración opcional y separada del core.
-6. Toda nueva herramienta de avatar debe registrarse aquí antes de incorporarse.
+- PNGTuber: utilizar el Action Store/editor existente; no crear otro editor.
+- 2DTuber abierto: Inochi2D/Inochi Creator como adapter futuro.
+- 2DTuber propietario: Live2D Cubism como adapter opcional.
+- 3DTuber: mantener Three.js + glTF/VRM como runtime principal.
+- Authoring 3D: VRoid Studio para una base rápida o Blender para un pipeline open-source.
+- Generación de arte: puede producir assets base, pero no sustituye rigging ni validación de un modelo Live2D/VRM.
+- Documento de referencia: `VTUBER_ASSET_STRATEGY.md`.
 
 ### Orden de trabajo siguiente — máximo impacto
 1. Conseguir una ejecución Windows observable que llegue a Checkout → CMake → CTest → E2E FFmpeg.
