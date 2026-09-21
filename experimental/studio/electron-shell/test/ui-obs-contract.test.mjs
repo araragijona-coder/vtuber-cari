@@ -9,6 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const html = await fs.readFile(path.join(root, "renderer", "index.html"), "utf8");
 const renderer = await fs.readFile(path.join(root, "renderer", "main.js"), "utf8");
 const main = await fs.readFile(path.join(root, "main.js"), "utf8");
+const preload = await fs.readFile(path.join(root, "preload.js"), "utf8");
 const obs = await fs.readFile(path.join(root, "runtime", "obs-service.js"), "utf8");
 
 const buttonIds = new Set(
@@ -61,7 +62,10 @@ test("preload exposes the OBS commands used by the renderer", () => {
     "recordStatus", "startRecord", "stopRecord", "startVirtualCamera",
     "stopVirtualCamera", "virtualCameraStatus", "studioMode", "previewScene",
     "transition", "profiles", "sceneCollections", "setProfile",
-    "setSceneCollection"
+    "setSceneCollection", "sceneItems", "setSceneItemEnabled",
+    "getInputMute", "setInputMute", "toggleInputMute",
+    "getInputVolume", "setInputVolume", "replayStatus",
+    "replayStart", "replayStop", "replaySave", "transitionToScene"
   ]) {
     assert.ok(preload.includes(method + ":" ) || preload.includes(method + " =") || preload.includes(method + "("),
       "missing preload method: " + method);
