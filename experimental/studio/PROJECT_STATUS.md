@@ -439,3 +439,33 @@ La regla evita confundir servicio disponible con consumidor multimedia. Antes de
 - [x] El atajo `A` ya no abre el micrófono automáticamente.
 - [x] El motor de audio y el gate de micrófono permanecen separados.
 - [ ] Validación con hardware WASAPI real.
+
+
+## Prioridad ejecutiva P0-P3 — 2026-09-21
+
+### P0
+- [ ] Asset Cari V1 real.
+- [ ] Revisión visual real contra ART_QUALITY_GATE.
+- [ ] Tracking sostenido sobre V1.
+- [ ] Compositor GPU → frame final sin readback CPU por frame.
+- [ ] Validación Windows/E2E sostenida.
+
+### P1
+- [ ] PTS extremo a extremo.
+- [ ] Drift correction físico.
+- [ ] FFmpeg sostenido.
+- [ ] Grabación prolongada.
+- [ ] RTMP/reconexión real.
+
+### P2
+- [ ] Game Capture.
+- [ ] Optimización GPU.
+- [ ] Hardware real.
+
+### P3
+- [ ] Live2D adapter bajo licencia compatible.
+- [ ] Multistream.
+- [ ] Installer.
+- [ ] Distribución.
+
+Regla de progreso: el checkpoint vigente es Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%. Los porcentajes no suben por volumen de código.
