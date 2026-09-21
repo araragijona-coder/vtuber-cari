@@ -11,6 +11,7 @@ from app.twitch.commands import (
     TwitchCommandEngine,
     default_commands,
 )
+from app.twitch.continuity import TwitchContinuityLedger
 from app.twitch.controller import TwitchController
 from app.twitch.rate_limit import TwitchChatRateLimiter
 
@@ -54,6 +55,7 @@ class TwitchLiveBot:
             chat_voice=chat_voice,
             commands=commands or self._default_commands(),
             chat_rate_limiter=chat_rate_limiter,
+            continuity=TwitchContinuityLedger(self._EXPECTED_SUBSCRIPTIONS),
         )
 
     @property
