@@ -109,3 +109,11 @@ A demo image is visual reference only.
 - Smoke `libav_d3d11_output_smoke` añadido.
 - Estado CODE_EXISTS / smoke preparado / Windows-hardware pendiente.
 - Progreso canónico sin incremento: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+
+## 2026-09-21 — LOG-035
+- Checkpoint canónico confirmado: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%, Producción NO READY.
+- CI de Native Windows, CI, Character Runtime y Runner Diagnostic siguen terminando sin steps/logs observables.
+- No se atribuye regresión de código a estos failures.
+- Git compare está divergente y actualmente muestra ~1301 ahead / 67 behind; no se reescribe historia automáticamente.
+- Siguiente foco P0: validar Libav + D3D11 hardware y E2E Windows observable.
