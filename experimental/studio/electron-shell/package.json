@@ -6,7 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node --check main.js && node --check preload.js && node --check runtime/native-engine.js && node --check runtime/obs-service.js && node --check runtime/twitch-auth.js && node --check runtime/twitch-api.js && node --check runtime/twitch-chat-service.js && node --check avatar-overlay-preload.js && node scripts/check-esm.cjs",
+    "check": "node --check main.js && node --check preload.js && node --check runtime/native-engine.js && node --check runtime/obs-service.js && node --check runtime/twitch-auth.js && node --check runtime/twitch-api.js && node --check runtime/twitch-chat-service.js && node --check runtime/integration-health.js && node --check runtime/resource-policy.mjs && node --check avatar-overlay-preload.js && node scripts/check-esm.cjs",
     "test": "node --test test/*.test.mjs",
     "dist": "electron-builder --win nsis",
     "build": "npm run check && npm test && npm run dist"
