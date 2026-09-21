@@ -234,6 +234,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Native VRM renderer de producción sin readback CPU.
 - [x] Lip-sync de amplitud local conectado al `AudioCoreBridge` y al `AvatarActingBridge` como fallback cuando tracking facial no está activo.
 - [ ] Final tracking.
+  - Falta validación sostenida en la cámara/hardware objetivo y tuning final por dispositivo.
 - [x] Procesamiento de voz local: HPF + presencia + compresión + saturación + limitador.
 - [ ] Real-time voice processing sustained on target Windows audio devices.
 
@@ -290,6 +291,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - `MediaGraphController::poll()` ahora selecciona siempre el evento A/V con menor PTS entre las dos colas; el empate favorece audio y la decisión `late` de audio se contabiliza sin descartarlo para evitar huecos audibles.
 - `MediaGraphController` rechaza cambios de sample rate/canales respecto del contrato FFmpeg y los expone como `audio_dropped_format`.
 - `FfmpegAvOutput` mantiene únicamente los últimos 256 KiB de stderr y expone estado/código de salida para diagnóstico sin crecimiento indefinido.
+- El FaceTracker distingue frames duplicados del video de una pérdida real de rostro; los duplicados no disparan el fade de tracking.
 - La entrada de audio solo se extrae del mixer cuando ambos named pipes están conectados; esto evita consumir la cola durante el handshake inicial.
 - Cada polling del media graph despacha como máximo 8 eventos A/V; si se alcanza el presupuesto, queda una métrica pacing_budget_exhausted para diagnóstico.
 
