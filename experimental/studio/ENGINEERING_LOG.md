@@ -94,3 +94,18 @@ A demo image is visual reference only.
 - Añadido smoke experimental de encoder hardware que consulta AVCodecHWConfig y prueba h264_nvenc/h264_amf cuando el entorno lo permite.
 - No se eleva el porcentaje: el gate sigue CODE_EXISTS y Windows/hardware pendiente.
 - Siguiente foco: integrar el bridge en LibavMediaOutput y demostrar paquetes codificados D3D11 con PTS.
+
+## 2026-09-21 — LOG-033
+- OutputRetryPolicy + OutputFailureCategory implementados.
+- Retry RTMP restringido a fallos clasificados como network.
+- `Broken pipe` retirado de la categoría network genérica.
+- Smoke portable de retry/diagnóstico PASS.
+- CI sigue fallando antes de steps/logs observables.
+- Progreso canónico sin incremento: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+## 2026-09-21 — LOG-034
+- LibavMediaOutput ampliado con ruta D3D11 hardware.
+- Reutiliza D3D11AvFrameBridge y expone AV_PIX_FMT_D3D11 con PTS explícito.
+- Smoke `libav_d3d11_output_smoke` añadido.
+- Estado CODE_EXISTS / smoke preparado / Windows-hardware pendiente.
+- Progreso canónico sin incremento: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
