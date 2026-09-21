@@ -144,6 +144,11 @@ bool D3D11Compositor::initialize(
     width_ = width;
     height_ = height;
 
+    for (auto& entry : overlay_cache_) {
+        entry = {};
+    }
+    overlay_cache_clock_ = 0;
+
     output_texture_.Reset();
     output_rtv_.Reset();
     output_srv_.Reset();
@@ -388,6 +393,24 @@ bool D3D11Compositor::upload_overlay(
         return false;
     }
 
+    ++overlay_cache_clock_;
+
+    const void* identity = overlay.rgba.get();
+    for (auto& entry : overlay_cache_) {
+        if (entry.srv &&
+            entry.identity == identity &&
+            entry.generation == overlay.generation &&
+            entry.width == overlay.width &&
+            entry.height == overlay.height) {
+            entry.last_used = overlay_cache_clock_;
+            srv = entry.srv;
+            texture_width = entry.width;
+            texture_height = entry.height;
+            ++stats_.overlay_cache_hits;
+            return true;
+        }
+    }
+
     D3D11_TEXTURE2D_DESC desc{};
     desc.Width = overlay.width;
     desc.Height = overlay.height;
@@ -420,6 +443,25 @@ bool D3D11Compositor::upload_overlay(
         error = hresult_error(hr, L"CreateShaderResourceView overlay");
         return false;
     }
+
+    std::size_t slot = 0;
+    for (std::size_t index = 1; index < overlay_cache_.size(); ++index) {
+        if (!overlay_cache_[index].srv) {
+            slot = index;
+            break;
+        }
+        if (overlay_cache_[index].last_used <
+            overlay_cache_[slot].last_used) {
+            slot = index;
+        }
+    }
+
+    overlay_cache_[slot].identity = identity;
+    overlay_cache_[slot].generation = overlay.generation;
+    overlay_cache_[slot].width = overlay.width;
+    overlay_cache_[slot].height = overlay.height;
+    overlay_cache_[slot].last_used = overlay_cache_clock_;
+    overlay_cache_[slot].srv = srv;
 
     texture_width = overlay.width;
     texture_height = overlay.height;
