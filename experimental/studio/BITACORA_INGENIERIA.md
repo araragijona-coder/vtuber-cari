@@ -23,9 +23,9 @@
 | Bounded queues | IMPLEMENTADO | límites de audio/video + métricas | No duplicar otra cola sin necesidad |
 | FFmpeg supervisor/output | IMPLEMENTADO | proceso Windows, EOF/flush y perfiles | Falta prueba sostenida real |
 | Raw transport | IMPLEMENTADO | pipes overlapped y límites | No declarar PTS preservado: sigue siendo transporte raw |
-| A/V ordering | PENDIENTE | El grafo necesita política global de siguiente evento por PTS | Próximo trabajo, no duplicar otro scheduler |
+| A/V ordering | IMPLEMENTADO / VERIFICADO PORTABLE | Menor PTS entre audio/video + límite por polling | No crear otro scheduler; solo mejorar con evidencia real |
 | Output diagnostics | IMPLEMENTADO | clasificación network/encoder/input/mux/permission | Afinar con stderr real, no rehacer arquitectura |
-| RTMP retry/backoff | IMPLEMENTADO | backoff acotado, solo fallos clasificados como red | Falta prueba real de caída/reconexión |
+| RTMP retry/backoff | IMPLEMENTADO | backoff acotado, solo fallos clasificados como red | Falta prueba real de caída/reconexión; no reintentar encoder/mux/input |
 | Electron shell | IMPLEMENTADO / VERIFICADO | sandbox, contextIsolation, IPC explícito | No migrar framework por estética |
 | Three.js avatar | IMPLEMENTADO / EXPERIMENTAL | GLB/glTF + placeholder + morph aliases | Falta composición nativa en frame final |
 | MediaPipe Face Landmarker | IMPLEMENTADO / VERIFICADO | VIDEO mode + timestamp monotónico | Falta benchmark real y posible LIVE_STREAM |
