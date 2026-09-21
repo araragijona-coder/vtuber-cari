@@ -61,12 +61,6 @@ STYLE_PRESETS: dict[str, str] = {
     ),
 }
 
-DEFAULT_NEGATIVE_PROMPT = (
-    "low quality, lowest quality, blurry, jpeg artifacts, watermark, signature, "
-    "text, logo, bad anatomy, bad proportions, extra fingers, missing fingers, "
-    "duplicate, deformed hands, cropped head"
-)
-
 DEFAULT_PROMPTS: tuple[tuple[str, str], ...] = (
     (
         "cari-neutral",
@@ -280,11 +274,6 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         default="anime-classic",
     )
     parser.add_argument("--style-suffix", default="")
-    parser.add_argument(
-        "--negative-prompt",
-        default=DEFAULT_NEGATIVE_PROMPT,
-        help="Documented prompt metadata; the current endpoint does not expose a negative-prompt parameter.",
-    )
     parser.add_argument("--width", type=int, default=DEFAULT_WIDTH)
     parser.add_argument("--height", type=int, default=DEFAULT_HEIGHT)
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
