@@ -418,6 +418,30 @@ if(CARI_ENABLE_LIBAV_OUTPUT)
         dxgi
     )
 
+    add_executable(cari-d3d11-hardware-encoder-smoke
+        d3d11_hardware_encoder_smoke.cpp
+        d3d11_av_frame_bridge.cpp
+    )
+
+    target_include_directories(cari-d3d11-hardware-encoder-smoke PRIVATE
+        ${CARI_LIBAV_INCLUDE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../core
+    )
+
+    target_compile_definitions(cari-d3d11-hardware-encoder-smoke PRIVATE
+        UNICODE
+        _UNICODE
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+    )
+
+    target_link_libraries(cari-d3d11-hardware-encoder-smoke PRIVATE
+        ${CARI_AVCODEC_LIBRARY}
+        ${CARI_AVUTIL_LIBRARY}
+        d3d11
+        dxgi
+    )
+
     target_include_directories(cari-libav-pts-smoke PRIVATE
         ${CARI_LIBAV_INCLUDE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/../core
@@ -535,6 +559,8 @@ add_test(NAME cari-media-scheduler-smoke COMMAND cari-media-scheduler-smoke)
 add_test(NAME cari-audio-clock-drift-smoke COMMAND cari-audio-clock-drift-smoke)
 if(CARI_ENABLE_LIBAV_OUTPUT)
     add_test(NAME cari-libav-pts-smoke COMMAND cari-libav-pts-smoke)
+    add_test(NAME cari-d3d11-av-frame-bridge-smoke COMMAND cari-d3d11-av-frame-bridge-smoke)
+    add_test(NAME cari-d3d11-hardware-encoder-smoke COMMAND cari-d3d11-hardware-encoder-smoke)
 endif()
 add_test(NAME cari-media-foundation-camera-smoke COMMAND cari-media-foundation-camera-smoke)
 add_test(NAME cari-latest-item-queue-smoke COMMAND cari-latest-item-queue-smoke)
