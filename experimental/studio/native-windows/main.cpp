@@ -302,6 +302,7 @@ std::string BuildControlStatusMessage() {
     result += ";audio_packets=" + std::to_string(audio.packets);
     result += ";audio_samples=" + std::to_string(audio.samples);
     result += ";audio_peak=" + std::to_string(audio.peak);
+    result += ";microphone=" + std::string(g_audio_bridge.microphone_enabled() ? "on" : "off");
     result += ";audio_level=" + std::to_string(g_audio_bridge.current_mix_level());
     result += ";voice_effect=";
     const auto voice_style = g_audio_bridge.voice_effect().style;
@@ -713,6 +714,18 @@ std::string HandleControlCommand(const cari::native::ControlCommand& command, HW
         g_audio_bridge.stop();
         RefreshStatus(hwnd);
         return cari::native::control_response(true, "audio=stopped", command.request_id);
+    case cari::native::ControlCommandType::microphone_set:
+        if (!g_audio_bridge.running()) {
+            return cari::native::control_response(
+                false, "microphone=audio-off", command.request_id);
+        }
+        g_audio_bridge.set_microphone_enabled(command.microphone_enabled);
+        RefreshStatus(hwnd);
+        return cari::native::control_response(
+            true,
+            command.microphone_enabled ? "microphone=on" : "microphone=off",
+            command.request_id);
+
     case cari::native::ControlCommandType::voice_set: {
         cari::native::VoiceEffectConfig config{};
         if (command.effect == "anime-bright") {
@@ -857,6 +870,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
                 g_audio_bridge.stop();
             } else {
                 g_audio_bridge.start();
+                g_audio_bridge.set_microphone_enabled(true);
             }
             RefreshStatus(hwnd);
             return 0;
