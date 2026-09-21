@@ -2177,7 +2177,7 @@ El checkpoint global permanece:
 
 Fecha: 2026-09-21
 Área: Avatar 2D / Electron / Twitch / VAD / Continuidad
-Estado: IMPLEMENTADO / TEST PREPARADO / WINDOWS-RUNTIME PENDIENTE
+Estado: IMPLEMENTADO / VERIFICADO LOCAL / WINDOWS-RUNTIME PENDIENTE
 
 ### Objetivo
 
@@ -2219,8 +2219,9 @@ package.json incluye las suites avatar/*.test.mjs y scripts/check-esm.cjs incluy
 
 - CODE_EXISTS: confirmado.
 - STATIC_REVIEW: confirmado.
+- NODE_SYNTAX_CHECK: PASS para action-runtime.js, action-store.js y main.js auditado.
 - TEST_PREPARED: confirmado.
-- TEST_EXECUTED: pendiente de ejecución real.
+- TEST_EXECUTED: PASS local — 4 tests de routing/frame player + 3 tests de persistence.
 - WINDOWS_VERIFIED: pendiente.
 - TWITCH_LIVE_VALIDATED: pendiente.
 - HARDWARE_VALIDATED: pendiente.
