@@ -632,3 +632,13 @@ P0: Windows observable con encoder D3D11 real, PTS de entrada/paquete, mux final
 - Hardware inventory: CPU/RAM/GPU/D3D11/camera/audio/storage.
 - Estado: IMPLEMENTADO; ejecución en el PC objetivo pendiente.
 - No-repeat: no crear otro setup/auditor paralelo.
+
+## Windows launcher gate
+
+- [x] Source launcher committed under `experimental/studio/native-windows/`.
+- [x] Release CMake target copies `CariStudioLauncher.exe` to repository root.
+- [x] Native Windows workflow verifies the root launcher and publishes it as a separate artifact.
+- [ ] Windows build verification.
+- [ ] Double-click verification on a real checkout.
+
+No-repeat: do not add another launcher; extend this entrypoint if startup routing changes.
