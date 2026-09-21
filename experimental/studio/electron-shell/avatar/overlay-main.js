@@ -1,7 +1,7 @@
 import { ThreeAvatarRenderer } from "./three-avatar.js";
 import { normalizeAvatarAsset, validateAvatarAsset } from "./asset-registry.js";
 
-const canvas = document.querySelector("#avatar");
+const canvas = document.querySelector("#canvas");
 const renderer = new ThreeAvatarRenderer(canvas);
 
 function applyState(state) {
@@ -29,7 +29,28 @@ try {
   console.warn("Avatar overlay config unavailable:", error);
 }
 
+function applyActionFrame(state) {
+  const image = document.querySelector("#action-frame");
+  if (!image) return;
+
+  const url = state?.url || state?.dataUrl || "";
+  if (!url) {
+    image.hidden = true;
+    image.removeAttribute("src");
+    return;
+  }
+
+  image.hidden = false;
+  image.src = url;
+  image.style.opacity = String(state.opacity ?? 1);
+  image.style.transform =
+    "translate(calc(-50% + " + (state.offsetX ?? 0) +
+    "%), calc(-50% + " + (state.offsetY ?? 0) +
+    "%)) scale(" + (state.scale ?? 1) + ")";
+}
+
 window.cariAvatar.onState(applyState);
+window.cariAvatar.onActionFrame(applyActionFrame);
 applyState({
   expression: "neutral",
   mouthOpen: 0,
