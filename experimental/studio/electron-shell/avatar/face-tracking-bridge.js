@@ -2,6 +2,9 @@ export class FaceTrackingBridge {
   constructor(acting) {
     this.acting = acting;
     this.enabled = false;
+    this.currentExpression = "neutral";
+    this.candidateExpression = "neutral";
+    this.candidateFrames = 0;
   }
 
   setEnabled(enabled) {
@@ -44,13 +47,26 @@ export class FaceTrackingBridge {
       shapes.get("eyeSquintRight") ?? 0
     );
 
-    const expression =
+    const detectedExpression =
       browDown > 0.45 ? "angry" :
       eyeWide > 0.52 && mouthOpen > 0.35 ? "afraid" :
       smile > 0.45 ? "happy" :
       frown > 0.45 ? "sad" :
       eyeSquint > 0.50 ? "embarrassed" :
       "neutral";
+
+    if (detectedExpression === this.candidateExpression) {
+      this.candidateFrames += 1;
+    } else {
+      this.candidateExpression = detectedExpression;
+      this.candidateFrames = 1;
+    }
+
+    if (this.candidateFrames >= 3) {
+      this.currentExpression = this.candidateExpression;
+    }
+
+    const expression = this.currentExpression;
 
     const pose = readPose(result.facialTransformationMatrixes?.[0]?.data);
 
