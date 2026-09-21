@@ -1,3 +1,21 @@
+## CHECKPOINT VIGENTE — 2026-09-21
+
+| Área | Estado | Próximo gate |
+|---|---|---|
+| Cari V0 procedural | IMPLEMENTADO | Validación visual/tracking; reemplazar meshes sin cambiar contrato |
+| Avatar contract | IMPLEMENTADO + smoke | Mantener contrato único |
+| Action Store | IMPLEMENTADO + regression test | No crear otro almacenamiento |
+| FaceTrackingBridge | IMPLEMENTADO | Benchmark y validación real |
+| D3D11 compositor | EXPERIMENTAL | Eliminar CPU readback y conectar encoder |
+| FFmpeg named-pipe E2E | IMPLEMENTADO | Verificar en Windows |
+| RTMP retry/backoff | IMPLEMENTADO | Probar caída/reconexión real |
+| CI | BLOQUEADO | Obtener jobs con steps/logs |
+
+### Evidencia de continuidad
+- La bitácora canónica es `experimental/studio/BITACORA.md`.
+- El avatar no se considera arte final: V0 es una implementación funcional de runtime para preview/overlay, tracking y acciones.
+- No se crean nuevos routers/stores/renderers cuando el componente equivalente ya existe.
+
 # Cari Studio — matriz de auditoría rigurosa
 
 Esta matriz separa tres estados distintos:
