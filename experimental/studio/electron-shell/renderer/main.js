@@ -55,6 +55,8 @@ const settingsRenderer = new ThreeAvatarRenderer(ui.settingsAvatar);
 const tracking = new FaceTrackingBridge(acting);
 const lipSync = new AudioLipSync(acting);
 const actionStore = new AvatarActionStore();
+const bundledCariAssets = await window.cari.assets.cariExpressions().catch(() => ({}));
+await actionStore.seedBundledFrames(bundledCariAssets);
 
 let faceTracker = null;
 let cameraStream = null;
@@ -363,12 +365,12 @@ function renderActionFrame(action, index = 0) {
 
   for (const image of [ui.actionOverlay, ui.editorOverlay]) {
     if (!image) continue;
-    if (!frame?.dataUrl) {
+    if (!frame?.dataUrl && !frame?.url) {
       image.removeAttribute("src");
       image.style.display = "none";
       continue;
     }
-    image.src = frame.dataUrl;
+    image.src = frame.dataUrl || frame.url;
     image.style.display = "block";
     image.style.opacity = String(action.opacity ?? 1);
     image.style.transform =
@@ -482,7 +484,7 @@ function renderActionInspector() {
       item.className = "frame-item";
       const image = document.createElement("img");
       image.className = "frame-thumb";
-      image.src = frame.dataUrl;
+      image.src = frame.dataUrl || frame.url;
       const info = document.createElement("div");
       info.innerHTML = '<div class="frame-name">' + esc(frame.name) + '</div><div class="small muted">Frame ' + (index + 1) + ' · ' + formatBytes(frame.size) + '</div>';
       const controls = document.createElement("div");
