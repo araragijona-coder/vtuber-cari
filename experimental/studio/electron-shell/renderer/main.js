@@ -48,15 +48,27 @@ const ui = {
   dashOutput: $("#dash-output"),
   workspace: $("#workspace-state"),
   fileInput: $("#action-file-input"),
-  presetInput: $("#action-preset-input")
+  presetInput: $("#action-preset-input"),
+  trackingStatus: $("#tracking-status"),
+  trackingQuality: $("#tracking-quality"),
+  trackingSmoothing: $("#tracking-smoothing"),
+  trackingSensitivity: $("#tracking-sensitivity")
 };
 
 const session = new StudioSessionManager(window.cari.native);
 const acting = new AvatarActingBridge();
+const TRACKING_PROFILE_KEY = "cari.tracking.profile";
+function loadTrackingProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(TRACKING_PROFILE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
 const renderer = new ThreeAvatarRenderer(ui.avatar);
 const editorRenderer = new ThreeAvatarRenderer(ui.editorAvatar);
 const settingsRenderer = new ThreeAvatarRenderer(ui.settingsAvatar);
-const tracking = new FaceTrackingBridge(acting);
+const tracking = new FaceTrackingBridge(acting, loadTrackingProfile());
 const lipSync = new AudioLipSync(acting);
 const speech = new LocalSpeechController();
 const actionStore = new AvatarActionStore();
@@ -78,6 +90,7 @@ let manualTalk = false;
 let talkStartedAudio = false;
 let preTalkManualExpression = null;
 let speechAutoEnabled = false;
+let lastTrackingUiUpdate = 0;
 
 const scenes = loadScenes();
 const twitch = {
@@ -862,6 +875,10 @@ async function startCamera() {
   faceTracker = new FaceTracker({ modelPath: config.mediaPipeModelPath });
   await faceTracker.init();
   tracking.setEnabled(true);
+  ui.trackingStatus.textContent = tracking.status().status;
+  const profile = tracking.getProfile();
+  ui.trackingSmoothing.value = String(profile.smoothing);
+  ui.trackingSensitivity.value = String(profile.headGain);
   ui.tracking.textContent = "camera + MediaPipe";
   ui.trackingBadge.textContent = "camera + MediaPipe";
   $("#tracking-status").textContent = "MediaPipe";
@@ -874,6 +891,8 @@ function stopCamera() {
   if (ui.trackingCamera) ui.trackingCamera.srcObject = null;
   cameraStream = null;
   tracking.setEnabled(false);
+  ui.trackingStatus.textContent = "idle";
+  ui.trackingQuality.textContent = "Face: idle · Calibrado: no";
   faceTracker?.close();
   faceTracker = null;
   ui.tracking.textContent = "tracking idle";
@@ -913,7 +932,21 @@ function trackingLoop(timestamp) {
 
   if (faceTracker && cameraStream && ui.camera.readyState >= 2) {
     const result = faceTracker.detect(ui.camera, timestamp);
-    if (result) tracking.apply(result);
+    if (result) {
+      tracking.apply(result);
+    } else {
+      tracking.tickNoFace();
+    }
+
+    if (timestamp - lastTrackingUiUpdate >= 120) {
+      const state = tracking.status();
+      ui.trackingStatus.textContent = state.status;
+      ui.trackingQuality.textContent =
+        "Face: " + state.status +
+        " · Calibrado: " + (state.calibrated ? "sí" : "no") +
+        (state.active ? " · " + state.samples + "/" + state.target : "");
+      lastTrackingUiUpdate = timestamp;
+    }
   }
 
   if (speechAutoEnabled) {
@@ -1366,6 +1399,39 @@ $("#voice-anime-3").onclick = () => command(session.setVoiceEffect("anime-bright
 
 $("#tracking-camera-start").onclick = () => startCamera().catch(error => showStatus("Camera: " + error.message));
 $("#tracking-camera-stop").onclick = stopCamera;
+$("#tracking-calibrate").onclick = () => {
+  if (!faceTracker || !cameraStream) {
+    showStatus("Inicia la cámara antes de calibrar");
+    return;
+  }
+  const state = tracking.beginCalibration();
+  ui.trackingStatus.textContent = "calibrating";
+  ui.trackingQuality.textContent = "Face: calibrando · " + state.samples + "/" + state.target;
+  showStatus("Calibración iniciada: rostro neutro, mirando al frente");
+};
+$("#tracking-reset").onclick = () => {
+  const state = tracking.resetCalibration();
+  ui.trackingQuality.textContent =
+    "Face: " + state.status + " · Calibrado: " + (state.calibrated ? "sí" : "no");
+  showStatus("Calibración restablecida");
+};
+ui.trackingSmoothing.onchange = () => {
+  const value = Number(ui.trackingSmoothing.value);
+  tracking.setProfile({ smoothing: value });
+  localStorage.setItem(TRACKING_PROFILE_KEY, JSON.stringify(tracking.getProfile()));
+  showStatus("Suavizado: " + value);
+};
+ui.trackingSensitivity.onchange = () => {
+  const gain = Number(ui.trackingSensitivity.value);
+  tracking.setProfile({
+    headGain: gain,
+    gazeGain: gain,
+    mouthGain: 1.25 * gain,
+    blinkGain: 1.15 * gain
+  });
+  localStorage.setItem(TRACKING_PROFILE_KEY, JSON.stringify(tracking.getProfile()));
+  showStatus("Sensibilidad actualizada");
+};
 
 $("#output-record").onclick = () => command(session.outputStart("local-record"));
 $("#output-rtmp").onclick = () => command(session.outputStart("rtmp", $("#rtmp-target-2").value.trim()));
