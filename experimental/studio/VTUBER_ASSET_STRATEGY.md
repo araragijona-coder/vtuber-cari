@@ -16,6 +16,23 @@ Crear el avatar de Cari sin romper el contrato de actuación existente y sin con
 | 3DTuber práctico | VRoid Studio → VRM | EXTERNO / OPCIONAL | crear personaje → exportar VRM → cargar en Three.js/three-vrm | ya encaja con la ruta 3D del proyecto |
 | 3DTuber open tooling | Blender → glTF/VRM | EXTERNO / OPCIONAL | modelado/rig → exportar glTF/VRM → cargar en Three.js | máxima libertad de pipeline, mayor trabajo artístico |
 
+## Cari base asset actual
+
+Estado: `BASE_ART_V0`.
+
+Los tres frames base están en:
+- `assets/cari/expressions/cari_neutral.png`
+- `assets/cari/expressions/cari_happy.png`
+- `assets/cari/expressions/cari_angry.png`
+
+Su manifest y las restricciones de diseño están en:
+- `assets/cari/expressions/manifest.json`
+- `assets/cari/expressions/DESIGN_SPEC.md`
+
+El Action Store existente los precarga automáticamente solo cuando una acción no tiene frames personalizados. No se crea un segundo editor ni un segundo sistema de assets.
+
+La calidad artística de estos archivos se considera base funcional V0; reemplazarlos posteriormente no requiere cambiar el contrato de actuación ni la arquitectura de renderer.
+
 ## Qué puede hacer el sistema actual
 
 Cari Studio ya dispone de:
