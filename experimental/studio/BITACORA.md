@@ -2423,3 +2423,68 @@ Porcentaje canónico sin aumento artificial:
 - Producto usable/end-user: ~58%
 - Seguimiento global: ~65%
 - Producción: NO listo
+
+## LOG-054 — Correcciones de integración y overlay 2D
+
+Fecha: 2026-09-21
+Área: Avatar 2D / Persistencia / Twitch / VAD / Electron Overlay
+Estado: IMPLEMENTADO / STATIC REVIEW / TEST PREPARADO / WINDOWS PENDIENTE
+
+### Correcciones nuevas
+
+- Se corrigió la ruta del bridge de persistencia: AvatarActionStore consume window.cari.native.avatarActions.
+- Se añadió StudioActionRouter.handleEvent(event) para que chat y Twitch EventSub usen un único punto de entrada.
+- Se añadió la propagación de frames 2D al overlay transparente mediante avatar:set-action-frame.
+- El overlay separado ahora mantiene una capa PNG encima del canvas Three.js y recibe escala, opacidad y offsets.
+- Las previsualizaciones de frame del editor se marcan como preview y no alteran el overlay live.
+- La clave de sincronización del frame live incluye estilo/transformación para que cambios de escala/opacidad/offset se propaguen aunque el PNG no cambie.
+- Se corrigió el TTS de eventos Twitch para usar la acción enrutada.
+- Se añadió prueba específica del bridge de persistencia nativa y prueba integrada chat + EventSub + VAD.
+- El harness de persistencia adapta avatar-contract.js a avatar-contract.mjs solamente dentro del entorno de test.
+
+### Contrato operativo
+
+```
+Editor 2D / manual ──────┐
+Twitch chat/EventSub ────┼─> StudioActionRouter
+VAD / Audio Stream ──────┘          │
+                                    v
+                           Avatar2DFramePlayer
+                                    │
+                    ┌───────────────┴──────────────┐
+                    v                              v
+             preview/live DOM              detached overlay
+                    │                              │
+                    └────────> PNG frame <─────────┘
+```
+
+Prioridad canónica: manual 100 > chat 80 > event 70 > voice 30.
+
+### Estado de validación
+
+- Static review de archivos afectados: sin TODO/FIXME/XXX/stubs.
+- Tests de integración preparados.
+- npm test ya incluye test/*.test.mjs y avatar/*.test.mjs.
+- CI sigue bloqueada: Native Windows Build, CI, Character Runtime Tests y Actions Runner Diagnostic terminan con failure, steps=null y logs_url=null.
+- No marcar estos runs como evidencia de fallo del código.
+
+### NO REPETIR
+
+- No reconstruir Action Store, Frame Player, VAD ni Twitch EventSub.
+- No crear un segundo canal de eventos para el overlay.
+- No convertir previews del editor en acciones live.
+- No cambiar la ruta de persistencia fuera de window.cari.native.avatarActions.
+- No intentar arreglar los fallos actuales de Actions modificando lógica de negocio sin logs/steps.
+
+### Siguiente gate real
+
+1. Ejecutar tests Electron en un runner observable.
+2. Abrir overlay transparente en Windows y comprobar animación PNG sostenida.
+3. Comprobar que la misma secuencia visible en overlay llega al compositor/encoder.
+4. Medir FPS, CPU/GPU y memoria durante una sesión larga.
+
+Porcentaje canónico:
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
