@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: `753bebc993d15616221e836066dae7f53db58482`.
+- Último head auditado: `a6da0ed020b66ac10c2f319fb27d7b25e43af5b8`.
 
 ## Estados de trabajo
 
@@ -466,3 +466,44 @@ Existían varios archivos de bitácora históricos y el estado operativo de la r
 ### Siguiente foco
 
 Prioridad inmediata: obtener evidencia observable de CI/E2E Windows y, en paralelo, cerrar la ruta compositor GPU → frame final sin readback por frame.
+
+
+---
+
+## LOG-020 — Checkpoint actual + demo visual de Cari
+
+**Fecha:** 2026-09-21
+**Área:** Continuidad / UI / demo / CI
+**Estado:** DOCUMENTADO
+
+### Estado confirmado
+
+- PR #2 sigue abierto y en draft.
+- HEAD auditado: a6da0ed020b66ac10c2f319fb27d7b25e43af5b8.
+- Ingeniería: ~71%.
+- Producto usable/end-user: ~58%.
+- Seguimiento global: ~65%.
+- Producción: NO listo.
+
+### Demo visual
+
+Se generó una captura demostrativa local basada en la superficie real documentada de En vivo y en el asset V0 presente en assets/cari/expressions/cari_neutral.png.
+
+Archivo de demo: /mnt/data/cari_studio_demo_actual.png
+
+La imagen es una representación visual del estado actual de la UI y del asset Cari; no debe interpretarse como evidencia de una sesión Windows/FFmpeg ejecutándose en hardware real.
+
+### CI actual
+
+Los runs del HEAD auditado para Native Windows Build, CI, Character Runtime Tests y Actions Runner Diagnostic terminan con failure y jobs sin steps/logs observables. No se declara CI verde.
+
+### NO REPETIR
+
+- No tratar la captura demo como validación de runtime.
+- No reconstruir la UI principal desde cero: usar PANEL_ACTUAL.md y el renderer existente.
+- No cambiar el porcentaje por cantidad de commits/archivos; usar gates de evidencia.
+- No rehacer MediaPipe, Three.js, WGC, WASAPI, FFmpeg supervisor ni MediaGraphController sin regresión demostrada.
+
+### Siguiente foco
+
+CI/E2E Windows observable y compositor GPU que conecte el avatar al frame final sin readback CPU por frame, seguido por PTS extremo a extremo y drift correction.
