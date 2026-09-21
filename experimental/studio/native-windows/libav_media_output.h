@@ -22,6 +22,8 @@ struct LibavMediaOutputStats {
     std::int64_t first_input_pts = -1;
     std::int64_t last_video_input_pts = -1;
     std::int64_t last_audio_input_pts = -1;
+    std::int64_t first_video_packet_pts = -1;
+    std::int64_t first_audio_packet_pts = -1;
     std::int64_t last_video_packet_pts = -1;
     std::int64_t last_audio_packet_pts = -1;
     std::uint64_t video_packets_dropped = 0;
