@@ -45,6 +45,7 @@ bool AudioCoreBridge::start() {
     errors_.store(0);
     peak_.store(0.0f);
     current_mix_level_.store(0.0f);
+    microphone_enabled_.store(true, std::memory_order_relaxed);
     timeline_mixer_.clear();
     {
         std::lock_guard lock(error_mutex_);
@@ -83,6 +84,7 @@ bool AudioCoreBridge::start() {
 
 void AudioCoreBridge::stop() noexcept {
     running_.store(false, std::memory_order_relaxed);
+    microphone_enabled_.store(false, std::memory_order_relaxed);
     microphone_.stop();
     system_loopback_.stop();
 }
@@ -96,6 +98,10 @@ void AudioCoreBridge::on_packet(const char* track_id, const AudioCapturePacket& 
     }
 
     const auto sequence = callback_sequence;
+    if (track_id && std::string(track_id) == "microphone" &&
+        !microphone_enabled_.load(std::memory_order_relaxed)) {
+        return;
+    }
     auto core_packet = to_core_packet(packet, sequence);
     if (track_id && std::string(track_id) == "microphone") {
         microphone_effect_.process(
@@ -135,6 +141,10 @@ void AudioCoreBridge::set_error(std::wstring error) {
         last_error_ = std::move(error);
     }
     errors_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void AudioCoreBridge::set_microphone_enabled(bool enabled) noexcept {
+    microphone_enabled_.store(enabled, std::memory_order_relaxed);
 }
 
 void AudioCoreBridge::set_voice_effect(VoiceEffectConfig config) noexcept {
