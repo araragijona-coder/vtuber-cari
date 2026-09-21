@@ -3011,3 +3011,58 @@ Porcentajes canónicos al registrar este log:
 - Producto usable/end-user: ~58%
 - Seguimiento global: ~65%
 - Producción: NO listo
+
+
+## LOG-064 — CMake ausente al primer lanzamiento desde checkout local — 21/09/2026
+
+Área: Windows / Launcher / Toolchain / Continuidad
+
+Estado: IMPLEMENTADO / STATIC REVIEW / WINDOWS REAL PENDIENTE
+
+### Evidencia aportada por el usuario
+
+Desde la carpeta de desarrollo `C:\CariStudio\vtuber-cari\experimental\studio\electron-shell` se ejecutó `run-local.ps1` con ExecutionPolicy de proceso en Bypass y el launcher informó: `Cari Studio native engine is not built and CMake was not found.`
+
+El mensaje derivó correctamente al setup, pero obligaba al usuario a abandonar el launcher para preparar el entorno.
+
+### Causa
+
+`run-local.ps1` solo consultaba `Get-Command cmake.exe`. No intentaba refrescar PATH de Machine/User, localizar una instalación estándar de CMake, localizar CMake incluido en Visual Studio ni invocar el setup existente cuando faltaba CMake.
+
+### Corrección integrada
+
+`experimental/studio/electron-shell/run-local.ps1` ahora:
+
+1. refresca PATH del proceso;
+2. busca `cmake.exe` en PATH;
+3. busca instalaciones estándar de CMake;
+4. usa `vswhere.exe` para encontrar el CMake de Visual Studio cuando corresponde;
+5. si CMake sigue ausente y existe WinGet + `Cari-Setup.ps1`, ejecuta `Cari-Setup.ps1 -SkipBuild -SkipNpm`;
+6. vuelve a buscar CMake después del setup;
+7. continúa con `build-launch\Release\cari-studio-native.exe`;
+8. permite `-NoSetup` para entornos donde la instalación automática no está permitida.
+
+### Por qué no se modifica el motor
+
+El síntoma ocurre antes de compilar `cari-studio-native.exe`. No existe evidencia de una regresión en captura, audio, FFmpeg, tracking o avatar.
+
+### NO REPETIR
+
+- No volver a auditar WGC/WASAPI/FFmpeg por un mensaje de CMake ausente.
+- No pedir `CARI_NATIVE_EXECUTABLE` si el checkout puede construir el engine.
+- No crear otro sistema de instalación de CMake: `Cari-Setup.ps1` es el camino canónico.
+- No duplicar launchers: `Cari-Launch.bat` → `run-local.ps1` sigue siendo la ruta de desarrollo.
+- No confundir ausencia de `cmake.exe` con fallo del código nativo.
+
+### Evidencia pendiente
+
+Confirmar en Windows que un checkout sin CMake ejecuta el bootstrap, detecta el CMake recién instalado, configura/builda el runtime y finalmente conecta `NativeEngine`.
+
+### Porcentaje canónico
+
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
+
+Esta corrección mejora el onboarding del entorno y no aumenta el porcentaje de ingeniería por sí sola.
