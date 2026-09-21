@@ -334,14 +334,17 @@ export class StudioActionRouter {
 
     const next = Boolean(speaking);
     const changed = next !== this.voiceSpeaking;
+    if (!changed) {
+      return false;
+    }
+
     this.voiceSpeaking = next;
     const action = next ? "talking" : "silent";
-    const routed = this.trigger(action, {
+    return this.trigger(action, {
       source: "voice",
       holdMs: 0,
       priority: SOURCE_PRIORITIES.voice
     });
-    return changed || routed;
   }
 
   release(source) {
