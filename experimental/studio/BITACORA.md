@@ -1,6 +1,6 @@
 # Cari Studio — Bitácora maestra
 
-Última actualización: 2026-09-20
+Última actualización: 2026-09-21
 Rama: fix/native-windows-foundation
 PR: #2
 
@@ -307,3 +307,61 @@ Pendientes prioritarios que no deben reemplazarse por trabajo repetido:
 ### Porcentaje canónico actual
 - Ingeniería: ~65%.
 - Producto usable: ~50%.
+
+## Actualización 2026-09-21 — StudioRuntimeBindings y selección de backend
+
+### Hecho
+
+- Se evolucionó app/studio/runtime_bindings.py desde un registro simple de callbacks a una frontera explícita de backends.
+- NativeBackend quedó definido como backend principal, prioridad 100.
+- OBSBackend quedó definido como backend opcional, prioridad 50.
+- AUTO prueba NativeBackend primero y solo usa OBS cuando Native no está disponible o no soporta la acción.
+- NATIVE no hace fallback a OBS.
+- OBS solo se usa cuando se selecciona explícitamente o cuando AUTO necesita fallback.
+- Un error durante la ejecución del backend no provoca un segundo intento en otro backend; esto evita efectos duplicados o parciales.
+- Las acciones no atendidas siguen publicando el evento tipado studio_*_requested y además studio_action_unhandled; no se inventa una implementación.
+- Se conservaron register/unregister para compatibilidad; register usa NativeBackend por defecto.
+- snapshot conserva las métricas planas anteriores y agrega la vista detallada de backends.
+- dispatch_payload valida que el payload sea un objeto antes de leer kind/value.
+- LocalPipeline ahora acepta studio_bindings inyectado y usa StudioRuntimeBindings por defecto.
+- Se valida que un StudioRuntimeBindings inyectado pertenezca al mismo EventBus del pipeline.
+- tests/test_studio_runtime_bindings.py cubre backend native prioritario, fallback OBS, selección explícita, errores sin duplicación, acciones no atendidas y compatibilidad.
+- tests/test_pipeline_events.py cubre la integración del nuevo boundary en LocalPipeline.
+- experimental/studio/RUNTIME_BACKENDS.md documenta la arquitectura y la regla de no duplicar routers/backend bindings.
+
+### Estado
+
+- StudioRuntimeBindings: IMPLEMENTADO.
+- NativeBackend: IMPLEMENTADO como adaptador inyectable; la conexión física al Native Engine debe ser provista por el integrador.
+- OBSBackend: IMPLEMENTADO como adaptador inyectable; el transporte real sigue perteneciendo a ObsService/obs-websocket.
+- Verificación CI: BLOQUEADA por el problema de Actions observado; los jobs recientes continúan terminando con steps=null.
+- Validación en Windows/OBS real: PENDIENTE.
+
+### NO REPETIR
+
+1. No crear otro StudioRuntimeBindings.
+2. No crear un segundo router de backend para OBS.
+3. No convertir OBS en dependencia del Native Engine.
+4. No hacer fallback automático después de una excepción de ejecución del backend.
+5. No declarar una acción funcional solo porque está registrada en la UI.
+6. No conectar credenciales ni SDKs de plataforma directamente al router de acciones.
+7. Nuevas plataformas deben implementar el contrato de backend existente y cubrirlo con pruebas, no modificar la semántica de StudioAction.
+
+### Siguiente foco
+
+1. Transporte A/V con timestamps explícitos.
+2. Compositor GPU D3D11 de producción dentro del frame que entra al encoder.
+3. Verificación E2E Windows de named pipes + FFmpeg.
+4. Drift correction de relojes WASAPI.
+5. Cámara Media Foundation y Game Capture real.
+6. OBS scene/source/filter actions adicionales con prueba real.
+7. Twitch scopes/endpoints avanzados y prueba real.
+8. Hardware, multistream y release.
+
+### Porcentaje canónico
+
+- Ingeniería: ~67%.
+- Producto usable: ~53%.
+- Global de seguimiento: ~61%.
+
+HEAD registrado de esta actualización: f10bd6ef024c52c077f5c69a29b2ea497e6eb297.
