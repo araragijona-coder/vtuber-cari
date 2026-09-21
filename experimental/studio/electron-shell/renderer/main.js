@@ -97,7 +97,6 @@ const actionRouter = new StudioActionRouter({
   player: actionPlayer,
   acting
 });
-let actionTimer = null;
 let refreshBusy = false;
 let twitchRead = false;
 let manualTalk = false;
