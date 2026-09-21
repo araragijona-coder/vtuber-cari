@@ -194,6 +194,18 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Token refresh lifecycle test.
 - [ ] Live broadcaster/bot validation.
 
+### Avatar 2D / PNGTuber
+
+- [x] Action Store con presets JSON y frames.
+- [x] Runtime determinista Avatar2DFramePlayer.
+- [x] StudioActionRouter compartido para manual/chat/EventSub/VAD.
+- [x] Prioridad manual > chat > EventSub > voz.
+- [x] Loop de frames por durationMs y retorno al estado base.
+- [x] Persistencia en disco Electron con límites de tamaño y escritura atómica.
+- [x] Tests de routing y persistencia.
+- [ ] Ejecución Windows/renderer sostenida.
+- [ ] Integración del frame 2D final al compositor/encoder.
+
 ### Cari / Avatar
 
 ### Cari V0 — habla y reacciones
