@@ -18,7 +18,7 @@
 
 ## CHECKPOINT VIGENTE — 2026-09-21
 
-- HEAD canónico de esta rama: consultar el PR #2; último head auditado en continuidad: `070c3481de17384bba353affb17a0f33abc38213`.
+- HEAD canónico de esta rama: `9dae3002ad4f694255583c1632409362c88d7431`.
 - Ingeniería: **~71%**.
 - Producto usable/end-user: **~58%**.
 - Seguimiento global: **~65%**.
@@ -399,7 +399,7 @@ La regla evita confundir servicio disponible con consumidor multimedia. Antes de
 
 > Este bloque es el estado vigente. Los porcentajes de secciones históricas inferiores no deben utilizarse para planificar trabajo nuevo.
 
-- HEAD auditado: `a49860c3393345759703e65090836a70f48c05bf`
+- HEAD auditado: `9dae3002ad4f694255583c1632409362c88d7431`.
 - Ingeniería: **~68%**
 - Producto usable/end-user: **~54%**
 - Seguimiento global: **~62%**
