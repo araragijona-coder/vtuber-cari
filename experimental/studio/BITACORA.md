@@ -13,7 +13,7 @@
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
 - Generador de galería: Hugging Face Inference Providers configurable por modelo/proveedor.
-- Último head auditado: `cfab0b0be6b373402b40e39bd9082adeaf369049`.
+- Último head auditado: `e4b1ddb704a3471c6b495541f866116d1628bc05`.
 
 ## Estados de trabajo
 
