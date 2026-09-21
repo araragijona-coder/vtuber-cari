@@ -1,3 +1,5 @@
+import { AVATAR_EXPRESSIONS } from "./avatar-contract.js";
+
 const STORAGE_KEY = "cari.studio.avatar-actions.v1";
 const MAX_DATA_URL_BYTES = 8 * 1024 * 1024;
 const MAX_FRAMES_PER_ACTION = 24;
@@ -5,10 +7,14 @@ const MAX_FRAMES_PER_ACTION = 24;
 const DEFAULT_ACTIONS = [
   { id: "neutral", label: "Neutral", icon: "○", expression: "neutral" },
   { id: "happy", label: "Feliz", icon: "☺", expression: "happy" },
-  { id: "sad", label: "Triste", icon: "◡", expression: "neutral" },
+  { id: "sad", label: "Triste", icon: "◡", expression: "sad" },
+  { id: "angry", label: "Enojada", icon: "△", expression: "angry" },
+  { id: "afraid", label: "Asustada", icon: "!", expression: "afraid" },
+  { id: "embarrassed", label: "Avergonzada", icon: "〃", expression: "embarrassed" },
+  { id: "exhausted", label: "Agotada", icon: "z", expression: "exhausted" },
+  { id: "confused", label: "Confundida", icon: "?", expression: "confused" },
   { id: "talking", label: "Hablar", icon: "◉", expression: "neutral", mouthOpen: 0.9 },
-  { id: "silent", label: "Callar", icon: "○", expression: "neutral", mouthOpen: 0 },
-  { id: "angry", label: "Enojada", icon: "△", expression: "angry" }
+  { id: "silent", label: "Callar", icon: "○", expression: "neutral", mouthOpen: 0 }
 ];
 
 function uid(prefix = "id") {
@@ -21,7 +27,7 @@ function normalizeAction(input, index = 0) {
     id: String(input?.id || uid("action")),
     label: String(input?.label || fallback.label || "Nueva acción").slice(0, 48),
     icon: String(input?.icon || fallback.icon || "+").slice(0, 4),
-    expression: ["neutral", "happy", "angry"].includes(input?.expression)
+    expression: AVATAR_EXPRESSIONS.includes(input?.expression)
       ? input.expression
       : (fallback.expression || "neutral"),
     mouthOpen: Math.max(0, Math.min(1, Number(input?.mouthOpen) || Number(fallback.mouthOpen) || 0)),
