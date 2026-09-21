@@ -1767,3 +1767,49 @@ P0: ejecutar libav-d3d11 en Windows observable, comprobar frames/PTS/paquetes, a
 ### HEAD auditado antes de este registro
 
 `a29b3d13b36dceb667e06127ce50362e2f1b732e`
+
+
+## LOG-044 — Inventario de archivos Cari Studio / Cari VTuber
+
+Fecha: 2026-09-21
+Área: Continuidad / Inventario / Arquitectura
+Estado: INVENTARIADO
+
+### Propósito
+Registrar la estructura real existente para que futuras iteraciones no vuelvan a descubrir o reconstruir módulos ya implementados.
+
+### Cari Studio — módulos actualmente presentes
+- Native Windows: Windows Graphics Capture, D3D11, WASAPI, Media Foundation camera, media graph, RawPipe, FFmpeg CLI y backend Libav/D3D11 experimental.
+- GPU media path: d3d11_compositor.*, d3d11_av_frame_bridge.*, avatar_gpu_overlay.*.
+- Output: ffmpeg_av_output.*, libav_media_output.*, libav_runtime_backend.*, multi_stream_output.*, ffmpeg_named_pipe_e2e_smoke.cpp.
+- Timing/audio: media_clock.*, media_scheduler.*, audio_clock_drift.*, audio_timeline_mixer.*.
+- Electron shell: native-engine.js, session-manager.js, studio-controller.js, obs-service.js, renderer/main.js.
+
+### Cari VTuber — módulos actualmente presentes
+- Canon/personaje: CARI_CHARACTER_BIBLE.md.
+- Dirección artística: VTUBER_CARI_ART_DIRECTION.md.
+- Gate de calidad: ART_QUALITY_GATE.md.
+- Estrategia de assets: VTUBER_ASSET_STRATEGY.md.
+- Tracking: face-tracker.js, face-tracking-bridge.js, tracking-profile.js.
+- Acting/avatar: acting-bridge.js, avatar-contract.js, activity-motion.js, activity-presets.js, action-store.js.
+- Render: three-avatar.js, overlay-main.js, overlay.html, asset-registry.js.
+- Voz/lip-sync: audio-lipsync.js, local-speech-controller.js, speech-activity.js.
+- Backend adicional: experimental/avatar/vrm-web/ y adaptador Live2D sin runtime propietario distribuido.
+- Catálogo de personajes runtime: app/characters/profile_catalog.py.
+
+### Regla de continuidad
+Antes de crear un módulo nuevo, revisar este inventario y las entradas anteriores. Si ya existe, extenderlo o corregirlo solo con evidencia nueva.
+
+### HEAD del repositorio al actualizar esta entrada
+b468e77d5b88802daf66aec63b96c2bb029a3aa4
+
+### Porcentaje
+Los porcentajes documentados en la cabecera de esta bitácora siguen siendo el último corte auditado. No se modifican solo por contar archivos; una nueva cifra requiere una auditoría de gates.
+
+### NO REPETIR
+- No crear un segundo compositor D3D11.
+- No crear otro bridge D3D11 -> AVFrame.
+- No crear otro tracker MediaPipe paralelo.
+- No crear otro overlay Three.js paralelo.
+- No crear otro sistema de calibración/smoothing.
+- No copiar un runtime Live2D propietario al repositorio.
