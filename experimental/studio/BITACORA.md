@@ -926,3 +926,39 @@ Mantener D3D11Compositor y ThreeAvatarRenderer existentes. El siguiente trabajo 
 ### Siguiente foco único
 
 P0: compositor GPU -> encoder sin readback CPU por frame y evidencia Windows/E2E. Usar el registry existente para introducir Cari V1 cuando el asset real esté disponible.
+---
+
+## LOG-030 — Evidencia CI actual y bloqueo del runner
+
+Fecha: 2026-09-21  
+Área: CI / Continuidad / Auditoría  
+Estado: BLOQUEADO POR INFRAESTRUCTURA
+
+### Problema
+
+Se necesitaba distinguir entre un fallo de código y un fallo del entorno de GitHub Actions. Los workflows ya fueron corregidos para ejecutarse en la rama de desarrollo y existe un workflow de diagnóstico de runner.
+
+### Evidencia
+
+Sobre el HEAD 21f89448a04ed5eda26c68eb9506d4cb96c07694:
+- Native Windows Build termina failure con jobs build y electron-shell-check sin steps ni logs.
+- Actions Runner Diagnostic termina failure en job probe sin steps ni logs.
+- CI termina failure en ambos jobs de Python sin steps ni logs.
+- Character Runtime Tests termina failure sin steps ni logs.
+
+El mismo patrón se ha observado en varios HEAD consecutivos, por lo que actualmente no existe evidencia para atribuir el fallo a una línea concreta del repositorio.
+
+### Decisión
+
+No modificar código funcional para intentar arreglar estos failures mientras GitHub no entregue al menos un step/log ejecutado.
+
+### NO REPETIR
+
+- No reintentar indefinidamente los mismos runs esperando que cambie el diagnóstico.
+- No alterar MediaGraph, FFmpeg, tracking, renderer o compositor por este fallo de runner.
+- No declarar CI verde.
+- No utilizar un failure sin steps como prueba de regresión funcional.
+
+### Siguiente acción
+
+Continuar con el siguiente gate técnico P0 sin tocar los subsistemas ya cerrados; volver al CI únicamente cuando aparezca una ejecución con steps/logs observables.
