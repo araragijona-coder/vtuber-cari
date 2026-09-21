@@ -15,6 +15,7 @@ __all__ = [
     "TwitchChatRateLimiter",
     "TwitchCommandEngine",
     "TwitchConfig",
+    "TwitchController",
     "TwitchEvent",
     "TwitchLiveBot",
 ]
@@ -24,40 +25,58 @@ def __getattr__(name: str):
     """Lazy-load integration modules to keep core imports acyclic."""
     if name == "TwitchAdapter":
         from .adapter import TwitchAdapter
-
         return TwitchAdapter
     if name == "TwitchConfig":
         from .client import TwitchConfig
-
         return TwitchConfig
     if name == "TwitchLiveBot":
         from .live import TwitchLiveBot
-
         return TwitchLiveBot
+    if name == "TwitchController":
+        from .controller import TwitchController
+        return TwitchController
     if name == "TwitchEvent":
         from .events import TwitchEvent
-
         return TwitchEvent
     if name in {"ChatVoiceRequest", "ChatVoiceRouter"}:
         from .chat_voice import ChatVoiceRequest, ChatVoiceRouter
-
-        return {"ChatVoiceRequest": ChatVoiceRequest, "ChatVoiceRouter": ChatVoiceRouter}[name]
+        return {
+            "ChatVoiceRequest": ChatVoiceRequest,
+            "ChatVoiceRouter": ChatVoiceRouter,
+        }[name]
     if name == "TwitchChatRateLimiter":
         from .rate_limit import TwitchChatRateLimiter
-
         return TwitchChatRateLimiter
-    if name in {"CommandContext", "CommandDefinition", "CommandResult", "TwitchCommandEngine"}:
-        from .commands import CommandContext, CommandDefinition, CommandResult, TwitchCommandEngine
-
+    if name in {
+        "CommandContext",
+        "CommandDefinition",
+        "CommandResult",
+        "TwitchCommandEngine",
+    }:
+        from .commands import (
+            CommandContext,
+            CommandDefinition,
+            CommandResult,
+            TwitchCommandEngine,
+        )
         return {
             "CommandContext": CommandContext,
             "CommandDefinition": CommandDefinition,
             "CommandResult": CommandResult,
             "TwitchCommandEngine": TwitchCommandEngine,
         }[name]
-    if name in {"AutomationAction", "AutomationEngine", "AutomationEvent", "AutomationRule"}:
-        from .automation import AutomationAction, AutomationEngine, AutomationEvent, AutomationRule
-
+    if name in {
+        "AutomationAction",
+        "AutomationEngine",
+        "AutomationEvent",
+        "AutomationRule",
+    }:
+        from .automation import (
+            AutomationAction,
+            AutomationEngine,
+            AutomationEvent,
+            AutomationRule,
+        )
         return {
             "AutomationAction": AutomationAction,
             "AutomationEngine": AutomationEngine,
