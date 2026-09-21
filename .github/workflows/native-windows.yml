@@ -29,6 +29,28 @@ jobs:
           choco install ffmpeg -y --no-progress
           ffmpeg -version
 
+      - name: Validate Windows setup scripts
+        shell: pwsh
+        run: |
+          $files = @(
+            'experimental/studio/tools/windows/Cari-Setup.ps1',
+            'experimental/studio/tools/windows/Cari-PC-Audit.ps1'
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Join-Path $env:GITHUB_WORKSPACE $file),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              exit 1
+            }
+          }
+          Write-Host 'PowerShell setup scripts syntax: PASS'
+
       - name: Configure CMake
         run: cmake -S . -B build -A x64
 
