@@ -291,6 +291,14 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - Nuevos módulos recientes: Media Foundation camera, D3D11 compositor experimental, LatestItemQueue, drift estimator, Libav experimental, named-pipe E2E, multistream supervisor, ActionStore/editor y Twitch desktop UI.
 - Ninguno de estos se promociona a producción mientras falte su gate externo correspondiente.
 
+## Assets automatizados
+
+- [x] Script `scripts/generate_cari_assets.py`.
+- [x] Workflow manual `.github/workflows/generate-assets.yml`.
+- [x] PNG normalizado con Pillow.
+- [x] Secreto `POLLINATIONS_KEY` fuera del repositorio.
+- [ ] Primera ejecución del workflow con generación real y revisión visual.
+
 ## Evidencia actual
 
 - Auditoría de botones renderer: 57 botones con ID; se corrigieron los dos controles de overlay lateral sin handler y se eliminó el handler fantasma de `header-stream`.
