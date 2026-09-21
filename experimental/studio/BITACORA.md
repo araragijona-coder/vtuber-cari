@@ -4,7 +4,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2
-- HEAD observado al cerrar esta revisión: `747f73f800dec5d16c2cd982d6849fe88253eecd`
+- HEAD observado al cerrar esta revisión: `ea08fb0cddc525754f3e38314b03d39b06770e68`
 - Estado: **EXPERIMENTAL / NO listo para producción**
 - Ingeniería: **~71%**
 - Producto usable/end-user: **~58%**
