@@ -68,7 +68,8 @@ if(Test-Path $vswhere){
 $root=(Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $nativeCandidates=@(
     (Join-Path $root 'experimental\studio\native-windows\build\Release\cari-studio-native.exe'),
-    (Join-Path $root 'experimental\studio\native-windows\build-validation\Release\cari-studio-native.exe')
+    (Join-Path $root 'experimental\studio\native-windows\build-validation\Release\cari-studio-native.exe'),
+    (Join-Path $root 'experimental\studio\native-windows\build-launch\Release\cari-studio-native.exe')
 )
 $native=$nativeCandidates|Where-Object{Test-Path $_}|Select-Object -First 1
 if($native){Add-Check $checks 'Cari Studio' 'Native executable' 'PASS' $native}
