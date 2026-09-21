@@ -311,6 +311,27 @@ export class StudioActionRouter {
     }) ? requested : null;
   }
 
+  handleEvent(event) {
+    if (!event || typeof event !== "object") return null;
+
+    if (event.type === "twitch.chat") {
+      return {
+        kind: "chat",
+        action: this.handleChatMessage(event.text)
+      };
+    }
+
+    if (event.type === "twitch.event") {
+      const eventType = event.eventType || event.typeName || "";
+      return {
+        kind: "event",
+        action: this.handleTwitchEvent(eventType)
+      };
+    }
+
+    return null;
+  }
+
   handleTwitchEvent(eventType) {
     const normalizedType = normalizeActionLookup(eventType);
     const action = TWITCH_EVENT_ACTIONS[normalizedType];
