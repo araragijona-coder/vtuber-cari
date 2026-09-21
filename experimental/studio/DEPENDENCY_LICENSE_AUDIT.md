@@ -27,3 +27,17 @@ La documentación actual del proyecto indica que las entradas de MediaPipe Tasks
 - https://github.com/mrdoob/three.js
 - https://github.com/obs-websocket-community-projects/obs-websocket-js
 - https://github.com/google-ai-edge/mediapipe
+
+## Toolchain instalado por Cari-Setup.ps1
+
+Estos componentes son herramientas locales de desarrollo/entorno. No se consideran automáticamente parte del instalador redistribuible de Cari Studio.
+
+| Componente | ID WinGet | Licencia/condición | Redistribución con Cari |
+|---|---|---|---|
+| Git for Windows | Git.Git | GPL-2.0 | No embebido |
+| Node.js 22 | OpenJS.NodeJS.22 | MIT | No embebido |
+| CMake | Kitware.CMake | BSD-3-Clause | No embebido |
+| Visual Studio Build Tools | Microsoft.VisualStudio.BuildTools | Condiciones Microsoft | No embebido |
+| FFmpeg | Gyan.FFmpeg | GPL-3.0 según manifest consultado | Instalación local; redistribución pendiente |
+
+Regla: que el setup pueda instalar FFmpeg en la máquina del usuario no autoriza a incluir ese binario dentro del instalador final. Ese análisis permanece separado y explícito.
