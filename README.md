@@ -235,4 +235,10 @@ These cannot honestly be marked green from repository CI alone because they requ
 
 ## Cari Studio
 
-El estado y la bitácora de continuidad de la aplicación están en [`CARI_STUDIO_BITACORA.md`](CARI_STUDIO_BITACORA.md). Los componentes que todavía no tienen validación suficiente permanecen en la única zona `experimental/`.
+El estado y la bitácora de continuidad de la aplicación están en [`experimental/studio/BITACORA.md`](experimental/studio/BITACORA.md). Los componentes que todavía no tienen validación suficiente permanecen en la única zona `experimental/`.
+
+## Cari Studio — arranque directo en Windows
+
+Después de un build Release del runtime nativo, se genera automáticamente `CariStudioLauncher.exe` en la raíz del repositorio. Es el punto de entrada de doble clic: busca una instalación de Cari Studio, después el shell Electron del checkout y, como último recurso, el runtime nativo de diagnóstico.
+
+No hace falta navegar hasta `experimental/studio/electron-shell/` para iniciar el proyecto.
