@@ -733,6 +733,13 @@ async function startSpeechMonitor() {
   updateTalkUi({ level: 0, speaking: false, active: true });
 }
 
+function stopSpeechMonitor() {
+  if (!speechAutoEnabled) return;
+  speech.stop();
+  speechAutoEnabled = false;
+  lipSync.reset();
+}
+
 function updateTalkUi({ level = 0, speaking = false, active = false } = {}) {
   const mic = $("#mic-state");
   const state = $("#speech-state");
@@ -759,7 +766,7 @@ function updateTalkUi({ level = 0, speaking = false, active = false } = {}) {
 async function setManualTalk(enabled) {
   const desired = Boolean(enabled);
   if (desired === manualTalk && (!desired || speechAutoEnabled)) {
-    updateTalkUi(speech.sample());
+    updateTalkUi(speechAutoEnabled ? speech.sample() : { level: 0, speaking: false, active: false });
     return;
   }
 
@@ -777,6 +784,7 @@ async function setManualTalk(enabled) {
   } else {
     manualTalk = false;
     await session.microphoneSet(false).catch(() => undefined);
+    stopSpeechMonitor();
     if (talkStartedAudio && !session.snapshot().output) {
       await session.audioStop().catch(() => undefined);
     }
@@ -1289,8 +1297,11 @@ async function refresh() {
     ui.liveState.innerHTML = '<span class="dot"></span><span>' + (metrics.output === "running" ? "LIVE" : "OFFLINE") + "</span>";
     ui.fps.textContent = Number(metrics.fps ?? 0).toFixed(1);
     ui.audio.textContent = String(metrics.audio_packets ?? 0);
-    if (!speechAutoEnabled && (metrics.audio_packets ?? 0) > 0) {
+    if (!speechAutoEnabled && metrics.microphone === "on") {
       startSpeechMonitor().catch(() => undefined);
+    }
+    if (speechAutoEnabled && metrics.microphone === "off") {
+      stopSpeechMonitor();
     }
     const peak = Math.max(0, Math.min(1, Number(metrics.audio_peak ?? 0)));
     $("#mix-mic").style.width = (peak * 100).toFixed(1) + "%";
