@@ -880,6 +880,7 @@ function stopSpeechMonitor() {
   speech.stop();
   speechAutoEnabled = false;
   lipSync.reset();
+  actionRouter.setVoiceActivity({ speaking: false, active: false });
 }
 
 function updateTalkUi({ level = 0, speaking = false, active = false } = {}) {
@@ -1079,7 +1080,7 @@ function trackingLoop(timestamp) {
 
   if (speechAutoEnabled) {
     const voice = speech.sample(timestamp);
-    actionRouter.setVoiceActivity({ speaking: voice.speaking });
+    actionRouter.setVoiceActivity({ speaking: voice.speaking, active: true });
     const drivenLevel = voice.speaking ? voice.level : 0;
     if (drivenLevel > 0) {
       lipSync.update(drivenLevel);
