@@ -3156,7 +3156,7 @@ Porcentajes canónicos: Ingeniería ~71% · Producto usable/end-user ~58% · Seg
 
 Área: Assets / Automatización / GitHub Actions
 
-Estado: IMPLEMENTADO / PRIMERA GENERACIÓN REAL PENDIENTE
+Estado: SUPERSEDED por LOG-068; conservar como historial, no como instrucción operativa
 
 ### Objetivo
 
@@ -3188,9 +3188,8 @@ El workflow:
 - acepta modelo, ancho, alto, seed y overwrite;
 - instala Pillow;
 - valida la sintaxis del generador con py_compile;
-- inyecta POLLINATIONS_KEY como secret;
-- genera en assets/cari-gallery;
-- hace commit y push solo cuando existen cambios.
+- versión histórica: inyectaba POLLINATIONS_KEY como secret y hacía commit/push;
+- esta estrategia fue reemplazada por LOG-068 y no debe reutilizarse.
 
 ### Seguridad
 
@@ -3204,6 +3203,7 @@ Se eligió Pollinations como proveedor inicial para este flujo porque ofrece un 
 
 - No crear otro workflow paralelo para generar los mismos assets.
 - No pegar una API key en el repositorio.
+- No reutilizar la antigua ruta autenticada de este log; el flujo vigente está documentado en LOG-068.
 - No guardar imágenes recibidas como PNG solo cambiando la extensión; el script normaliza realmente el contenido.
 - No sobrescribir automáticamente una imagen aprobada: usar overwrite solo de forma deliberada.
 - No considerar una imagen generada como canon de Cari sin revisión visual/aprobación.
@@ -3211,7 +3211,7 @@ Se eligió Pollinations como proveedor inicial para este flujo porque ofrece un 
 
 ### Primera ejecución real
 
-Pendiente: crear el secret POLLINATIONS_KEY y lanzar Generate Cari Assets desde Actions.
+La ejecución con Secret quedó descartada. Consultar LOG-068 para el procedimiento vigente sin credenciales.
 
 ### Verificación actual
 
