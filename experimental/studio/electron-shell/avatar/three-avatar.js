@@ -180,7 +180,7 @@ export class ThreeAvatarRenderer {
   }
 
   setActivity(activity = "idle") {
-    const normalized = ["idle", "keyboard", "controller", "phone"].includes(String(activity))
+    const normalized = ["idle", "keyboard", "controller", "phone", "pillow"].includes(String(activity))
       ? String(activity)
       : "idle";
     this.activity = normalized;
@@ -196,15 +196,23 @@ export class ThreeAvatarRenderer {
     const t = timestampMs / 1000;
     const activity = this.activity;
     const speaking = this.currentParams.speaking === true;
+    const movementLevel = String(this.currentParams.movementLevel || "normal");
+    const movementScale =
+      movementLevel === "quiet" ? 0.45 :
+      movementLevel === "restless" ? 1.7 :
+      1.0;
+    const heldObject = String(this.currentParams.object || "none");
+    const armPose = String(this.currentParams.arms || "relaxed");
+    const pose = String(this.currentParams.pose || "standing");
 
     if (!this.avatar) {
       const group = this.placeholder;
       const parts = this.placeholderParts;
       if (!group || !parts) return;
 
-      const breath = Math.sin(t * 2.1) * 0.012;
-      const sway = Math.sin(t * 0.72 + 0.8) * 0.018;
-      const headSway = Math.sin(t * 1.15) * 0.012;
+      const breath = Math.sin(t * 2.1) * 0.012 * movementScale;
+      const sway = Math.sin(t * 0.72 + 0.8) * 0.018 * movementScale;
+      const headSway = Math.sin(t * 1.15) * 0.012 * movementScale;
       const speakBob = speaking
         ? Math.sin(t * (5.5 + this.currentParams.speechLevel * 4)) * 0.010
         : 0;
@@ -219,9 +227,9 @@ export class ThreeAvatarRenderer {
         placeholderExpressionPose(this.currentParams.expression || "neutral").shoulderLift
       ) || 0;
 
-      const keyboardPulse = Math.sin(t * 8.5) * 0.08;
-      const controllerPulse = Math.sin(t * 3.5) * 0.045;
-      const phonePulse = Math.sin(t * 2.2) * 0.025;
+      const keyboardPulse = Math.sin(t * 8.5) * 0.08 * movementScale;
+      const controllerPulse = Math.sin(t * 3.5) * 0.045 * movementScale;
+      const phonePulse = Math.sin(t * 2.2) * 0.025 * movementScale;
 
       let leftShoulder = -0.08 - baseShoulder;
       let rightShoulder = 0.08 + baseShoulder;
@@ -232,7 +240,7 @@ export class ThreeAvatarRenderer {
       let leftHandZ = 0;
       let rightHandZ = 0;
 
-      if (activity === "keyboard") {
+      if (activity === "keyboard" || armPose === "keyboard") {
         leftShoulder += -0.16 - keyboardPulse * 0.35;
         rightShoulder += 0.16 + keyboardPulse * 0.35;
         leftElbow = 0.50 + keyboardPulse;
@@ -241,7 +249,7 @@ export class ThreeAvatarRenderer {
         rightHandY += 0.16;
         leftHandZ = 0.10;
         rightHandZ = 0.10;
-      } else if (activity === "controller") {
+      } else if (activity === "controller" || armPose === "controller") {
         leftShoulder += -0.22 - controllerPulse;
         rightShoulder += 0.22 + controllerPulse;
         leftElbow = 0.36 + controllerPulse;
@@ -250,13 +258,27 @@ export class ThreeAvatarRenderer {
         rightHandY += 0.08;
         leftHandZ = 0.14;
         rightHandZ = 0.14;
-      } else if (activity === "phone") {
+      } else if (activity === "phone" || armPose === "phone") {
         rightShoulder += 0.28 + phonePulse;
         rightElbow = -0.95 - phonePulse;
         rightHandY += 0.22;
         rightHandZ = 0.18;
         leftShoulder += -0.02;
         leftElbow = 0.10;
+      } else if (activity === "pillow" || armPose === "hug") {
+        leftShoulder += -0.18;
+        rightShoulder += 0.18;
+        leftElbow = 0.78;
+        rightElbow = -0.78;
+        leftHandY += 0.20;
+        rightHandY += 0.20;
+        leftHandZ = 0.20;
+        rightHandZ = 0.20;
+      }
+
+      if (pose === "sleeping") {
+        this.placeholderFace.rotation.x = 0.10;
+        this.placeholderFace.rotation.z = 0.04;
       }
 
       if (parts.leftShoulder) parts.leftShoulder.rotation.z = leftShoulder;
@@ -271,6 +293,17 @@ export class ThreeAvatarRenderer {
       if (parts.rightHand) {
         parts.rightHand.position.y = rightHandY;
         parts.rightHand.position.z = rightHandZ;
+      }
+
+      if (parts.heldObject) {
+        const object = parts.heldObject;
+        const active = new Set(["phone", "joystick", "keyboard", "pillow"]);
+        for (const name of active) {
+          if (object[name]) object[name].visible = heldObject === name;
+        }
+        if (object.joystick && heldObject === "joystick") {
+          object.joystick.rotation.z = Math.sin(t * 3.5) * 0.08;
+        }
       }
 
       parts.head.position.y =
