@@ -370,3 +370,14 @@ La regla evita confundir servicio disponible con consumidor multimedia. Antes de
 - Live2D: adapter opcional; no es open source.
 - 3D: Three.js + glTF/VRM como ruta actual; VRoid Studio como authoring externo y Blender como authoring open-source.
 - No se considera completo un avatar hasta superar carga, tracking, lip-sync, composición, rendimiento y licencia.
+
+
+## Checkpoint canónico — 2026-09-21 — continuidad
+
+- Ingeniería: **~68%**.
+- Producto usable/end-user: **~54%**.
+- Seguimiento global: **~62%**.
+- Producción: **NO listo**.
+- Bitácora maestra: `experimental/studio/BITACORA.md`.
+- No repetir: captura WGC, WASAPI mixer, MediaClock/RealtimePacer/Interleaver, OBS service, Twitch transport, Action Store o avatar contract.
+- Siguiente foco: CI observable → E2E Windows named-pipe/FFmpeg → compositor GPU sin readback → PTS explícitos Libav → drift correction → cámara/Game Capture → validación real de OBS/Twitch → release/hardware.
