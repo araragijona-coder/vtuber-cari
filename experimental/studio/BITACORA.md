@@ -4,7 +4,7 @@
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2
-- HEAD auditado: `d401f9e5ec95bdadd5845b7c36f430e288052272`
+- HEAD auditado: `8b1a472fe57aa20e973a6d333acf1ddd0f63bc93`
 - Estado: **EXPERIMENTAL / NO listo para producción**
 - Ingeniería: **~71%**
 - Producto usable/end-user: **~58%**
@@ -197,7 +197,7 @@ Cari Studio ahora puede determinar **si la persona está hablando** a partir del
 
 - Rama: `fix/native-windows-foundation`.
 - PR: `#2`.
-- HEAD canónico al cerrar este checkpoint: `bad7030857221782baba42c1a811614e667c20ac`.
+- HEAD canónico al cerrar este checkpoint: `8b1a472fe57aa20e973a6d333acf1ddd0f63bc93`.
 - Estado: **EXPERIMENTAL / NO listo para producción**.
 - Ingeniería: **~69%**.
 - Producto usable/end-user: **~55%**.
@@ -270,7 +270,7 @@ Antes de tocar cualquier componente, buscarlo en esta bitácora. Si ya figura IM
 
 - Rama: `fix/native-windows-foundation`
 - PR: #2
-- HEAD actual del PR: `af7617b3cd3c4e3ba345f4f369168e466425db63`
+- HEAD actual del PR: `8b1a472fe57aa20e973a6d333acf1ddd0f63bc93`
 - Estado: **EXPERIMENTAL / NO listo para producción**
 - Ingeniería: **~68%**
 - Producto usable/end-user: **~54%**
