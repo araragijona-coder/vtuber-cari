@@ -72,3 +72,9 @@ A demo image is visual reference only.
 - Estado canónico sin cambio de porcentaje: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - P0 confirmado: compositor GPU -> encoder sin readback CPU por frame + evidencia Windows/E2E.
 - No repetir: renderer, tracker, scheduler, supervisor FFmpeg ni boundary Live2D.
+
+## 2026-09-21 — LOG-030
+- Native Windows Build, CI, Character Runtime Tests y Actions Runner Diagnostic del HEAD 21f89448a04ed5eda26c68eb9506d4cb96c07694 terminan failure sin steps/logs observables.
+- Estado: bloqueo de infraestructura; no se atribuye regresión a código.
+- No repetir modificaciones funcionales para corregir estos failures sin evidencia de un step.
+- Porcentaje canónico sin cambio: Ingeniería ~71%, Producto ~58%, Seguimiento ~65%.
