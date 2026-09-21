@@ -1,3 +1,66 @@
+## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21
+
+- Rama: `fix/native-windows-foundation`.
+- PR: `#2`.
+- HEAD al iniciar este checkpoint: `f962272e6a5ea833cf9ed11d24c1881144c6f81d`.
+- Estado: **EXPERIMENTAL / NO listo para producción**.
+- Ingeniería: **~69%**.
+- Producto usable/end-user: **~55%**.
+- Seguimiento global: **~63%**.
+
+### Cambios nuevos de este checkpoint
+- Avatar Cari V0 procedural funcional en Three.js: cuerpo completo, piel morena/tan, cabello marrón medio, inner hair marrón claro, cola de caballo, ahoge, ojos marrones con pupilas blancas, curita nasal y vestimenta deportiva con minishorts negros.
+- Contrato de avatar ampliado con los estados canónicos `neutral`, `happy`, `angry`, `afraid`, `embarrassed`, `sad`, `exhausted` y `confused`.
+- Action Store ampliado con `neutral`, `happy`, `sad`, `angry`, `afraid`, `embarrassed`, `exhausted`, `confused`, `talking` y `silent`.
+- Tracking facial mapea blendshapes a estados emocionales compatibles con la Biblia de Cari.
+- Los comandos de chat reutilizan el Action Store existente para las nuevas acciones; no se creó un segundo router.
+- Se añadió `CARI_ACTIONS.md` como catálogo canónico de acciones runtime.
+- Se añadió una prueba de regresión para impedir que el Action Store pierda el conjunto canónico.
+
+### Estado de salida
+- `OutputRetryPolicy` y clasificación inicial de fallos ya existen y se reutilizan; no crear otro supervisor.
+- El retry RTMP solo debe aplicarse a fallos clasificados como red.
+- No considerar retry, E2E named-pipe, compositor D3D11 o Libav como validados hasta disponer de evidencia Windows observable.
+
+### Evidencia que sí existe
+- Smoke C++20 estricto de timing/interleaver y política retry/diagnóstico: PASS en entorno portable.
+- FFmpeg sintético 7.1.5 BGRA raw + PCM float32 → H.264/AAC → Matroska: PASS.
+- PNG base de Cari `neutral/happy/angry`: presentes y con manifest.
+- Three.js `GLTFLoader` sigue siendo la ruta de carga de GLB/glTF; el renderer procedural funciona sin depender de un modelo externo. citeturn412252search0
+
+### Evidencia que sigue faltando
+- Build CMake/CTest real en Windows y E2E named-pipe → FFmpeg → archivo.
+- Compositor GPU sin CPU readback conectado definitivamente al encoder.
+- PTS explícitos verificados extremo a extremo con la ruta Libav en Windows.
+- Drift correction/resampling basado en relojes físicos WASAPI.
+- Cámara Media Foundation en dispositivo real.
+- Game Capture dedicada.
+- Twitch/OBS reales y reconexión real.
+- Validación sobre el PC objetivo.
+
+### NO REPETIR
+| Componente | Estado | Próxima acción válida |
+|---|---|---|
+| WGC desktop capture | IMPLEMENTADO | Solo regresión reproducible / validación hardware |
+| WASAPI + AudioTimelineMixer | IMPLEMENTADO | Drift correction y validación |
+| MediaClock/Pacer/Interleaver | IMPLEMENTADO + smoke | Validar PTS E2E |
+| FFmpeg A/V boundary | IMPLEMENTADO | Ejecutar E2E Windows |
+| RTMP retry | IMPLEMENTADO | Validar red real; no duplicar supervisor |
+| D3D11 compositor | EXPERIMENTAL | Eliminar readback CPU y cerrar encoder path |
+| Libav PTS | EXPERIMENTAL | Compilar/verificar con dev kit FFmpeg Windows |
+| Media Foundation camera | EXPERIMENTAL | Cámara física + reconnect |
+| Three.js avatar | IMPLEMENTADO V0 | Validar acciones/tracking/modelo; no crear otro renderer |
+| Action Store | IMPLEMENTADO | Extender este Store; no crear otro |
+| Twitch EventSub | IMPLEMENTADO | Validación de canal/reconnect |
+| OBS WebSocket | IMPLEMENTADO | Validación real y diagnóstico |
+| Game Capture | PENDIENTE | Backend independiente |
+| CI | BLOQUEADO | Obtener jobs con steps/logs observables |
+
+### Regla de continuidad
+Antes de tocar cualquier componente, buscarlo en esta bitácora. Si ya figura IMPLEMENTADO o EXPERIMENTAL, trabajar solo en el gate restante o ante una regresión reproducible.
+
+---
+
 # Cari Studio — Bitácora maestra
 
 ## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — CONTINUIDAD VIVA
