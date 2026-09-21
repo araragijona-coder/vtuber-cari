@@ -795,3 +795,34 @@ PARTIAL: el gate PTS es ahora más observable y robusto ante discontinuidades de
 
 P0: compositor GPU -> frame final sin readback CPU por frame y E2E Windows observable.
 P1: convertir la mejora de PTS Libav en prueba Windows cuando exista runner/log ejecutable.
+
+
+---
+
+## LOG-027 — Corrección de métricas para cámara activa
+
+Fecha: 2026-09-21
+Área: Native Windows / Status / Continuidad
+Estado: IMPLEMENTADO / PENDIENTE DE VALIDACIÓN WINDOWS
+
+Problema:
+Cuando la fuente activa era Media Foundation camera, el status del control plane seguía leyendo frames, FPS y errores de CaptureEngine/WGC. Eso podía mostrar una telemetría falsa aun cuando la cámara fuera la fuente real.
+
+Acción realizada:
+- BuildControlStatusMessage() ahora selecciona frames, FPS y errores desde MediaFoundationCamera cuando capture_source=camera.
+- WGC sigue siendo la fuente de métricas para window/screen.
+- No se creó otro sistema de métricas; se corrigió el selector de la fuente existente.
+
+Pruebas:
+- Revisión estática del flujo de selección de fuente y estado.
+- Smoke completo Windows sigue pendiente porque Actions no devuelve steps/logs ejecutados.
+
+Resultado:
+PASS de coherencia de código; WINDOWS_VERIFIED pendiente.
+
+NO REPETIR:
+- No duplicar métricas de cámara.
+- No crear otro status channel; corregir BuildControlStatusMessage() si aparece una nueva discrepancia.
+
+Siguiente acción:
+P0 compositor GPU -> frame final y E2E Windows observable.
