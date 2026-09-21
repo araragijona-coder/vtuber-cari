@@ -165,3 +165,12 @@ A demo image is visual reference only.
 - GitHub Actions continúa bloqueado por falta de steps/logs observables; no se atribuye regresión de código.
 - No se reabren WGC, WASAPI, MediaClock/RealtimePacer/Interleaver, MediaPipe, Three.js, FFmpeg supervisor, RawPipe, OBS bridge ni D3D11 bridge.
 - Próximo foco: evidencia Windows observable del camino D3D11 → Libav/encoder, compositor final y PTS E2E; validación OBS real y hardware después de esa evidencia.
+
+## 2026-09-21 — LOG-042
+- Se corrigió la persistencia del presupuesto de retry RTMP: una reconexión automática ya no reinicia el contador de intentos.
+- Sesión manual limpia el retry budget; reconexión automática conserva intentos hasta alcanzar el máximo o una sesión estable.
+- HEAD auditado: f49c882a2982e7eed38ec4f6a8d72a8da7c90931.
+- CI Native Windows, CI, Character Runtime, Runner Diagnostic e Installer continúan fallando con jobs sin steps/logs observables.
+- Progreso canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Próximo foco: D3D11 → Libav/encoder observable en Windows + PTS E2E.
+- NO REPETIR: OutputRetryPolicy, clasificación de errores y lógica de sesión de retry salvo regresión reproducible.
