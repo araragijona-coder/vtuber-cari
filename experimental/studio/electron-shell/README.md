@@ -88,6 +88,8 @@ Este camino usa el compositor D3D11 y frames pertenecientes al pool hardware de 
 
 ### Arranque local
 
+Desde `tools/windows/Cari-Launch.bat` o `run-local.ps1`, el launcher busca el motor nativo en los builds conocidos. Si el ejecutable no existe y CMake no está disponible, `run-local.ps1` intenta usar el setup existente con `-SkipBuild -SkipNpm`, vuelve a descubrir CMake y continúa con el build. `-NoSetup` desactiva esa instalación automática cuando se necesita un entorno estrictamente controlado.
+
 `run-local.ps1` busca primero `CARI_NATIVE_EXECUTABLE` y los builds conocidos. Si no encuentra `cari-studio-native.exe`, intenta generar un build Release x64 en `native-windows/build-launch`. Esto evita confundir la ausencia de artefactos locales con un fallo del motor.
 
 Para una máquina sin toolchain, usar `Cari-Setup.ps1`; para una máquina ya preparada, `Cari-Launch.bat` es suficiente.
