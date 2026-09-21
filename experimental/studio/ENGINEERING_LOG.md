@@ -194,3 +194,12 @@ A demo image is visual reference only.
 - Validator de asset añadido y conectado a CI.
 - No se modifica el porcentaje global por SPEC_ONLY: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - Próximo foco exclusivo: arte V1 real -> rigging -> tracking, sin reabrir renderer/tracker.
+
+
+## 2026-09-21 — LOG-046 Cari V1 package checkpoint
+- Contrato de asset 2D/3D cerrado.
+- Manifest canónico de capas + parameter manifest + expression spec + artist/rigger checklist.
+- Validator de asset y test integrados.
+- Estructura 2D/3D de source/layers/exports completa.
+- No cambio de porcentaje: Ingeniería 71%, Producto usable 58%, Seguimiento 65%.
+- Próximo foco: arte V1 real y rigging; no reabrir renderer/tracker.
