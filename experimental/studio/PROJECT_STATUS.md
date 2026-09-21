@@ -511,3 +511,10 @@ Regla de progreso: el checkpoint vigente es Ingeniería ~71%, Producto usable ~5
 ## OBS companion
 
 El escenario de uso con OBS como streamer principal está documentado en OBS_USAGE_AUDIT.md. OBS conserva encoder/mux/RTMP y la reconexión del stream; Cari aporta control VTuber, automatización y observabilidad. La integración todavía requiere validación contra OBS real.
+## Evidencia CI vigente — LOG-040
+
+- HEAD auditado: **eab7897a5c971a64acc9c31cdf5c4557ffaf4b8f**.
+- Native Windows Build, CI, Character Runtime Tests y Actions Runner Diagnostic terminan en `failure`.
+- Los jobs afectados reportan `steps=null` y `logs_url=null`.
+- Estado: **CI bloqueada por infraestructura**, no CI_VERIFIED.
+- Regla: no modificar componentes funcionales para estos failures sin evidencia de step/log.
