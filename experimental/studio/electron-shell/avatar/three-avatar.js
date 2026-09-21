@@ -89,17 +89,77 @@ export class ThreeAvatarRenderer {
         "smileRight",
         expression === "happy" ? 0.85 : 0
       );
+      applyMorph(
+        this.morphTargets,
+        "frownLeft",
+        expression === "sad" ? 0.75 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "frownRight",
+        expression === "sad" ? 0.75 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "browDownLeft",
+        expression === "angry" ? 0.75 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "browDownRight",
+        expression === "angry" ? 0.75 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "eyeWideLeft",
+        expression === "afraid" ? 0.7 : 0
+      );
+      applyMorph(
+        this.morphTargets,
+        "eyeWideRight",
+        expression === "afraid" ? 0.7 : 0
+      );
       return;
     }
 
-    const eyesScale = Math.max(0.12, 1 - blink * 0.88);
-    this.placeholderParts.leftEye.scale.y = eyesScale;
-    this.placeholderParts.rightEye.scale.y = eyesScale;
-    this.placeholderParts.mouth.scale.y = 0.5 + mouthOpen * 2.2;
-    this.placeholderParts.mouth.rotation.z =
-      expression === "happy" ? Math.PI * 0.82 :
-      expression === "angry" ? Math.PI * 1.18 :
-      Math.PI;
+    const expressionPose = placeholderExpressionPose(expression);
+
+    const blinkScale = Math.max(0.12, 1 - blink * 0.88);
+    const emotionEyeScale = expressionPose.eyeScale;
+    this.placeholderParts.leftEye.scale.y = blinkScale * emotionEyeScale;
+    this.placeholderParts.rightEye.scale.y = blinkScale * emotionEyeScale;
+
+    if (this.placeholderParts.leftPupil && this.placeholderParts.rightPupil) {
+      const gazeX = Number(params.eyeX) || 0;
+      const gazeY = Number(params.eyeY) || 0;
+      const pupilX = gazeX * 0.026;
+      const pupilY = gazeY * 0.020;
+      this.placeholderParts.leftPupil.position.x = -0.14 + pupilX;
+      this.placeholderParts.rightPupil.position.x = 0.14 + pupilX;
+      this.placeholderParts.leftPupil.position.y = 0.03 - pupilY;
+      this.placeholderParts.rightPupil.position.y = 0.03 - pupilY;
+    }
+
+    this.placeholderParts.mouth.scale.y =
+      0.5 + (mouthOpen * expressionPose.mouthScale);
+    this.placeholderParts.mouth.scale.x = expressionPose.mouthWidth;
+    this.placeholderParts.mouth.rotation.z = expressionPose.mouthRotation;
+    this.placeholderParts.mouth.position.y = -0.12 + expressionPose.mouthY;
+
+    if (this.placeholderParts.leftShoulder && this.placeholderParts.rightShoulder) {
+      this.placeholderParts.leftShoulder.rotation.z =
+        -0.08 - expressionPose.shoulderLift;
+      this.placeholderParts.rightShoulder.rotation.z =
+        0.08 + expressionPose.shoulderLift;
+    }
+
+    if (this.placeholderParts.head) {
+      this.placeholderParts.head.position.x = expressionPose.headOffsetX;
+      this.placeholderParts.head.position.y = 2.30 + expressionPose.headOffsetY;
+      this.placeholderParts.head.rotation.z = expressionPose.headRoll;
+    }
+
+    this.placeholderFace.position.z = 0.36 + expressionPose.faceForward;
   }
 
   render() {
@@ -145,16 +205,47 @@ export class ThreeAvatarRenderer {
     // gives us a complete VTuber silhouette, articulation points and asset
     // mounting locations so tracking/composition can be validated now.
     const group = new THREE.Group();
-    group.name = "CariFullBodyPlaceholder";
+    group.name = "CariV0Avatar";
     group.position.y = 0.08;
 
-    const material = new THREE.MeshStandardMaterial({
-      roughness: 0.78,
+    const skinMaterial = new THREE.MeshStandardMaterial({
+      color: 0xb98263,
+      roughness: 0.8,
       metalness: 0.0
     });
-    const darkMaterial = new THREE.MeshStandardMaterial({
-      color: 0x20232a,
+    const shirtMaterial = new THREE.MeshStandardMaterial({
+      color: 0x4f6f7d,
+      roughness: 0.76,
+      metalness: 0.0
+    });
+    const shortsMaterial = new THREE.MeshStandardMaterial({
+      color: 0x15171b,
       roughness: 0.72,
+      metalness: 0.0
+    });
+    const hairMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6d432b,
+      roughness: 0.74,
+      metalness: 0.0
+    });
+    const innerHairMaterial = new THREE.MeshStandardMaterial({
+      color: 0x9a6a46,
+      roughness: 0.72,
+      metalness: 0.0
+    });
+    const eyeWhiteMaterial = new THREE.MeshStandardMaterial({
+      color: 0xf7f4ee,
+      roughness: 0.6,
+      metalness: 0.0
+    });
+    const pupilMaterial = new THREE.MeshStandardMaterial({
+      color: 0x5a3826,
+      roughness: 0.6,
+      metalness: 0.0
+    });
+    const bandageMaterial = new THREE.MeshStandardMaterial({
+      color: 0xe8ddd0,
+      roughness: 0.86,
       metalness: 0.0
     });
 
@@ -169,7 +260,7 @@ export class ThreeAvatarRenderer {
 
     const torso = new THREE.Mesh(
       new THREE.CapsuleGeometry(0.34, 0.72, 8, 20),
-      material
+      shirtMaterial
     );
     torso.name = "torso";
     torso.scale.set(1.15, 1.0, 0.82);
@@ -178,7 +269,7 @@ export class ThreeAvatarRenderer {
 
     const neck = new THREE.Mesh(
       new THREE.CylinderGeometry(0.11, 0.13, 0.18, 20),
-      material
+      skinMaterial
     );
     neck.name = "neck";
     neck.position.y = 1.88;
@@ -186,7 +277,7 @@ export class ThreeAvatarRenderer {
 
     const head = new THREE.Mesh(
       new THREE.SphereGeometry(0.40, 48, 32),
-      material
+      skinMaterial
     );
     head.name = "head";
     head.scale.set(0.94, 1.07, 0.90);
@@ -199,19 +290,19 @@ export class ThreeAvatarRenderer {
     hips.add(face);
 
     const eyeGeometry = new THREE.SphereGeometry(0.055, 20, 12);
-    const leftEye = new THREE.Mesh(eyeGeometry, darkMaterial);
+    const leftEye = new THREE.Mesh(eyeGeometry, eyeWhiteMaterial);
     leftEye.name = "leftEye";
     leftEye.position.set(-0.14, 0.03, 0.02);
     face.add(leftEye);
 
-    const rightEye = new THREE.Mesh(eyeGeometry, darkMaterial);
+    const rightEye = new THREE.Mesh(eyeGeometry, eyeWhiteMaterial);
     rightEye.name = "rightEye";
     rightEye.position.set(0.14, 0.03, 0.02);
     face.add(rightEye);
 
     const mouth = new THREE.Mesh(
       new THREE.TorusGeometry(0.07, 0.014, 10, 28, Math.PI),
-      darkMaterial
+      pupilMaterial
     );
     mouth.name = "mouth";
     mouth.rotation.z = Math.PI;
@@ -220,12 +311,79 @@ export class ThreeAvatarRenderer {
 
     const hair = new THREE.Mesh(
       new THREE.SphereGeometry(0.43, 40, 24, 0, Math.PI * 2, 0, Math.PI * 0.56),
-      darkMaterial
+      hairMaterial
     );
     hair.name = "hair";
     hair.scale.set(1.02, 1.18, 0.98);
     hair.position.set(0, 2.43, -0.035);
     hips.add(hair);
+
+    const innerHair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.33, 32, 18, 0, Math.PI * 2, 0.28, Math.PI * 0.38),
+      innerHairMaterial
+    );
+    innerHair.name = "innerHair";
+    innerHair.scale.set(1.0, 1.0, 0.72);
+    innerHair.position.set(0, 2.31, 0.11);
+    face.add(innerHair);
+
+    const ponytail = new THREE.Group();
+    ponytail.name = "ponytail";
+    ponytail.position.set(0, 2.19, -0.20);
+    hips.add(ponytail);
+
+    const ponytailMass = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.16, 0.42, 6, 14),
+      hairMaterial
+    );
+    ponytailMass.rotation.x = -0.28;
+    ponytailMass.rotation.z = 0.08;
+    ponytail.add(ponytailMass);
+
+    const ponytailTie = new THREE.Mesh(
+      new THREE.TorusGeometry(0.07, 0.018, 10, 18),
+      innerHairMaterial
+    );
+    ponytailTie.rotation.x = Math.PI / 2;
+    ponytailTie.position.y = 0.22;
+    ponytail.add(ponytailTie);
+
+    const ahoge = new THREE.Mesh(
+      new THREE.ConeGeometry(0.035, 0.23, 8),
+      hairMaterial
+    );
+    ahoge.name = "ahoge";
+    ahoge.rotation.z = 0.18;
+    ahoge.position.set(0, 2.88, 0.0);
+    hips.add(ahoge);
+
+    const bandage = new THREE.Mesh(
+      new THREE.BoxGeometry(0.11, 0.022, 0.015),
+      bandageMaterial
+    );
+    bandage.name = "noseBandage";
+    bandage.rotation.z = -0.14;
+    bandage.position.set(0.02, 2.285, 0.405);
+    face.add(bandage);
+
+    const pupilGeometry = new THREE.SphereGeometry(0.020, 16, 12);
+    const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+    leftPupil.name = "leftPupil";
+    leftPupil.position.set(-0.14, 0.03, 0.045);
+    face.add(leftPupil);
+
+    const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+    rightPupil.name = "rightPupil";
+    rightPupil.position.set(0.14, 0.03, 0.045);
+    face.add(rightPupil);
+
+    const shorts = new THREE.Mesh(
+      new THREE.BoxGeometry(0.58, 0.30, 0.50),
+      shortsMaterial
+    );
+    shorts.name = "shorts";
+    shorts.position.set(0, 1.02, 0.0);
+    hips.add(shorts);
 
     const armGeometry = new THREE.CapsuleGeometry(0.105, 0.48, 8, 16);
     const forearmGeometry = new THREE.CapsuleGeometry(0.09, 0.42, 8, 16);
@@ -243,7 +401,14 @@ export class ThreeAvatarRenderer {
       rightEye,
       mouth,
       hair,
-      torso
+      innerHair,
+      ponytail,
+      ahoge,
+      noseBandage: bandage,
+      leftPupil,
+      rightPupil,
+      torso,
+      shorts
     };
 
     for (const [side, [x, y]] of Object.entries(armSlots)) {
@@ -341,7 +506,7 @@ export class ThreeAvatarRenderer {
     group.userData.face = face;
     group.userData.parts = bodyParts;
     group.userData.anchors = anchors;
-    group.userData.note = "Technical full-body fallback; replace with approved Cari asset.";
+    group.userData.note = "Cari V0 procedural avatar: canonical visual invariants + runtime actions; replace meshes later without changing the acting contract.";
 
     this.root.add(group);
     return group;
@@ -376,6 +541,115 @@ function applyMorph(targets, kind, value) {
         break;
       }
     }
+  }
+}
+
+function placeholderExpressionPose(expression) {
+  switch (expression) {
+    case "happy":
+      return {
+        eyeScale: 0.72,
+        mouthScale: 2.25,
+        mouthWidth: 1.18,
+        mouthRotation: Math.PI * 0.78,
+        mouthY: -0.01,
+        shoulderLift: 0.04,
+        headOffsetX: 0,
+        headOffsetY: 0.02,
+        headRoll: 0.02,
+        faceForward: 0.01
+      };
+    case "angry":
+      return {
+        eyeScale: 0.78,
+        mouthScale: 1.25,
+        mouthWidth: 0.92,
+        mouthRotation: Math.PI * 1.18,
+        mouthY: 0.01,
+        shoulderLift: 0.02,
+        headOffsetX: 0,
+        headOffsetY: -0.01,
+        headRoll: 0,
+        faceForward: 0.018
+      };
+    case "sad":
+      return {
+        eyeScale: 0.68,
+        mouthScale: 0.95,
+        mouthWidth: 0.88,
+        mouthRotation: Math.PI * 1.10,
+        mouthY: -0.01,
+        shoulderLift: -0.06,
+        headOffsetX: 0,
+        headOffsetY: -0.035,
+        headRoll: -0.025,
+        faceForward: -0.01
+      };
+    case "afraid":
+      return {
+        eyeScale: 1.28,
+        mouthScale: 3.2,
+        mouthWidth: 1.08,
+        mouthRotation: Math.PI,
+        mouthY: 0,
+        shoulderLift: 0.09,
+        headOffsetX: 0,
+        headOffsetY: 0.02,
+        headRoll: 0.02,
+        faceForward: 0.025
+      };
+    case "embarrassed":
+      return {
+        eyeScale: 0.50,
+        mouthScale: 0.85,
+        mouthWidth: 0.84,
+        mouthRotation: Math.PI,
+        mouthY: 0.01,
+        shoulderLift: -0.02,
+        headOffsetX: 0.03,
+        headOffsetY: -0.01,
+        headRoll: 0.05,
+        faceForward: -0.005
+      };
+    case "exhausted":
+      return {
+        eyeScale: 0.42,
+        mouthScale: 0.72,
+        mouthWidth: 0.90,
+        mouthRotation: Math.PI,
+        mouthY: 0,
+        shoulderLift: -0.09,
+        headOffsetX: 0,
+        headOffsetY: -0.06,
+        headRoll: -0.04,
+        faceForward: -0.015
+      };
+    case "confused":
+      return {
+        eyeScale: 1.02,
+        mouthScale: 0.95,
+        mouthWidth: 0.95,
+        mouthRotation: Math.PI,
+        mouthY: 0,
+        shoulderLift: 0,
+        headOffsetX: 0.01,
+        headOffsetY: 0.015,
+        headRoll: 0.11,
+        faceForward: 0.0
+      };
+    default:
+      return {
+        eyeScale: 1,
+        mouthScale: 2.2,
+        mouthWidth: 1,
+        mouthRotation: Math.PI,
+        mouthY: 0,
+        shoulderLift: 0,
+        headOffsetX: 0,
+        headOffsetY: 0,
+        headRoll: 0,
+        faceForward: 0
+      };
   }
 }
 
