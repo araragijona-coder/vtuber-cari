@@ -12,7 +12,7 @@
 - [x] Acciones canónicas: talking y silent, además de acciones emocionales del Action Store.
 - [x] Tracking facial con MediaPipe y estabilización de expresión.
 - [x] Botón manual **Hablar** conectado al Action Store y al gate nativo del micrófono.
-- [x] Botón **Auto** para devolver el control de boca/reacción al detector local.
+- [x] Botón **Auto** devuelve el movimiento/reacción al procesamiento local y mantiene el micrófono OFF.
 - [x] Botones manuales de reacción para las expresiones canónicas.
 - [x] Movimiento libre/idle procedural del avatar.
 - [x] Actividades teclado, mando y móvil con control manual/automático.
