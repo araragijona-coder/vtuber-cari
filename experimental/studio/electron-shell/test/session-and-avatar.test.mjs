@@ -267,6 +267,7 @@ test("Cari action store exposes only canonical runtime actions", async () => {
     ]
   );
   assert.equal(actions.find(action => action.id === "sad").expression, "sad");
+  assert.equal(actions.find(action => action.id === "talking").mouthOpen, 0.9);
   assert.equal(actions.find(action => action.id === "afraid").expression, "afraid");
   assert.equal(actions.find(action => action.id === "exhausted").expression, "exhausted");
 });
