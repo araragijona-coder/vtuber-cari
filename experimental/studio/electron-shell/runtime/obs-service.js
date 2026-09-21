@@ -1,4 +1,4 @@
-const { OBSWebSocket } = require("obs-websocket-js");
+const { OBSWebSocket, EventSubscription, RequestBatchExecutionType } = require("obs-websocket-js");
 const { EventEmitter } = require("node:events");
 
 class ObsService extends EventEmitter {
@@ -9,6 +9,12 @@ class ObsService extends EventEmitter {
     this.url = "";
     this.processDetected = false;
     this.processName = null;
+    this.reconnectWanted = false;
+    this.reconnectTimer = null;
+    this.reconnectAttempt = 0;
+    this.sceneCollectionChanging = false;
+    this.obsWebSocketVersion = null;
+    this.negotiatedRpcVersion = null;
     this.runtime = {
       streaming: false,
       streamState: "stopped",
@@ -18,7 +24,9 @@ class ObsService extends EventEmitter {
       virtualCameraState: "stopped",
       programScene: null,
       previewScene: null,
-      studioMode: false
+      studioMode: false,
+      replayBuffer: false,
+      replayBufferState: "stopped"
     };
 
     this.client.on("ConnectionError", error => {
@@ -33,6 +41,7 @@ class ObsService extends EventEmitter {
       this.#resetRuntime();
       this.emit("connection-closed", error);
       this.emit("status", this.status());
+      this.#scheduleReconnect();
     });
     this.client.on("StreamStateChanged", event => {
       this.runtime.streaming = event?.outputActive === true;
@@ -67,6 +76,34 @@ class ObsService extends EventEmitter {
       this.emit("event", { type: "StudioModeStateChanged", data: event || {} });
       this.emit("status", this.status());
     });
+    this.client.on("ReplayBufferStateChanged", event => {
+      this.runtime.replayBuffer = event?.outputActive === true;
+      this.runtime.replayBufferState = event?.outputState ||
+        (this.runtime.replayBuffer ? "running" : "stopped");
+      this.emit("event", { type: "ReplayBufferStateChanged", data: event || {} });
+      this.emit("status", this.status());
+    });
+    this.client.on("InputVolumeMeters", event => {
+      this.emit("event", { type: "InputVolumeMeters", data: event || {} });
+    });
+    this.client.on("InputMuteStateChanged", event => {
+      this.emit("event", { type: "InputMuteStateChanged", data: event || {} });
+      this.emit("status", this.status());
+    });
+    this.client.on("InputVolumeChanged", event => {
+      this.emit("event", { type: "InputVolumeChanged", data: event || {} });
+      this.emit("status", this.status());
+    });
+    this.client.on("CurrentSceneCollectionChanging", event => {
+      this.sceneCollectionChanging = true;
+      this.emit("event", { type: "CurrentSceneCollectionChanging", data: event || {} });
+      this.emit("status", this.status());
+    });
+    this.client.on("CurrentSceneCollectionChanged", event => {
+      this.sceneCollectionChanging = false;
+      this.emit("event", { type: "CurrentSceneCollectionChanged", data: event || {} });
+      this.emit("status", this.status());
+    });
   }
 
   async connect({
@@ -78,9 +115,18 @@ class ObsService extends EventEmitter {
       throw new Error("OBS URL must use ws:// or wss://");
     }
 
-    const result = await this.client.connect(url, password);
+    this.reconnectWanted = true;
+    this.#cancelReconnect();
+    const result = await this.client.connect(url, password, {
+      rpcVersion: 1,
+      eventSubscriptions:
+        EventSubscription.All | EventSubscription.InputVolumeMeters
+    });
     this.connected = true;
     this.url = url;
+    this.reconnectAttempt = 0;
+    this.obsWebSocketVersion = result?.obsWebSocketVersion || null;
+    this.negotiatedRpcVersion = result?.negotiatedRpcVersion || null;
 
     const [stream, record, virtualCamera, program, preview, studioMode] = await Promise.all([
       this.getStreamStatus(),
@@ -105,7 +151,13 @@ class ObsService extends EventEmitter {
   }
 
   async disconnect() {
-    if (!this.connected) return { ok: true };
+    this.reconnectWanted = false;
+    this.#cancelReconnect();
+    if (!this.connected) {
+      this.#resetRuntime();
+      this.emit("status", this.status());
+      return { ok: true };
+    }
     await this.client.disconnect();
     this.connected = false;
     this.#resetRuntime();
@@ -140,9 +192,125 @@ class ObsService extends EventEmitter {
 
   async setScene(sceneName) {
     this.#requireConnection();
+    this.#assertSceneCollectionStable();
     const normalized = String(sceneName || "").trim();
     if (!normalized) throw new Error("sceneName is required");
     return this.client.call("SetCurrentProgramScene", { sceneName: normalized });
+  }
+
+  async getSceneItems(sceneName) {
+    this.#requireConnection();
+    this.#assertSceneCollectionStable();
+    const normalized = String(sceneName || "").trim();
+    if (!normalized) throw new Error("sceneName is required");
+    return this.client.call("GetSceneItemList", { sceneName: normalized });
+  }
+
+  async setSceneItemEnabled(sceneName, sceneItemId, enabled) {
+    this.#requireConnection();
+    this.#assertSceneCollectionStable();
+    const id = Number(sceneItemId);
+    if (!Number.isInteger(id) || id < 0) throw new Error("sceneItemId is required");
+    return this.client.call("SetSceneItemEnabled", {
+      sceneName: String(sceneName || "").trim(),
+      sceneItemId: id,
+      sceneItemEnabled: Boolean(enabled)
+    });
+  }
+
+  async getInputMute(inputName) {
+    this.#requireConnection();
+    return this.client.call("GetInputMute", { inputName: String(inputName || "").trim() });
+  }
+
+  async setInputMute(inputName, muted) {
+    this.#requireConnection();
+    return this.client.call("SetInputMute", {
+      inputName: String(inputName || "").trim(),
+      inputMuted: Boolean(muted)
+    });
+  }
+
+  async toggleInputMute(inputName) {
+    this.#requireConnection();
+    return this.client.call("ToggleInputMute", { inputName: String(inputName || "").trim() });
+  }
+
+  async getInputVolume(inputName) {
+    this.#requireConnection();
+    return this.client.call("GetInputVolume", { inputName: String(inputName || "").trim() });
+  }
+
+  async setInputVolume(inputName, volume, volumeDb = false) {
+    this.#requireConnection();
+    const value = Number(volume);
+    if (!Number.isFinite(value)) throw new Error("volume is required");
+    return this.client.call("SetInputVolume", {
+      inputName: String(inputName || "").trim(),
+      inputVolumeMul: volumeDb ? undefined : Math.max(0, value),
+      inputVolumeDb: volumeDb ? value : undefined
+    });
+  }
+
+  async getReplayBufferStatus() {
+    this.#requireConnection();
+    return this.client.call("GetReplayBufferStatus");
+  }
+
+  async startReplayBuffer() {
+    this.#requireConnection();
+    return this.client.call("StartReplayBuffer");
+  }
+
+  async stopReplayBuffer() {
+    this.#requireConnection();
+    return this.client.call("StopReplayBuffer");
+  }
+
+  async saveReplayBuffer() {
+    this.#requireConnection();
+    return this.client.call("SaveReplayBuffer");
+  }
+
+  async transitionToScene(sceneName, {
+    transitionName = null,
+    durationMs = null
+  } = {}) {
+    this.#requireConnection();
+    this.#assertSceneCollectionStable();
+    const normalized = String(sceneName || "").trim();
+    if (!normalized) throw new Error("sceneName is required");
+
+    if (!this.runtime.studioMode) {
+      return this.setScene(normalized);
+    }
+
+    const requests = [
+      {
+        requestType: "SetCurrentPreviewScene",
+        requestData: { sceneName: normalized }
+      }
+    ];
+    if (transitionName) {
+      requests.push({
+        requestType: "SetCurrentSceneTransition",
+        requestData: { transitionName: String(transitionName) }
+      });
+    }
+    if (durationMs !== null) {
+      const duration = Math.max(0, Math.min(10000, Number(durationMs)));
+      if (Number.isFinite(duration)) {
+        requests.push({
+          requestType: "SetCurrentSceneTransitionDuration",
+          requestData: { transitionDuration: Math.round(duration) }
+        });
+      }
+    }
+    requests.push({ requestType: "TriggerStudioModeTransition" });
+    return this.client.callBatch(requests, {
+      executionType: RequestBatchExecutionType.SerialRealtime,
+      haltOnFailure: true
+    });
   }
 
   async setPreviewScene(sceneName) {
@@ -252,16 +420,59 @@ class ObsService extends EventEmitter {
       processDetected: this.processDetected,
       processName: this.processName,
       connected: this.connected,
-      controlReady: this.connected,
+      controlReady: this.connected && !this.sceneCollectionChanging,
+      sceneCollectionChanging: this.sceneCollectionChanging,
+      reconnectWanted: this.reconnectWanted,
+      reconnectPending: this.reconnectTimer !== null,
+      reconnectAttempt: this.reconnectAttempt,
+      obsWebSocketVersion: this.obsWebSocketVersion,
+      negotiatedRpcVersion: this.negotiatedRpcVersion,
       url: this.url,
       runtime: { ...this.runtime }
     };
+  }
+
+  #scheduleReconnect() {
+    if (!this.reconnectWanted || this.reconnectTimer !== null) return;
+    if (this.reconnectAttempt >= 5) return;
+    const delays = [1000, 2000, 4000, 8000, 15000];
+    const delay = delays[Math.min(this.reconnectAttempt, delays.length - 1)];
+    this.reconnectAttempt += 1;
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = null;
+      try {
+        await this.connect({ url: this.url || undefined, password: process.env.CARI_OBS_PASSWORD });
+        this.emit("event", { type: "OBSReconnectSucceeded", attempt: this.reconnectAttempt });
+      } catch (error) {
+        this.emit("connection-error", error);
+        this.#scheduleReconnect();
+      }
+    }, delay);
+    this.reconnectTimer.unref?.();
+    this.emit("event", {
+      type: "OBSReconnectScheduled",
+      attempt: this.reconnectAttempt,
+      delayMs: delay
+    });
+  }
+
+  #cancelReconnect() {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+  }
+
+  #assertSceneCollectionStable() {
+    if (this.sceneCollectionChanging) {
+      throw new Error("OBS is changing scene collection; wait for CurrentSceneCollectionChanged");
+    }
   }
 
   #resetRuntime() {
     this.runtime.streaming = false;
     this.runtime.recording = false;
     this.runtime.virtualCamera = false;
+    this.runtime.replayBuffer = false;
+    this.runtime.replayBufferState = "stopped";
     this.runtime.streamState = "stopped";
     this.runtime.recordState = "stopped";
     this.runtime.virtualCameraState = "stopped";
