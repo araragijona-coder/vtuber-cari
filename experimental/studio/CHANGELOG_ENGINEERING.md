@@ -148,3 +148,12 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Se mantienen smoke tests de retry/diagnóstico.
 - CI continúa bloqueada sin steps/logs observables.
 - Porcentaje canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+## 2026-09-21 — LOG-043 GPU -> Libav runtime
+- Se añadió LibavRuntimeBackend opt-in.
+- El bridge D3D11 usa frames del pool hardware de FFmpeg y CopyResource GPU->GPU.
+- Se elimina el readback CPU del frame final en el camino libav-d3d11.
+- CARI_ENABLE_LIBAV_OUTPUT=ON habilita la ruta y CARI_OUTPUT_BACKEND=libav-d3d11 la selecciona.
+- El backend raw CLI continúa como default.
+- Estado experimental; Windows/hardware pendiente.
+- Porcentaje canónico sin incremento: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
