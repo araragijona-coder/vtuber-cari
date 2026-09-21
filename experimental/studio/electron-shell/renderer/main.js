@@ -777,6 +777,31 @@ acting.subscribe(state => {
   $("#track-expression").textContent = state.expression || "neutral";});
 
 window.cari.native.onEvent(event => {
+  if (event.type === "integration.health") {
+    const obsState = event.obs || {};
+    const twitchState = event.twitch || {};
+    const obsLabel = obsState.connected
+      ? "connected"
+      : (obsState.processDetected ? "open · not connected" : "offline");
+    $("#service-obs-text").textContent = obsLabel;
+    $("#obs-status-pill").textContent = obsLabel;
+    $("#obs-chip").innerHTML = "OBS <b>" +
+      (obsState.connected ? "ON" : (obsState.processDetected ? "OPEN" : "OFF")) +
+      "</b>";
+    $("#service-obs-dot").classList.toggle(
+      "on",
+      obsState.connected || obsState.processDetected
+    );
+
+    const twitchLabel = twitchState.connected
+      ? (twitchState.streamOnline ? "connected · live" : "connected · offline")
+      : "offline";
+    twitch.status.textContent = twitchLabel;
+    $("#twitch-center-status").textContent = twitchLabel;
+    $("#service-twitch-text").textContent = twitchLabel;
+    $("#service-twitch-dot").classList.toggle("on", twitchState.connected);
+    return;
+  }
   if (event.type === "twitch.chat") {
     addChat(event);
     addEvent("chat ← " + (event.user_name || event.user_login || "viewer"));
@@ -784,10 +809,14 @@ window.cari.native.onEvent(event => {
   }
   if (event.type === "twitch.chat.sent") { addChat(event, true); return; }
   if (event.type === "twitch.status") {
-    const label = event.connected ? "Connected" : "Disconnected";
+    const label = event.connected
+      ? (event.streamOnline ? "Connected · live" : "Connected · offline")
+      : "Disconnected";
     twitch.status.textContent = label;
     const center = $("#twitch-center-status");
-    if (center) center.textContent = event.connected ? "connected" : "offline";
+    if (center) center.textContent = event.connected
+      ? (event.streamOnline ? "connected · live" : "connected · offline")
+      : "offline";
     return;
   }
   if (event.type === "twitch.eventsub.welcome") { addEvent("EventSub connected"); return; }
@@ -1093,20 +1122,30 @@ async function refresh() {
   refreshBusy = true;
   try {
     const result = await session.status();
-    const twitchState = await window.cari.native.twitch.status().catch(() => ({ connected: false }));
-    const obsState = await window.cari.native.obs.status().catch(() => ({ connected: false }));
+    const health = await window.cari.native.integrations.status().catch(() => ({ obs: { connected: false, processDetected: false, runtime: {} }, twitch: { connected: false } }));
+    const twitchState = health.twitch || { connected: false };
+    const obsState = health.obs || { connected: false, processDetected: false, runtime: {} };
     const engineOn = result.engine?.running === true;
     $("#engine-chip").innerHTML = "ENGINE <b>" + (engineOn ? "ON" : "OFF") + "</b>";
     $("#twitch-chip").innerHTML = "TWITCH <b>" + (twitchState.connected ? "ON" : "OFF") + "</b>";
-    $("#twitch-center-status").textContent = twitchState.connected ? "connected" : "offline";
-    $("#obs-chip").innerHTML = "OBS <b>" + (obsState.connected ? "ON" : "OFF") + "</b>";
-    $("#dash-twitch").textContent = twitchState.connected ? "connected" : "offline";
-    $("#dash-obs").textContent = obsState.connected ? "connected" : "offline";
-    $("#service-twitch-text").textContent = twitchState.connected ? "connected" : "offline";
-    $("#service-obs-text").textContent = obsState.connected ? "connected" : "offline";
+    $("#twitch-center-status").textContent = twitchState.connected
+      ? (twitchState.streamOnline ? "connected · live" : "connected · offline")
+      : "offline";
+    const obsLabel = obsState.connected
+      ? "connected"
+      : (obsState.processDetected ? "open · not connected" : "offline");
+    $("#obs-chip").innerHTML = "OBS <b>" + (obsState.connected ? "ON" : (obsState.processDetected ? "OPEN" : "OFF")) + "</b>";
+    $("#dash-twitch").textContent = twitchState.connected
+      ? (twitchState.streamOnline ? "connected · live" : "connected · offline")
+      : "offline";
+    $("#dash-obs").textContent = obsLabel;
+    $("#service-twitch-text").textContent = twitchState.connected
+      ? (twitchState.streamOnline ? "connected · live" : "connected")
+      : "offline";
+    $("#service-obs-text").textContent = obsLabel;
     $("#service-engine-text").textContent = engineOn ? "running" : "offline";
     $("#service-twitch-dot").classList.toggle("on", twitchState.connected);
-    $("#service-obs-dot").classList.toggle("on", obsState.connected);
+    $("#service-obs-dot").classList.toggle("on", obsState.connected || obsState.processDetected);
     $("#service-engine-dot").classList.toggle("on", engineOn);
     ui.engine.textContent = result.engine?.running ? "running (" + result.engine.pid + ")" : "offline";
     ui.dashEngine.textContent = ui.engine.textContent;
