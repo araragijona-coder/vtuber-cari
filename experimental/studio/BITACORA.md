@@ -410,3 +410,59 @@ Solo `no-face` entra al fade de pérdida. Los frames duplicados no degradan el a
 - Producción: **NO listo**.
 - Las mejoras VTuber verificadas/presentes en el head actual incluyen hotkeys globales y el puente de tracking con perfil/calibración.
 - Próximo foco P0: validación real de cámara/tracking y composición final del avatar, no recrear el tracker ni el renderer.
+---
+
+## LOG-019 — Consolidación de continuidad + demo visual
+
+**Fecha:** 2026-09-21  
+**Área:** Continuidad / auditoría / VTuber UI  
+**Estado:** IMPLEMENTADO / DOCUMENTADO
+
+### Problema
+
+Existían varios archivos de bitácora históricos y el estado operativo de la rama había avanzado más que algunos resúmenes antiguos. Eso podía provocar repetir auditorías ya cerradas o tomar un porcentaje histórico como si fuera el actual.
+
+### Acción realizada
+
+- Se confirma experimental/studio/BITACORA.md como bitácora canónica.
+- Se registran como fuentes históricas/secundarias BITACORA_CONTINUIDAD.md, BITACORA_INGENIERIA.md y DEVELOPMENT_LOG.md.
+- Se consolida el estado actual observado en el repositorio:
+  - cámara Media Foundation implementada en el runtime;
+  - compositor D3D11 experimental;
+  - E2E Windows named-pipe → FFmpeg implementado y preparado para CI;
+  - VAD/lip-sync local por amplitud;
+  - supervisor multistream experimental;
+  - retry/backoff RTMP acotado por categoría de red;
+  - tracking MediaPipe con calibración/smoothing/deadzone;
+  - overlay/avatar separado y conectado experimentalmente al compositor.
+- Se mantiene la separación entre ingeniería, producto usable y validación física.
+
+### Evidencia
+
+- PROJECT_STATUS.md: ingeniería ~71%, producto usable ~58%, seguimiento global ~65%.
+- PANEL_ACTUAL.md: documenta la superficie real de En vivo, Panel, Escenas, Fuentes, Audio, Salidas, VTuber, Tracking, Avatar, Chat y Twitch.
+- assets/cari/expressions/cari_neutral.png: asset visual V0 presente en el repositorio.
+- El runtime sigue marcado como experimental y no listo para producción.
+
+### Riesgos restantes
+
+- CI sigue sin entregar steps/logs útiles en los runs recientes.
+- Falta validación Windows/hardware sostenida.
+- El compositor D3D11 actual continúa usando readback CPU como puente experimental.
+- La preservación de PTS extremo a extremo todavía requiere el camino Libav/metadata temporal.
+- Falta validar cámara, RTMP, reconexión real, drift físico y modelo/avatar de producción.
+
+### NO REPETIR
+
+- No reconstruir el tracker MediaPipe.
+- No reconstruir Windows Graphics Capture.
+- No crear otro scheduler/pacer/interleaver.
+- No crear otro FFmpeg supervisor.
+- No convertir OBS en dependencia del engine.
+- No copiar Live2D/Cubism Core al repositorio.
+- No tratar el overlay Three.js como composición final de producción.
+- No usar los porcentajes de archivos históricos como estado actual.
+
+### Siguiente foco
+
+Prioridad inmediata: obtener evidencia observable de CI/E2E Windows y, en paralelo, cerrar la ruta compositor GPU → frame final sin readback por frame.
