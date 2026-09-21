@@ -1,3 +1,85 @@
+## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — HABLA + REACCIONES + CARI V0
+
+- Rama: `fix/native-windows-foundation`
+- PR: #2
+- HEAD auditado: `4ccbb3fc679b630ae6f3bcb09401df7f5b44e8d0`
+- Estado: **EXPERIMENTAL / NO listo para producción**
+- Ingeniería: **~71%**
+- Producto usable/end-user: **~58%**
+- Seguimiento global: **~65%**
+
+### Trabajo cerrado en esta iteración
+
+#### Cari V0
+- Avatar procedural de cuerpo completo en el renderer Three.js existente.
+- Action Store canónico reutilizado: `neutral`, `happy`, `sad`, `angry`, `afraid`, `embarrassed`, `exhausted`, `confused`, `talking`, `silent`.
+- Tracking facial MediaPipe mantiene pose/mirada y estabiliza expresión para evitar parpadeos de estado.
+- No se creó otro renderer, otro Action Store ni otro router.
+
+#### Habla
+- Nuevo `SpeechActivityDetector`: VAD local basado en nivel, histéresis y tiempo de retención.
+- Nuevo `LocalSpeechController`: captura solo micrófono con Web Audio, aplica HPF/LPF y calcula RMS; no hace speech-to-text ni usa red.
+- El VAD controla lip-sync del avatar, separado del tracking facial.
+- El botón **Hablar** enciende el audio/micrófono nativo, activa el gate de micrófono y selecciona la acción `talking`.
+- El botón **Auto** devuelve el control a tracking/VAD local.
+- Los botones manuales de reacción usan el Action Store canónico.
+- El renderer deja de inventar una apertura de boca sinusoidal cuando no hay habla detectada.
+
+#### Micrófono nativo
+- `AudioCoreBridge::microphone_enabled_` permite activar/desactivar solo el micrófono mientras el system loopback permanece disponible.
+- Nuevo comando IPC `microphone.set`.
+- `StudioSessionManager` conserva el estado `microphone` y lo sincroniza con el Native Engine.
+- Durante output activo se mantiene la separación entre audio total y gate del micrófono.
+
+### Cámara / compositor ya existentes — NO repetir
+- `MediaFoundationCamera`: source nativa experimental; falta validación física/reconnect.
+- `D3D11Compositor`: composición GPU capture + overlay; falta eliminar readback CPU para producción.
+- `avatar_gpu_overlay`: placeholder/overlay capturable; no crear otra ruta de overlay.
+- `ThreeAvatarRenderer`: ruta GLB/glTF y V0 procedural existentes.
+
+### Verificación realizada
+- `node --check` de `SpeechActivityDetector`: PASS.
+- `node --check` de `LocalSpeechController`: PASS.
+- Smoke del VAD con histéresis/hold: PASS.
+- C++20 strict portable ya registrado para timing/interleaver/retry/diagnóstico.
+- FFmpeg sintético 7.1.5 ya registrado: BGRA raw + PCM float32 → H.264/AAC → Matroska: PASS.
+- CI: sigue sin ejecutar steps observables; no se marca verde.
+- No se considera validado en hardware el micrófono, cámara, compositor, RTMP ni E2E named-pipe.
+
+### NO REPETIR
+| Componente | Estado | Próxima acción válida |
+|---|---|---|
+| WGC desktop capture | IMPLEMENTADO | solo regresión/hardware |
+| WASAPI + mixer | IMPLEMENTADO | drift correction/hardware |
+| MediaClock/Pacer/Interleaver | IMPLEMENTADO + smoke | PTS E2E |
+| FFmpeg supervisor/boundary | IMPLEMENTADO | E2E Windows sostenido |
+| RTMP retry/backoff | IMPLEMENTADO | red real; no crear otro |
+| Media Foundation camera | IMPLEMENTADO EXPERIMENTAL | validar dispositivo/reconnect |
+| D3D11 compositor | IMPLEMENTADO EXPERIMENTAL | quitar readback CPU/encoder |
+| Three.js avatar | IMPLEMENTADO V0 | validar modelo/overlay/tracking |
+| Action Store | IMPLEMENTADO | extender el existente |
+| VAD/local speech | IMPLEMENTADO | calibrar/validar ruido real |
+| Botón Hablar | IMPLEMENTADO | pruebas UI/integración |
+| Reacción manual | IMPLEMENTADO | extender catálogo si hace falta |
+| OBS WebSocket | IMPLEMENTADO | validar instancia OBS real |
+| Twitch EventSub | IMPLEMENTADO | validar scopes/reconnect real |
+| Game Capture | PENDIENTE | backend dedicado |
+
+### Definición de “analiza el habla”
+Cari Studio ahora puede determinar **si la persona está hablando** a partir del micrófono y usar ese estado para lip-sync/acción. La cámara no recibe audio y no puede detectar por sí sola el habla acústica. OBS puede capturar/mostrar niveles y fuentes de audio, pero no sustituye el VAD ni proporciona comprensión semántica de la voz por el solo hecho de estar conectado.
+
+### Próximo orden obligatorio
+1. Conseguir CI con steps/logs observables.
+2. Ejecutar E2E Windows named-pipe → FFmpeg → archivo.
+3. Conectar el compositor D3D11 sin CPU readback al encoder.
+4. Verificar PTS explícitos con Libav en Windows.
+5. Drift correction WASAPI.
+6. Validar mic/cámara/overlay en hardware real.
+7. Validar OBS/Twitch reales.
+8. Game Capture, multistream, FFmpeg redistribution, instalador y release.
+
+---
+
 
 ## ACTUALIZACIÓN CANÓNICA — cierre de avatar + auditoría — 2026-09-21
 
