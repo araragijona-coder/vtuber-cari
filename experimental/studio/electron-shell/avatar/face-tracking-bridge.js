@@ -1,23 +1,80 @@
+import { TrackingProfileController } from "./tracking-profile.js";
+
 export class FaceTrackingBridge {
-  constructor(acting) {
+  constructor(acting, profile = {}) {
     this.acting = acting;
     this.enabled = false;
     this.currentExpression = "neutral";
     this.candidateExpression = "neutral";
     this.candidateFrames = 0;
-    this.smoothHead = { x: 0, y: 0, z: 0 };
-    this.smoothGaze = { x: 0, y: 0 };
+    this.tracking = new TrackingProfileController(profile);
   }
 
   setEnabled(enabled) {
     this.enabled = Boolean(enabled);
+    if (!this.enabled) {
+      this.tracking.reset();
+      return this.status();
+    }
+    this.tracking.statusValue = "tracking";
+    return this.status();
+  }
+
+  setProfile(profile = {}) {
+    return this.tracking.setProfile(profile);
+  }
+
+  getProfile() {
+    return this.tracking.getProfile();
+  }
+
+  beginCalibration() {
+    const result = this.tracking.beginCalibration();
+    this.currentExpression = "neutral";
+    this.candidateExpression = "neutral";
+    this.candidateFrames = 0;
+    this.acting.setFace({
+      expression: "neutral",
+      mouthOpen: 0,
+      blink: 0,
+      head: { x: 0, y: 0, z: 0 },
+      gaze: { x: 0, y: 0 }
+    });
+    return result;
+  }
+
+  calibrationState() {
+    return this.tracking.calibrationState();
+  }
+
+  finishCalibration() {
+    const committed = this.tracking.commitCalibration();
+    return {
+      committed,
+      ...this.tracking.calibrationState()
+    };
+  }
+
+  resetCalibration() {
+    return this.tracking.resetCalibration();
+  }
+
+  status() {
+    return this.tracking.calibrationState();
   }
 
   apply(result) {
-    if (!this.enabled || !result) return null;
+    if (!this.enabled || !result) {
+      return this.tickNoFace();
+    }
+
+    const categories = result.faceBlendshapes?.[0]?.categories || [];
+    if (categories.length === 0) {
+      return this.tickNoFace();
+    }
 
     const shapes = new Map(
-      (result.faceBlendshapes?.[0]?.categories || []).map(item => [
+      categories.map(item => [
         item.categoryName,
         Number(item.score) || 0
       ])
@@ -68,34 +125,54 @@ export class FaceTrackingBridge {
       this.currentExpression = this.candidateExpression;
     }
 
-    const expression = this.currentExpression;
-
     const pose = readPose(result.facialTransformationMatrixes?.[0]?.data);
-    this.smoothHead = smoothVector(this.smoothHead, pose, 0.35);
-
     const gaze = readGaze(shapes);
-    this.smoothGaze = smoothVector2(this.smoothGaze, gaze, 0.30);
-
-    this.acting.setFace({
-      expression,
+    const normalized = this.tracking.apply({
+      expression: this.currentExpression,
       mouthOpen,
       blink,
-      head: this.smoothHead,
-      gaze: this.smoothGaze
+      head: pose,
+      gaze
+    });
+
+    this.acting.setFace({
+      expression: this.currentExpression,
+      mouthOpen: normalized.mouthOpen,
+      blink: normalized.blink,
+      head: normalized.head,
+      gaze: normalized.gaze
     });
 
     return {
-      expression,
-      mouthOpen,
-      blink,
-      head: this.smoothHead,
-      gaze: this.smoothGaze
+      ...normalized,
+      expression: this.currentExpression,
+      calibrated: this.tracking.calibrationState().calibrated
+    };
+  }
+
+  tickNoFace() {
+    if (!this.enabled) return null;
+    const normalized = this.tracking.onLost();
+    if (!normalized) return null;
+
+    this.acting.setFace({
+      expression: this.currentExpression,
+      mouthOpen: normalized.mouthOpen,
+      blink: normalized.blink,
+      head: normalized.head,
+      gaze: normalized.gaze
+    });
+
+    return {
+      ...normalized,
+      expression: this.currentExpression,
+      calibrated: this.tracking.calibrationState().calibrated
     };
   }
 }
 
 function clamp01(value) {
-  return Math.max(0, Math.min(1, value));
+  return Math.max(0, Math.min(1, Number(value) || 0));
 }
 
 function readPose(data) {
@@ -104,17 +181,17 @@ function readPose(data) {
   }
 
   const m00 = Number(data[0]) || 1;
-  const m01 = Number(data[1]) || 0;
-  const m02 = Number(data[2]) || 0;
   const m10 = Number(data[4]) || 0;
   const m11 = Number(data[5]) || 1;
-  const m12 = Number(data[6]) || 0;
   const m20 = Number(data[8]) || 0;
   const m21 = Number(data[9]) || 0;
   const m22 = Number(data[10]) || 1;
 
   const yaw = Math.atan2(m20, m22);
-  const pitch = Math.atan2(-m21, Math.sqrt(m20 * m20 + m22 * m22));
+  const pitch = Math.atan2(
+    -m21,
+    Math.sqrt(m20 * m20 + m22 * m22)
+  );
   const roll = Math.atan2(m10, m00);
 
   return {
@@ -125,9 +202,8 @@ function readPose(data) {
 }
 
 function clampAngle(value) {
-  return Math.max(-0.8, Math.min(0.8, value));
+  return Math.max(-0.8, Math.min(0.8, Number(value) || 0));
 }
-
 
 function readGaze(shapes) {
   const lookLeft = Math.max(
@@ -155,19 +231,4 @@ function readGaze(shapes) {
 
 function clampSigned(value) {
   return Math.max(-1, Math.min(1, Number(value) || 0));
-}
-
-function smoothVector(previous, next, factor) {
-  return {
-    x: previous.x + (next.x - previous.x) * factor,
-    y: previous.y + (next.y - previous.y) * factor,
-    z: previous.z + (next.z - previous.z) * factor
-  };
-}
-
-function smoothVector2(previous, next, factor) {
-  return {
-    x: previous.x + (next.x - previous.x) * factor,
-    y: previous.y + (next.y - previous.y) * factor
-  };
 }
