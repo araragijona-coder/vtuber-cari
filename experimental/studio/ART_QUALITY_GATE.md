@@ -61,3 +61,9 @@ No comparar Cari con una VTuber concreta usando ganador/perdedor. El benchmark e
 - Fallback procedural estilizado: `CODE_EXISTS`.
 - Asset V1 real: pendiente.
 - Validación visual/Windows/hardware: pendiente.
+
+## Artist / Rigger delivery gate
+
+El paquete debe cumplir assets/cari/2d/ARTIST_RIGGER_DELIVERY_CHECKLIST.md y validar assets/cari/2d/layer-manifest.json antes de pasar a ART_READY.
+
+La existencia del manifest no implica que el arte exista: distingue SPEC_ONLY de ART_READY.
