@@ -2,7 +2,7 @@
 
 - Rama: `fix/native-windows-foundation`.
 - PR: `#2`.
-- HEAD al iniciar este checkpoint: `f962272e6a5ea833cf9ed11d24c1881144c6f81d`.
+- HEAD canónico al cerrar este checkpoint: `bad7030857221782baba42c1a811614e667c20ac`.
 - Estado: **EXPERIMENTAL / NO listo para producción**.
 - Ingeniería: **~69%**.
 - Producto usable/end-user: **~55%**.
@@ -58,6 +58,12 @@
 
 ### Regla de continuidad
 Antes de tocar cualquier componente, buscarlo en esta bitácora. Si ya figura IMPLEMENTADO o EXPERIMENTAL, trabajar solo en el gate restante o ante una regresión reproducible.
+
+### Registro de este cierre
+- Avatar Cari V0 funcional y acciones canónicas incorporadas al renderer existente.
+- No se generó un segundo avatar runtime ni un segundo Action Store.
+- La prueba de regresión del Action Store queda integrada al suite existente.
+- Este checkpoint tiene prioridad sobre checkpoints históricos de esta misma bitácora.
 
 ---
 
