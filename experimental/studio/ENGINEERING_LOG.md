@@ -174,3 +174,13 @@ A demo image is visual reference only.
 - Progreso canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - Próximo foco: D3D11 → Libav/encoder observable en Windows + PTS E2E.
 - NO REPETIR: OutputRetryPolicy, clasificación de errores y lógica de sesión de retry salvo regresión reproducible.
+
+## 2026-09-21 — LOG-043 GPU -> Libav runtime
+- Se integró LibavRuntimeBackend como backend opt-in.
+- La textura reusable del compositor D3D11 no se entrega directamente al encoder.
+- D3D11AvFrameBridge obtiene un frame desde AVHWFramesContext y realiza CopyResource GPU->GPU.
+- CARI_ENABLE_LIBAV_OUTPUT=ON habilita el backend; CARI_OUTPUT_BACKEND=libav-d3d11 lo selecciona.
+- Selección de encoder: h264_nvenc/h264_amf solo con capacidad D3D11 + HW_FRAMES_CTX.
+- Estado: CODE_EXISTS / TEST_PREPARED / WINDOWS_PENDING.
+- Progreso canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- NO REPETIR: WGC, WASAPI/mixer, timing, tracker, renderer, compositor y FFmpeg supervisor.
