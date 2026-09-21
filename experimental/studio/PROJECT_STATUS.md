@@ -152,6 +152,7 @@
 
 - [x] Contratos de avatar y actuación existentes.
 - [x] Contrato normalizado de expresión/pose/gaze para renderer Three.js.
+- [x] Registro/validación de assets GLB/GLTF antes de cargarlos en el overlay.
 - [x] Estado de actuación independiente de apariencia.
 - [x] Perfil de apariencia modular con cabello, outfit y accesorios.
 - [x] Accesorios con ancla, posición, escala, rotación y color.
