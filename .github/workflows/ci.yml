@@ -28,8 +28,10 @@ jobs:
         run: python experimental/studio/tools/verify_bitacora.py
       - name: Run continuity validator test
         run: python -m unittest experimental.studio.tests.test_verify_bitacora -v
-      - name: Compile production and experimental code
-        run: python -m compileall -q app tests experimental
+      - name: Compile production, experimental and engineering tools
+        run: python -m compileall -q app tests experimental tools
+      - name: Validate engineering memory
+        run: python tools/verify_bitacora.py
       - name: Check experimental VRM web renderer syntax
         run: node --check experimental/avatar/vrm-web/src/main.js
       - name: Verify Twitch optional bridge import
