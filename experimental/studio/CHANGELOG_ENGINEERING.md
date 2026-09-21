@@ -166,3 +166,11 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Se añadió validator automático y test del manifest.
 - No se crean renderers ni trackers adicionales.
 - Progreso canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+
+## 2026-09-21 — LOG-046 Cari V1 asset package
+- Se consolida un único manifest de capas backend-neutral para el arte de Cari.
+- Se completa scaffold 2D/3D, checklist de artista/rigger, expression sheet y license record.
+- Validator y test del asset quedan integrados al flujo CI.
+- Porcentaje canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Siguiente foco: arte V1 real → rigging → tracking.
