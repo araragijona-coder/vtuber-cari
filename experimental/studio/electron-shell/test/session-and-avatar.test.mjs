@@ -14,10 +14,10 @@ async function loadModule(relativePath) {
   await fs.writeFile(tempFile, source, "utf8");
   if (relativePath === "runtime/session-manager.js") {
     const dependency = await fs.readFile(
-      path.join(root, "runtime/resource-policy.js"),
+      path.join(root, "runtime/resource-policy.mjs"),
       "utf8"
     );
-    await fs.writeFile(path.join(tempRoot, "resource-policy.js"), dependency, "utf8");
+    await fs.writeFile(path.join(tempRoot, "resource-policy.mjs"), dependency, "utf8");
   }
   return import(pathToFileURL(tempFile).href);
 }
