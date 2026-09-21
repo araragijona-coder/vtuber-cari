@@ -211,7 +211,8 @@ export class ThreeAvatarRenderer {
 
       group.position.y = 0.08 + breath;
       group.rotation.z = sway;
-      parts.head.rotation.y = Number(this.currentParams.headYaw) + headSway;
+      this.placeholderFace.rotation.y =
+        Number(this.currentParams.headYaw || 0) + headSway;
       parts.torso.rotation.z = sway * 0.65;
 
       const baseShoulder = Number(
@@ -278,7 +279,11 @@ export class ThreeAvatarRenderer {
         placeholderExpressionPose(this.currentParams.expression || "neutral").headOffsetX;
       parts.head.rotation.z =
         placeholderExpressionPose(this.currentParams.expression || "neutral").headRoll;
-      parts.head.rotation.y += headSway * 0.45;
+      this.placeholderFace.rotation.x =
+        Number(this.currentParams.headPitch || 0);
+      this.placeholderFace.rotation.z =
+        Number(this.currentParams.headRoll || 0) +
+        placeholderExpressionPose(this.currentParams.expression || "neutral").headRoll;
 
       group.position.z = 0;
       group.userData.speakingBob = speakBob;
