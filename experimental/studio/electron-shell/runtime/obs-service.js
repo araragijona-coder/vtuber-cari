@@ -7,6 +7,8 @@ class ObsService extends EventEmitter {
     this.client = new OBSWebSocket();
     this.connected = false;
     this.url = "";
+    this.processDetected = false;
+    this.processName = null;
     this.runtime = {
       streaming: false,
       streamState: "stopped",
@@ -239,9 +241,18 @@ class ObsService extends EventEmitter {
     return this.client.call("GetProfileList");
   }
 
+  setProcessPresence({ running = false, processName = null } = {}) {
+    this.processDetected = running === true;
+    this.processName = processName || null;
+    this.emit("status", this.status());
+  }
+
   status() {
     return {
+      processDetected: this.processDetected,
+      processName: this.processName,
       connected: this.connected,
+      controlReady: this.connected,
       url: this.url,
       runtime: { ...this.runtime }
     };
