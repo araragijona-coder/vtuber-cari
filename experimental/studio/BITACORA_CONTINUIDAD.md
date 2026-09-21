@@ -1,3 +1,5 @@
+> **ARCHIVO HISTÓRICO / NO CANÓNICO.** La fuente oficial de continuidad y anti-repetición es `experimental/studio/BITACORA.md`. No usar el porcentaje de este archivo para decidir trabajo nuevo.
+
 # Cari Studio — Bitácora de continuidad
 
 > Objetivo: impedir trabajo duplicado. Antes de implementar una pieza, revisar esta bitácora y sus estados.
