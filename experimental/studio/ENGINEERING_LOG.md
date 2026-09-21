@@ -154,3 +154,14 @@ A demo image is visual reference only.
 - Bitácora maestra actualizada para impedir repetir correcciones funcionales sin evidencia.
 - Progreso canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - Siguiente foco: D3D11 → Libav/encoder, compositor final y validación OBS/Windows real.
+
+## 2026-09-21 — LOG-041
+- Se auditó primero BITACORA.md, PROJECT_STATUS.md, AUDIT_MATRIX.md y ENGINEERING_LOG.md antes de continuar.
+- Se confirma Ingeniería ~71%, Producto usable ~58%, Seguimiento global ~65%, Producción NO READY.
+- Se detecta y resuelve una inconsistencia: ya existía el validator canónico en experimental/studio/tools/verify_bitacora.py; tools/verify_bitacora.py queda como wrapper de compatibilidad, no como segunda implementación.
+- El validator canónico ahora comprueba porcentajes, IDs LOG monotónicos, secciones mínimas, declaración de continuidad, último LOG y regla de progreso.
+- La cobertura unittest se amplía a caso válido, IDs duplicados, deriva de porcentajes y deriva de HEAD.
+- CI ejecuta el validator canónico y su suite de continuidad.
+- GitHub Actions continúa bloqueado por falta de steps/logs observables; no se atribuye regresión de código.
+- No se reabren WGC, WASAPI, MediaClock/RealtimePacer/Interleaver, MediaPipe, Three.js, FFmpeg supervisor, RawPipe, OBS bridge ni D3D11 bridge.
+- Próximo foco: evidencia Windows observable del camino D3D11 → Libav/encoder, compositor final y PTS E2E; validación OBS real y hardware después de esa evidencia.
