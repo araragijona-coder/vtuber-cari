@@ -2900,3 +2900,54 @@ y `npm start` consiga conectar el NativeEngine.
 - Producción: NO listo
 
 Este porcentaje no aumenta por esta corrección porque no añade un nuevo subsistema funcional; elimina una fricción de arranque del entorno de desarrollo.
+
+## LOG-062 — Launcher EXE en la raíz del proyecto — 21/09/2026
+
+Área: Windows / UX de arranque / Distribución / Continuidad
+Estado: IMPLEMENTADO / BUILD WINDOWS PENDIENTE
+
+### Objetivo
+
+Permitir iniciar Cari Studio desde la carpeta raíz sin navegar hasta `experimental/studio/electron-shell/`.
+
+### Cambio
+
+Se añadió `experimental/studio/native-windows/cari_studio_launcher.cpp` y un target CMake `cari-studio-launcher`.
+
+Durante el build Release, CMake copia automáticamente el ejecutable generado a:
+
+`<raíz del repositorio>\CariStudioLauncher.exe`
+
+El launcher usa esta prioridad:
+
+1. `CARI_STUDIO_EXECUTABLE`;
+2. instalación de escritorio de Cari Studio;
+3. `experimental/studio/electron-shell/run-local.ps1` del checkout;
+4. runtime nativo como fallback de diagnóstico.
+
+El camino de desarrollo ejecuta `run-local.ps1`, por lo que conserva el descubrimiento/build automático del engine y la instalación de dependencias Electron existente. La salida del shell se registra en `%LOCALAPPDATA%\CariStudio\launcher.log`; si PowerShell termina inmediatamente con error, se muestra un diálogo con la ruta del log.
+
+El binario generado se añade a `.gitignore`: no se versiona como binario; CI lo valida y lo publica como artifact cuando el runner funciona.
+
+### NO REPETIR
+
+- No crear otro launcher paralelo para la misma función.
+- No mover manualmente `cari-studio-native.exe` para solucionar el arranque.
+- No confundir `CariStudioLauncher.exe` con `cari-studio-native.exe`: el primero es el entrypoint; el segundo es el runtime multimedia.
+- No considerar este launcher validado en Windows hasta observar el EXE raíz y el doble clic iniciando el shell Electron.
+
+### Estado de validación
+
+Código integrado en GitHub: SÍ.
+Target CMake: SÍ.
+Workflow verifica/publica el EXE: SÍ.
+Build Windows real: PENDIENTE por el estado actual del runner.
+Prueba de doble clic: PENDIENTE.
+
+### Siguiente gate
+
+1. Obtener un `Native Windows Build` con steps visibles.
+2. Confirmar `CariStudioLauncher.exe` en la raíz del workspace/artifact.
+3. Ejecutarlo por doble clic.
+4. Verificar que conecta `NativeEngine` y abre el shell.
+5. Guardar el resultado en esta misma bitácora.
