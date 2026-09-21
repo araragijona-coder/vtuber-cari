@@ -916,6 +916,7 @@ async function setManualTalk(enabled) {
 
   if (desired) {
     preTalkManualExpression = acting.manualExpression();
+    preTalkActionId = selectedActionId;
     const audioWasRunning = session.snapshot().audio === true;
     const audio = await session.audioStart();
     if (audio?.ok === false) {
@@ -932,7 +933,10 @@ async function setManualTalk(enabled) {
     manualTalk = true;
     const talkingAction = actionStore.get("talking");
     if (talkingAction) {
-      setAction(talkingAction.id, { manual: true });
+      actionRouter.setManualAction(talkingAction.id);
+      selectedActionId = talkingAction.id;
+      ui.previewAction.textContent = talkingAction.label;
+      renderActionFrame(talkingAction, 0);
     } else {
       acting.setManualExpression("neutral");
       acting.set({ mouthOpen: 0.9 });
@@ -947,12 +951,18 @@ async function setManualTalk(enabled) {
     }
     talkStartedAudio = false;
     lipSync.reset();
+    if (preTalkActionId && actionStore.get(preTalkActionId)) {
+      selectedActionId = preTalkActionId;
+      actionRouter.setManualAction(preTalkActionId);
+      renderActionFrame(actionStore.get(preTalkActionId), 0);
+    }
     if (preTalkManualExpression) {
       acting.setManualExpression(preTalkManualExpression);
     } else {
-      acting.clearManualExpression();
+      actionRouter.syncActing();
     }
     preTalkManualExpression = null;
+    preTalkActionId = null;
   }
 
   updateTalkUi(speechAutoEnabled ? speech.sample() : { level: 0, speaking: false, active: false });
@@ -1020,6 +1030,7 @@ function stopCamera() {
 function trackingLoop(timestamp) {
   requestAnimationFrame(trackingLoop);
 
+  actionPlayer.update(timestamp);
   activity.pollGamepads(timestamp);
   const activityState = activity.current(timestamp);
   if (activityState.expression && activity.fullMode()) {
@@ -1069,6 +1080,7 @@ function trackingLoop(timestamp) {
 
   if (speechAutoEnabled) {
     const voice = speech.sample(timestamp);
+    actionRouter.setVoiceActivity({ speaking: voice.speaking });
     const drivenLevel = voice.speaking ? voice.level : 0;
     if (drivenLevel > 0) {
       lipSync.update(drivenLevel);
@@ -1219,17 +1231,10 @@ window.cari.native.onEvent(event => {
     const payload = event.payload || {};
     const viewer = payload.user_name || payload.user_login || payload.from_broadcaster_user_name || "";
     addEvent("Twitch event: " + type + (viewer ? " · " + viewer : ""));
-    const actionByEvent = {
-      "channel.raid": "happy",
-      "stream.online": "happy",
-      "stream.offline": "silent",
-      "channel.update": "neutral",
-      "channel.shared_chat.begin": "happy",
-      "channel.shared_chat.update": "talking",
-      "channel.shared_chat.end": "neutral"
-    };
-    const action = actionByEvent[type];
-    if (action) setActionByIdOrLabel(action);
+    const routedAction = actionRouter.handleTwitchEvent(type, payload);
+    if (routedAction) {
+      addEvent("2D action ← Twitch: " + routedAction);
+    }
     if (twitchRead && "speechSynthesis" in window && action) {
       const names = {
         "channel.raid": "¡Raid recibido!",
@@ -1349,6 +1354,7 @@ ui.presetInput.onchange = async event => {
   if (!file) return;
   try {
     actionStore.importJson(await file.text());
+    await actionStore.flush();
     selectedActionId = actionStore.list()[0]?.id || null;
     setAction(selectedActionId);
     renderAssets();
