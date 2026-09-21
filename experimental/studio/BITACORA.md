@@ -3,180 +3,71 @@
 Última actualización: 2026-09-21
 Rama: fix/native-windows-foundation
 
+## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21 — ASSET BASE + CONTINUIDAD
 
-## CHECKPOINT CANÓNICO ACTUAL — 2026-09-21
+> Esta sección tiene precedencia sobre cualquier entrada histórica inferior.
 
-> Esta sección tiene precedencia sobre cualquier porcentaje o estado de las entradas históricas inferiores.
-
-### Identidad del estado
 - Rama: `fix/native-windows-foundation`
 - PR: #2
-- HEAD auditado: `a49860c3393345759703e65090836a70f48c05bf`
+- HEAD auditado de esta entrega: `26da72bf098b6620cbed22c4eb9f4a60e4a0b874`
 - Estado: experimental; **NO listo para producción**.
 - Ingeniería: **~68%**.
 - Producto usable/end-user: **~54%**.
 - Seguimiento global: **~62%**.
 
-### Trabajo confirmado existente
-- Captura Windows Graphics Capture de ventana y pantalla primaria.
-- Captura de cámara Media Foundation integrada como `source=camera` (hardware/reconexión aún no validados).
-- WASAPI micrófono + loopback y `AudioTimelineMixer`.
-- `MediaClock` de 100 ns, `RealtimePacer`, interleaver A/V por PTS y presupuesto máximo de 8 eventos por polling.
-- `RawPipe` y boundary A/V FFmpeg con EOF/flush.
-- Diagnóstico stderr acotado a 256 KiB.
-- Clasificación de fallos y retry RTMP exponencial acotado, solo para errores de red.
-- Compositor D3D11 experimental y overlay de avatar; readback CPU sigue siendo fallback/diagnóstico.
-- Ruta Libav experimental para PTS explícitos.
-- Smoke E2E Windows de named pipes + FFmpeg implementado en código, pendiente de ejecución observable.
-- Estimator de drift implementado; corrección/resampling físico pendiente.
-- Supervisor multistream experimental.
-- Three.js/glTF/GLB + MediaPipe + FaceTrackingBridge + lip-sync por amplitud.
-- Editor de acciones PNG/WebP y Action Store.
-- OBS Service opcional y Twitch/EventSub con un único transporte.
-- StudioRuntimeBindings como frontera única Native/OBS.
-- Installer NSIS x64 configurado; validación/firma pendiente.
-- `VTUBER_ASSET_STRATEGY.md` documenta las rutas PNGTuber, Inochi2D/2D, Live2D y VRM/Blender/Three.js.
+### Hecho en esta entrega
+- Se consolidó `BITACORA.md` como la bitácora maestra de continuidad y anti-repetición.
+- Se confirmó el diseño visual base de Cari en `CARI_CHARACTER_BIBLE.md` como `CANON_CONFIRMED`.
+- Se añadieron `assets/cari/expressions/cari_neutral.png`, `cari_happy.png` y `cari_angry.png`.
+- Se añadió `assets/cari/expressions/manifest.json` y `DESIGN_SPEC.md`.
+- El Action Store existente ahora admite frames `bundled` y los precarga al arrancar si la acción todavía no tiene frames personalizados.
+- El empaquetado Electron incluye `assets/cari/expressions` mediante `extraResources`.
+- Se añadió `avatar-assets.test.mjs` para comprobar manifest, archivos y firma PNG.
+- No se creó un segundo editor, segundo Action Store ni segundo renderer.
 
-### Regresiones detectadas y corregidas
-- El atajo `R` podía dejar vivo el overlay/avatar capture y retry; ahora detiene ambos y limpia retry.
-- Seleccionar una ventana con una cámara activa podía ignorar la cámara; ahora se detiene cualquier fuente activa antes de cambiar.
-- El campo `output` del status nativo estaba mal serializado; corregido.
-- La clasificación de red era demasiado amplia; se estrechó para evitar retries falsos.
-- Los workflows CI tenían `workflow_dispatch.paths` mal estructurado; corregido.
-- Los includes Windows de `ComPtr`/conversión wide se hicieron explícitos donde correspondía.
+### Diseño visual que NO debe reinterpretarse
+- Piel morena/tan.
+- Cabello marrón medio.
+- Inner hair marrón claro.
+- Cola de caballo mediana.
+- Ahoge centrado.
+- Ojos marrones.
+- Pupilas blancas y redondas.
+- Curita visible en la nariz.
+- Estética de corredora: remera ajustada o atada a la cintura; minishorts o bike-shorts negros.
+- Estilo intermedio entre chibi 2D y 3D estilizado; no realista y no anime extremo.
+- Prohibidos diademas, hairpins, joyería, bolsos, armas, props, accesorios adicionales, prendas extra y objetos decorativos.
 
-### CI — estado no repetir
-- CI sí está configurada para la rama de desarrollo y `workflow_dispatch`.
-- Los runs observados siguen terminando antes de registrar steps/logs útiles; no existe evidencia de compilación CMake/CTest en esos runs.
-- Esto se registra como **BLOQUEO DE RUNNER**, no como diagnóstico de código.
-- No gastar ciclos rehaciendo código exclusivamente para explicar jobs cuyo `steps=null`; volver a hacerlo solo con logs/steps nuevos.
+### Estado del asset
+- `BASE_ART_V0`: implementado y empaquetable.
+- No es todavía arte final profesional.
+- No es todavía un rig Live2D.
+- No es todavía un VRM final.
+- Si la calidad artística debe evolucionar, reemplazar los assets sin cambiar el contrato de actuación ni crear nueva infraestructura.
 
-### Política de avatar — estado
-- PNGTuber: ya soportado por el Action Store/editor existente; no crear otro editor.
-- 2D abierto: Inochi2D/Inochi Creator, BSD-2-Clause; candidato a adapter futuro.
-- 2D propietario: Live2D Cubism, solo adapter opcional.
-- 3D: ruta principal actual Three.js + glTF/VRM; VRoid Studio es authoring externo rápido y Blender es authoring open-source.
-- La generación de arte puede producir assets base, pero no equivale por sí sola a un rig Live2D/VRM final.
-- No introducir otro renderer hasta que un asset real demuestre la necesidad.
-
-### NO REPETIR — gates cerrados
-1. Captura desktop WGC.
-2. WASAPI + mixer.
-3. MediaClock/Pacer/interleaver.
-4. Parser de control.
-5. Action Store/editor.
-6. Three.js renderer base.
-7. Twitch transport/EventSub único.
-8. ObsService.
-9. StudioRuntimeBindings.
-10. Resource policy.
-11. Bitácora/ledger.
-
-### PRÓXIMO ORDEN OBLIGATORIO
-1. Log/steps observable de CI → build CMake + CTest.
-2. E2E Windows named-pipe → FFmpeg → archivo.
-3. Eliminar readback CPU del compositor y conectar textura GPU final al encoder.
-4. PTS explícitos extremo a extremo / ruta Libav validada en Windows.
+### Próximo trabajo — NO REHACER
+1. Conseguir logs/steps observables de CI.
+2. Verificar E2E Windows named-pipe -> FFmpeg -> archivo.
+3. Eliminar readback CPU del compositor para producción.
+4. Validar PTS explícitos extremo a extremo con Libav/transport en Windows.
 5. Drift correction/resampling WASAPI.
-6. Cámara Media Foundation real + reconexión.
-7. Game Capture.
-8. Backend runtime real de `studio_*_requested` para Native/OBS.
-9. Validación real OBS/Twitch y scopes.
-10. Asset Cari real: PNG primero como fallback; VRM/3D o Inochi2D después, sin cambiar el contrato.
-11. Hardware objetivo, FFmpeg redistribution, instalador y release.
+6. Validar cámara Media Foundation y Game Capture.
+7. Conectar backends reales para `studio_*_requested`.
+8. Validar OBS/Twitch y scopes reales.
+9. Preparar VRM/3D o Inochi2D sin cambiar el contrato.
+10. Hardware, redistribución FFmpeg, instalador y release.
 
-\n## Checkpoint canónico — 2026-09-21
-
-### HEAD
-- PR #2: `fix/native-windows-foundation`
-- HEAD auditado al iniciar esta entrada: `3f9736c894a2c0331a0e962bfa2956976dc21af3`
-- La rama continúa separada de `main`; no reescribir historial ni intentar “limpiar” commits sin evidencia de un problema que lo requiera.
-
-### Estado vigente
-- Ingeniería: **68%**
-- Producto usable/end-user: **54%**
-- Seguimiento global: **62%**
-- Producción: **NO listo**
-
-Estos tres porcentajes son los únicos valores vigentes. Las cifras 50/52/53/60/61/65/66/67 de entradas históricas quedan archivadas y NO se usan para decidir trabajo nuevo.
-
-### Auditoría de errores de este ciclo
-- Corregido: atajo `R` detenía el media graph pero podía dejar activo el capture del overlay/avatar y el retry pendiente.
-- Corregido: selección de ventana desde atajo podía ignorar una cámara activa porque solo comprobaba `g_capture.is_running()`.
-- Corregido previamente: serialización del campo `output` en el status nativo.
-- Corregido previamente: clasificación de fallos de red demasiado amplia para no tratar errores de input/locales como reconectables.
-- Verificado por inspección: `StartOutput()` mantiene rollback de captura/audio cuando el arranque del output falla.
-- Verificado por inspección: el retry automático está limitado a perfil RTMP y categoría `network`; no se reintenta encoder/mux/permission/input por ceguera.
-- Pendiente de evidencia: build MSVC/CTest completo y E2E named-pipe en Windows, porque GitHub Actions continúa terminando jobs sin steps/logs observables.
-
-### Multimedia ya existente — NO REPETIR
-- Windows Graphics Capture: IMPLEMENTADO.
-- Pantalla primaria + ventana: IMPLEMENTADO.
-- WASAPI micrófono + loopback: IMPLEMENTADO.
-- AudioTimelineMixer: IMPLEMENTADO + smoke.
-- MediaClock 100 ns: IMPLEMENTADO + smoke.
-- RealtimePacer: IMPLEMENTADO + smoke.
-- Interleaver global A/V por PTS: IMPLEMENTADO + smoke.
-- RawPipe: IMPLEMENTADO + smoke/harness.
-- FFmpeg A/V boundary: IMPLEMENTADO.
-- FFmpeg EOF/flush: IMPLEMENTADO.
-- stderr acotado: IMPLEMENTADO.
-- Failure categories: IMPLEMENTADO.
-- RTMP retry/backoff: IMPLEMENTADO, **no validado en servicio real**.
-- D3D11 compositor: IMPLEMENTADO experimental.
-- Readback CPU: solo fallback/diagnóstico; **no convertirlo en producción**.
-- Media Foundation camera: IMPLEMENTADO experimental; hardware/reconexión pendiente.
-- Libav con PTS explícitos: IMPLEMENTADO experimental; kit FFmpeg Windows pendiente.
-- Named-pipe E2E: IMPLEMENTADO en código; **VERIFICACIÓN Windows pendiente**.
-- Drift estimator: IMPLEMENTADO; corrección/resampling físico pendiente.
-- Multi-stream supervisor: IMPLEMENTADO experimental; endpoints reales pendientes.
-
-### VTuber ya existente — NO REPETIR
-- Contrato de avatar: IMPLEMENTADO.
-- Three.js + GLTF/GLB: IMPLEMENTADO.
-- MediaPipe Face Landmarker + guard de timestamps: IMPLEMENTADO.
-- FaceTrackingBridge / acting state: IMPLEMENTADO.
-- Audio lip-sync por amplitud como fallback: IMPLEMENTADO.
-- Editor de acciones PNG/JPG/WebP con frames/persistencia: IMPLEMENTADO.
-- Overlay transparente capturable: IMPLEMENTADO experimental.
-- Avatar GPU placeholder/compositor: IMPLEMENTADO experimental.
-- Live2D: NO integrado.
-- VRM nativo de producción sin readback CPU: PENDIENTE.
-
-### Política de creación de Cari
-
-- PNGTuber: utilizar el Action Store/editor existente; no crear otro editor.
-- 2DTuber abierto: Inochi2D/Inochi Creator como adapter futuro.
-- 2DTuber propietario: Live2D Cubism como adapter opcional.
-- 3DTuber: mantener Three.js + glTF/VRM como runtime principal.
-- Authoring 3D: VRoid Studio para una base rápida o Blender para un pipeline open-source.
-- Generación de arte: puede producir assets base, pero no sustituye rigging ni validación de un modelo Live2D/VRM.
-- Documento de referencia: `VTUBER_ASSET_STRATEGY.md`.
-
-### Orden de trabajo siguiente — máximo impacto
-1. Conseguir una ejecución Windows observable que llegue a Checkout → CMake → CTest → E2E FFmpeg.
-2. Cerrar composición GPU sin readback CPU para el frame que entra al encoder.
-3. Validar PTS explícitos extremo a extremo con la ruta Libav/transport correcto.
-4. Implementar drift correction/resampling usando relojes WASAPI.
-5. Validar cámara Media Foundation y reconexión.
-6. Implementar Game Capture.
-7. Conectar backend real Native/OBS para `studio_*_requested`.
-8. Validar OBS/Twitch con servicio real.
-9. Preparar modelo Cari 3D VRM o 2D Inochi2D sin modificar el contrato de actuación.
-10. Hardware objetivo, instalador, FFmpeg/codec redistribution y release.
-
-### Pruebas descartadas / no repetir
+### NO REPETIR
+- No rehacer WGC desktop capture.
+- No rehacer WASAPI mixer.
+- No rehacer MediaClock/RealtimerPacer/Interleaver.
+- No crear otro Action Store/editor.
+- No crear otro Twitch EventSub WebSocket.
+- No usar OBS como dependencia del Native Engine.
 - No usar `capturePage()` como compositor de producción.
-- No usar OBS como dependencia del motor nativo.
-- No crear otro EventSub WebSocket.
-- No crear otro `ObsService`, `TwitchChatService`, `StudioRuntimeBindings`, `ActionStore`, `MediaClock` o `RealtimePacer`.
-- No rehacer captura de escritorio con OpenCV mientras WGC cubra ese requisito.
-- No marcar una capacidad como validada porque exista el botón, el módulo o el workflow.
-- No perseguir errores de GitHub Actions sin steps/logs como si fueran fallos de código.
+- No convertir una tarjeta/botón de UI en evidencia de backend.
+- No perseguir `steps=null` sin logs nuevos.
 
-PR: #2
-
-Regla: no repetir una tarea ya cerrada; continuar desde la evidencia registrada.
 
 ## Estados
 
