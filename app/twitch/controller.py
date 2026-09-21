@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+from collections import deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 
@@ -21,7 +22,9 @@ ChatResponder = Callable[[str], Awaitable[None]]
 @dataclass(slots=True)
 class TwitchControllerMetrics:
     events_received: int = 0
+    duplicate_events_dropped: int = 0
     chat_received: int = 0
+    duplicate_chat_dropped: int = 0
     chat_read_aloud: int = 0
     commands_handled: int = 0
     commands_denied: int = 0
@@ -36,10 +39,12 @@ class TwitchControllerMetrics:
 class TwitchController:
     """Provider-neutral Twitch control plane.
 
-    TwitchIO remains the transport adapter. This controller owns normalization,
-    EventBus publication, local command policy, automation dispatch, public
-    voice policy, rate limiting and action lifecycle. It never creates a socket.
+    TwitchIO owns the WebSocket and subscription transport. This controller
+    owns normalization, deduplication, EventBus publication, local commands,
+    automation, public-voice policy and action lifecycle.
     """
+
+    _SEEN_EVENT_LIMIT = 1024
 
     def __init__(
         self,
@@ -60,6 +65,20 @@ class TwitchController:
         self.chat_rate_limiter = chat_rate_limiter or TwitchChatRateLimiter()
         self.continuity = continuity or TwitchContinuityLedger()
         self.metrics = TwitchControllerMetrics()
+        self._seen_event_ids: set[str] = set()
+        self._seen_event_order: deque[str] = deque(maxlen=self._SEEN_EVENT_LIMIT)
+
+    def _remember_event_id(self, event_id: str | None) -> bool:
+        if not event_id:
+            return True
+        if event_id in self._seen_event_ids:
+            return False
+        if len(self._seen_event_order) == self._SEEN_EVENT_LIMIT:
+            oldest = self._seen_event_order[0]
+            self._seen_event_ids.discard(oldest)
+        self._seen_event_order.append(event_id)
+        self._seen_event_ids.add(event_id)
+        return True
 
     async def handle_websocket_welcome(
         self,
@@ -74,7 +93,10 @@ class TwitchController:
         self.continuity.on_welcome(session_id, keepalive_timeout_seconds)
 
         if isinstance(active_subscription_types, Mapping):
-            active = {getattr(item, "type", item) for item in active_subscription_types.values()}
+            active = {
+                getattr(item, "type", item)
+                for item in active_subscription_types.values()
+            }
         else:
             active = set(active_subscription_types)
 
@@ -91,9 +113,20 @@ class TwitchController:
         return await self.handle_normalized_event(normalize_twitch_event(kind, payload))
 
     async def handle_normalized_event(self, event: TwitchEvent) -> TwitchEvent:
+        data = dict(event.data)
+        event_id = data.get("event_id")
+        if not self._remember_event_id(event_id):
+            self.metrics.duplicate_events_dropped += 1
+            self.event_bus.publish(
+                RuntimeEvent(
+                    "twitch_event_duplicate",
+                    {"kind": event.kind, "event_id": event_id},
+                )
+            )
+            return event
+
         self.metrics.events_received += 1
         self.metrics.last_event = event.kind
-        data = dict(event.data)
 
         self.event_bus.publish(
             RuntimeEvent("twitch_event", {"kind": event.kind, "data": data})
@@ -110,15 +143,30 @@ class TwitchController:
         text: str,
         context: CommandContext | None = None,
         respond: ChatResponder | None = None,
+        event_id: str | None = None,
     ) -> str:
         clean_viewer = viewer.strip() or "viewer"
         clean_text = " ".join(text.split()).strip()
-        self.metrics.chat_received += 1
 
+        if event_id and not self._remember_event_id(event_id):
+            self.metrics.duplicate_chat_dropped += 1
+            self.event_bus.publish(
+                RuntimeEvent(
+                    "twitch_chat_duplicate",
+                    {"viewer": clean_viewer, "event_id": event_id},
+                )
+            )
+            return "duplicate"
+
+        self.metrics.chat_received += 1
         self.event_bus.publish(
             RuntimeEvent(
                 "twitch_chat_received",
-                {"viewer": clean_viewer, "text": clean_text},
+                {
+                    "viewer": clean_viewer,
+                    "text": clean_text,
+                    **({"event_id": event_id} if event_id else {}),
+                },
             )
         )
 
@@ -189,7 +237,7 @@ class TwitchController:
             result = await asyncio.to_thread(self.action_handler, action)
             if inspect.isawaitable(result):
                 await result
-        except Exception as exc:  # noqa: BLE001 - one action must not kill the Twitch transport
+        except Exception as exc:  # noqa: BLE001 - isolate action failures from Twitch transport
             self.metrics.action_errors += 1
             self.event_bus.publish(
                 RuntimeEvent(
@@ -278,7 +326,9 @@ class TwitchController:
     def snapshot(self) -> dict[str, object]:
         return {
             "events_received": self.metrics.events_received,
+            "duplicate_events_dropped": self.metrics.duplicate_events_dropped,
             "chat_received": self.metrics.chat_received,
+            "duplicate_chat_dropped": self.metrics.duplicate_chat_dropped,
             "chat_read_aloud": self.metrics.chat_read_aloud,
             "commands_handled": self.metrics.commands_handled,
             "commands_denied": self.metrics.commands_denied,
