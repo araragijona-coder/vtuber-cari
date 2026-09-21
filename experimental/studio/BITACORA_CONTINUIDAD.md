@@ -5,7 +5,7 @@
 
 ## Estado global
 
-**Estimación de ingeniería actual: 59%.**
+**Estimación de ingeniería actual: ~67%.**
 
 El porcentaje es una estimación de avance técnico, no una medición de líneas de código. No se considera terminado ningún bloque grande solo porque compile.
 
@@ -14,7 +14,7 @@ El porcentaje es una estimación de avance técnico, no una medición de líneas
 - Cari Studio es la aplicación/controlador principal.
 - OBS puede actuar como **conductor de emisión**: Cari Studio controla OBS mediante obs-websocket; OBS se encarga del pipeline final de emisión/recording cuando se elige ese modo.
 - Cari Studio conserva fuera de OBS la UI, VTuber/avatar, tracking facial, acciones, chat, eventos, automatizaciones y configuración.
-- La salida nativa directa de Cari Studio permanece como ruta experimental/alternativa; OBS no es obligatorio para el diseño completo.
+- El Native Engine es el backend principal de ejecución; OBS es un backend/adaptador opcional para funciones que Cari decida delegar.
 - Twitch y otros servicios se integran mediante adaptadores independientes; no se mezclan credenciales ni lógica de Twitch con el motor multimedia nativo.
 - Las piezas dudosas permanecen en `experimental/` hasta validación.
 
