@@ -133,3 +133,11 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Native Windows, CI, Character Runtime y Runner Diagnostic continúan terminando sin steps/logs.
 - No se incrementa el porcentaje por este bloqueo.
 - Progreso canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+## 2026-09-21 — LOG-041 continuity validator
+- Se consolida experimental/studio/tools/verify_bitacora.py como validator canónico.
+- tools/verify_bitacora.py queda como wrapper de compatibilidad.
+- Se añaden tests unittest reales para validez, duplicación de LOG, deriva de porcentajes y deriva de HEAD.
+- CI ejecuta el validator y la suite específica de continuidad.
+- Se mantiene sin cambios el porcentaje canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- No se añade ninguna implementación multimedia paralela ni se reabren componentes marcados como NO REPETIR.
