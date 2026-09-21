@@ -1,3 +1,8 @@
+# Cari Studio — estado de implementación
+
+> **Checkpoint vigente — 2026-09-21:** Ingeniería **~71%** · Producto usable/end-user **~58%** · Seguimiento global **~65%** · Producción **NO listo**.
+> Memoria canónica: `experimental/studio/BITACORA.md`.
+
 # Cari Studio — checkpoint canónico vigente
 
 > **Fuente de continuidad:** `experimental/studio/BITACORA.md`.  
@@ -41,7 +46,6 @@
 - Gates inmediatos: CI observable, E2E Windows, compositor GPU sin readback, PTS E2E, drift físico y validación en hardware.
 - La cámara Media Foundation y el compositor D3D11 ya existen en la rama; queda su validación física/E2E.
 
-# Cari Studio — estado de implementación
 
 ## Producto objetivo
 
@@ -77,6 +81,8 @@
 - [x] Reset de retry por nueva sesión manual, conservando intentos durante reconexiones automáticas.
 - [x] Backpressure de arranque: el mixer no drena audio hasta que ambos pipes de salida están conectados.
 - [x] Límite de despacho por polling para impedir ráfagas largas de recuperación A/V dentro de un solo tick.
+- [x] Retry RTMP acotado por backoff, con clasificación de fallos y cancelación al detener manualmente el output.
+- [x] Ruta Libav experimental D3D11 -> AVFrame hardware sin readback CPU en la entrega al encoder.
 - [x] Manual Talk gate: el motor de audio arranca con micrófono OFF y solo se habilita por acción explícita de Hablar.
 - [x] Auditoría de botones renderer y alineación de handlers OBS/Twitch/VTuber.
 - [x] Test contractual UI→IPC→ObsService para evitar regresiones de botones y API.
@@ -130,6 +136,7 @@
 - [x] Compositor D3D11 GPU experimental para captura + avatar-placeholder + overlays.
 - [ ] Compositor GPU D3D11 de producción conectado al encoder.
 - [ ] Encoder hardware/software real conectado al pipeline.
+  - La ruta Libav/D3D11 existe y tiene smoke; requiere Windows + FFmpeg development kit + GPU/driver para verificación.
 - [ ] Muxer/recorder de producción.
 - [x] Proceso FFmpeg administrado por Cari y conectado a las salidas.
   - El cierre intenta primero EOF/flush antes de escalar a terminación forzada.
@@ -142,6 +149,7 @@
 - [x] Estimator independiente de drift de reloj de audio implementado.
   - [ ] Corrección/resampling de producción con relojes físicos.
 - [ ] Verificación sostenida del pacing A/V con FFmpeg real.
+- [ ] Verificación de salida D3D11 hardware sostenida en Windows.
   - E2E sintético de named pipes reforzado a 5 s y listo para CI; la validación sigue bloqueada mientras Actions no ejecute steps.
 - [ ] Verificación Windows del E2E named-pipe y del compositor D3D11.
 - [x] Ruta Libav experimental para preservar PTS explícitos.
@@ -429,9 +437,9 @@ La regla evita confundir servicio disponible con consumidor multimedia. Antes de
 
 ## Checkpoint canónico — 2026-09-21 — continuidad
 
-- Ingeniería: **~68%**.
-- Producto usable/end-user: **~54%**.
-- Seguimiento global: **~62%**.
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
 - Producción: **NO listo**.
 - Bitácora maestra: `experimental/studio/BITACORA.md`.
 - No repetir: captura WGC, WASAPI mixer, MediaClock/RealtimePacer/Interleaver, OBS service, Twitch transport, Action Store o avatar contract.
