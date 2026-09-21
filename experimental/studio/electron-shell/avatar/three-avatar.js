@@ -45,6 +45,15 @@ export class ThreeAvatarRenderer {
     this.placeholderFace = this.placeholder.userData.face;
 
     this.morphTargets = [];
+    this.activity = "idle";
+    this.currentParams = {
+      headYaw: 0,
+      headPitch: 0,
+      headRoll: 0,
+      speaking: false,
+      speechLevel: 0,
+      activity: "idle"
+    };
     this.resizeObserver = new ResizeObserver(() => this.#resize());
     this.resizeObserver.observe(canvas);
     this.#resize();
@@ -64,6 +73,8 @@ export class ThreeAvatarRenderer {
 
   apply(params) {
     const target = this.avatar || this.placeholder;
+    this.currentParams = { ...this.currentParams, ...(params || {}) };
+    this.activity = String(params?.activity || this.activity || "idle");
     if (this.avatar) {
       target.rotation.y = params.headYaw || 0;
       target.rotation.x = params.headPitch || 0;
@@ -168,8 +179,118 @@ export class ThreeAvatarRenderer {
     this.placeholderFace.position.z = 0.36 + expressionPose.faceForward;
   }
 
-  render() {
+  setActivity(activity = "idle") {
+    const normalized = ["idle", "keyboard", "controller", "phone"].includes(String(activity))
+      ? String(activity)
+      : "idle";
+    this.activity = normalized;
+    this.currentParams.activity = normalized;
+  }
+
+  render(timestampMs = performance.now()) {
+    this.#applyFreeMotion(Number(timestampMs) || performance.now());
     this.renderer.render(this.scene, this.camera);
+  }
+
+  #applyFreeMotion(timestampMs) {
+    const t = timestampMs / 1000;
+    const activity = this.activity;
+    const speaking = this.currentParams.speaking === true;
+
+    if (!this.avatar) {
+      const group = this.placeholder;
+      const parts = this.placeholderParts;
+      if (!group || !parts) return;
+
+      const breath = Math.sin(t * 2.1) * 0.012;
+      const sway = Math.sin(t * 0.72 + 0.8) * 0.018;
+      const headSway = Math.sin(t * 1.15) * 0.012;
+      const speakBob = speaking
+        ? Math.sin(t * (5.5 + this.currentParams.speechLevel * 4)) * 0.010
+        : 0;
+
+      group.position.y = 0.08 + breath;
+      group.rotation.z = sway;
+      parts.head.rotation.y = Number(this.currentParams.headYaw) + headSway;
+      parts.torso.rotation.z = sway * 0.65;
+
+      const baseShoulder = Number(
+        placeholderExpressionPose(this.currentParams.expression || "neutral").shoulderLift
+      ) || 0;
+
+      const keyboardPulse = Math.sin(t * 8.5) * 0.08;
+      const controllerPulse = Math.sin(t * 3.5) * 0.045;
+      const phonePulse = Math.sin(t * 2.2) * 0.025;
+
+      let leftShoulder = -0.08 - baseShoulder;
+      let rightShoulder = 0.08 + baseShoulder;
+      let leftElbow = 0;
+      let rightElbow = 0;
+      let leftHandY = -0.48;
+      let rightHandY = -0.48;
+      let leftHandZ = 0;
+      let rightHandZ = 0;
+
+      if (activity === "keyboard") {
+        leftShoulder += -0.16 - keyboardPulse * 0.35;
+        rightShoulder += 0.16 + keyboardPulse * 0.35;
+        leftElbow = 0.50 + keyboardPulse;
+        rightElbow = -0.50 - keyboardPulse;
+        leftHandY += 0.16;
+        rightHandY += 0.16;
+        leftHandZ = 0.10;
+        rightHandZ = 0.10;
+      } else if (activity === "controller") {
+        leftShoulder += -0.22 - controllerPulse;
+        rightShoulder += 0.22 + controllerPulse;
+        leftElbow = 0.36 + controllerPulse;
+        rightElbow = -0.36 - controllerPulse;
+        leftHandY += 0.08;
+        rightHandY += 0.08;
+        leftHandZ = 0.14;
+        rightHandZ = 0.14;
+      } else if (activity === "phone") {
+        rightShoulder += 0.28 + phonePulse;
+        rightElbow = -0.95 - phonePulse;
+        rightHandY += 0.22;
+        rightHandZ = 0.18;
+        leftShoulder += -0.02;
+        leftElbow = 0.10;
+      }
+
+      if (parts.leftShoulder) parts.leftShoulder.rotation.z = leftShoulder;
+      if (parts.rightShoulder) parts.rightShoulder.rotation.z = rightShoulder;
+      if (parts.leftElbow) parts.leftElbow.rotation.z = leftElbow;
+      if (parts.rightElbow) parts.rightElbow.rotation.z = rightElbow;
+
+      if (parts.leftHand) {
+        parts.leftHand.position.y = leftHandY;
+        parts.leftHand.position.z = leftHandZ;
+      }
+      if (parts.rightHand) {
+        parts.rightHand.position.y = rightHandY;
+        parts.rightHand.position.z = rightHandZ;
+      }
+
+      parts.head.position.y =
+        2.30 + placeholderExpressionPose(this.currentParams.expression || "neutral").headOffsetY;
+      parts.head.position.x =
+        placeholderExpressionPose(this.currentParams.expression || "neutral").headOffsetX;
+      parts.head.rotation.z =
+        placeholderExpressionPose(this.currentParams.expression || "neutral").headRoll;
+      parts.head.rotation.y += headSway * 0.45;
+
+      group.position.z = 0;
+      group.userData.speakingBob = speakBob;
+      return;
+    }
+
+    this.root.position.y = Math.sin(t * 2.0) * 0.010;
+    this.root.rotation.z = Math.sin(t * 0.67) * 0.012;
+    this.avatar.rotation.y =
+      Number(this.currentParams.headYaw || 0) + Math.sin(t * 1.05) * 0.008;
+    this.avatar.rotation.x =
+      Number(this.currentParams.headPitch || 0) + Math.sin(t * 0.83) * 0.006;
   }
 
   dispose() {
@@ -512,7 +633,7 @@ export class ThreeAvatarRenderer {
     group.userData.face = face;
     group.userData.parts = bodyParts;
     group.userData.anchors = anchors;
-    group.userData.note = "Cari V0 procedural avatar: canonical visual invariants + runtime actions; replace meshes later without changing the acting contract.";
+    group.userData.note = "Cari V1 procedural runtime avatar: private camera-driven acting, local speech lip-sync, idle motion, keyboard/controller/phone activities, and replaceable glTF/GLB backend.";
 
     this.root.add(group);
     return group;
