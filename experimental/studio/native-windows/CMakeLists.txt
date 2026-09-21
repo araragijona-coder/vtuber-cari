@@ -395,6 +395,29 @@ if(CARI_ENABLE_LIBAV_OUTPUT)
         libav_media_output.cpp
     )
 
+    add_executable(cari-d3d11-av-frame-bridge-smoke
+        d3d11_av_frame_bridge_smoke.cpp
+        d3d11_av_frame_bridge.cpp
+    )
+
+    target_include_directories(cari-d3d11-av-frame-bridge-smoke PRIVATE
+        ${CARI_LIBAV_INCLUDE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../core
+    )
+
+    target_compile_definitions(cari-d3d11-av-frame-bridge-smoke PRIVATE
+        UNICODE
+        _UNICODE
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+    )
+
+    target_link_libraries(cari-d3d11-av-frame-bridge-smoke PRIVATE
+        ${CARI_AVUTIL_LIBRARY}
+        d3d11
+        dxgi
+    )
+
     target_include_directories(cari-libav-pts-smoke PRIVATE
         ${CARI_LIBAV_INCLUDE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/../core
