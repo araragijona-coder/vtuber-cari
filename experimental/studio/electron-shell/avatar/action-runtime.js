@@ -309,12 +309,15 @@ export class StudioActionRouter {
     return true;
   }
 
-  handleChatMessage(text) {
-    const clean = String(text || "").trim().toLowerCase();
+  handleCommand(command) {
+    const clean = String(command || "").trim().toLowerCase();
     if (!clean) return null;
 
-    const direct = CHAT_COMMANDS[clean];
-    const actionCommand = clean.match(/^!action\s+(.+)$/);
+    const normalized = clean.startsWith("!")
+      ? clean
+      : "!" + clean;
+    const direct = CHAT_COMMANDS[normalized];
+    const actionCommand = normalized.match(/^!action\s+(.+)$/);
     const requested = direct || actionCommand?.[1] || null;
     if (!requested) return null;
 
@@ -323,6 +326,13 @@ export class StudioActionRouter {
       holdMs: this.chatHoldMs,
       priority: SOURCE_PRIORITIES.chat
     }) ? requested : null;
+  }
+
+  handleChatMessage(text) {
+    const clean = String(text || "").trim();
+    if (!clean) return null;
+
+    return this.handleCommand(clean);
   }
 
   handleEvent(event) {
@@ -335,8 +345,20 @@ export class StudioActionRouter {
       };
     }
 
+    if (event.type === "twitch.command") {
+      return {
+        kind: "command",
+        action: this.handleCommand(event.command || event.text)
+      };
+    }
+
     if (event.type === "twitch.event") {
-      const eventType = event.eventType || event.typeName || "";
+      const eventType =
+        event.eventType ||
+        event.typeName ||
+        event.subscription?.type ||
+        event.payload?.subscription?.type ||
+        "";
       return {
         kind: "event",
         action: this.handleTwitchEvent(eventType)
