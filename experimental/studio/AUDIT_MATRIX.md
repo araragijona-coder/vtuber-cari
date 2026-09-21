@@ -621,3 +621,14 @@ P0: Windows observable con encoder D3D11 real, PTS de entrada/paquete, mux final
 - Overlay: IMPLEMENTADO a nivel de bridge; validación Windows y captura final siguen PENDIENTES.
 - Tests preparados: frame sequence finita, command/EventSub envelopes y VAD hysteresis/reset.
 - No-repeat: no crear otro Action Store, Frame Player, Router, VAD, Twitch transport ni canal de eventos del overlay.
+
+## Evidence update — LOG-058 — Windows setup/audit
+
+- Cari-Setup.ps1: IMPLEMENTADO.
+- Cari-PC-Audit.ps1: IMPLEMENTADO.
+- WinGet packages: Git.Git, OpenJS.NodeJS.22, Kitware.CMake, Microsoft.VisualStudio.BuildTools + Microsoft.VisualStudio.Workload.VCTools, Gyan.FFmpeg.
+- npm install/check/test: orquestado por el setup.
+- Native build/CTest: reutiliza validate-windows.ps1.
+- Hardware inventory: CPU/RAM/GPU/D3D11/camera/audio/storage.
+- Estado: IMPLEMENTADO; ejecución en el PC objetivo pendiente.
+- No-repeat: no crear otro setup/auditor paralelo.
