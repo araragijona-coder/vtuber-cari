@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: `f49c882a2982e7eed38ec4f6a8d72a8da7c90931`.
+- Último head auditado: `07b7639c6a37f943b68687a518b96ae3be15dcf1`.
 
 ## Estados de trabajo
 
@@ -1813,3 +1813,99 @@ Los porcentajes documentados en la cabecera de esta bitácora siguen siendo el �
 - No crear otro overlay Three.js paralelo.
 - No crear otro sistema de calibración/smoothing.
 - No copiar un runtime Live2D propietario al repositorio.
+
+## LOG-045 — Cari V1 asset package / continuidad anti-repetición
+
+Fecha: 2026-09-21
+Área: VTuber / Arte / Rigging / Continuidad
+Estado: IMPLEMENTADO (SPEC) / VALIDACIÓN DE ARTE PENDIENTE
+
+### Problema
+
+El repositorio tenía dirección artística y un fallback V0 funcional, pero faltaba convertir la intención visual de Cari en un paquete de producción inequívoco para artista/rigger. Sin ese contrato, el arte podía llegar con capas fusionadas, huecos ocultos, nombres inestables o controles acoplados a un backend concreto.
+
+### Investigación
+
+Se revisaron:
+- CARI_CHARACTER_BIBLE.md;
+- VTUBER_CARI_ART_DIRECTION.md;
+- VTUBER_ASSET_STRATEGY.md;
+- ART_QUALITY_GATE.md;
+- renderer Three.js existente y asset registry;
+- documentación oficial de Live2D sobre ArtMesh, deformers y parámetros. citeturn110457search0turn110457search10turn110457search12
+- documentación oficial de Inochi2D sobre modelos, licencias y rigging. citeturn347179search1turn347179search9
+
+### Decisión
+
+No crear otro renderer ni otro sistema de avatar.
+El asset V1 debe ser backend-neutral:
+
+arte
+→ capas 2D
+→ Inochi2D/Live2D adapter
+
+o
+
+arte
+→ authoring 3D
+→ GLB/glTF/VRM
+→ ThreeAvatarRenderer
+
+El contrato de actuación permanece fuera del asset.
+
+### Implementación
+
+Se añadió:
+- assets/cari/2d/CARI_2D_ASSET_MASTER_SPEC.md;
+- assets/cari/2d/layer-manifest.json;
+- assets/cari/2d/parameter-manifest.json;
+- assets/cari/2d/EXPRESSION_SHEET_SPEC.md;
+- assets/cari/2d/ARTIST_RIGGER_DELIVERY_CHECKLIST.md;
+- assets/cari/2d/README.md;
+- assets/cari/3d/CARI_3D_ASSET_MASTER_SPEC.md;
+- assets/cari/3d/README.md;
+- assets/cari/ASSET_LICENSE.md;
+- experimental/studio/tools/validate_cari_asset.py;
+- experimental/studio/tests/test_validate_cari_asset.py;
+- CI con validación explícita del manifest.
+
+El manifest canónico contiene las piezas solicitadas:
+head, hair_back, hair_side_L, hair_side_R, hair_front, ahoge, eye_L, eye_R, iris_L, iris_R, pupil_L, pupil_R, brow_L, brow_R, mouth, nose_bandage, torso, shirt, arm_L, arm_R, hand_L, hand_R, leg_L, leg_R, shorts, shoe_L, shoe_R, ponytail; neck queda como soporte.
+
+El validator comprueba schema, IDs únicos, grupos, cobertura de piezas, especificaciones de capas y parámetros únicos.
+
+### Resultado
+
+PASS en contrato estructural.
+PARTIAL en asset: el arte V1 real todavía no existe; el V0 continúa como fallback.
+
+### Evidencia
+
+- Inochi2D mantiene software/runtime bajo BSD-2-Clause; la licencia del modelo producido la decide el creador/usuario. citeturn347179search0turn347179search1
+- Live2D documenta ArtMeshes y deformers como base del rigging 2D. citeturn110457search0turn110457search10
+- Three.js GLTFLoader mantiene glTF 2.0 como ruta de carga del renderer. citeturn110457search1
+- No se modificó el porcentaje global por cantidad de archivos: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+### Riesgos restantes
+
+- arte V1 final;
+- revisión visual;
+- turnaround;
+- rigging real;
+- tracking sobre V1;
+- lip-sync;
+- validación Windows/hardware;
+- licencia final del arte y terceros.
+
+### NO REPETIR
+
+- No crear otro manifest de capas.
+- No crear otro sistema de parámetros de avatar.
+- No volver a diseñar la lista de partes base sin una nueva decisión de canon.
+- No reemplazar el contrato neutral de actuación por IDs de Live2D/Inochi2D.
+- No generar un modelo propietario dentro del repositorio como sustituto del asset final.
+- No rehacer ThreeAvatarRenderer, FaceTrackingBridge o asset-registry por problemas de arte; extender sus contratos existentes.
+
+### Siguiente acción
+
+P0 exclusivo de VTuber: producir/revisar el arte V1 real conforme al manifest y luego probar rigging, expresiones, tracking y composición con el runtime existente.
