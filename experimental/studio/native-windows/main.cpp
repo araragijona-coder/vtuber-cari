@@ -331,6 +331,19 @@ std::string BuildControlStatusMessage() {
     const output_running =
         g_media_enabled.load(std::memory_order_relaxed) && g_media_graph.running();
     result += ";output=" + std::string(output_running ? "running" : "stopped");
+    result += ";output_backend=" + g_output_backend;
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+    if (g_output_backend == "libav-d3d11") {
+        const auto libav_stats = g_libav_runtime.stats();
+        result += ";libav_running=" + std::string(g_libav_runtime.running() ? "true" : "false");
+        result += ";libav_encoder=" + g_libav_runtime.encoder_name();
+        result += ";libav_video_frames=" + std::to_string(libav_stats.video_frames_submitted);
+        result += ";libav_video_packets=" + std::to_string(libav_stats.video_packets_written);
+        result += ";libav_audio_packets=" + std::to_string(libav_stats.audio_packets_written);
+        const auto libav_error = g_libav_runtime.last_error();
+        if (!libav_error.empty()) result += ";libav_error=" + libav_error;
+    }
+#endif
     result += ";output_state=" + MediaOutputStateName(g_media_graph.output_state());
     result += ";output_exit_code=" + std::to_string(g_media_graph.output_exit_code());
     result += ";output_retry_pending=" + std::string(g_output_retry.pending() ? "true" : "false");
@@ -372,6 +385,35 @@ std::string BuildControlStatusMessage() {
 }
 
 void PollMediaGraph(HWND hwnd) {
+#ifdef CARI_ENABLE_LIBAV_OUTPUT
+    if (g_output_backend == "libav-d3d11") {
+        if (!g_media_enabled.load(std::memory_order_relaxed)) return;
+        if (!g_libav_runtime.running()) {
+            if (g_output_started_at > 0 &&
+                cari::studio::core::MediaClock::monotonic_now() - g_output_started_at > 50'000'000) {
+                g_last_output_category = "encoder";
+                g_media_enabled.store(false, std::memory_order_relaxed);
+                StopAvatarOverlayCapture();
+                g_libav_runtime.stop();
+                RefreshStatus(hwnd);
+            }
+            return;
+        }
+        cari::studio::core::AudioPacket packet;
+        while (g_audio_bridge.pop_mixed_audio(packet)) {
+            if (!g_libav_runtime.submit_audio(packet)) {
+                g_last_output_category = "encoder";
+                g_media_enabled.store(false, std::memory_order_relaxed);
+                StopAvatarOverlayCapture();
+                g_libav_runtime.stop();
+                RefreshStatus(hwnd);
+                break;
+            }
+        }
+        return;
+    }
+#endif
+
     if (!g_media_enabled.load(std::memory_order_relaxed) &&
         g_output_retry.pending() &&
         g_output_retry.ready(cari::studio::core::MediaClock::monotonic_now())) {
