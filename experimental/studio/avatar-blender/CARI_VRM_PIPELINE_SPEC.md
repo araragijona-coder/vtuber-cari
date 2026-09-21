@@ -66,3 +66,18 @@ The pipeline stops export on audit errors. It does not silently fabricate an Arm
 Blender -> VRM/GLB -> ThreeAvatarRenderer -> FaceTrackingBridge -> existing Cari compositor/output path.
 
 The VRM model is an asset, not a new runtime. The existing acting contract remains the source of truth.
+## Expression bindings
+
+Cuando existe el VRM Add-on, el pipeline enlaza automáticamente los shape keys cari_* con expresiones VRM 1.0:
+- `aa` ← `cari_mouth_open`
+- `blink_left` ← `cari_blink_l`
+- `blink_right` ← `cari_blink_r`
+- `happy` ← `cari_happy`
+- `angry` ← `cari_angry`
+- `sad` ← `cari_sad`
+- `surprised` ← `cari_surprised`
+- `relaxed` ← `cari_sleepy`
+- custom `cari_embarrassed`
+- custom `cari_talking`
+
+Los shape keys creados por el pipeline siguen marcados como PLACEHOLDER; el binding existe para que el rigging posterior no tenga que rehacer la integración VRM.
