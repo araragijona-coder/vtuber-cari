@@ -133,3 +133,8 @@ A demo image is visual reference only.
 - Fixed OBS event envelope and preserved manual password only in memory for reconnect.
 - Contract test expanded.
 - Canonical progress unchanged: Engineering ~71%, Product usable ~58%, Tracking ~65%.
+
+## 2026-09-21 — LOG-038
+- Scene Items visibility control added to OBS Center.
+- Reuses existing ObsService and preload/IPC contracts.
+- Canonical progress unchanged: Engineering ~71%, Product usable ~58%, Tracking ~65%.
