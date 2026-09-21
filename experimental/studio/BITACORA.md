@@ -3151,3 +3151,76 @@ Una ejecución Windows debe confirmar: CMake detectado o instalado → Visual St
 
 Esta corrección no aumenta por sí sola el porcentaje de ingeniería: elimina un bloqueo del entorno de desarrollo.
 Porcentajes canónicos: Ingeniería ~71% · Producto usable/end-user ~58% · Seguimiento global ~65% · Producción NO listo.
+
+## LOG-067 — Generación automática de assets Cari vía GitHub Actions — 21/09/2026
+
+Área: Assets / Automatización / GitHub Actions
+
+Estado: IMPLEMENTADO / PRIMERA GENERACIÓN REAL PENDIENTE
+
+### Objetivo
+
+Permitir generar la galería visual de Cari desde GitHub Actions sin depender del límite de generación del chat ni de recursos del PC local.
+
+### Implementación
+
+Se añadieron:
+
+- scripts/generate_cari_assets.py
+- scripts/requirements-assets.txt
+- .github/workflows/generate-assets.yml
+- assets/cari-gallery/README.md
+
+El script:
+
+- usa la API HTTPS actual de Pollinations;
+- recibe prompts por defecto o mediante un archivo JSON;
+- acepta modelo, resolución, seed, safe mode, timeout, retries y overwrite;
+- deriva seeds estables desde nombre + prompt + seed base;
+- evita sobrescribir archivos existentes salvo --overwrite;
+- reintenta errores transitorios;
+- convierte la respuesta a PNG real mediante Pillow;
+- nunca contiene una API key.
+
+El workflow:
+
+- se ejecuta manualmente desde Actions;
+- acepta modelo, ancho, alto, seed y overwrite;
+- instala Pillow;
+- valida la sintaxis del generador con py_compile;
+- inyecta POLLINATIONS_KEY como secret;
+- genera en assets/cari-gallery;
+- hace commit y push solo cuando existen cambios.
+
+### Seguridad
+
+La documentación actual de Pollinations indica que la generación requiere autenticación y recomienda mantener las secret keys en variables de entorno/server-side. Por eso POLLINATIONS_KEY no se escribe en YAML, prompts, código ni assets.
+
+### Decisión de fuente
+
+Se eligió Pollinations como proveedor inicial para este flujo porque ofrece un endpoint de generación de imágenes y un catálogo de modelos; el diseño deja la generación encapsulada en un script para poder sustituir proveedor más adelante sin modificar Cari Studio.
+
+### NO REPETIR
+
+- No crear otro workflow paralelo para generar los mismos assets.
+- No pegar una API key en el repositorio.
+- No guardar imágenes recibidas como PNG solo cambiando la extensión; el script normaliza realmente el contenido.
+- No sobrescribir automáticamente una imagen aprobada: usar overwrite solo de forma deliberada.
+- No considerar una imagen generada como canon de Cari sin revisión visual/aprobación.
+- No conectar estos PNG al compositor final como sustituto de VRM/Live2D.
+
+### Primera ejecución real
+
+Pendiente: crear el secret POLLINATIONS_KEY y lanzar Generate Cari Assets desde Actions.
+
+### Verificación actual
+
+- Código integrado en la rama: sí.
+- Workflow visible: sí.
+- Sintaxis validada por diseño con py_compile en el workflow: sí, pendiente de primera ejecución.
+- Primera generación real desde Actions: pendiente.
+- Revisión visual de los PNG: pendiente.
+
+### Porcentaje canónico
+
+La automatización de assets no cambia por sí sola la ingeniería canónica. Mantener los porcentajes vigentes de la cabecera de esta bitácora hasta cerrar evidencia nueva.
