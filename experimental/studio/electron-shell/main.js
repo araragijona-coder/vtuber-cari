@@ -329,6 +329,54 @@ ipcMain.handle("obs:set-scene", async (event, sceneName) => {
   requireTrustedSender(event);
   return obs.setScene(sceneName);
 });
+ipcMain.handle("obs:scene-items", async (event, sceneName) => {
+  requireTrustedSender(event);
+  return obs.getSceneItems(sceneName);
+});
+ipcMain.handle("obs:set-scene-item-enabled", async (event, sceneName, sceneItemId, enabled) => {
+  requireTrustedSender(event);
+  return obs.setSceneItemEnabled(sceneName, sceneItemId, enabled);
+});
+ipcMain.handle("obs:get-input-mute", async (event, inputName) => {
+  requireTrustedSender(event);
+  return obs.getInputMute(inputName);
+});
+ipcMain.handle("obs:set-input-mute", async (event, inputName, muted) => {
+  requireTrustedSender(event);
+  return obs.setInputMute(inputName, muted);
+});
+ipcMain.handle("obs:toggle-input-mute", async (event, inputName) => {
+  requireTrustedSender(event);
+  return obs.toggleInputMute(inputName);
+});
+ipcMain.handle("obs:get-input-volume", async (event, inputName) => {
+  requireTrustedSender(event);
+  return obs.getInputVolume(inputName);
+});
+ipcMain.handle("obs:set-input-volume", async (event, inputName, volume, volumeDb = false) => {
+  requireTrustedSender(event);
+  return obs.setInputVolume(inputName, volume, volumeDb);
+});
+ipcMain.handle("obs:replay-status", async event => {
+  requireTrustedSender(event);
+  return obs.getReplayBufferStatus();
+});
+ipcMain.handle("obs:replay-start", async event => {
+  requireTrustedSender(event);
+  return obs.startReplayBuffer();
+});
+ipcMain.handle("obs:replay-stop", async event => {
+  requireTrustedSender(event);
+  return obs.stopReplayBuffer();
+});
+ipcMain.handle("obs:replay-save", async event => {
+  requireTrustedSender(event);
+  return obs.saveReplayBuffer();
+});
+ipcMain.handle("obs:transition-to-scene", async (event, sceneName, options = {}) => {
+  requireTrustedSender(event);
+  return obs.transitionToScene(sceneName, options);
+});
 ipcMain.handle("obs:status", async event => {
   requireTrustedSender(event);
   return obs.status();
