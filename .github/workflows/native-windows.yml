@@ -34,7 +34,8 @@ jobs:
         run: |
           $files = @(
             'experimental/studio/tools/windows/Cari-Setup.ps1',
-            'experimental/studio/tools/windows/Cari-PC-Audit.ps1'
+            'experimental/studio/tools/windows/Cari-PC-Audit.ps1',
+            'experimental/studio/electron-shell/run-local.ps1'
           )
           foreach ($file in $files) {
             $tokens = $null
