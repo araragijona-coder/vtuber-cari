@@ -735,3 +735,63 @@ NO REPETIR:
 
 Siguiente foco único:
 P0 — obtener/validar el asset Cari V1 real y probarlo sobre el renderer/actuación existentes; la ruta GPU→frame final debe continuar en paralelo sin crear un renderer nuevo.
+
+
+---
+
+## LOG-026 — PTS Libav endurecido + bitácora operativa
+
+Fecha: 2026-09-21
+Área: P1 Multimedia / PTS / Testing / Continuidad
+Estado: IMPLEMENTADO / VERIFICADO PORTABLE / WINDOWS PENDIENTE
+
+### Problema
+
+La ruta LibavMediaOutput ya transportaba el PTS del primer audio y los PTS de vídeo hacia AVFrame, pero el smoke no verificaba los timestamps de los paquetes codificados. Además, si el FIFO de audio quedaba vacío, el reloj de muestras podía asumir continuidad aun cuando el siguiente paquete llegara con un PTS explícito diferente.
+
+### Investigación
+
+- FFmpeg define AVFrame::pts como timestamp de presentación en unidades del time_base del frame.
+- FFmpeg define AVStream::time_base como unidad fundamental de tiempo para representar timestamps del stream.
+- Se mantiene la arquitectura directa libavcodec + libavformat separada del camino CLI/raw.
+- No se promueve esta ruta a producción hasta disponer de build y validación Windows con la versión de FFmpeg elegida.
+
+### Acción realizada
+
+- LibavMediaOutputStats ahora expone first_video_packet_pts y first_audio_packet_pts.
+- write_packets_from_encoder() registra esos límites para los paquetes enviados al muxer.
+- submit_audio_locked() reancla next_audio_pts cuando el FIFO estaba vacío antes de recibir un paquete, usando el PTS explícito del paquete.
+- El smoke de Libav verifica existencia de paquetes de vídeo/audio, límites de PTS válidos y conservación de los PTS de entrada.
+- Se conserva el time_base canónico de 100 ns como entrada y se hace rescale al time_base del encoder.
+
+### Pruebas
+
+- C++20 portable, warnings como errors: contratos de timing/retry/diagnóstico ya verificados.
+- Smoke Libav ampliado; ejecución Windows pendiente del runner.
+- FFmpeg sintético CLI ya validado previamente con BGRA + PCM -> H.264/AAC -> Matroska en Linux.
+
+### Resultado
+
+PARTIAL: el gate PTS es ahora más observable y robusto ante discontinuidades de audio en fronteras vacías del FIFO. Sigue sin existir validación Windows/hardware sostenida.
+
+### Riesgos restantes
+
+- Drift físico entre relojes de dispositivos.
+- Encoder/mux real sostenido en Windows.
+- Readback CPU del frame final en la ruta actual.
+- Compositor GPU -> encoder sin readback.
+- Reconnect RTMP real.
+- Integración definitiva del asset Cari V1.
+
+### NO REPETIR
+
+- No volver a diseñar MediaClock, RealtimePacer o MediaInterleaver.
+- No volver a reconstruir LibavMediaOutput desde cero.
+- No tratar el smoke de Linux como validación Windows.
+- No afirmar PTS extremo a extremo de producción hasta verificar los paquetes reales en Windows.
+- No cambiar de librería de vídeo solamente por este pendiente; primero completar la evidencia de la ruta Libav actual.
+
+### Siguiente acción
+
+P0: compositor GPU -> frame final sin readback CPU por frame y E2E Windows observable.
+P1: convertir la mejora de PTS Libav en prueba Windows cuando exista runner/log ejecutable.
