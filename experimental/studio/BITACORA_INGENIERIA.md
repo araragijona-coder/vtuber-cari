@@ -61,9 +61,15 @@
 - No declarar CI verde por la mera existencia del workflow.
 
 ## 4. Próximo orden de trabajo
+
+> Fuente canónica: `experimental/studio/BITACORA.md`.
+
+
+> Fuente canónica de continuidad: `experimental/studio/BITACORA.md`. Los estados de este archivo se mantienen como resumen histórico y no deben contradecir la bitácora maestra.
+
 ### P0 — estabilidad del media graph
-- [ ] Seleccionar globalmente el siguiente evento por menor PTS entre audio/video.
-- [ ] Definir política de audio atrasado para evitar bursts.
+- [x] Seleccionar globalmente el siguiente evento por menor PTS entre audio/video.
+- [x] Definir límite de eventos por polling para evitar bursts; la política de audio atrasado mantiene continuidad y contabiliza lateness.
 - [ ] Smoke tests de interleaving, late audio/video, resolución dinámica y cadence drops.
 
 ### P1 — output real
