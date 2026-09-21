@@ -476,7 +476,11 @@ function addChat(message, outbound = false) {
   twitch.log.appendChild(row);
   twitch.log.scrollTop = twitch.log.scrollHeight;
 
-  const routedAction = actionRouter.handleChatMessage(message.text);
+  const bridge = actionRouter.handleEvent({
+    type: "twitch.chat",
+    text: message.text
+  });
+  const routedAction = bridge?.action || null;
   if (routedAction) {
     addEvent("2D action ← chat: " + routedAction);
   }
@@ -510,7 +514,9 @@ function currentAction() {
   return actionStore.get(selectedActionId) || actionStore.list()[0] || null;
 }
 
-function renderActionFrame(action, index = 0) {
+let lastLiveActionFrameKey = "";
+
+function renderActionFrame(action, index = 0, meta = {}) {
   const frames = action?.frames || [];
   frameIndex = frames.length
     ? Math.max(0, Math.min(Number(index) || 0, frames.length - 1))
@@ -531,6 +537,32 @@ function renderActionFrame(action, index = 0) {
       "translate(calc(-50% + " + (action.offsetX ?? 0) +
       "%), calc(-50% + " + (action.offsetY ?? 0) +
       "%)) scale(" + (action.scale ?? 1) + ")";
+  }
+
+  // Editor previews stay local to the editor. Only live action playback is
+  // forwarded to the detached transparent overlay used as a capture source.
+  if (!meta.preview) {
+    const frameKey = [
+      action?.id || "none",
+      frame?.id || "none",
+      frame?.url || "",
+      frame?.dataUrl ? frame.dataUrl.slice(0, 48) : ""
+    ].join("|");
+
+    if (frameKey !== lastLiveActionFrameKey) {
+      lastLiveActionFrameKey = frameKey;
+      window.cari.native.avatar.setActionFrame({
+        actionId: action?.id || null,
+        frameId: frame?.id || null,
+        frameIndex,
+        url: frame?.url || null,
+        dataUrl: frame?.url ? null : (frame?.dataUrl || null),
+        opacity: action?.opacity ?? 1,
+        scale: action?.scale ?? 1,
+        offsetX: action?.offsetX ?? 0,
+        offsetY: action?.offsetY ?? 0
+      }).catch(() => undefined);
+    }
   }
 
   renderer.render();
@@ -657,7 +689,7 @@ function renderActionInspector() {
       controls.appendChild(remove);
 
       item.append(image, info, controls);
-      item.onclick = () => renderActionFrame(action, index);
+      item.onclick = () => renderActionFrame(action, index, { preview: true });
       frameList.appendChild(item);
     });
   }
@@ -1232,11 +1264,12 @@ window.cari.native.onEvent(event => {
     const payload = event.payload || {};
     const viewer = payload.user_name || payload.user_login || payload.from_broadcaster_user_name || "";
     addEvent("Twitch event: " + type + (viewer ? " · " + viewer : ""));
-    const routedAction = actionRouter.handleTwitchEvent(type, payload);
+    const bridge = actionRouter.handleEvent(event);
+    const routedAction = bridge?.action || null;
     if (routedAction) {
       addEvent("2D action ← Twitch: " + routedAction);
     }
-    if (twitchRead && "speechSynthesis" in window && action) {
+    if (twitchRead && "speechSynthesis" in window && routedAction) {
       const names = {
         "channel.raid": "¡Raid recibido!",
         "stream.online": "El stream está en línea.",
