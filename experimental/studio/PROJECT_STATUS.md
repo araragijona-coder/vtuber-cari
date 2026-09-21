@@ -413,3 +413,10 @@ La regla evita confundir servicio disponible con consumidor multimedia. Antes de
 - Bitácora maestra: `experimental/studio/BITACORA.md`.
 - No repetir: captura WGC, WASAPI mixer, MediaClock/RealtimePacer/Interleaver, OBS service, Twitch transport, Action Store o avatar contract.
 - Siguiente foco: CI observable → E2E Windows named-pipe/FFmpeg → compositor GPU sin readback → PTS explícitos Libav → drift correction → cámara/Game Capture → validación real de OBS/Twitch → release/hardware.
+
+
+## Continuidad viva — 2026-09-21 — privacidad de micrófono
+
+- [x] El atajo `A` ya no abre el micrófono automáticamente.
+- [x] El motor de audio y el gate de micrófono permanecen separados.
+- [ ] Validación con hardware WASAPI real.
