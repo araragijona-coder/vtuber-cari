@@ -476,20 +476,10 @@ function addChat(message, outbound = false) {
   twitch.log.appendChild(row);
   twitch.log.scrollTop = twitch.log.scrollHeight;
 
-  const command = String(message.text || "").trim().toLowerCase();
-  const map = {
-    "!happy": "happy", "!feliz": "happy",
-    "!sad": "sad", "!triste": "sad",
-    "!talk": "talking", "!hablar": "talking",
-    "!silent": "silent", "!callar": "silent",
-    "!angry": "angry", "!enojada": "angry",
-    "!afraid": "afraid", "!miedo": "afraid",
-    "!embarrassed": "embarrassed", "!avergonzada": "embarrassed",
-    "!exhausted": "exhausted", "!agotada": "exhausted",
-    "!confused": "confused", "!confundida": "confused",
-    "!neutral": "neutral"
-  };
-  if (map[command]) setActionByIdOrLabel(map[command]);
+  const routedAction = actionRouter.handleChatMessage(message.text);
+  if (routedAction) {
+    addEvent("2D action ← chat: " + routedAction);
+  }
 
   if (!outbound && twitchRead && "speechSynthesis" in window) {
     const speech = new SpeechSynthesisUtterance(String(message.text || "").slice(0, 500));
@@ -520,14 +510,11 @@ function currentAction() {
   return actionStore.get(selectedActionId) || actionStore.list()[0] || null;
 }
 
-function stopActionAnimation() {
-  if (actionTimer !== null) clearInterval(actionTimer);
-  actionTimer = null;
-}
-
 function renderActionFrame(action, index = 0) {
   const frames = action?.frames || [];
-  frameIndex = frames.length ? Math.max(0, Math.min(index, frames.length - 1)) : 0;
+  frameIndex = frames.length
+    ? Math.max(0, Math.min(Number(index) || 0, frames.length - 1))
+    : 0;
   const frame = frames[frameIndex];
 
   for (const image of [ui.actionOverlay, ui.editorOverlay]) {
@@ -545,27 +532,22 @@ function renderActionFrame(action, index = 0) {
       "%), calc(-50% + " + (action.offsetY ?? 0) +
       "%)) scale(" + (action.scale ?? 1) + ")";
   }
+
   renderer.render();
   editorRenderer.render();
-}
-
-function playAction(action) {
-  stopActionAnimation();
-  renderActionFrame(action);
-  if (!action || !action.loop || action.frames.length < 2) return;
-  let index = 0;
-  actionTimer = setInterval(() => {
-    index = (index + 1) % action.frames.length;
-    renderActionFrame(actionStore.get(action.id) || action, index);
-  }, Math.max(80, Number(action.durationMs) || 800));
 }
 
 function setAction(id, { manual = true } = {}) {
   const action = actionStore.get(id);
   if (!action) return;
+
   selectedActionId = action.id;
-  if (manual) acting.setManualExpression(action.expression || "neutral");
-  else acting.clearManualExpression();
+  if (manual) {
+    actionRouter.setManualAction(action.id);
+  } else {
+    actionRouter.trigger(action.id, { source: "event" });
+  }
+
   if (action.id === "talking") {
     acting.setManualMouth(0.25);
   } else if (action.id === "silent") {
@@ -573,10 +555,11 @@ function setAction(id, { manual = true } = {}) {
   } else if (!manualTalk) {
     acting.setManualMouth(null);
   }
+
   ui.previewAction.textContent = action.label;
   ui.editorTitle.textContent = action.label;
   ui.workspace.textContent = "Acción: " + action.label;
-  playAction(action);
+  renderActionFrame(action, 0);
   renderActionGrid();
   renderActionInspector();
   renderLiveActions();
@@ -730,7 +713,7 @@ function renderActionInspector() {
 
   $("#action-loop").onchange = event => {
     actionStore.update(action.id, { loop: event.target.checked });
-    playAction(actionStore.get(action.id));
+    actionPlayer.setBaseAction(action.id);
   };
 
   $("#action-add-images").onclick = () => ui.fileInput.click();
