@@ -31,10 +31,25 @@ export class FaceTrackingBridge {
       shapes.get("browDownLeft") ?? 0,
       shapes.get("browDownRight") ?? 0
     );
+    const frown = Math.max(
+      shapes.get("mouthFrownLeft") ?? 0,
+      shapes.get("mouthFrownRight") ?? 0
+    );
+    const eyeWide = Math.max(
+      shapes.get("eyeWideLeft") ?? 0,
+      shapes.get("eyeWideRight") ?? 0
+    );
+    const eyeSquint = Math.max(
+      shapes.get("eyeSquintLeft") ?? 0,
+      shapes.get("eyeSquintRight") ?? 0
+    );
 
     const expression =
-      smile > 0.45 ? "happy" :
       browDown > 0.45 ? "angry" :
+      eyeWide > 0.52 && mouthOpen > 0.35 ? "afraid" :
+      smile > 0.45 ? "happy" :
+      frown > 0.45 ? "sad" :
+      eyeSquint > 0.50 ? "embarrassed" :
       "neutral";
 
     const pose = readPose(result.facialTransformationMatrixes?.[0]?.data);
