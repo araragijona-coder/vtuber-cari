@@ -1464,3 +1464,60 @@ No promover/fusionar los componentes experimentales a `main` por cantidad de có
 
 ### Regla de promoción
 Todo lo anterior permanece experimental hasta que los gates de verificación correspondientes estén cerrados. No convertir implementación en validación por conteo de commits.
+
+## 33. Twitch Control Plane — 21/09/2026
+
+**Objetivo de esta ronda:** terminar el centro de control Twitch sin crear un segundo WebSocket, un segundo EventBus ni un segundo ActionRouter.
+
+### Estado actual
+- Avance canónico: **63%**. No se suman puntos por scaffolding; los gates de validación real siguen abiertos.
+- Producto: experimental / NO listo para producción.
+- PR #2: abierto / draft / no mergeable.
+
+### Implementado
+- `app/twitch/controller.py`: nuevo `TwitchController` provider-neutral. TwitchIO queda fuera del control de negocio y se limita al transporte.
+- `TwitchLiveBot`: ahora delega chat, comandos, eventos, continuity y acciones al `TwitchController` único.
+- `EventBus`: protegido con `RLock`, snapshot de listeners antes de ejecutar callbacks, journal acotado y métricas `published/delivered/listener_errors`.
+- `StudioActionRouter`: ampliado para `chat`, `sound`, `scene`, `overlay`, `music`, `stream`, `recording`, `source`, `volume`, `mute`, `camera`, `avatar`, `expression`, `tracking` y `command`.
+- `LocalCariActionHandler`: mantiene acciones locales de voz/avatar y reenvía controles de Studio por el único evento `studio_action`.
+- `events.py`: conserva `event_id` cuando el payload expone metadata/message_id.
+- `TwitchController`: deduplicación bounded de 1024 IDs para no ejecutar dos veces el mismo evento cuando el transporte entrega el mismo ID.
+- `TwitchLiveBot`: pasa `message.id` de ChatMessage al controller para deduplicación de chat.
+- `TwitchContinuityLedger`: queda conectado al controller y verifica los tipos de suscripción activos después de `session_welcome`.
+- `experimental/twitch/twitchio_bridge.py`: convertido a compatibilidad; ya no contiene una segunda implementación de EventSub.
+- Tests nuevos/actualizados para controller, deduplicación, continuity, IDs EventSub, EventBus y acciones de Studio.
+
+### Cadena canónica
+
+Twitch EventSub / Chat
+    -> TwitchIO transport
+    -> TwitchController
+    -> EventBus
+    -> AutomationEngine
+    -> LocalCariActionHandler
+    -> StudioActionRouter
+    -> backend nativo u OBS opcional
+
+El backend final de Native Engine/OBS todavía no se ejecuta directamente desde este bus; el router ya expone el contrato estable y provider-neutral para esa siguiente integración.
+
+### Verificación
+- Implementación integrada en GitHub: **sí**.
+- Evidencia de tests CI del HEAD: **no verificable** porque los jobs recientes terminan antes de registrar `steps` y `logs_url`.
+- Tests escritos: **sí**.
+- Prueba de canal Twitch real: **pendiente**.
+- Prueba real de reconexión/resuscripción: **pendiente**.
+
+### Límite importante de deduplicación
+Twitch documenta entrega al menos una vez y reutiliza el mismo `message_id` al reenviar una notificación. La ruta de ChatMessage ya pasa ese ID explícitamente. Para otros eventos EventSub, el controller solo deduplica cuando TwitchIO expone el `message_id` del transporte al payload; no se infiere el ID a partir de un ID de entidad del evento.
+
+### NO REPETIR
+- No crear otro WebSocket EventSub.
+- No crear otro TwitchController.
+- No crear otro EventBus.
+- No crear otro StudioActionRouter.
+- No crear otro continuity/reconnect manager: TwitchIO mantiene la responsabilidad del transporte.
+- No volver a implementar el puente experimental antiguo; ahora es un alias de compatibilidad.
+- No sustituir este control plane por OpenCV, OBS o un servicio cloud.
+
+### Próximo bloque
+Conectar las salidas `studio_*_requested` con un backend dual Native/OBS mediante `StudioRuntimeBindings`, y después validar en canal real. La implementación debe conservar la regla: Native Engine es backend principal; OBS es opcional.
