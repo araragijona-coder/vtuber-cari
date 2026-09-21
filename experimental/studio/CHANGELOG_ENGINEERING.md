@@ -74,3 +74,13 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - Se registra evidencia actual de GitHub Actions con jobs que fallan antes de registrar steps/logs, incluido el job probe del workflow diagnóstico.
 - Se mantiene CI como bloqueado por infraestructura.
 - No se modifica el porcentaje canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+
+## 2026-09-21 — LOG-031 continuidad GPU/CI
+
+- Se reconcilia la documentación con el estado vivo del proyecto.
+- El porcentaje permanece en Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
+- Se registra investigación oficial de FFmpeg D3D11 hardware frames y Microsoft D3D11 shared resources.
+- Se mantiene la ruta D3D11Compositor como única implementación GPU; no se crea renderer paralelo.
+- Se mantiene Libav como ruta experimental para PTS explícitos.
+- CI continúa bloqueada sin steps/logs observables.
+- Nuevo siguiente foco: eliminar readback CPU por frame en la ruta GPU y conseguir E2E Windows observable.
