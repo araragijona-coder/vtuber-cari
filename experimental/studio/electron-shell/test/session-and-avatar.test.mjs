@@ -262,6 +262,7 @@ test("Cari action store exposes only canonical runtime actions", async () => {
       "embarrassed",
       "exhausted",
       "confused",
+      "focused",
       "talking",
       "silent"
     ]
@@ -292,7 +293,15 @@ test("avatar contract clamps unsafe values and keeps the renderer contract stabl
     mouthOpen: 1,
     blink: 0,
     head: { x: 1, y: -1, z: 0.25 },
-    gaze: { x: 1, y: -1 }
+    gaze: { x: 1, y: -1 },
+    speaking: false,
+    speechLevel: 0,
+    activity: "idle",
+    mode: "manual",
+    movementLevel: "normal",
+    arms: "relaxed",
+    object: "none",
+    pose: "standing"
   });
 
   assert.deepEqual(toRenderParameters(state), {
@@ -303,7 +312,15 @@ test("avatar contract clamps unsafe values and keeps the renderer contract stabl
     eyeY: -1,
     mouthOpen: 1,
     blink: 0,
-    expression: "happy"
+    expression: "happy",
+    speaking: false,
+    speechLevel: 0,
+    activity: "idle",
+    mode: "manual",
+    movementLevel: "normal",
+    arms: "relaxed",
+    object: "none",
+    pose: "standing"
   });
 });
 
@@ -335,4 +352,17 @@ test("audio lip sync maps local amplitude to the existing avatar mouth state", (
   assert.equal(lipSync.update(0), 0);
   lipSync.reset();
   assert.equal(state.mouthOpen, 0);
+});
+
+
+test("output-session microphone remains off until explicit Talk command", async () => {
+  const native = makeNative({
+    "capture.start:window": { ok: true, message: "capture=started" },
+    "audio.start": { ok: true, message: "audio=started" },
+    "output.start:local-record": { ok: true, message: "output=started" }
+  });
+  const session = new StudioSessionManager(native);
+  const output = await session.outputStart("local-record");
+  assert.equal(output.ok, true);
+  assert.equal(session.snapshot().microphone, false);
 });
