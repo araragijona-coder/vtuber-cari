@@ -12,7 +12,7 @@
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
-- Último head auditado: **este commit**.
+- Último head auditado: consultar PR #2; este bloque no fija SHA para evitar desactualización entre commits documentales.
 
 ## Estados de trabajo
 
@@ -1132,3 +1132,98 @@ El código actual de NVENC declara soporte para AV_PIX_FMT_D3D11 mediante HW_FRA
 ### Siguiente acción
 
 Integrar este bridge en LibavMediaOutput para el camino de video hardware y validar primero la apertura/compatibilidad del encoder, después la producción real de paquetes y finalmente el muxer/RTMP con PTS.
+
+
+---
+
+## LOG-033 — Output retry/diagnóstico y CI observable
+
+Fecha: 2026-09-21
+Área: Output / Resiliencia / CI / Continuidad
+Estado: IMPLEMENTADO / TESTEADO PORTABLE / WINDOWS PENDIENTE
+
+### Problema
+
+La salida RTMP necesitaba distinguir fallos de red de fallos de encoder/mux/input/permiso para evitar reintentos ciegos. La CI además estaba disparándose en la rama de desarrollo pero terminaba antes de ejecutar steps.
+
+### Acción realizada
+
+- Se creó `core/output_retry.h` con backoff exponencial acotado: 1 s inicial, 30 s máximo y 5 intentos.
+- Se creó `core/output_diagnostics.h` con clasificación de fallos.
+- La clasificación se endureció para no tratar un `Broken pipe` genérico como fallo de red.
+- `main.cpp` integra el retry únicamente para RTMP y solamente ante categoría `network`.
+- El estado de retry y la categoría de fallo se exponen en el status nativo/UI.
+- Se añadió límite de 8 eventos multimedia por polling y métrica `pacing_budget_exhausted`.
+- Los workflows se configuraron para la rama de desarrollo y `workflow_dispatch`.
+- La corrección del serializado `output` evita un campo vacío en el status.
+
+### Pruebas
+
+- Smoke de retry policy: PASS portable.
+- Smoke de clasificación de errores: PASS portable, incluyendo rechazo de `Broken pipe` como networking genérico.
+- CI sigue sin producir steps/logs observables.
+
+### Resultado
+
+PARTIAL: resiliencia y diagnóstico están implementados, pero la reconexión RTMP real continúa sin validación Windows/servicio externo.
+
+### NO REPETIR
+
+- No crear otro sistema de retry.
+- No clasificar `Broken pipe` como red sin evidencia contextual.
+- No modificar MediaGraph para arreglar un run de Actions que no alcanza steps.
+- No duplicar métricas de output.
+
+### Siguiente acción
+
+Mantener el retry detrás del gate de RTMP real; avanzar en el camino GPU → encoder y en E2E Windows observable.
+
+
+---
+
+## LOG-034 — D3D11 texture → Libav hardware output
+
+Fecha: 2026-09-21
+Área: P0 GPU / Encoder / PTS
+Estado: CODE_EXISTS / SMOKE PREPARADO / WINDOWS-HARDWARE PENDIENTE
+
+### Problema
+
+El compositor D3D11 ya podía generar una textura final, pero la ruta Libav usaba conversión/readback CPU para vídeo. Eso dejaba abierto el principal cuello de botella de GPU→CPU→encoder.
+
+### Investigación
+
+La documentación oficial actual de FFmpeg define `AVCodecContext::hw_frames_ctx` como la referencia al `AVHWFramesContext` que describe las frames hardware suministradas al encoder, y exige establecerla antes de `avcodec_open2()`. FFmpeg también documenta el soporte D3D11/NVENC mediante `AV_PIX_FMT_D3D11` y `AV_CODEC_HW_CONFIG_METHOD_HW_FRAMES_CTX`. 
+
+### Acción realizada
+
+- `LibavMediaOutput` ahora tiene `start_d3d11()`, `submit_video_d3d11()` y `hardware_video_enabled()`.
+- La configuración hardware exige que el encoder seleccionado anuncie D3D11 + HW_FRAMES_CTX.
+- El `D3D11AvFrameBridge` existente se reutiliza; no se crea un segundo bridge.
+- Las texturas D3D11 se envuelven en AVFrame con `AV_PIX_FMT_D3D11` y PTS explícito.
+- El camino hardware evita la conversión BGRA→CPU dentro de `submit_video_d3d11_locked()`.
+- Se creó `libav_d3d11_output_smoke.cpp` para generar un archivo A/V con encoder hardware cuando el entorno lo soporte.
+- CMake registra el smoke únicamente bajo `CARI_ENABLE_LIBAV_OUTPUT=ON`.
+
+### Resultado
+
+PARTIAL: la integración existe y el smoke está preparado, pero la build FFmpeg-dev + GPU/driver Windows es condición necesaria para verificarla.
+
+### Riesgos restantes
+
+- Compatibilidad real del encoder con BGRA/D3D11 según build/driver.
+- Sincronización de uso de texturas cuando la GPU productora y encoder trabajen concurrentemente.
+- Device-loss/recreate.
+- Integración con la captura WGC real y el compositor final.
+- Mux/RTMP con timestamps hardware en Windows.
+
+### NO REPETIR
+
+- No crear otro D3D11 compositor.
+- No crear otro D3D11→AVFrame bridge.
+- No declarar zero-copy de producción por la sola presencia de `AV_PIX_FMT_D3D11`.
+- No sustituir Libav hasta que el smoke Windows demuestre inviabilidad.
+
+### Siguiente acción
+
+Validar primero `CARI_ENABLE_LIBAV_OUTPUT=ON` con FFmpeg development kit en Windows; después integrar la superficie real del compositor/captura y medir CPU/GPU/readback.
