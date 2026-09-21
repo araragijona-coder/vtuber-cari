@@ -183,7 +183,7 @@
 
 - [x] Arquitectura de salida desacoplada de plataformas.
 - [x] Controles de chat Twitch conectados a acciones locales del avatar y botones OBS conectados a su servicio real.
-- [x] OBS companion con control de mute/volumen, Scene Items, Replay Buffer, transición por batch y reconexión WebSocket acotada.
+- [x] OBS companion con control de mute/volumen, Scene Items visibility, Replay Buffer, transición por batch y reconexión WebSocket acotada.
 - [x] Auditoría específica del alcance necesario cuando OBS es el streamer principal.
 - [ ] Adaptador Twitch RTMP probado en máquina real.
 - [ ] Adaptador YouTube RTMP probado en máquina real.
