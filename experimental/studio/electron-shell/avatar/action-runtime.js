@@ -365,6 +365,19 @@ export class StudioActionRouter {
       };
     }
 
+    if (event.type === "voice.activity") {
+      const changed = this.setVoiceActivity({
+        speaking: event.speaking === true,
+        active: event.active !== false
+      });
+      return {
+        kind: "voice",
+        action: changed
+          ? (event.speaking === true ? "talking" : "silent")
+          : null
+      };
+    }
+
     return null;
   }
 
