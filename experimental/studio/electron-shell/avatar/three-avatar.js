@@ -425,7 +425,7 @@ export class ThreeAvatarRenderer {
       shoulder.rotation.z = sign * -0.08;
       hips.add(shoulder);
 
-      const upperArm = new THREE.Mesh(armGeometry, material);
+      const upperArm = new THREE.Mesh(armGeometry, skinMaterial);
       upperArm.name = `${side}UpperArm`;
       upperArm.position.y = -0.24;
       shoulder.add(upperArm);
@@ -435,14 +435,14 @@ export class ThreeAvatarRenderer {
       elbow.position.y = -0.48;
       shoulder.add(elbow);
 
-      const forearm = new THREE.Mesh(forearmGeometry, material);
+      const forearm = new THREE.Mesh(forearmGeometry, skinMaterial);
       forearm.name = `${side}Forearm`;
       forearm.position.y = -0.22;
       elbow.add(forearm);
 
       const hand = new THREE.Mesh(
         new THREE.SphereGeometry(0.105, 20, 14),
-        material
+        skinMaterial
       );
       hand.name = `${side}Hand`;
       hand.position.y = -0.48;
@@ -460,7 +460,7 @@ export class ThreeAvatarRenderer {
       thigh.position.set(sign * 0.15, 0.90, 0);
       hips.add(thigh);
 
-      const upperLeg = new THREE.Mesh(legGeometry, material);
+      const upperLeg = new THREE.Mesh(legGeometry, skinMaterial);
       upperLeg.name = `${side}UpperLeg`;
       upperLeg.position.y = -0.30;
       thigh.add(upperLeg);
@@ -470,12 +470,12 @@ export class ThreeAvatarRenderer {
       knee.position.y = -0.60;
       thigh.add(knee);
 
-      const shin = new THREE.Mesh(shinGeometry, material);
+      const shin = new THREE.Mesh(shinGeometry, skinMaterial);
       shin.name = `${side}Shin`;
       shin.position.y = -0.28;
       knee.add(shin);
 
-      const foot = new THREE.Mesh(shoeGeometry, darkMaterial);
+      const foot = new THREE.Mesh(shoeGeometry, shortsMaterial);
       foot.name = `${side}Foot`;
       foot.scale.set(1.25, 0.72, 1.65);
       foot.position.set(0, -0.61, 0.07);
