@@ -789,6 +789,19 @@ function placeholderExpressionPose(expression) {
         headRoll: -0.04,
         faceForward: -0.015
       };
+    case "focused":
+      return {
+        eyeScale: 0.86,
+        mouthScale: 0.78,
+        mouthWidth: 0.88,
+        mouthRotation: Math.PI,
+        mouthY: -0.005,
+        shoulderLift: -0.03,
+        headOffsetX: 0,
+        headOffsetY: -0.02,
+        headRoll: -0.01,
+        faceForward: 0.01
+      };
     case "confused":
       return {
         eyeScale: 1.02,
