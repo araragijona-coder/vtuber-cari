@@ -8,9 +8,24 @@ from app.twitch.automation import AutomationAction
 
 
 class LocalCariActionHandler:
-    """Execute local Cari actions and expose unimplemented studio actions as runtime events."""
+    """Execute local Cari actions and forward Studio actions to the shared bus."""
 
-    _FORWARDED_ACTIONS = {"chat", "sound", "scene", "overlay", "music"}
+    _FORWARDED_ACTIONS = {
+        "chat",
+        "sound",
+        "scene",
+        "overlay",
+        "music",
+        "stream",
+        "recording",
+        "source",
+        "volume",
+        "mute",
+        "camera",
+        "expression",
+        "tracking",
+        "command",
+    }
 
     def __init__(self, pipeline: LocalPipeline) -> None:
         self.pipeline = pipeline
@@ -18,24 +33,32 @@ class LocalCariActionHandler:
     def __call__(self, action: AutomationAction) -> None:
         kind = action.kind.strip().lower()
         value = action.value.strip()
+
         if kind == "avatar":
             self._avatar(value)
             return
+
         if kind in {"voice", "speak", "tts"}:
             self.pipeline.speak_manual(value)
             return
+
         if kind in self._FORWARDED_ACTIONS:
             self.pipeline.event_bus.publish(
                 RuntimeEvent("studio_action", {"kind": kind, "value": value})
             )
             return
+
         self.pipeline.event_bus.publish(
-            RuntimeEvent("automation_action_unhandled", {"kind": kind, "value": value})
+            RuntimeEvent(
+                "automation_action_unhandled",
+                {"kind": kind, "value": value},
+            )
         )
 
     def _avatar(self, value: str) -> None:
         if not value:
             return
+
         if value.startswith("emotion:"):
             name = value.split(":", 1)[1].strip().lower()
             try:
@@ -44,4 +67,5 @@ class LocalCariActionHandler:
                 emotion = Emotion.NEUTRAL
             self.pipeline.avatar.apply(AvatarCommand(emotion=emotion))
             return
+
         self.pipeline.avatar.apply(AvatarCommand(animation=value))
