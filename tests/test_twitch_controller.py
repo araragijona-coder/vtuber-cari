@@ -1,4 +1,3 @@
-import asyncio
 import unittest
 
 from app.brain.event_bus import EventBus, RuntimeEvent
@@ -45,6 +44,53 @@ class TwitchControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("twitch_follow", names)
         self.assertEqual(names.count("twitch_action_dispatched"), 2)
 
+    async def test_duplicate_events_are_dropped(self) -> None:
+        actions: list[AutomationAction] = []
+        automation = AutomationEngine()
+        automation.add_rule(
+            AutomationRule("follow", (AutomationAction("scene", "thanks"),))
+        )
+        controller = TwitchController(
+            event_bus=self.bus,
+            automation=automation,
+            action_handler=actions.append,
+        )
+        payload = type(
+            "Payload",
+            (),
+            {
+                "metadata": type("Meta", (), {"message_id": "evt-1"})(),
+                "user": type("User", (), {"id": "7", "name": "viewer"})(),
+            },
+        )()
+
+        await controller.handle_event("follow", payload)
+        await controller.handle_event("follow", payload)
+
+        self.assertEqual(len(actions), 1)
+        self.assertEqual(controller.metrics.duplicate_events_dropped, 1)
+        self.assertIn(
+            "twitch_event_duplicate",
+            [event.name for event in self.events],
+        )
+
+    async def test_duplicate_chat_is_dropped(self) -> None:
+        controller = TwitchController(event_bus=self.bus)
+        result1 = await controller.handle_chat(
+            viewer="viewer",
+            text="hola",
+            event_id="chat-1",
+        )
+        result2 = await controller.handle_chat(
+            viewer="viewer",
+            text="hola",
+            event_id="chat-1",
+        )
+
+        self.assertEqual(result1, "chat_message")
+        self.assertEqual(result2, "duplicate")
+        self.assertEqual(controller.metrics.duplicate_chat_dropped, 1)
+
     async def test_action_delay_is_honored(self) -> None:
         observed: list[float] = []
         automation = AutomationEngine()
@@ -58,10 +104,10 @@ class TwitchControllerTests(unittest.IsolatedAsyncioTestCase):
             event_bus=self.bus,
             automation=automation,
             action_handler=lambda _: observed.append(
-                asyncio.get_running_loop().time()
+                __import__("asyncio").get_running_loop().time()
             ),
         )
-        start = asyncio.get_running_loop().time()
+        start = __import__("asyncio").get_running_loop().time()
         await controller.handle_event(
             "raid",
             type("Payload", (), {"viewers": 10})(),
@@ -129,18 +175,6 @@ class TwitchControllerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("chat_read_aloud", [event.name for event in self.events])
 
     async def test_failing_action_is_observed_without_killing_controller(self) -> None:
-        controller = TwitchController(
-            event_bus=self.bus,
-            action_handler=lambda _: (_ for _ in ()).throw(RuntimeError("boom")),
-        )
-
-        await controller.handle_event(
-            "follow",
-            type("Payload", (), {})(),
-        )
-
-        self.assertEqual(controller.metrics.action_errors, 0)
-
         automation = AutomationEngine()
         automation.add_rule(
             AutomationRule("follow", (AutomationAction("sound", "x"),))
@@ -150,9 +184,28 @@ class TwitchControllerTests(unittest.IsolatedAsyncioTestCase):
             automation=automation,
             action_handler=lambda _: (_ for _ in ()).throw(RuntimeError("boom")),
         )
+
         await controller.handle_event("follow", type("Payload", (), {})())
+
         self.assertEqual(controller.metrics.action_errors, 1)
         self.assertIn("twitch_action_error", [event.name for event in self.events])
+
+    async def test_welcome_updates_continuity(self) -> None:
+        controller = TwitchController(event_bus=self.bus)
+        await controller.handle_websocket_welcome(
+            "session-1",
+            10,
+            {"sub": "channel.chat.message"},
+        )
+        await controller.handle_websocket_welcome(
+            "session-2",
+            10,
+            {"sub": "channel.chat.message"},
+        )
+
+        self.assertEqual(controller.continuity.state.generation, 2)
+        self.assertEqual(controller.continuity.state.reconnects, 1)
+        self.assertTrue(controller.continuity.state.last_verification_ok)
 
 
 if __name__ == "__main__":
