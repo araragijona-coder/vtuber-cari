@@ -6,6 +6,7 @@ const { NativeEngine } = require("./runtime/native-engine");
 const { ObsService } = require("./runtime/obs-service");
 const { TwitchAuth } = require("./runtime/twitch-auth");
 const { TwitchChatService } = require("./runtime/twitch-chat-service");
+const { IntegrationHealthMonitor } = require("./runtime/integration-health");
 
 const engineEvents = ["message", "log", "error", "exit"];
 let avatarOverlayWindow = null;
@@ -39,6 +40,10 @@ const engine = new NativeEngine({
 });
 const obs = new ObsService();
 const twitch = new TwitchChatService({ auth: new TwitchAuth() });
+const integrationHealth = new IntegrationHealthMonitor({ obs, twitch });
+
+integrationHealth.on("status", payload => publish({ type: "integration.health", ...payload }));
+integrationHealth.on("error", error => publish({ type: "integration.health.error", message: error.message }));
 
 obs.on("event", payload => publish({ type: "obs.event", ...payload }));
 obs.on("status", payload => publish({ type: "obs.status", ...payload }));
@@ -252,6 +257,11 @@ ipcMain.handle("native:stop", event => {
   requireTrustedSender(event);
   return engine.stop();
 });
+ipcMain.handle("integrations:status", event => {
+  requireTrustedSender(event);
+  return integrationHealth.status();
+});
+
 ipcMain.handle("native:status", event => {
   requireTrustedSender(event);
   return {
@@ -391,12 +401,14 @@ app.whenReady().then(() => {
 
   createAvatarOverlayWindow();
   createWindow();
+  integrationHealth.start();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
 app.on("window-all-closed", async () => {
+  integrationHealth.stop();
   await engine.stop();
   if (process.platform !== "darwin") app.quit();
 });
