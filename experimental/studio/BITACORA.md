@@ -9,7 +9,7 @@
 - Carpeta experimental: `experimental/studio/`
 - Estado del PR: abierto, draft.
 - Regla: ningún componente pasa a producción solo porque compile.
-- Estimación actual de ingeniería: **58%**.
+- Estimación actual de ingeniería: **60%**.
 
 ## Estados de trabajo
 
@@ -315,3 +315,39 @@ La pregunta correcta para la siguiente iteración es:
 **"¿Qué gate pendiente tiene mayor impacto y qué evidencia falta?"**
 No:
 **"¿Cómo volvemos a implementar el mismo componente?"**
+
+### 13 — Usabilidad VTuber orientada a transmisión continua
+
+**Estado:** IMPLEMENTADO / parcialmente VERIFICADO
+
+Se añadió `TrackingProfileController` para:
+- calibración de 30 muestras;
+- centrado de head/gaze/mouth baseline;
+- smoothing configurable;
+- deadzone configurable;
+- sensibilidad configurable;
+- gracia y fade al perder rostro.
+
+La UI Tracking ahora ofrece iniciar/detener, calibrar, reset, sensibilidad y smoothing. La configuración queda persistida en localStorage.
+
+**Corrección importante:** los frames duplicados de webcam ya no se interpretan como pérdida de rostro. Solo un resultado explícito sin rostro activa el estado de pérdida.
+
+**NO REPETIR:** no crear otro sistema paralelo de smoothing/calibración; extender `TrackingProfileController + FaceTrackingBridge`.
+
+### 14 — Resiliencia RTMP
+
+**Estado:** IMPLEMENTADO / pendiente de prueba real
+
+Se añadió:
+- clasificación de fallos;
+- backoff exponencial acotado;
+- máximo de 5 intentos;
+- retry únicamente para errores clasificados como network;
+- retry tanto para fallo de arranque como para caída posterior.
+
+**NO REPETIR:** no reintentar encoder, muxer, permisos o input como si fueran fallos de red.
+
+### 15 — Bitácora de no repetición
+
+La referencia operacional pasa a ser este archivo junto con `PROJECT_STATUS.md`, `AUDIT_MATRIX.md` y `VTUBER_USABILITY_SPEC.md`.
+Antes de modificar una pieza existente hay que comprobar primero si ya aparece como IMPLEMENTADA/VERIFICADA.
