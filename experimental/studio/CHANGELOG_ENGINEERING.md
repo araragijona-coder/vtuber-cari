@@ -141,3 +141,10 @@ No usar cantidad de commits, archivos o líneas como medida de progreso. El porc
 - CI ejecuta el validator y la suite específica de continuidad.
 - Se mantiene sin cambios el porcentaje canónico: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
 - No se añade ninguna implementación multimedia paralela ni se reabren componentes marcados como NO REPETIR.
+
+## 2026-09-21 — LOG-042 Output retry persistence
+- Se corrige el reinicio accidental del contador de retry durante reconexión automática.
+- La sesión manual limpia el presupuesto; la reconexión automática lo conserva.
+- Se mantienen smoke tests de retry/diagnóstico.
+- CI continúa bloqueada sin steps/logs observables.
+- Porcentaje canónico sin cambio: Ingeniería ~71%, Producto usable ~58%, Seguimiento ~65%.
