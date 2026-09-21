@@ -6,7 +6,11 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const source = await fs.readFile(path.join(root, "avatar", "action-store.js"), "utf8");
+const rawSource = await fs.readFile(path.join(root, "avatar", "action-store.js"), "utf8");
+const source = rawSource.replace(
+  'from "./avatar-contract.js";',
+  'from "./avatar-contract.mjs";'
+);
 const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "cari-action-store-bridge-"));
 const modulePath = path.join(tempRoot, "action-store.mjs");
 const contractSource = await fs.readFile(path.join(root, "avatar", "avatar-contract.js"), "utf8");
