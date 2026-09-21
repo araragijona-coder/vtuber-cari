@@ -258,6 +258,7 @@ export class StudioActionRouter {
     this.chatHoldMs = Math.max(250, Number(chatHoldMs) || 2400);
     this.eventHoldMs = Math.max(250, Number(eventHoldMs) || 3600);
     this.voiceSpeaking = false;
+    this.voiceActive = false;
     this.lastAction = null;
     this.lastSource = "base";
   }
@@ -325,7 +326,11 @@ export class StudioActionRouter {
 
   setVoiceActivity({ speaking = false, active = true } = {}) {
     if (!active) {
-      const changed = this.voiceSpeaking || this.player.currentSource() === "voice";
+      const changed =
+        this.voiceActive ||
+        this.voiceSpeaking ||
+        this.player.currentSource() === "voice";
+      this.voiceActive = false;
       this.voiceSpeaking = false;
       this.player.release("voice");
       this.syncActing();
@@ -333,12 +338,13 @@ export class StudioActionRouter {
     }
 
     const next = Boolean(speaking);
-    const changed = next !== this.voiceSpeaking;
+    const changed = !this.voiceActive || next !== this.voiceSpeaking;
+    this.voiceActive = true;
+    this.voiceSpeaking = next;
     if (!changed) {
       return false;
     }
 
-    this.voiceSpeaking = next;
     const action = next ? "talking" : "silent";
     return this.trigger(action, {
       source: "voice",
@@ -366,6 +372,7 @@ export class StudioActionRouter {
       source: this.player.currentSource(),
       expression: action?.expression || "neutral",
       voiceSpeaking: this.voiceSpeaking,
+      voiceActive: this.voiceActive,
       lastAction: this.lastAction?.id || null,
       lastSource: this.lastSource
     };
