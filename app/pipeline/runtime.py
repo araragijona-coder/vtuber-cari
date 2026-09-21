@@ -14,7 +14,6 @@ from app.intelligence.comment_intelligence import CommentIntelligence
 from app.memory.persistent import PersistentMemoryStore
 from app.memory.session import SessionMemory
 from app.monitor.usage import UsageStats
-from app.studio.actions import StudioActionRouter
 from app.studio.runtime_bindings import StudioRuntimeBindings
 from app.twitch.models import ChatMessage
 from app.voice.arbiter import VoiceArbiter, VoiceItem
@@ -40,7 +39,7 @@ class LocalPipelineResult:
 class LocalPipeline:
     """Local-first path with optional LLM/TTS adapters and persistent memory."""
 
-    def __init__(self, *, persistent_memory: PersistentMemoryStore | None = None, responder: Responder | None = None, tts: TTSBackend | None = None, event_bus: EventBus | None = None, event_journal: EventJournal | None = None, usage: UsageStats | None = None) -> None:
+    def __init__(self, *, persistent_memory: PersistentMemoryStore | None = None, responder: Responder | None = None, tts: TTSBackend | None = None, event_bus: EventBus | None = None, event_journal: EventJournal | None = None, usage: UsageStats | None = None, studio_bindings: StudioRuntimeBindings | None = None) -> None:
         self.filter = CommentFilter()
         self.gate = CommentGate()
         self.intelligence = CommentIntelligence()
