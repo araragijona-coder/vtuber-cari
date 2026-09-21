@@ -60,6 +60,10 @@ contextBridge.exposeInMainWorld("cari", {
       sendChat: message => ipcRenderer.invoke("twitch:send-chat", message),
       status: () => ipcRenderer.invoke("twitch:status")
     },
+    avatarActions: {
+      load: () => ipcRenderer.invoke("avatar-actions:load"),
+      save: payload => ipcRenderer.invoke("avatar-actions:save", payload)
+    },
     avatar: {
       setState: state => ipcRenderer.invoke("avatar:set-state", state),
       chooseModel: () => ipcRenderer.invoke("avatar:choose-model"),
