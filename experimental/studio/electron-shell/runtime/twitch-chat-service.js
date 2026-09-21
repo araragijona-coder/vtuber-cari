@@ -243,6 +243,39 @@ class TwitchChatService extends EventEmitter {
         // enough lifecycle context to drive VTuber/scene automations.
         const subscriptions = [
           {
+            type: "channel.follow",
+            version: "2",
+            condition: {
+              broadcaster_user_id: this.broadcaster.id,
+              moderator_user_id: this.user.id
+            }
+          },
+          {
+            type: "channel.subscribe",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "channel.subscription.gift",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "channel.subscription.message",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "channel.cheer",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
+            type: "channel.channel_points_custom_reward_redemption.add",
+            version: "1",
+            condition: { broadcaster_user_id: this.broadcaster.id }
+          },
+          {
             type: "channel.update",
             version: "2",
             condition: { broadcaster_user_id: this.broadcaster.id }
