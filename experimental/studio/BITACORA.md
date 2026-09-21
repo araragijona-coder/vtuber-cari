@@ -3066,3 +3066,36 @@ Confirmar en Windows que un checkout sin CMake ejecuta el bootstrap, detecta el 
 - Producción: NO listo
 
 Esta corrección mejora el onboarding del entorno y no aumenta el porcentaje de ingeniería por sí sola.
+
+## LOG-065 — Checkpoint de continuidad después del incidente CMake — 21/09/2026
+
+Área: Continuidad / Windows / Launcher
+Estado: IMPLEMENTADO / DOCUMENTADO / VALIDACIÓN WINDOWS PENDIENTE
+
+### HEAD
+
+`913493cb5b2909b18026238e8e25b04c90a330d2`
+
+### Estado canónico
+
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
+
+### Cerrado en esta iteración
+
+- `run-local.ps1` ya no depende exclusivamente de `Get-Command cmake.exe`.
+- Se añadió descubrimiento de CMake por PATH, rutas estándar y Visual Studio/vswhere.
+- Si CMake falta y WinGet está disponible, el launcher ejecuta el setup canónico con `-SkipBuild -SkipNpm` y continúa automáticamente.
+- `-NoSetup` permite mantener un entorno controlado sin instalación automática.
+- La documentación de instalación y la bitácora reflejan el nuevo flujo.
+
+### No reabrir por el mismo síntoma
+
+- WGC, WASAPI, FFmpeg, tracking, avatar o compositor.
+- El incidente de `CMake was not found` ahora pertenece al área de toolchain/onboarding.
+
+### Próximo dato útil
+
+El siguiente avance real debe provenir de una ejecución Windows que confirme: CMake detectado → configure → build Release → CTest → NativeEngine → Electron. Si vuelve a fallar, conservar el primer mensaje de error real posterior a la fase de toolchain.
