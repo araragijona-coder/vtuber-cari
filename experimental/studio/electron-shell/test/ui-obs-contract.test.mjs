@@ -71,3 +71,19 @@ test("preload exposes the OBS commands used by the renderer", () => {
       "missing preload method: " + method);
   }
 });
+
+
+test("OBS event envelope is preserved across main to renderer", () => {
+  assert.ok(main.includes('publish({ type: "obs.event", eventType: payload.type'));
+  assert.ok(renderer.includes('event.eventType || "OBS"'));
+  assert.equal(renderer.includes('String(event.type || "OBS")'), false);
+});
+
+test("OBS replay controls are routed by renderer and preload", () => {
+  for (const id of ["obs-replay-start", "obs-replay-save", "obs-replay-stop"]) {
+    assert.ok(buttonIds.has(id), "missing replay button: " + id);
+  }
+  for (const method of ["replayStart", "replaySave", "replayStop"]) {
+    assert.ok(preload.includes(method + ":"), "missing preload replay method: " + method);
+  }
+});
