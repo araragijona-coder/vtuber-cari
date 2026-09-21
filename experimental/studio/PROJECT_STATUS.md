@@ -1,3 +1,26 @@
+## CHECKPOINT VIGENTE — 2026-09-21
+
+- HEAD canónico de esta rama: `bad7030857221782baba42c1a811614e667c20ac`.
+- Ingeniería: **~69%**.
+- Producto usable/end-user: **~55%**.
+- Seguimiento global: **~63%**.
+- Estado: **EXPERIMENTAL / NO listo para producción**.
+
+### Avatar Cari V0
+- [x] Avatar procedural de cuerpo completo en Three.js.
+- [x] Invariantes visuales: piel morena/tan, cabello marrón medio, inner hair marrón claro, cola de caballo, ahoge, ojos marrones con pupilas blancas y curita nasal.
+- [x] Vestimenta deportiva con minishorts negros.
+- [x] Estados runtime: neutral, happy, angry, afraid, embarrassed, sad, exhausted, confused.
+- [x] Acciones: talking y silent.
+- [x] Tracking facial y comandos de chat reutilizan el mismo Action Store.
+- [x] `CARI_ACTIONS.md` documenta el catálogo canónico.
+- [ ] Rig VRM/Live2D de producción; no mezclarlo con el V0 procedural.
+
+### Continuidad
+- `BITACORA.md` es la fuente canónica de anti-repetición.
+- No rehacer WGC, WASAPI, MediaClock/Pacer/Interleaver, FFmpeg supervisor, OBS service, Twitch transport ni Action Store salvo regresión reproducible.
+- Gates inmediatos: CI observable, E2E Windows named-pipe→FFmpeg, compositor GPU sin readback, PTS E2E, drift físico, cámara/Game Capture y hardware.
+
 # Cari Studio — estado de implementación
 
 ## Producto objetivo
