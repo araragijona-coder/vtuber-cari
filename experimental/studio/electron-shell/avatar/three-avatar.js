@@ -25,16 +25,27 @@ export class ThreeAvatarRenderer {
       powerPreference: "high-performance"
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
     this.camera.position.set(0, 1.45, 5.6);
 
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
+    this.scene.add(new THREE.HemisphereLight(0xfff8fb, 0x4c3f45, 2.1));
 
-    const key = new THREE.DirectionalLight(0xffffff, 2);
-    key.position.set(2, 3, 4);
+    const key = new THREE.DirectionalLight(0xfff7ef, 2.8);
+    key.position.set(-2.6, 4.4, 5.0);
     this.scene.add(key);
+
+    const fill = new THREE.DirectionalLight(0xdde9ff, 1.2);
+    fill.position.set(3.2, 2.2, 2.4);
+    this.scene.add(fill);
+
+    const rim = new THREE.DirectionalLight(0xffffff, 1.45);
+    rim.position.set(0.5, 3.8, -4.0);
+    this.scene.add(rim);
 
     this.root = new THREE.Group();
     this.scene.add(this.root);
@@ -382,46 +393,22 @@ export class ThreeAvatarRenderer {
     group.name = "CariV0Avatar";
     group.position.y = 0.08;
 
-    const skinMaterial = new THREE.MeshStandardMaterial({
-      color: 0xb98263,
-      roughness: 0.8,
-      metalness: 0.0
+    const toon = (color) => new THREE.MeshToonMaterial({
+      color,
+      transparent: false
     });
-    const shirtMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4f6f7d,
-      roughness: 0.76,
-      metalness: 0.0
-    });
-    const shortsMaterial = new THREE.MeshStandardMaterial({
-      color: 0x15171b,
-      roughness: 0.72,
-      metalness: 0.0
-    });
-    const hairMaterial = new THREE.MeshStandardMaterial({
-      color: 0x6d432b,
-      roughness: 0.74,
-      metalness: 0.0
-    });
-    const innerHairMaterial = new THREE.MeshStandardMaterial({
-      color: 0x9a6a46,
-      roughness: 0.72,
-      metalness: 0.0
-    });
-    const eyeWhiteMaterial = new THREE.MeshStandardMaterial({
-      color: 0xf7f4ee,
-      roughness: 0.6,
-      metalness: 0.0
-    });
-    const pupilMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5a3826,
-      roughness: 0.6,
-      metalness: 0.0
-    });
-    const bandageMaterial = new THREE.MeshStandardMaterial({
-      color: 0xe8ddd0,
-      roughness: 0.86,
-      metalness: 0.0
-    });
+
+    const skinMaterial = toon(0xb98263);
+    const shirtMaterial = toon(0x4f6f7d);
+    const shortsMaterial = toon(0x15171b);
+    const hairMaterial = toon(0x6d432b);
+    const innerHairMaterial = toon(0x9a6a46);
+    const eyeWhiteMaterial = toon(0xf7f4ee);
+    const brownEyeMaterial = toon(0x5a3826);
+    const pupilWhiteMaterial = toon(0xffffff);
+    const highlightMaterial = toon(0xffffff);
+    const bandageMaterial = toon(0xe8ddd0);
+    const shirtAccentMaterial = toon(0x9db5c5);
 
     const root = new THREE.Group();
     root.name = "root";
@@ -463,20 +450,65 @@ export class ThreeAvatarRenderer {
     face.position.set(0, 2.30, 0.36);
     hips.add(face);
 
-    const eyeGeometry = new THREE.SphereGeometry(0.055, 20, 12);
+    const eyeGeometry = new THREE.SphereGeometry(0.072, 28, 18);
+    const irisGeometry = new THREE.SphereGeometry(0.046, 24, 16);
+    const highlightGeometry = new THREE.SphereGeometry(0.012, 16, 12);
+
     const leftEye = new THREE.Mesh(eyeGeometry, eyeWhiteMaterial);
     leftEye.name = "leftEye";
     leftEye.position.set(-0.14, 0.03, 0.02);
+    leftEye.scale.set(1.0, 1.12, 0.72);
     face.add(leftEye);
+
+    const leftIris = new THREE.Mesh(irisGeometry, brownEyeMaterial);
+    leftIris.name = "leftIris";
+    leftIris.position.set(-0.14, 0.03, 0.074);
+    leftIris.scale.set(1.0, 1.16, 0.42);
+    face.add(leftIris);
+
+    const leftPupil = new THREE.Mesh(
+      new THREE.SphereGeometry(0.022, 18, 14),
+      pupilWhiteMaterial
+    );
+    leftPupil.name = "leftPupil";
+    leftPupil.position.set(-0.14, 0.035, 0.098);
+    leftPupil.scale.set(0.82, 1.0, 0.46);
+    face.add(leftPupil);
+
+    const leftHighlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+    leftHighlight.name = "leftEyeHighlight";
+    leftHighlight.position.set(-0.122, 0.064, 0.108);
+    face.add(leftHighlight);
 
     const rightEye = new THREE.Mesh(eyeGeometry, eyeWhiteMaterial);
     rightEye.name = "rightEye";
     rightEye.position.set(0.14, 0.03, 0.02);
+    rightEye.scale.set(1.0, 1.12, 0.72);
     face.add(rightEye);
 
+    const rightIris = new THREE.Mesh(irisGeometry, brownEyeMaterial);
+    rightIris.name = "rightIris";
+    rightIris.position.set(0.14, 0.03, 0.074);
+    rightIris.scale.set(1.0, 1.16, 0.42);
+    face.add(rightIris);
+
+    const rightPupil = new THREE.Mesh(
+      new THREE.SphereGeometry(0.022, 18, 14),
+      pupilWhiteMaterial
+    );
+    rightPupil.name = "rightPupil";
+    rightPupil.position.set(0.14, 0.035, 0.098);
+    rightPupil.scale.set(0.82, 1.0, 0.46);
+    face.add(rightPupil);
+
+    const rightHighlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+    rightHighlight.name = "rightEyeHighlight";
+    rightHighlight.position.set(0.122, 0.064, 0.108);
+    face.add(rightHighlight);
+
     const mouth = new THREE.Mesh(
-      new THREE.TorusGeometry(0.07, 0.014, 10, 28, Math.PI),
-      pupilMaterial
+      new THREE.TorusGeometry(0.073, 0.014, 12, 32, Math.PI),
+      brownEyeMaterial
     );
     mouth.name = "mouth";
     mouth.rotation.z = Math.PI;
@@ -500,6 +532,21 @@ export class ThreeAvatarRenderer {
     innerHair.scale.set(1.0, 1.0, 0.72);
     innerHair.position.set(0, 2.31, 0.11);
     face.add(innerHair);
+
+    const fringeGroup = new THREE.Group();
+    fringeGroup.name = "fringe";
+    const fringeAngles = [-0.42, -0.21, 0, 0.21, 0.42];
+    for (const angle of fringeAngles) {
+      const lock = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.055, 0.34, 6, 14),
+        hairMaterial
+      );
+      lock.scale.set(0.82, 1.0, 0.60);
+      lock.position.set(Math.sin(angle) * 0.30, 2.59 - Math.abs(angle) * 0.08, 0.20);
+      lock.rotation.z = -angle * 0.7;
+      fringeGroup.add(lock);
+    }
+    hips.add(fringeGroup);
 
     const ponytail = new THREE.Group();
     ponytail.name = "ponytail";
@@ -540,16 +587,15 @@ export class ThreeAvatarRenderer {
     bandage.position.set(0.02, 2.285, 0.405);
     face.add(bandage);
 
-    const pupilGeometry = new THREE.SphereGeometry(0.020, 16, 12);
-    const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-    leftPupil.name = "leftPupil";
-    leftPupil.position.set(-0.14, 0.03, 0.045);
-    face.add(leftPupil);
-
-    const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-    rightPupil.name = "rightPupil";
-    rightPupil.position.set(0.14, 0.03, 0.045);
-    face.add(rightPupil);
+    const shirtHem = new THREE.Mesh(
+      new THREE.TorusGeometry(0.29, 0.025, 8, 28),
+      shirtAccentMaterial
+    );
+    shirtHem.name = "shirtHem";
+    shirtHem.rotation.x = Math.PI / 2;
+    shirtHem.scale.set(1.05, 0.72, 1.0);
+    shirtHem.position.set(0, 1.14, 0.0);
+    hips.add(shirtHem);
 
     const shorts = new THREE.Mesh(
       new THREE.BoxGeometry(0.58, 0.30, 0.50),
@@ -573,6 +619,10 @@ export class ThreeAvatarRenderer {
       head,
       leftEye,
       rightEye,
+      leftIris,
+      rightIris,
+      leftPupil,
+      rightPupil,
       mouth,
       hair,
       innerHair,
@@ -680,7 +730,14 @@ export class ThreeAvatarRenderer {
     group.userData.face = face;
     group.userData.parts = bodyParts;
     group.userData.anchors = anchors;
-    group.userData.note = "Cari V1 procedural runtime avatar: private camera-driven acting, local speech lip-sync, idle motion, keyboard/controller/phone activities, and replaceable glTF/GLB backend.";
+    group.traverse(node => {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+    });
+
+    group.userData.note = "Cari V2 stylized procedural runtime avatar: private camera-driven acting, local speech lip-sync, idle motion, keyboard/controller/phone activities, and replaceable glTF/GLB backend.";
 
     this.root.add(group);
     return group;
