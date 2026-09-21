@@ -323,22 +323,25 @@ export class StudioActionRouter {
     return ok ? action : null;
   }
 
-  setVoiceActivity({ speaking = false } = {}) {
-    const next = Boolean(speaking);
-    if (next === this.voiceSpeaking) return false;
-    this.voiceSpeaking = next;
-
-    if (next) {
-      this.trigger("talking", {
-        source: "voice",
-        holdMs: 0,
-        priority: SOURCE_PRIORITIES.voice
-      });
-    } else {
+  setVoiceActivity({ speaking = false, active = true } = {}) {
+    if (!active) {
+      const changed = this.voiceSpeaking || this.player.currentSource() === "voice";
+      this.voiceSpeaking = false;
       this.player.release("voice");
       this.syncActing();
+      return changed;
     }
-    return true;
+
+    const next = Boolean(speaking);
+    const changed = next !== this.voiceSpeaking;
+    this.voiceSpeaking = next;
+    const action = next ? "talking" : "silent";
+    const routed = this.trigger(action, {
+      source: "voice",
+      holdMs: 0,
+      priority: SOURCE_PRIORITIES.voice
+    });
+    return changed || routed;
   }
 
   release(source) {
