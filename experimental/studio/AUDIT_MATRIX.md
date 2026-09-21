@@ -36,7 +36,10 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [x] Acciones iniciales Feliz, Triste, Hablar, Callar, Neutral y Enojada.
 - [x] Imágenes por acción, múltiples frames, drag-and-drop, orden, loop, escala, opacidad y offsets.
 - [x] Persistencia local y presets JSON.
+- [x] Base visual PNG de Cari (neutral/happy/angry) con manifest y reglas visuales.
+- [x] Verificación automática del manifest y firmas PNG en `electron-shell/test/avatar-assets.test.mjs`.
 - [x] Activación de acciones desde UI y comandos básicos del chat.
+- [x] Action Store puede precargar el arte base empaquetado de Cari sin crear un segundo sistema de assets.
 - [x] Bitácora `BITACORA_CARI_STUDIO.md` con estados y lista NO REPETIR.
 
 ## Gates
@@ -392,3 +395,16 @@ La existencia de botón, módulo o workflow no equivale por sí sola a validaci�
 ### Gate de rendimiento
 
 El compositor D3D11 ya compone captura + overlay, pero el frame final se hace CPU-readback antes de la frontera FFmpeg. Esta ruta sigue siendo experimental y debe sustituirse por un encoder capaz de consumir la textura GPU o por un puente equivalente antes de declararla producción.
+
+## Cari — invariantes visuales actuales
+
+- [x] Piel morena/tan.
+- [x] Cabello marrón medio con inner hair marrón claro.
+- [x] Cola de caballo media.
+- [x] Ahoge centrado.
+- [x] Ojos marrones con pupilas blancas redondas.
+- [x] Curita en la nariz.
+- [x] Ropa deportiva de corredora, con remera ajustada o atada a la cintura y shorts/bike-shorts negros.
+- [x] Dirección estilizada entre chibi 2D y 3D, evitando realismo y anime extremo.
+- [x] Prohibición de diademas, hairpins, joyería, props, objetos y prendas extra.
+- [ ] Arte final profesional / rig Live2D / VRM: todavía pendiente.
