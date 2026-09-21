@@ -2824,3 +2824,48 @@ El `CariStudio.exe` nativo actual es una aplicación GUI WIN32 y no contiene una
 
 ### Próximo gate
 Ejecutar el flujo corregido Setup → Cari Studio y registrar cualquier error real de Electron/native engine antes de tocar subsistemas cerrados.
+
+## LOG-060 — Incidente real de arranque: ejecutable nativo ausente
+Fecha: 2026-09-21
+Área: Windows / Launcher / Developer UX
+Estado: DIAGNOSTICADO / CORREGIDO EN CÓDIGO / VALIDACIÓN WINDOWS AUTOMÁTICA PENDIENTE
+
+### Síntoma observado
+
+El usuario ejecutó el launcher desde un checkout de la rama experimental y recibió:
+
+`Native engine not found. Set CARI_NATIVE_EXECUTABLE to cari-studio-native.exe.`
+
+El checkout no tenía evidencia de un ejecutable Release generado localmente.
+
+### Causa
+
+El launcher anterior buscaba ejecutables ya construidos en unas pocas rutas. Un clon de Git no contiene automáticamente los artefactos generados por CMake/CI.
+
+### Corrección
+
+`experimental/studio/electron-shell/run-local.ps1` ahora:
+
+1. acepta `CARI_NATIVE_EXECUTABLE` como override;
+2. busca `build-launch\Release`, `build\Release` y `build-validation\Release`;
+3. si falta el ejecutable, intenta configurar y compilar `Release x64` con CMake;
+4. usa `build-launch` como salida específica del launcher;
+5. vuelve a buscar el ejecutable después del build;
+6. instala dependencias npm solo cuando `node_modules` no existe;
+7. separa mensajes de falta de toolchain, fallo de build y engine ausente.
+
+También se actualizó el auditor del PC, la documentación de instalación y la validación CI de sintaxis PowerShell.
+
+### NO REPETIR
+
+- No interpretar `Native engine not found` como bug del motor C++ sin comprobar primero si existe el artefacto local.
+- No pedir configuración manual de `CARI_NATIVE_EXECUTABLE` cuando el toolchain ya está instalado y el launcher puede construirlo.
+- No crear otro launcher paralelo; `Cari-Launch.bat` → `run-local.ps1` sigue siendo el camino único.
+- No usar `build-validation` como salida permanente del launcher.
+- No reabrir captura, audio, FFmpeg o tracking por este síntoma.
+
+### Evidencia pendiente
+
+La corrección requiere una ejecución Windows que confirme CMake configure, build Release, descubrimiento del ejecutable y pruebas del shell Electron.
+
+Este incidente queda cerrado como problema de descubrimiento/build local.
