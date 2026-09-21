@@ -99,7 +99,7 @@
 - [x] Smoke test nativo para contratos core.
 - [x] Smoke D3D11 compositor con WARP, incluyendo composición alpha de overlay.
 - [x] Reconstrucción del compositor ante cambio de ID3D11Device después de device-loss recovery.
-- [ ] CI Windows verde sobre el head actual (los últimos runs siguen fallando antes de registrar steps; el nuevo workflow ya incluye instalación de FFmpeg y gates e2e para cuando el runner ejecute jobs normalmente).
+- [ ] CI Windows verde sobre el head actual (los últimos runs y el workflow de diagnóstico siguen fallando antes de registrar steps/logs; no existe evidencia de ejecución del build).
 
 ## Windows
 
