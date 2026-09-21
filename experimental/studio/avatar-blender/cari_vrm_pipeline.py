@@ -972,17 +972,23 @@ def parse_args() -> argparse.Namespace:
 
 def run(args: argparse.Namespace) -> int:
     report = Report(started_at=now_utc())
-    report.input_path = str(Path(args.input).resolve())
-    report.output_path = str(Path(args.output).resolve())
+    report.input_path = str(Path(args.input).resolve()) if args.input else None
+    report.output_path = str(Path(args.output).resolve()) if args.output else None
 
     config = load_config(Path(args.config).resolve() if args.config else None)
-    source = Path(args.input).resolve()
-    output = Path(args.output).resolve()
-    if args.preflight:
-        source = Path(args.input).resolve() if args.input else Path("")
-        output = Path(args.output).resolve() if args.output else Path("cari-vrm-preflight.vrm")
-        report.input_path = str(source) if args.input else None
-        report.output_path = str(output)
+    source = Path(args.input).resolve() if args.input else None
+    output = (
+        Path(args.output).resolve()
+        if args.output
+        else Path("cari-vrm-preflight.vrm")
+        if args.preflight
+        else None
+    )
+
+    if output is None:
+        # This is a CLI contract error in normal mode. Keep a deterministic
+        # report location so the failure remains observable.
+        output = Path("cari-vrm-pipeline-failure.vrm")
 
     report_path = (
         Path(args.report).resolve()
@@ -1015,7 +1021,7 @@ def run(args: argparse.Namespace) -> int:
             print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
             return 0 if report.status == "PREFLIGHT_PASS" else 2
 
-        if args.input is None or args.output is None:
+        if args.input is None or args.output is None or source is None:
             raise ValueError("--input and --output are required unless --preflight is used")
 
         if not source.exists():
