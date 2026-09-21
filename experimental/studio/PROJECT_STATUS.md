@@ -558,3 +558,14 @@ El escenario de uso con OBS como streamer principal está documentado en OBS_USA
 - Mensajes salientes de Cari no disparan acciones 2D.
 - Persistencia sigue en window.cari.native.avatarActions → userData/avatar-actions; no se creó un segundo almacenamiento.
 - Validación Windows/encoder del overlay sigue pendiente.
+
+
+## Arranque Windows
+
+- [x] Target CMake `cari-studio-launcher`.
+- [x] `CariStudioLauncher.exe` se genera automáticamente en la raíz del checkout durante Release.
+- [x] Prioridad de arranque: instalación de escritorio → shell Electron del checkout → runtime nativo de diagnóstico.
+- [x] Errores del shell de desarrollo registrados en `%LOCALAPPDATA%\CariStudio\launcher.log`.
+- [ ] Build Windows real y prueba de doble clic.
+
+El launcher es un entrypoint de conveniencia; no reemplaza `cari-studio-native.exe` ni crea una segunda ruta de runtime.
