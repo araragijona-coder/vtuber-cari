@@ -610,3 +610,14 @@ Fuente de continuidad: OBS_USAGE_AUDIT.md y BITACORA.md.
 ### Gate siguiente
 
 P0: Windows observable con encoder D3D11 real, PTS de entrada/paquete, mux final, shutdown/flush y sesión sostenida.
+
+
+## Evidence update — LOG-055 — Avatar 2D / VAD / Twitch — 2026-09-21
+
+- Avatar2DFramePlayer: IMPLEMENTADO; secuencias loop=false multi-frame avanzan hasta el último frame.
+- StudioActionRouter: IMPLEMENTADO; entrada única para chat, comandos, EventSub y VAD.
+- VAD: IMPLEMENTADO a nivel local; speaking state se traduce a voice.activity y luego a talking/silent.
+- Persistencia: IMPLEMENTADO; AvatarActionStore continúa usando window.cari.native.avatarActions.
+- Overlay: IMPLEMENTADO a nivel de bridge; validación Windows y captura final siguen PENDIENTES.
+- Tests preparados: frame sequence finita, command/EventSub envelopes y VAD hysteresis/reset.
+- No-repeat: no crear otro Action Store, Frame Player, Router, VAD, Twitch transport ni canal de eventos del overlay.
