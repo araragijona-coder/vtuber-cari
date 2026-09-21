@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$OutputDir = (Join-Path $PSScriptRoot '..\..\..\validation-evidence\pc-audit'),
+    [string]$OutputDir = (Join-Path $PSScriptRoot '..\..\validation-evidence\pc-audit'),
     [switch]$JsonOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -65,7 +65,7 @@ if(Test-Path $vswhere){
     else{Add-Check $checks 'Toolchain' 'Visual Studio C++ workload' 'FAIL' 'Visual Studio is present but required C++ workload was not detected.'}
 }else{Add-Check $checks 'Toolchain' 'Visual Studio C++ workload' 'FAIL' 'vswhere.exe not found.'}
 
-$root=(Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+$root=(Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
 $nativeCandidates=@(
     (Join-Path $root 'experimental\studio\native-windows\build\Release\cari-studio-native.exe'),
     (Join-Path $root 'experimental\studio\native-windows\build-validation\Release\cari-studio-native.exe'),
