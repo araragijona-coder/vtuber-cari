@@ -111,6 +111,7 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 ### Windows
 
 - [x] Win32 host.
+- [x] Bootstrap de toolchain Windows con CMake/Visual Studio/WinGet y logs persistentes de instalación.
 - [x] D3D11 device.
 - [x] Windows Graphics Capture.
 - [x] Captura de pantalla primaria con `CreateForMonitor`.
