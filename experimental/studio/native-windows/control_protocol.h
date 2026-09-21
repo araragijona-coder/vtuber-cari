@@ -26,6 +26,7 @@ struct ControlCommand {
     std::string effect = "off";
     std::int32_t window_index = -1;
     std::int32_t camera_index = -1;
+    bool microphone_enabled = true;
     std::string request_id;
 };
 
