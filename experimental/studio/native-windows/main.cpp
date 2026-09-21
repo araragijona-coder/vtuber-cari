@@ -346,6 +346,11 @@ std::string BuildControlStatusMessage() {
     result += ";avatar_overlay=" + std::string(g_avatar_capture.is_running() ? "running" : "fallback");
     result += ";avatar_overlay_frames=" + std::to_string(g_avatar_overlay_frames.load(std::memory_order_relaxed));
     result += ";avatar_overlay_failures=" + std::to_string(g_avatar_overlay_failures.load(std::memory_order_relaxed));
+    const auto gpu_stats = g_gpu_compositor.stats();
+    result += ";gpu_composed_frames=" + std::to_string(gpu_stats.composed_frames);
+    result += ";gpu_overlay_uploads=" + std::to_string(gpu_stats.overlay_uploads);
+    result += ";gpu_overlay_cache_hits=" + std::to_string(gpu_stats.overlay_cache_hits);
+    result += ";gpu_cpu_readbacks=" + std::to_string(gpu_stats.cpu_readbacks);
     {
         std::lock_guard lock(g_avatar_overlay_mutex);
         if (!g_avatar_overlay_error.empty()) {
@@ -1093,6 +1098,7 @@ void ProcessPrimaryCapturedFrame(const cari::native::CapturedFrame& captured) {
                         .width = avatar_width,
                         .height = avatar_height,
                         .rgba = avatar_rgba ? avatar_rgba : g_gpu_avatar_placeholder,
+                        .generation = avatar_rgba ? g_avatar_overlay_sequence : 0,
                         .opacity = 0.92f,
                         .x = overlay_x,
                         .y = overlay_y,
