@@ -219,6 +219,7 @@
 - [x] Randomización de accesorios con semilla reproducible.
 - [x] Persistencia de presets JSON con validación de versión y nombres seguros.
 - [ ] Editor visual de escritorio 3D completo (escena/modelo/assets); el editor de acciones 2D ya está implementado.
+- [x] Especificación técnica de asset Cari V1 con manifest de capas, parámetros y checklist de entrega.
 - [ ] Catálogo real de assets aprobado por el usuario.
 - [ ] Previsualización VRM integrada.
 - [ ] Guardado/carga de presets desde UI.
@@ -228,6 +229,7 @@
 - [x] Workflow reproducible de compilación Release x64 en Windows CI.
 - [x] Paquete portable x64 generado por CI como artifact.
 - [ ] Bundle de assets de producción y modelo artístico final.
+  - La especificación V1 y sus validadores están implementados; el arte V1 real sigue pendiente.
 - [ ] FFmpeg/codec legalmente redistribuible elegido.
 - [x] Configuración del instalador NSIS x64.
 - [ ] Validación del instalador Windows en máquina/CI y firma.
