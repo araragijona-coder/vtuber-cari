@@ -574,3 +574,10 @@ Antes de implementar una tarea, consultar BITACORA.md. Si el componente figura c
 - [ ] Validated avatar overlay/compositor handoff.
 
 Fuente de continuidad: OBS_USAGE_AUDIT.md y BITACORA.md.
+## Evidence update — LOG-040
+
+- CI HEAD: `eab7897a5c971a64acc9c31cdf5c4557ffaf4b8f`.
+- Native Windows, CI, Character Runtime y Runner Diagnostic: failure.
+- Jobs reportan `steps=null` y `logs_url=null`.
+- Estado: INFRASTRUCTURE BLOCKED.
+- No se reabre código funcional mientras no exista evidencia del step responsable.
