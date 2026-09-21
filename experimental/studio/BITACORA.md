@@ -2288,3 +2288,39 @@ El test de persistencia copiaba avatar-contract.js con extensión .js dentro de 
 - Producto usable/end-user: ~58%
 - Seguimiento global: ~65%
 - Producción: NO listo
+## LOG-052 — VAD estable sin reinicios por frame
+
+Fecha: 2026-09-21
+Área: Avatar 2D / VAD / Frame Player
+Estado: CORREGIDO / VERIFICADO LOCAL
+
+### Hallazgo
+
+El loop de tracking consulta VAD en cada frame. Un router que vuelva a disparar talking/silent con el mismo estado reinicia el frameIndex y el timer continuamente, degradando la animación.
+
+### Corrección
+
+- Se separan voiceActive y voiceSpeaking.
+- La activación inicial con speaking=false produce silent una sola vez.
+- Mientras speaking no cambia, no se dispara otra acción ni se reinicia la secuencia.
+- speaking=true produce talking y speaking=false produce silent.
+- active=false libera completamente la capa de voz.
+
+### Evidencia
+
+- action-runtime: 5/5 tests locales PASS.
+- node --check del runtime PASS.
+- La optimización evita trabajo de render/timer redundante durante el polling por frame.
+
+### NO REPETIR
+
+- No llamar trigger('talking') o trigger('silent') en cada frame cuando el estado no cambió.
+- No usar voiceSpeaking como sustituto de voiceActive.
+- No crear un segundo VAD scheduler dentro del renderer.
+
+### Porcentaje canónico
+
+- Ingeniería: ~71%
+- Producto usable/end-user: ~58%
+- Seguimiento global: ~65%
+- Producción: NO listo
