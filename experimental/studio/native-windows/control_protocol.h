@@ -12,6 +12,7 @@ enum class ControlCommandType {
     capture_stop,
     audio_start,
     audio_stop,
+    microphone_set,
     output_start,
     output_stop,
     voice_set,
