@@ -110,6 +110,7 @@
 - [x] Controles de cámara, calibración, reset, sensibilidad y suavizado en la vista Tracking.
 - [x] Guardia que distingue frame duplicado de pérdida real de rostro.
 - [x] Smoke test nativo para contratos core.
+- [x] Bootstrap de toolchain Windows con descubrimiento de CMake, Visual Studio/vswhere y WinGet.
 - [x] Smoke D3D11 compositor con WARP, incluyendo composición alpha de overlay.
 - [x] Smoke D3D11 hardware encoder preparado para validar h264_nvenc/h264_amf; requiere Windows + driver + FFmpeg dev kit.
 - [x] Reconstrucción del compositor ante cambio de ID3D11Device después de device-loss recovery.
