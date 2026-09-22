@@ -3592,3 +3592,49 @@ La rama contiene además:
 - Seguimiento global: **~65%**.
 - Producción: **NO listo**.
 - HEAD vigente: consultar PR #2.
+
+
+---
+
+## LOG-072 — Merge confirmado y continuidad post-PR — 21/09/2026
+
+**Estado:** CERRADO / MERGED / CONTINUIDAD ACTIVA
+
+### Hecho
+
+- PR #2 fue cerrado con `merged=true`.
+- El trabajo de `fix/native-windows-foundation` llegó a la historia de `main`.
+- El checkpoint canónico sigue siendo:
+  - Ingeniería **~71%**.
+  - Producto usable/end-user **~58%**.
+  - Seguimiento global **~65%**.
+  - Producción **NO listo**.
+
+### Cambio visual de esta iteración
+
+El `CyberCombatCanvas` quedó incorporado como overlay modular:
+- no depende de IA;
+- no depende de Internet;
+- no depende de OBS;
+- no toca CaptureEngine/FFmpeg;
+- usa `setTransform` para resize;
+- limita DPR/partículas;
+- clampa HP;
+- tiene evento local `cari:cyber-hud-state`;
+- posee test propio dentro del shell.
+
+### Continuidad post-merge
+
+La próxima iteración debe trabajar desde la historia actual de `main`, no reconstruir la rama ya fusionada.
+
+### NO REPETIR
+
+- No recrear PR #2.
+- No rehacer WGC/WASAPI/MediaClock/RealtimePacer/MediaInterleaver/FFmpeg supervisor/Three.js/Action Store.
+- No tratar el merge como validación de hardware.
+- No tratar CI failure previo como prueba de que el código fusionado está roto.
+- No volver a analizar el bug de `ctx.scale()` acumulativo del HUD salvo nueva regresión.
+
+### Próximo foco
+
+**P0:** evidencia Windows observable → compositor GPU sin readback → PTS E2E → drift → salida sostenida → hardware.
