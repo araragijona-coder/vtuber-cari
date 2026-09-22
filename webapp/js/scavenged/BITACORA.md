@@ -30,3 +30,9 @@
 - Add authoritative server-side validation for multiplayer/progression.
 - Add status effects and elemental resistances only if the game design requires them.
 - Add visual particle presets and pooling benchmarks in the actual Mini App.
+
+
+### VALIDACIÓN DE ESTA SESIÓN
+- La lectura de los cinco módulos desde GitHub fue confirmada.
+- La ejecución local del smoke test no pudo completarse porque el entorno de ejecución no tiene resolución DNS para GitHub/raw; esto es una limitación del entorno, no un resultado de test verde.
+- Por lo tanto, el estado correcto de estos módulos es `IMPLEMENTADO`, pendiente de `VERIFICADO` mediante Node en CI o máquina local.
