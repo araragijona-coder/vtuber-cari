@@ -23,14 +23,26 @@ jobs:
         with:
           node-version: "22"
       - name: Install test dependencies
-        run: python -m pip install -e .[twitch]
+        run: python -m pip install -e .[twitch,tma]
       - name: Compile production and experimental code
-        run: python -m compileall -q app tests experimental
+        run: python -m compileall -q app backend tests experimental
       - name: Check experimental VRM web renderer syntax
         run: node --check experimental/avatar/vrm-web/src/main.js
       - name: Verify Twitch optional bridge import
         run: python -c "from experimental.twitch.twitchio_bridge import CariTwitchBot; print('Twitch bridge import OK')"
       - name: Unit tests
         run: python -m unittest discover -s tests -q
+      - name: Check WebApp network bridge syntax
+        run: node --check webapp/js/scavenged/network_bridge.js
+      - name: Check combat renderer and UI syntax
+        run: |
+          node --check webapp/js/canvas_combat.js
+          node --check webapp/js/scavenged/engine/ui_combat_controller.js
+          node --check webapp/js/scavenged/engine/ultimate_cutin.js
+      - name: Check Telegram persistence and hardware syntax
+        run: |
+          node --check webapp/js/scavenged/telegram/save_manager.js
+          node --check webapp/js/scavenged/telegram/tma_hardware.js
+          node --check webapp/js/scavenged/engine/app_bootstrap.js
       - name: Experimental avatar tests
         run: python -m unittest discover -s experimental -p 'test_*.py' -q
