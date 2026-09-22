@@ -11,13 +11,14 @@ dependencies = []
 
 [project.optional-dependencies]
 twitch = ["twitchio>=3.3,<4"]
+tma = ["aiohttp>=3.10,<4"]
 tts = ["pyttsx3>=2.90"]
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["app*", "backend*"]
 
 [tool.pyright]
-include = ["app", "tests"]
+include = ["app", "backend", "tests"]
 pythonVersion = "3.11"
 
 [tool.pytest.ini_options]

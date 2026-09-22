@@ -1,33 +1,27 @@
 (() => {
   "use strict";
 
-  const MOCK_DELAY_MS = 0;
-
-  function mockResponse(data) {
-    return new Promise((resolve) => {
-      window.setTimeout(() => resolve(data), MOCK_DELAY_MS);
-    });
+  function network() {
+    if (!window.CariNetwork) {
+      throw new Error("CariNetwork bridge is not loaded");
+    }
+    return window.CariNetwork;
   }
 
   async function getCombatState() {
-    return mockResponse({
-      ok: true,
-      dto: null
-    });
+    throw new Error(
+      "getCombatState is not exposed by the current backend contract; use serverState from a combat action response"
+    );
   }
 
-  async function sendCombatAction(_actionDto) {
-    return mockResponse({
-      ok: true,
-      dto: null
-    });
+  async function sendCombatAction(actionDto, options = {}) {
+    return network().sendCombatAction(actionDto, options);
   }
 
   async function getPlayerState() {
-    return mockResponse({
-      ok: true,
-      dto: null
-    });
+    throw new Error(
+      "getPlayerState is not exposed by the current backend contract"
+    );
   }
 
   window.CariApi = Object.freeze({
