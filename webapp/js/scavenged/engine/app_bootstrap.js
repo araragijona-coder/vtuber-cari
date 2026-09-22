@@ -122,6 +122,7 @@
       dailyStreak: 0,
       level: 1,
       loot: [],
+      processedCombatResults: [],
       temporary: true
     };
   }
