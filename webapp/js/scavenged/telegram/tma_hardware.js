@@ -61,7 +61,13 @@
     };
 
     if (typeof combat.on === "function") {
-      const result = combat.on(eventName, wrapped);
+      let result;
+      try {
+        result = combat.on(eventName, wrapped);
+      } catch (_error) {
+        return false;
+      }
+
       state.unsubscribers.add(() => {
         try {
           if (typeof combat.off === "function") {
@@ -77,7 +83,12 @@
     }
 
     if (typeof combat.addEventListener === "function") {
-      combat.addEventListener(eventName, wrapped);
+      try {
+        combat.addEventListener(eventName, wrapped);
+      } catch (_error) {
+        return false;
+      }
+
       state.unsubscribers.add(() => {
         try {
           combat.removeEventListener?.(eventName, wrapped);
@@ -348,7 +359,15 @@
 
   window.CariTmaHardware = api;
 
+  function bindControllerReadyEvent() {
+    window.addEventListener?.("cari:combat-ready", (event) => {
+      const combat = event?.detail?.combat || null;
+      if (combat) setCombat(combat);
+    });
+  }
+
   function autoInit() {
+    bindControllerReadyEvent();
     configure();
   }
 
