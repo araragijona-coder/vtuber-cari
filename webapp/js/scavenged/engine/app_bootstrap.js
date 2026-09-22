@@ -40,6 +40,7 @@
     profile: null,
     lastCombatResponse: null,
     processedResultKeys: new Set(),
+    processingResultKeys: new Set(),
     initialized: false,
     busy: false
   };
@@ -336,9 +337,7 @@
   }
 
   function resetCombatToBase() {
-    const combat =
-      state.lastCombatResponse?.serverState &&
-      window.CariCombatUI?.getState?.().combat;
+    const combat = window.CariCombatUI?.getState?.().combat || null;
 
     const candidates = [
       combat?.resetToBase,
@@ -418,15 +417,21 @@
 
     if (outcome === OUTCOMES.VICTORY) {
       const key = resultKey(response, detail, outcome);
-      if (key && state.processedResultKeys.has(key)) {
-        return true;
+      if (key) {
+        if (state.processedResultKeys.has(key) ||
+            state.processingResultKeys.has(key)) {
+          return true;
+        }
+        state.processingResultKeys.add(key);
       }
 
-      const processed = await processVictory(response, detail);
-      if (processed || !isObject(response?.rewards)) {
+      try {
+        const processed = await processVictory(response, detail);
         if (key) state.processedResultKeys.add(key);
+        return processed;
+      } finally {
+        if (key) state.processingResultKeys.delete(key);
       }
-      return processed;
     }
 
     resetCombatToBase();
