@@ -13,7 +13,7 @@
 - Producto usable/end-user: **58%**.
 - Seguimiento global: **65%**.
 - Generador de galería: Pollinations público vía HTTP GET, 1024x1024.
-- Último head auditado: `e4b1ddb704a3471c6b495541f866116d1628bc05`.
+- Último head auditado: consultar PR #2.
 
 ## Estados de trabajo
 
@@ -3501,3 +3501,94 @@ El commit/push queda fuera del generador y dentro de GitHub Actions:
 - GET y normalización PNG cubiertos por test con respuesta simulada.
 - Workflow de commit/push y schedule revisado en la rama.
 - Ejecución real del proveedor externo: pendiente de Actions/manual para obtener evidencia de red real.
+
+---
+
+## LOG-071 — Integración del Cyber Combat Canvas + checkpoint de continuidad — 21/09/2026
+
+**Área:** Renderer / HUD / Continuidad / Output resilience  
+**Estado:** IMPLEMENTADO / TEST PREPARADO / VALIDACIÓN WINDOWS PENDIENTE
+
+### Entrada recibida
+
+Se incorporó un módulo Canvas HUD denominado `CyberCombatCanvas`, pensado como overlay visual estilo HUD de combate/cyberpunk.
+
+### Trabajo realizado
+
+- Se creó `experimental/studio/electron-shell/renderer/cyber-combat-hud.js`.
+- Se conectó el canvas a la vista En vivo del renderer.
+- El HUD se mantiene fuera de CaptureEngine, MediaGraphController y FFmpeg.
+- El estado opcional llega por evento local `cari:cyber-hud-state`.
+- Se mantuvieron `player_hp` y `enemy_hp` como datos de overlay, no como telemetría ficticia del juego.
+
+### Correcciones preventivas
+
+- `ctx.scale()` acumulativo en resize → reemplazado por `setTransform()`.
+- `this.strokeStyle` → corregido a `this.ctx.strokeStyle`.
+- HP → clamp 0..100.
+- DPR limitado a 2.
+- Partículas acotadas.
+- `destroy()` elimina listeners y estado.
+- El HUD no depende de Internet, IA, OBS ni del motor nativo.
+
+### Test
+
+`experimental/studio/electron-shell/test/cyber-combat-hud.test.mjs`
+
+El test comprueba:
+- transform de resize no acumulativo;
+- uso correcto de `ctx.strokeStyle`;
+- normalización de HP.
+
+El test está dentro del patrón `npm test` del shell.
+
+### Continuidad
+
+Antes de implementar el HUD se comprobó la existencia de:
+- renderer Three.js existente;
+- Action Store;
+- Action Router;
+- compositor;
+- estructura de UI En vivo.
+
+Por tanto no se creó un segundo renderer ni un segundo sistema de acciones.
+
+### Resiliencia también presente en este checkpoint
+
+La rama contiene además:
+- `OutputFailureCategory`;
+- `OutputRetryPolicy`;
+- retry RTMP limitado a fallos de red;
+- máximo de cinco intentos;
+- backoff acotado;
+- stderr FFmpeg limitado a 256 KiB;
+- estado/código de salida;
+- backpressure de handshake;
+- límite de ocho eventos A/V por polling.
+
+### NO REPETIR
+
+- No crear otro Canvas HUD.
+- No mover el HUD al encoder.
+- No crear un segundo sistema de estado de combate.
+- No reconstruir Three.js para cambiar la estética.
+- No rehacer MediaClock/ReatimePacer/MediaInterleaver.
+- No rehacer FFmpeg supervisor sin una regresión reproducible.
+- No utilizar una captura visual de demo como prueba de runtime Windows.
+- No usar el porcentaje de un log histórico como porcentaje actual.
+
+### Siguiente foco técnico
+
+1. CI/E2E Windows observable.
+2. GPU compositor sin readback CPU.
+3. PTS explícitos extremo a extremo.
+4. drift correction físico.
+5. validación de cámara/tracking/FFmpeg/RTMP en hardware real.
+
+### Checkpoint canónico
+
+- Ingeniería: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
+- Producción: **NO listo**.
+- HEAD vigente: consultar PR #2.
