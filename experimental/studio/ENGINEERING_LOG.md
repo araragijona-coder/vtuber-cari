@@ -71,6 +71,13 @@ Estados: IMPLEMENTADO = existe código/documentación. VERIFICADO = pasó una pr
 - NO VERIFICADO: CI verde actual; los runs recientes con steps=null no prueban compilación/test.
 - PENDIENTE: FFmpeg runtime/redistribución, installer, signing y release gate.
 
+## Asset Runtime — Scavenged Art
+- IMPLEMENTADO: `webapp/js/scavenged/canvas/combat.js`.
+- IMPLEMENTADO: renderer Canvas con caché de `ImageBitmap`, `requestAnimationFrame`, DPR máximo 2 y FPS configurable.
+- IMPLEMENTADO: loader rechaza cualquier candidato sin `status` verificable y `local_path` local.
+- IMPLEMENTADO: composición visual de fondos/tarjetas/HUD con violeta `#8b00ff` y rojo `#ff1a1a`.
+- BLOQUEADO DELIBERADAMENTE: el `ASSET_MANIFEST.json` actual no contiene entradas `verified` con `local_path`; por tanto no se copió ningún binario no verificado.
+
 ## Asset Sweep — Scavenged Art
 Ruta: webapp/assets/scavenged_art/
 Subcarpetas: waifus/, bikes/, backgrounds/, trash/
@@ -117,9 +124,14 @@ Estado de estos candidatos: candidate-review/catalog-only; todavía no son asset
 7. RTMP real + reconnect.
 8. Drift correction.
 9. Lip-sync.
-10. Importación física de assets con provenance verificada.
+10. Importación física de assets con provenance verificada — BLOQUEADO hasta que existan entradas `verified` + `local_path` en manifest.
 11. Installer/runtime FFmpeg.
 12. Hardware validation y release gate.
+
+## NO REPETIR — Asset Runtime
+- No rehacer `combat.js` como loader básico.
+- No importar candidatos `candidate-review`/`catalog-only`.
+- No considerar un asset "integrado" hasta que exista binario local + provenance/licencia trazable + manifest `verified`.
 
 ## Decisiones descartadas
 - OBS no es dependencia obligatoria.
