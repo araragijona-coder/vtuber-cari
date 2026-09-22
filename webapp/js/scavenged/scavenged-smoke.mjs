@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import {calculateDamage,resolveAttack} from "./combat.js";
+import {TurnSystem} from "./turn-system.js";
+import {selectTarget} from "./target-selection.js";
+import {ParticlePool} from "./particles.js";
+const rng=()=>.25;
+assert.equal(calculateDamage({attack:20,defense:5,variance:0,rng}),15);
+const r=resolveAttack({attack:20,criticalChance:1,criticalMultiplier:2},{hp:40,defense:5},{variance:0,rng});
+assert.equal(r.damage,30);assert.equal(r.hpAfter,10);
+const t=new TurnSystem({rng}),a={id:"fast",speed:10,hp:10},b={id:"slow",speed:5,hp:10};
+t.reset([a,b]);assert.deepEqual(t.startRound().map(x=>x.id),["fast","slow"]);assert.equal(t.next().id,"fast");
+assert.equal(selectTarget({x:0,y:0},[{id:"far",x:20,y:0,radius:10,hp:10},{id:"near",x:5,y:0,radius:10,hp:10}]).id,"near");
+const p=new ParticlePool({capacity:4,rng});p.emit({x:0,y:0,count:10});assert.equal(p.items.length,4);p.update(1);assert.equal(p.items.length,0);
+console.log("scavenged mechanics smoke: PASS");
