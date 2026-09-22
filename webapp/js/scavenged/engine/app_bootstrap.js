@@ -108,7 +108,10 @@
         finiteNonNegativeInteger(source.daily_streak, 0)
       ),
       level: finiteNonNegativeInteger(source.level, 1) || 1,
-      loot: Array.isArray(source.loot) ? source.loot : []
+      loot: Array.isArray(source.loot) ? source.loot : [],
+      processedCombatResults: Array.isArray(source.processedCombatResults)
+        ? source.processedCombatResults.filter((value) => typeof value === "string").slice(-256)
+        : []
     };
   }
 
@@ -242,6 +245,7 @@
       const loaded = await manager?.loadProfile?.();
       if (isObject(loaded)) {
         state.profile = normalizeProfile(loaded);
+        state.processedResultKeys = new Set(state.profile.processedCombatResults);
         syncProfileToDom(state.profile);
         dispatchProfileUpdated("load");
         return state.profile;
@@ -253,6 +257,7 @@
     state.profile = state.localDevelopment
       ? createTemporaryProfile()
       : normalizeProfile(null);
+    state.processedResultKeys = new Set(state.profile.processedCombatResults);
 
     syncProfileToDom(state.profile);
     dispatchProfileUpdated("default");
@@ -368,7 +373,7 @@
     }
   }
 
-  async function processVictory(response, detail) {
+  async function processVictory(response, detail, key = null) {
     const rewards = response?.rewards;
 
     if (!isObject(rewards)) {
@@ -380,7 +385,20 @@
 
     if (!state.profile) state.profile = normalizeProfile(null);
 
+    if (key && state.profile.processedCombatResults.includes(key)) {
+      dispatchProfileUpdated("victory-replay-ignored", rewards);
+      return true;
+    }
+
     applyBackendRewards(rewards);
+
+    if (key) {
+      state.profile.processedCombatResults = [
+        ...state.profile.processedCombatResults.filter((value) => value !== key),
+        key
+      ].slice(-256);
+    }
+
     syncProfileToDom(state.profile, true);
 
     const saved = await persistProfile();
@@ -426,7 +444,7 @@
       }
 
       try {
-        const processed = await processVictory(response, detail);
+        const processed = await processVictory(response, detail, key);
         if (key) state.processedResultKeys.add(key);
         return processed;
       } finally {
