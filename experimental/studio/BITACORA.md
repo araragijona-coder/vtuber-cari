@@ -36,3 +36,40 @@ No repetir componentes marcados VERIFICADO. Priorizar PENDIENTE y NO VALIDADO EN
 6. Drift correction.
 7. Lip-sync.
 8. Assets con provenance verificada.
+
+## LOG-056 — 2026-09-22 — Scavenger Protocol: mecánicas web ligeras
+
+### Hecho
+- Investigación de prototipos/juegos web con JavaScript/Canvas sin dependencias pesadas.
+- Se estudiaron patrones de combate por turnos/críticos, selección de objetivos, partículas y delta-time.
+- Se creó `webapp/js/scavenged/` con implementaciones originales:
+  - `combat-engine.js`
+  - `target-selector.js`
+  - `impact-particles.js`
+  - `arcade-loop.js`
+  - `index.js`
+  - `README.md`
+- Las implementaciones no copian código fuente; adaptan patrones generales.
+- Se creó `experimental/studio/DEV_LOG.md` como bitácora operativa adicional.
+
+### Fuentes conceptuales consultadas
+- Rolling Scopes School — Not Fight Club: combate turn-based, ataque/defensa y críticos.
+- Asteroids Redux — Canvas vanilla, colisiones y limpieza de partículas.
+- Bubble Panic — partículas, delta-time y arquitectura de estados.
+- Space Shooter — Canvas sin dependencias y partículas.
+- RouteLab — selección determinista de objetivos.
+
+### No repetir
+- No volver a investigar desde cero el núcleo de críticos/mitigación, selector de objetivo por pointer, partículas básicas Canvas ni delta-time loop para este módulo.
+- No añadir React/Vue/Three.js a este frente.
+- No reabrir WGC/WASAPI/OBS/Twitch/timing del Studio por este trabajo.
+
+### Gate pendiente
+- La rama accesible es `araragijona-coder/vtuber-cari`; no contiene una Mini App Telegram real. Por tanto, el módulo queda aislado y **NO integrado** a una UI Telegram.
+- Falta test de navegador/móvil y conexión al estado de batalla real cuando exista ese frontend.
+- No marcar este módulo como "producción" solo por existir el código.
+
+### Estado
+- IMPLEMENTADO: 6 archivos del módulo.
+- VERIFICADO: revisión estática de estructura y exports.
+- VALIDADO EN NAVEGADOR/MÓVIL: pendiente.
