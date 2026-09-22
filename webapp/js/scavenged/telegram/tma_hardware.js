@@ -12,7 +12,8 @@
     mainButtonHandler: null,
     outcome: null,
     unsubscribers: new Set(),
-    initialized: false
+    initialized: false,
+    controllerReadyBound: false
   };
 
   const config = {
@@ -360,10 +361,15 @@
   window.CariTmaHardware = api;
 
   function bindControllerReadyEvent() {
-    window.addEventListener?.("cari:combat-ready", (event) => {
+    if (state.controllerReadyBound || typeof window.addEventListener !== "function") {
+      return;
+    }
+
+    window.addEventListener("cari:combat-ready", (event) => {
       const combat = event?.detail?.combat || null;
       if (combat) setCombat(combat);
     });
+    state.controllerReadyBound = true;
   }
 
   function autoInit() {
