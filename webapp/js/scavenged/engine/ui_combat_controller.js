@@ -40,6 +40,9 @@
     busy: false,
     boundButtons: false,
     boundEvents: new Set(),
+    options: DEFAULTS,
+    actionCards: [],
+    cardByButton: new WeakMap(),
     rafId: null,
     hpAnimations: new Map(),
     floatingTexts: new Set(),
@@ -84,6 +87,19 @@
       ".cari-floating-combat-text.cari-normal-text{color:#fff}",
       ".cari-dodge-active{animation:cari-dodge-blink .22s steps(4,end)}",
       ".cari-action-pending{opacity:.58;cursor:wait!important}",
+      "#action-dashboard,.cari-action-dashboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%;margin-top:8px}",
+      ".cari-action-card{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:6px;min-height:96px;padding:8px;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:linear-gradient(155deg,rgba(18,23,39,.96),rgba(8,12,23,.98));color:#fff;text-align:left;cursor:pointer;touch-action:manipulation;overflow:hidden}",
+      ".cari-action-card:hover:not(:disabled){border-color:rgba(117,200,255,.7);transform:translateY(-1px)}",
+      ".cari-action-card:disabled{opacity:.48;cursor:not-allowed}",
+      ".cari-action-card.cari-ultimate-card{border-color:rgba(57,255,20,.62);box-shadow:0 0 12px rgba(57,255,20,.12) inset}",
+      ".cari-action-art{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden}",
+      ".cari-action-art img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated;image-rendering:crisp-edges}",
+      ".cari-action-art-placeholder{font:800 10px/1 monospace;color:rgba(255,255,255,.5);text-align:center;padding:3px}",
+      ".cari-action-name{font:800 12px/1.1 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+      ".cari-action-meta{font:600 10px/1.1 system-ui,sans-serif;color:rgba(255,255,255,.58)}",
+      ".cari-action-energy{display:flex;justify-content:space-between;align-items:center;font:800 11px/1 monospace;color:#39ff14}",
+      "@media (max-width:720px){#action-dashboard,.cari-action-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}}",
+      "@media (max-width:400px){#action-dashboard,.cari-action-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}.cari-action-card{min-height:88px}}",
       "@keyframes cari-screen-shake{0%,100%{transform:translate3d(0,0,0)}20%{transform:translate3d(-7px,3px,0)}40%{transform:translate3d(6px,-4px,0)}60%{transform:translate3d(-4px,-2px,0)}80%{transform:translate3d(4px,3px,0)}}",
       "@keyframes cari-crt-lines{0%{transform:translate3d(-2px,0,0);filter:hue-rotate(0deg)}50%{transform:translate3d(3px,0,0);filter:hue-rotate(35deg)}100%{transform:translate3d(-1px,0,0);filter:hue-rotate(-20deg)}}",
       "@keyframes cari-crt-flash{0%,100%{opacity:0}50%{opacity:1}}",
@@ -175,6 +191,246 @@
       button?.getAttribute("data-combat-action") ||
       button?.getAttribute("data-action")
     );
+  }
+
+  function resolveActionDashboard() {
+    return document.querySelector(
+      "[data-action-dashboard], #action-dashboard, .cari-action-dashboard"
+    );
+  }
+
+  function readEquippedDeck() {
+    const profile = window.CariAppBootstrap?.getProfile?.();
+    const providers = [
+      profile?.equippedCards,
+      profile?.equipped_cards,
+      profile?.deck?.cards,
+      profile?.deck,
+      window.CariCombatDeck?.getEquippedCards?.(),
+      window.CariCombatDeck?.getState?.()?.equippedCards,
+      controllerState.combat?.getEquippedCards?.(),
+      controllerState.combat?.getDeck?.(),
+      controllerState.combat?.deck
+    ];
+
+    for (const value of providers) {
+      if (Array.isArray(value) && value.length) return value.slice();
+    }
+
+    return [
+      { id: "basic_attack", actionType: "basic_attack", name: "Golpe Rápido", cost: 10, icon: "" },
+      { id: "heavy_attack", actionType: "heavy_attack", name: "Martillazo", cost: 25, icon: "" },
+      { id: "ally_skill", actionType: "ally_skill", name: "Apoyo Chibi", cooldown: 3, icon: "" },
+      {
+        id: "ultimate_demo",
+        actionType: "ultimate",
+        name: "ULTIMATE",
+        ultimate: true,
+        energyRequired: 100,
+        cinematicUrl: "",
+        icon: ""
+      }
+    ];
+  }
+
+  function normalizeActionCard(raw, index) {
+    const source = isObject(raw) ? raw : {};
+    const nested = isObject(source.card) ? source.card : source;
+    const ultimate = Boolean(
+      nested.ultimate ??
+      nested.isUltimate ??
+      nested.is_ultimate ??
+      String(nested.type || "").toLowerCase() === "ultimate" ||
+      String(nested.actionType || "").toLowerCase() === "ultimate"
+    );
+
+    return {
+      id: stringOrNull(nested.id ?? nested.cardId ?? nested.card_id) || "card-" + String(index + 1),
+      actionType: stringOrNull(
+        nested.actionType ??
+        nested.action_type ??
+        nested.type ??
+        nested.action ??
+        nested.skill
+      ) || (ultimate ? "ultimate" : "basic_attack"),
+      name: stringOrNull(nested.name ?? nested.skillName ?? nested.skill_name) ||
+        (ultimate ? "ULTIMATE" : "HABILIDAD"),
+      icon: stringOrNull(
+        nested.icon ??
+        nested.iconUrl ??
+        nested.icon_url ??
+        nested.art ??
+        nested.artUrl ??
+        nested.art_url ??
+        nested.image ??
+        nested.imageUrl
+      ) || "",
+      cost: Number.isFinite(Number(nested.cost)) ? Number(nested.cost) : null,
+      cooldown: Number.isFinite(Number(nested.cooldown)) ? Number(nested.cooldown) : null,
+      ultimate,
+      energyRequired: Number.isFinite(Number(nested.energyRequired))
+        ? Number(nested.energyRequired)
+        : 100,
+      cinematicUrl: stringOrNull(
+        nested.cinematicUrl ??
+        nested.cinematic_url ??
+        nested.cutInUrl ??
+        nested.cut_in_url ??
+        nested.webm ??
+        nested.gif
+      ) || ""
+    };
+  }
+
+  function getActionCards() {
+    const normalized = readEquippedDeck().map(normalizeActionCard);
+    const ultimates = normalized.filter((card) => card.ultimate);
+    const normals = normalized.filter((card) => !card.ultimate);
+
+    const selected = [
+      ...normals.slice(0, 3),
+      ...(ultimates.length ? [ultimates[0]] : [])
+    ];
+
+    while (selected.length < 3) {
+      selected.push(normalizeActionCard({
+        id: "fallback-" + selected.length,
+        actionType: "basic_attack",
+        name: "Golpe Rápido"
+      }, selected.length));
+    }
+
+    if (selected.length < 4) {
+      selected.push(normalizeActionCard({
+        id: "fallback-ultimate",
+        actionType: "ultimate",
+        name: "ULTIMATE",
+        ultimate: true,
+        energyRequired: 100
+      }, 3));
+    }
+
+    return selected.slice(0, 4);
+  }
+
+  function currentUltimateEnergy() {
+    const candidates = [
+      controllerState.combat?.getUltimateEnergy?.(),
+      controllerState.combat?.ultimateEnergy,
+      controllerState.combat?.ultimate_energy,
+      controllerState.combat?.getState?.()?.ultimateEnergy,
+      controllerState.combat?.getState?.()?.ultimate_energy,
+      window.CombatStateMachine?.instance?.ultimateEnergy,
+      window.CombatStateMachine?.instance?.ultimate_energy,
+      window.CariCombat?.getUltimateEnergy?.()
+    ];
+
+    return Math.max(
+      0,
+      Math.min(
+        100,
+        candidates.find((value) => typeof value === "number" && Number.isFinite(value)) ?? 0
+      )
+    );
+  }
+
+  function renderActionDashboard() {
+    const container = resolveActionDashboard();
+    if (!container) return;
+
+    controllerState.actionCards = getActionCards();
+    controllerState.cardByButton = new WeakMap();
+    container.replaceChildren();
+
+    const fragment = document.createDocumentFragment();
+    const energy = currentUltimateEnergy();
+
+    controllerState.actionCards.forEach((card) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className =
+        "cari-action-card" + (card.ultimate ? " cari-ultimate-card" : "");
+      button.dataset.combatAction = card.actionType;
+      button.dataset.combatCardId = card.id;
+      if (card.ultimate) button.dataset.combatUltimate = "true";
+      if (card.cinematicUrl) button.dataset.cinematicUrl = card.cinematicUrl;
+      button.setAttribute("aria-label", card.name);
+
+      const art = document.createElement("span");
+      art.className = "cari-action-art";
+
+      if (card.icon) {
+        const image = document.createElement("img");
+        image.src = card.icon;
+        image.alt = "";
+        image.loading = "lazy";
+        image.decoding = "async";
+        art.appendChild(image);
+      } else {
+        const placeholder = document.createElement("span");
+        placeholder.className = "cari-action-art-placeholder";
+        placeholder.textContent = card.ultimate ? "ULTI" : "CARD";
+        art.appendChild(placeholder);
+      }
+
+      const name = document.createElement("span");
+      name.className = "cari-action-name";
+      name.textContent = card.name;
+
+      const meta = document.createElement("span");
+      meta.className = "cari-action-meta";
+      if (card.ultimate) {
+        meta.textContent = "ENERGÍA " + Math.round(energy) + "% / " + Math.round(card.energyRequired) + "%";
+      } else if (card.cooldown !== null) {
+        meta.textContent = "CD " + String(card.cooldown);
+      } else if (card.cost !== null) {
+        meta.textContent = "COSTO " + String(card.cost);
+      } else {
+        meta.textContent = "LISTO";
+      }
+
+      button.append(art, name, meta);
+
+      if (card.ultimate && energy < card.energyRequired) {
+        button.disabled = true;
+        button.title = "Ultimate requiere " + Math.round(card.energyRequired) + "% de energía.";
+      }
+
+      controllerState.cardByButton.set(button, card);
+      fragment.appendChild(button);
+    });
+
+    container.appendChild(fragment);
+
+    try {
+      window.dispatchEvent(new CustomEvent("cari:action-dashboard-updated", {
+        detail: {
+          cards: controllerState.actionCards.map((card) => ({ ...card })),
+          ultimateEnergy: energy
+        }
+      }));
+    } catch (_error) {
+      // Optional DOM integration.
+    }
+  }
+
+  function actionCardForButton(button) {
+    const stored = controllerState.cardByButton.get(button);
+    if (stored) return stored;
+
+    return normalizeActionCard({
+      id: button?.dataset?.combatCardId,
+      actionType: getActionFromButton(button),
+      ultimate: button?.dataset?.combatUltimate === "true",
+      cinematicUrl: button?.dataset?.cinematicUrl
+    }, 0);
+  }
+
+  function isUltimateReady(combat, card) {
+    if (!card?.ultimate) return true;
+    const energy = currentUltimateEnergy();
+    return energy >= Number(card.energyRequired || 100) &&
+      (typeof combat?.canUseUltimate !== "function" || combat.canUseUltimate());
   }
 
   function setButtonsBusy(container, busy, activeButton) {
