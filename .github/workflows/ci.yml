@@ -34,8 +34,11 @@ jobs:
         run: python -m unittest discover -s tests -q
       - name: Check WebApp network bridge syntax
         run: node --check webapp/js/scavenged/network_bridge.js
-      - name: Check combat UI controller syntax
-        run: node --check webapp/js/scavenged/engine/ui_combat_controller.js
+      - name: Check combat renderer and UI syntax
+        run: |
+          node --check webapp/js/canvas_combat.js
+          node --check webapp/js/scavenged/engine/ui_combat_controller.js
+          node --check webapp/js/scavenged/engine/ultimate_cutin.js
       - name: Check Telegram persistence and hardware syntax
         run: |
           node --check webapp/js/scavenged/telegram/save_manager.js
