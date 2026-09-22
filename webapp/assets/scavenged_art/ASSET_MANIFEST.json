@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-22",
+  "palette": {
+    "violet": "#8b00ff",
+    "red": "#ff1a1a"
+  },
+  "policy": "license-verified-only",
+  "note": "Initial sweep catalog. No binary assets are silently copied from search results; each candidate must pass provenance verification before import.",
+  "candidates": [
+    {
+      "bucket": "waifus",
+      "name": "Free Pixel Art Cyberpunk Character Portraits Pack",
+      "source": "https://theoutlander.itch.io/free-pixel-art-cyberpunk-character-portraits-pack",
+      "license": "CC0 1.0",
+      "ai_disclosure": "AI-assisted indicated by catalog",
+      "status": "candidate-review"
+    },
+    {
+      "bucket": "backgrounds",
+      "name": "Cyberpunk City Streetview Backgrounds",
+      "source": "https://fieraryan.itch.io/cyberpunk-street-pack",
+      "license": "CC0 1.0",
+      "ai_disclosure": "Midjourney AI disclosed by author",
+      "status": "candidate-review"
+    },
+    {
+      "bucket": "backgrounds",
+      "name": "Cyberpunk Cityscape Backgrounds",
+      "source": "https://fieraryan.itch.io/cyberpunk-cityscape-backgrounds",
+      "license": "CC0 1.0",
+      "status": "candidate-review"
+    },
+    {
+      "bucket": "backgrounds",
+      "name": "Neon Node",
+      "source": "https://opengameart.org/content/neon-node",
+      "license": "CC0",
+      "status": "candidate-review"
+    },
+    {
+      "bucket": "backgrounds",
+      "name": "Cyber Inventory Mega Pack",
+      "source": "https://opengameart.org/content/cyber-inventory-mega-pack-%E2%80%94-158-free-lootui-icons-4-neon-styles-%E2%80%94-cc0",
+      "license": "CC0",
+      "ai_disclosure": "base images AI-generated; source says icons manually rebuilt/refined",
+      "status": "candidate-review"
+    },
+    {
+      "bucket": "bikes",
+      "name": "CC0 asset index",
+      "source": "https://github.com/Jpalmer95/cc0-asset-index",
+      "license": "record-level CC0 verification required",
+      "status": "catalog-only"
+    },
+    {
+      "bucket": "bikes",
+      "name": "2D CC0 asset library",
+      "source": "https://github.com/Tiddybub/2d-assets",
+      "license": "CC0",
+      "status": "catalog-only"
+    }
+  ],
+  "exclusions": [
+    "Unverified forum reposts",
+    "Commercial assets without redistribution permission",
+    "Copyrighted anime/game character rips",
+    "Assets whose license cannot be traced to the original publisher"
+  ]
+}
