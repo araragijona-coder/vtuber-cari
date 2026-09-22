@@ -1,0 +1,1 @@
+{"name":"cari-scavenged-mechanics","private":true,"type":"module","scripts":{"test":"node scavenged-smoke.mjs"}}
