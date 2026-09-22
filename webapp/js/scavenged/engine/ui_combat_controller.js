@@ -434,18 +434,72 @@
   }
 
   function setButtonsBusy(container, busy, activeButton) {
-    const buttons = container.querySelectorAll(DEFAULTS.actionSelector);
+    const buttons = container.querySelectorAll(controllerState.options.actionSelector);
     buttons.forEach((button) => {
       if (!(button instanceof HTMLElement)) return;
       button.classList.toggle("cari-action-pending", busy);
-      if (button !== activeButton) {
-        button.disabled = busy;
+
+      if (busy) {
+        button.disabled = button !== activeButton;
+        return;
       }
+
+      const card = actionCardForButton(button);
+      button.disabled = Boolean(
+        card.ultimate && currentUltimateEnergy() < Number(card.energyRequired || 100)
+      );
     });
 
-    if (activeButton instanceof HTMLButtonElement) {
-      activeButton.disabled = busy;
+    if (activeButton instanceof HTMLButtonElement && busy) {
+      activeButton.disabled = true;
     }
+  }
+
+  function resolveUltimateTarget(response) {
+    const targetId = response?.serverState?.target?.id;
+    const combatState = window.CariCombat?.getState?.()?.combatInit;
+
+    if (typeof targetId === "string" &&
+        isObject(combatState)) {
+      for (const teamName of ["player_team", "enemy_team"]) {
+        const team = Array.isArray(combatState[teamName]) ? combatState[teamName] : [];
+        const found = team.find((combatant) => combatant.character_id === targetId);
+        if (found) {
+          return {
+            team: teamName === "player_team" ? "player" : "enemy",
+            slot: found.slot
+          };
+        }
+      }
+    }
+
+    const lastTarget = window.CariCombat?.getState?.()?.turnResult?.target;
+    return lastTarget || { team: "enemy", slot: 0 };
+  }
+
+  async function playUltimateCutIn(card, response) {
+    if (!card?.ultimate || typeof window.CariUltimateCutIn?.play !== "function") {
+      return;
+    }
+
+    const target = resolveUltimateTarget(response);
+    const damage = Number(response?.resolution?.damage) || 0;
+
+    await window.CariUltimateCutIn.play({
+      mediaUrl: card.cinematicUrl,
+      alt: card.name,
+      durationMs: 1500,
+      onImpact: () => {
+        try {
+          window.CariCombat?.resolveUltimateImpact?.({
+            target,
+            damage
+          });
+        } catch (error) {
+          console.warn("[CariCombatUI] Ultimate canvas impact failed:", error);
+        }
+      }
+    });
   }
 
   async function handleAction(button, action) {
@@ -456,6 +510,13 @@
     }
 
     const combat = controllerState.combat;
+    const card = actionCardForButton(button);
+
+    if (!isUltimateReady(combat, card)) {
+      setControllerStatus("ULTIMATE requiere 100% de energía.");
+      return;
+    }
+
     const network = resolveNetwork();
     if (!network) {
       console.error("[CariCombatUI] NetworkBridge/CariApi is not available.");
@@ -470,7 +531,7 @@
       return;
     }
 
-    const container = resolveContainer(DEFAULTS);
+    const container = resolveContainer(controllerState.options);
     controllerState.busy = true;
     setButtonsBusy(container, true, button);
 
@@ -485,6 +546,10 @@
       const response = await network.send(payload);
 
       syncFromServer(response?.serverState, response);
+
+      if (card.ultimate) {
+        await playUltimateCutIn(card, response);
+      }
 
       const outcome = response?.resolution?.outcome;
       if (outcome === "VICTORY" || outcome === "DEFEAT") {
@@ -524,6 +589,7 @@
     } finally {
       controllerState.busy = false;
       setButtonsBusy(container, false, button);
+      renderActionDashboard();
     }
   }
 
@@ -531,24 +597,29 @@
     if (controllerState.boundButtons) return;
 
     const container = resolveContainer(options);
-    const buttons = container.querySelectorAll(options.actionSelector);
+    controllerState.options = options;
 
-    buttons.forEach((button) => {
-      if (!(button instanceof HTMLElement)) return;
+    container.addEventListener("click", (event) => {
+      const target = event.target?.closest?.(options.actionSelector);
+      if (!(target instanceof HTMLElement)) return;
 
-      const action = getActionFromButton(button);
-      if (!action) {
-        console.warn("[CariCombatUI] Action button has no data action:", button);
-        return;
-      }
+      event.preventDefault();
+      const action = getActionFromButton(target);
+      if (!action) return;
 
-      button.addEventListener("click", (event) => {
-        event.preventDefault();
-        handleAction(button, action).catch(() => {});
-      });
+      handleAction(target, action).catch(() => {});
     });
 
     controllerState.boundButtons = true;
+  }
+
+  function bindProfileDashboard() {
+    if (controllerState.profileListenerBound) return;
+    if (typeof window.addEventListener !== "function") return;
+
+    window.addEventListener("cari:profile-updated", renderActionDashboard);
+    window.addEventListener("cari:ultimate-energy", renderActionDashboard);
+    controllerState.profileListenerBound = true;
   }
 
   function setControllerStatus(message) {
@@ -725,18 +796,42 @@
   }
 
   function handleDamageTaken(detail) {
-    const container = resolveContainer(DEFAULTS);
+    try {
+      if (detail?.team && Number.isInteger(detail?.slot)) {
+        window.CariCombat?.setCombatantAnimation?.(detail.team, detail.slot, "HIT", 250);
+      }
+    } catch (_error) {
+      // Sprite animation is optional.
+    }
+
+    const container = resolveContainer(controllerState.options);
     applyShake(container);
     createFloatingCombatText(detail, false);
   }
 
   function handleCriticalHit(detail) {
-    const container = resolveContainer(DEFAULTS);
+    try {
+      if (detail?.team && Number.isInteger(detail?.slot)) {
+        window.CariCombat?.setCombatantAnimation?.(detail.team, detail.slot, "HIT", 250);
+      }
+    } catch (_error) {
+      // Sprite animation is optional.
+    }
+
+    const container = resolveContainer(controllerState.options);
     applyShake(container);
     createFloatingCombatText(detail, true);
   }
 
   function handleDodge(detail) {
+    try {
+      if (detail?.team && Number.isInteger(detail?.slot)) {
+        window.CariCombat?.setCombatantAnimation?.(detail.team, detail.slot, "DODGE", 260);
+      }
+    } catch (_error) {
+      // Sprite animation is optional.
+    }
+
     const element = getTargetElement(detail);
     applyDodge(element);
   }
@@ -1027,6 +1122,8 @@
     }
 
     bindActionButtons(merged);
+    bindProfileDashboard();
+    renderActionDashboard();
     attachNetworkHooks();
     controllerState.initialized = true;
 
