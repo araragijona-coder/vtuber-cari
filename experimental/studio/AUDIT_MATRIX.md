@@ -208,6 +208,14 @@ Un componente solo se considera **cerrado para prueba real** cuando la parte ver
 - [ ] Ejecución Windows/renderer sostenida.
 - [ ] Integración del frame 2D final al compositor/encoder.
 
+### Renderer / HUD
+
+- [x] Canvas HUD experimental desacoplado del engine multimedia.
+- [x] Resize DPI-safe con `setTransform` no acumulativo.
+- [x] Partículas y paneles HP deterministas.
+- [x] Evento local `cari:cyber-hud-state` para inyectar estado futuro sin acoplar game telemetry.
+- [x] Test estático de regresiones del Canvas HUD incluido en `npm test`.
+
 ### Cari / Avatar
 
 ### Cari V0 — habla y reacciones
@@ -651,3 +659,12 @@ P0: Windows observable con encoder D3D11 real, PTS de entrada/paquete, mux final
 - [ ] Double-click verification on a real checkout.
 
 No-repeat: do not add another launcher; extend this entrypoint if startup routing changes.
+
+## No rehacer / no duplicar
+
+- No volver a implementar captura de pantalla/ventana: Windows Graphics Capture ya está integrado.
+- No volver a crear el mixer básico: WASAPI mic + loopback + AudioTimelineMixer ya existen.
+- No volver a crear el scheduler A/V: MediaClock + RealtimePacer + MediaInterleaver ya están implementados y testeados.
+- No sustituir FFmpeg por OBS: la salida directa nativa existe; OBS es opcional.
+- No volver a introducir `ctx.scale()` acumulativo en HUD Canvas; usar `setTransform()` al redimensionar.
+- No conectar HP/combat telemetry directamente a FFmpeg o captura; el HUD debe seguir siendo overlay/render layer.
