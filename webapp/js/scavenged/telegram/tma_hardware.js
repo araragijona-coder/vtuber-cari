@@ -54,9 +54,9 @@
 
     const wrapped = (...args) => {
       const first = args[0];
-      const payload = first instanceof Event && first.detail
-        ? first.detail
-        : (first && typeof first === "object" ? first : {});
+      const payload = first instanceof Event
+        ? (first.detail ?? {})
+        : (first && typeof first === "object" ? first : first ?? {});
       handler(payload);
     };
 
