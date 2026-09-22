@@ -31,13 +31,7 @@ class _CacheEntry:
 
 
 class IdempotencyStore:
-    """Small async-safe replay-prevention cache.
-
-    The logical key is combatId:actionId. If actionId is unavailable,
-    the caller can use turn-N as the action identity. Same key + same
-    payload returns the cached response. Same key + different payload
-    raises IdempotencyConflict.
-    """
+    """Small async-safe replay-prevention cache."""
 
     def __init__(
         self,
@@ -53,7 +47,7 @@ class IdempotencyStore:
         self.ttl_seconds = float(ttl_seconds)
         self.max_entries = int(max_entries)
         self._cache: OrderedDict[str, _CacheEntry] = OrderedDict()
-        self._locks: dict[str, asyncio.Lock] = {}
+        self._inflight: dict[str, asyncio.Future[Any]] = {}
         self._guard = asyncio.Lock()
 
     async def execute(
@@ -63,17 +57,22 @@ class IdempotencyStore:
         request: Mapping[str, Any],
         producer: Callable[[], Awaitable[T]],
     ) -> IdempotencyResult:
-        """Run producer once for a key and cache its successful result."""
+        """Run producer once for a key and cache its successful result.
+
+        Concurrent duplicates await the first execution instead of starting a
+        second mutation. Failed executions are not cached, so a corrected
+        request may retry with the same key.
+        """
 
         if not isinstance(key, str) or not key:
             raise ValueError("idempotency key must not be empty")
 
         fingerprint = self.fingerprint(request)
-        lock = await self._lock_for(key)
+        loop = asyncio.get_running_loop()
 
-        async with lock:
+        async with self._guard:
             now = time.monotonic()
-            await self._prune(now)
+            self._prune_locked(now)
 
             entry = self._cache.get(key)
             if entry is not None:
@@ -89,57 +88,69 @@ class IdempotencyStore:
                     key=key,
                 )
 
-            value = await producer()
+            future = self._inflight.get(key)
+            if future is None:
+                future = loop.create_future()
+                self._inflight[key] = future
+                owner = True
+            else:
+                owner = False
 
-            async with self._guard:
-                self._cache[key] = _CacheEntry(
-                    fingerprint=fingerprint,
-                    value=copy.deepcopy(value),
-                    stored_at=time.monotonic(),
-                )
-                self._cache.move_to_end(key)
-                self._trim_locked()
-
+        if not owner:
+            try:
+                value = await future
+            except Exception:
+                raise
             return IdempotencyResult(
                 value=copy.deepcopy(value),
-                replayed=False,
+                replayed=True,
                 key=key,
             )
 
-    async def _lock_for(self, key: str) -> asyncio.Lock:
+        try:
+            value = await producer()
+        except BaseException as exc:
+            async with self._guard:
+                self._inflight.pop(key, None)
+                if not future.done():
+                    future.set_exception(exc)
+                    # Mark the exception as retrieved for the no-waiter case.
+                    future.exception()
+            raise
+
         async with self._guard:
-            lock = self._locks.get(key)
-            if lock is None:
-                lock = asyncio.Lock()
-                self._locks[key] = lock
-            return lock
-
-    async def _prune(self, now: float) -> None:
-        async with self._guard:
-            expired = [
-                key
-                for key, entry in self._cache.items()
-                if now - entry.stored_at >= self.ttl_seconds
-            ]
-            for key in expired:
-                self._cache.pop(key, None)
-
-            stale_locks = [
-                key
-                for key, lock in self._locks.items()
-                if key not in self._cache and not lock.locked()
-            ]
-            for key in stale_locks:
-                self._locks.pop(key, None)
-
+            self._cache[key] = _CacheEntry(
+                fingerprint=fingerprint,
+                value=copy.deepcopy(value),
+                stored_at=time.monotonic(),
+            )
+            self._cache.move_to_end(key)
+            self._inflight.pop(key, None)
             self._trim_locked()
+
+            if not future.done():
+                future.set_result(copy.deepcopy(value))
+
+        return IdempotencyResult(
+            value=copy.deepcopy(value),
+            replayed=False,
+            key=key,
+        )
+
+    def _prune_locked(self, now: float) -> None:
+        expired = [
+            key
+            for key, entry in self._cache.items()
+            if now - entry.stored_at >= self.ttl_seconds
+        ]
+        for key in expired:
+            self._cache.pop(key, None)
+
+        self._trim_locked()
 
     def _trim_locked(self) -> None:
         while len(self._cache) > self.max_entries:
-            key, _ = self._cache.popitem(last=False)
-            lock = self._locks.get(key)
-            if lock is not None and not lock.locked():
-                self._locks.pop(key, None)
+            self._cache.popitem(last=False)
 
     @staticmethod
     def fingerprint(request: Mapping[str, Any]) -> str:
