@@ -256,3 +256,46 @@ class TmaCombatServiceTests(unittest.TestCase):
             self.assertEqual(profile["coins"], 5)
 
         asyncio.run(scenario())
+
+    def test_service_replays_the_same_victory_without_double_rewards(self) -> None:
+        async def scenario() -> None:
+            service = TmaCombatService()
+            profile = {
+                "xp": 0,
+                "coins": 0,
+                "daily_streak": 0,
+                "last_victory_at": None,
+                "loot": [],
+            }
+            state = make_state()
+            state["target"]["hp"] = 42
+            payload = make_payload(damage=42, hp_after=0, outcome="VICTORY")
+
+            first = await service.process(
+                payload,
+                authoritative_state=state,
+                profile=profile,
+                base_xp=10,
+                base_coins=5,
+                base_loot=[{"itemId": "potion", "qty": 1}],
+                now=datetime(2026, 9, 22, 12, tzinfo=timezone.utc),
+            )
+            second = await service.process(
+                payload,
+                authoritative_state=state,
+                profile=profile,
+                base_xp=10,
+                base_coins=5,
+                base_loot=[{"itemId": "potion", "qty": 1}],
+                now=datetime(2026, 9, 22, 12, tzinfo=timezone.utc),
+            )
+
+            self.assertFalse(first["replayed"])
+            self.assertTrue(second["replayed"])
+            self.assertEqual(profile["xp"], 10)
+            self.assertEqual(profile["coins"], 5)
+            self.assertEqual(profile["loot"], [{"itemId": "potion", "qty": 1}])
+            self.assertEqual(state["turn"], 2)
+            self.assertEqual(first["serverState"], second["serverState"])
+
+        asyncio.run(scenario())
