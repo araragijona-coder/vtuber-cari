@@ -230,6 +230,21 @@
 
       syncFromServer(response?.serverState, response);
 
+      const outcome = response?.resolution?.outcome;
+      if (outcome === "VICTORY" || outcome === "DEFEAT") {
+        try {
+          window.dispatchEvent(new CustomEvent("cari:combat-result", {
+            detail: {
+              outcome,
+              response: structuredClone(response),
+              payload: structuredClone(payload)
+            }
+          }));
+        } catch (_error) {
+          // Optional DOM bridge for the bootstrap/hardware layer.
+        }
+      }
+
       if (response?.replayed) {
         setControllerStatus("Acción confirmada por el servidor · replay seguro.");
       } else if (!controllerState.lastCorrection) {
