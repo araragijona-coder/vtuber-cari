@@ -724,6 +724,14 @@
     controllerState.boundEvents.clear();
     bindStateMachineEvents();
 
+    try {
+      window.dispatchEvent(new CustomEvent("cari:combat-ready", {
+        detail: { combat: controllerState.combat }
+      }));
+    } catch (_error) {
+      // CustomEvent is optional for standalone/browser preview usage.
+    }
+
     return controllerState.combat;
   }
 
