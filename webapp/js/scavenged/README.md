@@ -1,21 +1,26 @@
-# Scavenged Modules
+# Scavenged mechanics
 
-Zona aislada para componentes visuales/audio rescatados, adaptados o experimentales.
+Dependency-free JavaScript modules for the Telegram Mini App game layer.
 
-## Regla de aislamiento
+Modules:
+- combat.js: damage, defense, critical hits and attack resolution.
+- turn-system.js: initiative-based dynamic turns.
+- target-selection.js: mouse/touch target hit-testing.
+- particles.js: bounded impact particle pool.
+- index.js: public module surface.
+- scavenged-smoke.mjs: Node smoke test.
 
-Cada pieza debe vivir en su subcarpeta correspondiente:
+Constraints:
+- Vanilla ECMAScript modules.
+- No React, Vue, Three.js, Canvas framework, physics engine, or runtime dependency.
+- Simulation is independent from rendering.
+- Bounded particle memory.
+- Injectable RNG for deterministic tests.
 
-- `audio/`: generadores/procesadores de sonido sintético.
-- `canvas/`: partículas, velocidad, HUD y efectos Canvas.
-- `ui/`: paneles, textos flotantes, overlays y recursos tipográficos.
+Provenance:
+These implementations are original clean-room code informed by public patterns from MIT-licensed projects:
+- ericmaddox/html-dungeon-crawl: turn-based combat and dependency-free Canvas architecture.
+- mar10/arcade-js: Canvas loop, input and hit-testing patterns.
+- Haseeb-Qureshi/Asteroids: vanilla Canvas arcade and particle patterns.
 
-Un componente que falle o no encaje se elimina o sustituye por archivo dentro de su propia subcarpeta.
-
-## Estados
-
-- `scavenged`: rescatado/adaptado, todavía no promovido.
-- `verified`: probado de forma reproducible.
-- `accepted`: aprobado para ser usado por la aplicación principal.
-
-Los módulos scavenged no deben introducir dependencias globales ni modificar directamente el runtime principal.
+No source file is copied verbatim. Direct reuse from third-party repositories is intentionally avoided unless its license is verified and attribution requirements are preserved.
