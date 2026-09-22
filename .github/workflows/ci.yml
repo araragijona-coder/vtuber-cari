@@ -40,5 +40,6 @@ jobs:
         run: |
           node --check webapp/js/scavenged/telegram/save_manager.js
           node --check webapp/js/scavenged/telegram/tma_hardware.js
+          node --check webapp/js/scavenged/engine/app_bootstrap.js
       - name: Experimental avatar tests
         run: python -m unittest discover -s experimental -p 'test_*.py' -q
