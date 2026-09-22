@@ -12,6 +12,7 @@ import { AvatarActivityController } from "../avatar/activity-motion.js";
 import { Avatar2DFramePlayer, StudioActionRouter } from "../avatar/action-runtime.js";
 import { ChibiWorldController } from "../avatar/chibi-world.js";
 import { STUDIO_MENU, CAPABILITIES } from "./menu-config.js";
+import { CyberCombatCanvas } from "./cyber-combat-hud.js";
 
 const $ = selector => document.querySelector(selector);
 const ui = {
@@ -53,7 +54,8 @@ const ui = {
   trackingStatus: $("#tracking-status"),
   trackingQuality: $("#tracking-quality"),
   trackingSmoothing: $("#tracking-smoothing"),
-  trackingSensitivity: $("#tracking-sensitivity")
+  trackingSensitivity: $("#tracking-sensitivity"),
+  cyberHud: $("#cyber-hud")
 };
 
 const session = new StudioSessionManager(window.cari.native);
@@ -77,6 +79,7 @@ await actionStore.ready;
 const activity = new AvatarActivityController();
 activity.install(window);
 const chibiWorld = new ChibiWorldController($("#chibi-map"), { count: 3, seed: 42 });
+const cyberHud = new CyberCombatCanvas(ui.cyberHud, { heightCss: 300, maxParticles: 30 });
 chibiWorld.start();
 const bundledCariAssets = await window.cari.assets.cariExpressions().catch(() => ({}));
 await actionStore.seedBundledFrames(bundledCariAssets);
@@ -108,6 +111,10 @@ let speechAutoEnabled = false;
 let lastTrackingUiUpdate = 0;
 
 const scenes = loadScenes();
+window.addEventListener("cari:cyber-hud-state", event => {
+  cyberHud.setGameState(event.detail || {});
+});
+
 const twitch = {
   clientId: $("#twitch-client-id"),
   channel: $("#twitch-channel"),
@@ -1069,6 +1076,8 @@ function stopCamera() {
 
 function trackingLoop(timestamp) {
   requestAnimationFrame(trackingLoop);
+
+  cyberHud.render();
 
   actionPlayer.update(timestamp);
   activity.pollGamepads(timestamp);
