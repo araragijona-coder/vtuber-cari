@@ -6,7 +6,7 @@
     "red": "#ff1a1a"
   },
   "policy": "license-verified-only",
-  "note": "Initial sweep catalog. No binary assets are silently copied from search results; each candidate must pass provenance verification before import.",
+  "note": "Initial sweep catalog. Runtime import requires status=verified and local_path. Current candidates remain review/catalog-only; no binary is silently copied from search results.",
   "candidates": [
     {
       "bucket": "waifus",
