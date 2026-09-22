@@ -4,7 +4,8 @@ import copy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 
 @dataclass(slots=True)
