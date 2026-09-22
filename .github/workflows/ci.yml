@@ -36,5 +36,9 @@ jobs:
         run: node --check webapp/js/scavenged/network_bridge.js
       - name: Check combat UI controller syntax
         run: node --check webapp/js/scavenged/engine/ui_combat_controller.js
+      - name: Check Telegram persistence and hardware syntax
+        run: |
+          node --check webapp/js/scavenged/telegram/save_manager.js
+          node --check webapp/js/scavenged/telegram/tma_hardware.js
       - name: Experimental avatar tests
         run: python -m unittest discover -s experimental -p 'test_*.py' -q
