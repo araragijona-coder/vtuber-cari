@@ -14,7 +14,9 @@
     simulationTurn: 0,
     lastRenderWidth: 0,
     lastRenderHeight: 0,
-    impact: null
+    impact: null,
+    serverState: null,
+    lastCorrection: null
   };
 
   function isPlainObject(value) {
@@ -211,6 +213,80 @@
     if (combatStatus) {
       combatStatus.textContent = message;
     }
+  }
+
+  function syncServerState(serverState, response) {
+    if (!isPlainObject(serverState)) return false;
+
+    state.serverState = structuredClone(serverState);
+
+    const targetId = serverState.target?.id;
+    if (typeof targetId === "string") {
+      const target = allCombatants().find((combatant) =>
+        combatant.character_id === targetId ||
+        combatant.id === targetId
+      );
+
+      if (target) {
+        state.currentHp.set(
+          combatantKey(target.team, target.slot),
+          clamp(
+            Number(serverState.target.hp),
+            0,
+            Math.max(0, target.max_hp)
+          )
+        );
+      }
+    }
+
+    if (Number.isInteger(serverState.turn) && serverState.turn > 0) {
+      state.simulationTurn = Math.max(
+        state.simulationTurn,
+        serverState.turn - 1
+      );
+    }
+
+    if (response?.resolution) {
+      state.turnResult = {
+        ...state.turnResult,
+        turn_number: response.resolution.turn,
+        combat_math: {
+          damage_dealt: response.resolution.damage,
+          is_critical: response.resolution.isCritical,
+          elemental_modifier: 1
+        },
+        post_action_state: {
+          target_remaining_hp: response.resolution.targetHpAfter,
+          is_target_dead: response.resolution.targetHpAfter <= 0
+        }
+      };
+    }
+
+    return true;
+  }
+
+  function showServerCorrection(correction) {
+    state.lastCorrection = structuredClone(correction);
+
+    if (!correction?.server) return;
+
+    const localDamage = correction.local?.damage;
+    const serverDamage = correction.server?.damage;
+
+    if (localDamage !== undefined && serverDamage !== undefined) {
+      setStatus(
+        "Servidor corrigió el golpe · cliente " +
+        Math.round(localDamage) +
+        " → servidor " +
+        Math.round(serverDamage)
+      );
+      return;
+    }
+
+    setStatus(
+      "Servidor corrigió la resolución · campos: " +
+      correction.fields.join(", ")
+    );
   }
 
   function resizeCanvas() {
@@ -856,6 +932,12 @@
     return receiveTurnResult(dto);
   }
 
+  window.CariNetwork?.configure({
+    onServerState: syncServerState,
+    onCorrection: showServerCorrection,
+    onReplay: () => setStatus("Acción reenviada · estado del servidor confirmado.")
+  });
+
   window.CariCombat = Object.freeze({
     canvas,
     context,
@@ -870,7 +952,8 @@
     receiveCombatResult,
     receiveCombatEvent,
     receivePlayerState,
-    simulateTurn
+    simulateTurn,
+    syncServerState
   });
 
   window.addEventListener("resize", resizeCanvas, { passive: true });
