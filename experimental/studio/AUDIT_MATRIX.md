@@ -660,6 +660,18 @@ P0: Windows observable con encoder D3D11 real, PTS de entrada/paquete, mux final
 
 No-repeat: do not add another launcher; extend this entrypoint if startup routing changes.
 
+## Renderer HUD — Cyber Combat Canvas
+
+| Componente | Estado | Evidencia / gate |
+|---|---|---|
+| `CyberCombatCanvas` | IMPLEMENTADO | módulo Canvas local desacoplado del engine |
+| Resize DPI | VERIFICADO POR TEST | usa `setTransform`, no `ctx.scale` acumulativo |
+| HP normalization | VERIFICADO POR TEST | clamp 0..100 |
+| Integración renderer | IMPLEMENTADO | canvas en vista En vivo + loop de render |
+| Estado externo | IMPLEMENTADO | evento `cari:cyber-hud-state` |
+| Captura/FFmpeg final | PENDIENTE | requiere compositor final y E2E Windows |
+
+
 ## No rehacer / no duplicar
 
 - No volver a implementar captura de pantalla/ventana: Windows Graphics Capture ya está integrado.
