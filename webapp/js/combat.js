@@ -450,7 +450,7 @@
       return;
     }
 
-    const columns = characters.length > 2 ? 2 : characters.length;
+    const columns = characters.length > 1 && width >= 250 ? 2 : 1;
     const gap = 10;
     const cardWidth = Math.max(120, (width - gap * (columns - 1)) / columns);
     const rows = Math.ceil(characters.length / columns);
@@ -493,7 +493,7 @@
 
     if (index < 0) return null;
 
-    const columns = team.length > 2 ? 2 : team.length;
+    const columns = team.length > 1 && sectionWidth >= 250 ? 2 : 1;
     const gap = 10;
     const cardWidth = Math.max(120, (sectionWidth - gap * (columns - 1)) / columns);
     const column = index % columns;
