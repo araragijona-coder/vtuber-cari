@@ -277,23 +277,23 @@
 
     if (combat) {
       subscribeEvent(combat, "VICTORY", handleVictory);
-    subscribeEvent(combat, "DEFEAT", handleDefeat);
-    subscribeEvent(combat, "victory", handleVictory);
-    subscribeEvent(combat, "defeat", handleDefeat);
+      subscribeEvent(combat, "DEFEAT", handleDefeat);
+      subscribeEvent(combat, "victory", handleVictory);
+      subscribeEvent(combat, "defeat", handleDefeat);
 
-    subscribeEvent(combat, "state_change", handleStateChange);
-    subscribeEvent(combat, "state_changed", handleStateChange);
-    subscribeEvent(combat, "stateChanged", handleStateChange);
-    subscribeEvent(combat, "state", handleStateChange);
+      subscribeEvent(combat, "state_change", handleStateChange);
+      subscribeEvent(combat, "state_changed", handleStateChange);
+      subscribeEvent(combat, "stateChanged", handleStateChange);
+      subscribeEvent(combat, "state", handleStateChange);
       subscribeEvent(combat, "transition", handleStateChange);
     }
 
     if (typeof window.addEventListener === "function") {
       const resultHandler = (event) => {
         const outcome = outcomeFromDetail(event?.detail, "");
-        if (outcome === OUTCOMES.VICTORY) {
+        if (outcome === OUTCOME.VICTORY) {
           handleVictory(event.detail);
-        } else if (outcome === OUTCOMES.DEFEAT) {
+        } else if (outcome === OUTCOME.DEFEAT) {
           handleDefeat(event.detail);
         }
       };
