@@ -3572,7 +3572,7 @@ La rama contiene además:
 - No mover el HUD al encoder.
 - No crear un segundo sistema de estado de combate.
 - No reconstruir Three.js para cambiar la estética.
-- No rehacer MediaClock/ReatimePacer/MediaInterleaver.
+- No rehacer MediaClock/RealtimePacer/MediaInterleaver.
 - No rehacer FFmpeg supervisor sin una regresión reproducible.
 - No utilizar una captura visual de demo como prueba de runtime Windows.
 - No usar el porcentaje de un log histórico como porcentaje actual.
