@@ -42,7 +42,8 @@
     processedResultKeys: new Set(),
     processingResultKeys: new Set(),
     initialized: false,
-    busy: false
+    busy: false,
+    profileReady: null
   };
 
   function isObject(value) {
@@ -428,6 +429,10 @@
   }
 
   async function processOutcome(outcome, detail = {}) {
+    if (state.profileReady) {
+      await state.profileReady;
+    }
+
     if (outcome !== OUTCOMES.VICTORY && outcome !== OUTCOMES.DEFEAT) {
       return false;
     }
@@ -505,7 +510,7 @@
     safeTelegramInit();
     attachCombatResultBridge();
 
-    void loadInitialProfile().finally(() => {
+    state.profileReady = loadInitialProfile().finally(() => {
       state.initialized = true;
       try {
         window.dispatchEvent(new CustomEvent("cari:app-ready", {
