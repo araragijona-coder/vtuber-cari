@@ -274,9 +274,9 @@
 
   function bindOutcomeEvents() {
     const combat = state.combat;
-    if (!combat) return;
 
-    subscribeEvent(combat, "VICTORY", handleVictory);
+    if (combat) {
+      subscribeEvent(combat, "VICTORY", handleVictory);
     subscribeEvent(combat, "DEFEAT", handleDefeat);
     subscribeEvent(combat, "victory", handleVictory);
     subscribeEvent(combat, "defeat", handleDefeat);
@@ -285,7 +285,28 @@
     subscribeEvent(combat, "state_changed", handleStateChange);
     subscribeEvent(combat, "stateChanged", handleStateChange);
     subscribeEvent(combat, "state", handleStateChange);
-    subscribeEvent(combat, "transition", handleStateChange);
+      subscribeEvent(combat, "transition", handleStateChange);
+    }
+
+    if (typeof window.addEventListener === "function") {
+      const resultHandler = (event) => {
+        const outcome = outcomeFromDetail(event?.detail, "");
+        if (outcome === OUTCOMES.VICTORY) {
+          handleVictory(event.detail);
+        } else if (outcome === OUTCOMES.DEFEAT) {
+          handleDefeat(event.detail);
+        }
+      };
+
+      window.addEventListener("cari:combat-result", resultHandler);
+      state.unsubscribers.add(() => {
+        try {
+          window.removeEventListener?.("cari:combat-result", resultHandler);
+        } catch (_error) {
+          // Best-effort cleanup.
+        }
+      });
+    }
   }
 
   function bindEvents() {
