@@ -9,7 +9,8 @@
     overlay: null,
     media: null,
     timerId: null,
-    resolve: null
+    resolve: null,
+    onImpact: null
   };
 
   function getWebApp() {
@@ -173,8 +174,16 @@
       state.active = false;
       freezeCanvas(false);
 
+      const onImpact = state.onImpact;
       const resolve = state.resolve;
+      state.onImpact = null;
       state.resolve = null;
+
+      try {
+        onImpact?.();
+      } catch (error) {
+        console.warn("[CariUltimateCutIn] Impact callback failed:", error);
+      }
       resolve?.();
 
       try {
@@ -227,28 +236,15 @@
       }
     }
 
-    if (typeof options.onImpact === "function") {
-      const previousResolve = state.resolve;
-      state.resolve = () => {
-        previousResolve?.();
-        try {
-          options.onImpact();
-        } catch (error) {
-          console.warn("[CariUltimateCutIn] Impact callback failed:", error);
-        }
-      };
-    } else {
-      state.resolve = null;
-    }
-
     return new Promise((resolve) => {
-      const previousResolve = state.resolve;
-      state.resolve = () => {
-        previousResolve?.();
-        resolve();
-      };
+      state.onImpact =
+        typeof options.onImpact === "function" ? options.onImpact : null;
+      state.resolve = resolve;
 
-      state.timerId = window.setTimeout(finish, Number(options.durationMs) || DURATION_MS);
+      state.timerId = window.setTimeout(
+        finish,
+        Number(options.durationMs) || DURATION_MS
+      );
     });
   }
 
