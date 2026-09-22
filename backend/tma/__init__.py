@@ -16,6 +16,7 @@ from .streak_rewards import (
     apply_victory_rewards,
 )
 from .service import TmaCombatService
+from .aiohttp_routes import create_combat_routes
 
 __all__ = [
     "AuthoritativeResolution",
@@ -30,4 +31,5 @@ __all__ = [
     "RewardResult",
     "TmaCombatService",
     "apply_victory_rewards",
+    "create_combat_routes",
 ]
