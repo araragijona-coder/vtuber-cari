@@ -4,10 +4,10 @@
 
 ## Estado actual
 
-- Rama: `fix/native-windows-foundation`
-- PR: #2
+- Rama actual: `main`
+- PR #2: fusionado; se conserva como historial de la consolidación Windows.
 - Carpeta experimental: `experimental/studio/`
-- Estado del PR: abierto, draft.
+- Zona scavenged: `webapp/js/scavenged/`
 - Regla: ningún componente pasa a producción solo porque compile.
 - Ingeniería canónica actual: **71%**.
 - Producto usable/end-user: **58%**.
@@ -3501,3 +3501,79 @@ El commit/push queda fuera del generador y dentro de GitHub Actions:
 - GET y normalización PNG cubiertos por test con respuesta simulada.
 - Workflow de commit/push y schedule revisado en la rama.
 - Ejecución real del proveedor externo: pendiente de Actions/manual para obtener evidencia de red real.
+
+
+---
+
+## LOG-073 — Estructura modular Scavenged + Cyber Audio V0 — 2026-09-21
+
+**Área:** Webapp / audio / continuidad  
+**Estado:** IMPLEMENTADO / AISLADO / PENDIENTE DE ACEPTACIÓN
+
+### Objetivo
+
+Crear una zona de descarte controlado para componentes rescatados/adaptados de Internet sin contaminar el runtime principal.
+
+### Estructura canónica
+
+`webapp/js/scavenged/`
+
+```
+scavenged/
+├── README.md
+├── audio/
+│   ├── README.md
+│   └── cyber_audio.js
+├── canvas/
+│   └── README.md
+└── ui/
+    └── README.md
+```
+
+### Botín incorporado
+
+`audio/cyber_audio.js` contiene el módulo Web Audio V0:
+
+- `ScavengedCyberAudio`;
+- `playRevEngine()`;
+- `playCriticalHit()`;
+- inicialización después de interacción del usuario;
+- manejo defensivo de `AudioContext`;
+- `dispose()`;
+- export explícito de clase e instancia `cyberAudio`.
+
+### Regla de aislamiento
+
+Los módulos scavenged:
+
+- no deben importar el estado global del runtime;
+- no deben tocar CaptureEngine, MediaGraphController, FFmpeg o WASAPI;
+- deben poder eliminarse individualmente;
+- deben declararse `scavenged` hasta tener prueba reproducible;
+- solo pasan a `accepted` mediante una integración explícita posterior.
+
+### No repetir
+
+- No crear otra carpeta de audio experimental.
+- No copiar Cyber Audio al renderer principal todavía.
+- No crear un segundo sistema de audio para los mismos efectos.
+- No mover efectos Canvas a audio ni UI a Canvas.
+- No rehacer el módulo si una variante simplemente necesita ajuste: modificar `audio/cyber_audio.js`.
+- No considerar la existencia del archivo como evidencia de que el efecto ya funciona en Electron/Windows.
+
+### Próximo uso de X-02 / X-05
+
+Todo componente recuperado de esas líneas debe entrar primero en la carpeta correspondiente y pasar por el estado:
+
+`scavenged → verified → accepted`
+
+sin modificar directamente el core.
+
+### Checkpoint
+
+- Ingeniería canónica: **~71%**.
+- Producto usable/end-user: **~58%**.
+- Seguimiento global: **~65%**.
+- Producción: **NO listo**.
+- PR #2: **fusionado**.
+- Trabajo nuevo asentado sobre `main`.
