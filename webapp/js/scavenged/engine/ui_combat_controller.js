@@ -643,6 +643,20 @@
   function syncFromServer(serverState, response) {
     if (!isObject(serverState)) return;
 
+    const combat = controllerState.combat;
+    const syncMethod =
+      combat?.syncAuthoritativeState ||
+      combat?.applyAuthoritativeState ||
+      combat?.syncFromServerState;
+
+    if (typeof syncMethod === "function") {
+      try {
+        syncMethod.call(combat, structuredClone(serverState));
+      } catch (error) {
+        console.warn("[CariCombatUI] State machine sync hook failed:", error);
+      }
+    }
+
     const combatants = collectCombatants(serverState);
     for (const combatant of combatants) {
       const hp = numberOrNull(combatant.hp);
