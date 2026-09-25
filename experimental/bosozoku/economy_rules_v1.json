@@ -6,26 +6,117 @@
     "player_happiness_principle": 50,
     "note": "Independiente del 50/50 del banner"
   },
-  "stamina_reserve": {
-    "status": "defined-concept",
-    "daily_saved_percentage": "PENDING_BALANCE",
-    "capacity": "PENDING_BALANCE"
+  "fuel": {
+    "resource_name": "Combustible",
+    "uses": [
+      "mapas de historia",
+      "incursiones contra jefes Banchou",
+      "farmeo de piezas de moto"
+    ],
+    "reserve_tanks": {
+      "free_to_play": {
+        "capacity_in_daily_tanks": 2,
+        "tank_equivalence": "cada tanque equivale al medidor diario"
+      },
+      "garage_expansion": {
+        "monetization_type": "pay-to-convenience",
+        "maximum_capacity_in_daily_tanks": 5,
+        "acquisition_channels": [
+          "divisa prémium",
+          "dinero real"
+        ],
+        "competitive_speed_advantage": false,
+        "price": "PENDING_RULE",
+        "commercial_rules": "PENDING_RULE"
+      },
+      "accumulation_rules": "PENDING_RULE",
+      "recovery_rules": "PENDING_RULE",
+      "expiration": "PENDING_RULE"
+    }
+  },
+  "currencies": {
+    "premium": {
+      "display_names": [
+        "Kilometraje (KM)",
+        "Millas de Asfalto"
+      ],
+      "uses": [
+        "banners de personajes",
+        "banners de cartas SSR"
+      ],
+      "sources": [
+        "eventos",
+        "logros",
+        "récords en pistas"
+      ],
+      "canonical_ui_name": "PENDING_RULE"
+    },
+    "standard": {
+      "display_names": [
+        "Dinero de Pandilla",
+        "Yenes"
+      ],
+      "sources": [
+        "mapas de tráfico",
+        "mobs"
+      ],
+      "uses": [
+        "mejoras básicas de nivel",
+        "piezas comunes",
+        "costes de reciclaje"
+      ]
+    },
+    "rust_fragments": {
+      "display_name": "Fragmentos de Óxido",
+      "sources": [
+        "personajes repetidos del gacha",
+        "cartas repetidas del gacha"
+      ],
+      "uses": [
+        "fragmentos de evolución",
+        "recursos raros"
+      ],
+      "exchange_rates": "PENDING_BALANCE"
+    },
+    "sr_engine_fragments": {
+      "display_name": "Fragmentos de Motor SR",
+      "source_rule": "30 equipamientos reciclados producen 30 fragmentos",
+      "direct_exchange": {
+        "required_fragments": 30,
+        "result_count": 1,
+        "result": "Motor SR",
+        "main_stat_selection": "player_choice",
+        "secondary_stat_selection": "player_choice"
+      }
+    }
   },
   "recycling": {
     "recycle_count_for_sr_fragments": 30,
     "sr_fragments_awarded": 30,
-    "direct_exchange": "1 Motor SR con estadística principal y secundaria elegidas por el jugador"
+    "direct_exchange": "1 Motor SR con estadística principal y secundaria elegidas por el jugador",
+    "record_history": true
   },
   "wrench_keys": {
     "status": "defined-concept",
+    "purpose": [
+      "fijar estadísticas adicionales",
+      "elegir estadísticas adicionales durante mejoras"
+    ],
     "source": "PENDING_RULE",
-    "cost": "PENDING_RULE"
+    "amount_per_activity": "PENDING_BALANCE",
+    "cost": "PENDING_RULE",
+    "per_item_limit": "PENDING_RULE",
+    "maximum_frequency": "PENDING_RULE"
   },
   "gacha": {
     "soft_pity": true,
     "hard_pity": 90,
     "promotional_50_50": true,
-    "exact_soft_pity_curve": "PENDING_BALANCE"
+    "post_loss_guarantee": true,
+    "exact_soft_pity_curve": "PENDING_BALANCE",
+    "guarantee_persistence": "PENDING_RULE",
+    "guarantee_consumption": "PENDING_RULE",
+    "reset_conditions": "PENDING_RULE"
   },
   "monetization": {
     "battle_pass": [
@@ -33,7 +124,57 @@
       "paid"
     ],
     "monthly_membership": true,
-    "cosmetic_skins_competitive_speed_modifiers": false
+    "garage_reserve_expansion": true,
+    "cosmetics": [
+      "uniformes escolares",
+      "trajes de carreras"
+    ],
+    "cosmetic_skins_competitive_speed_modifiers": false,
+    "commercial_prices": "PENDING_RULE"
   },
-  "runtime_status": "pending_economy_state_contract"
+  "state_contracts": {
+    "EconomyStateDTO": [
+      "current_fuel",
+      "reserve_fuel",
+      "reserve_capacity",
+      "sr_engine_fragments",
+      "rust_fragments",
+      "wrench_keys",
+      "premium_mileage",
+      "standard_yen",
+      "bosozoku_pass_progress",
+      "membership_state"
+    ],
+    "EquipmentRecyclingState": [
+      "total_recycled",
+      "milestone_progress",
+      "generated_sr_engine_fragments",
+      "exchange_history",
+      "received_engine",
+      "selected_main_stat",
+      "selected_secondary_stat"
+    ],
+    "BannerState": [
+      "active_banner",
+      "current_pity",
+      "pull_count",
+      "fifty_fifty_state",
+      "resulting_guarantee"
+    ],
+    "EquipmentUpgradeState": [
+      "component_level",
+      "existing_stats",
+      "wrench_fixed_stats",
+      "upgrade_history"
+    ],
+    "GarageReserveState": [
+      "standard_capacity_2_daily_tanks",
+      "expanded_max_capacity_5_daily_tanks",
+      "expansion_state",
+      "expansion_source",
+      "expansion_history"
+    ]
+  },
+  "runtime_status": "pending_economy_state_contract",
+  "race_runtime_dependency": "stable_race_contract_required_before_economy_runtime_integration"
 }
