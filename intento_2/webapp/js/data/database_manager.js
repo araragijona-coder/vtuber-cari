@@ -35,9 +35,20 @@
           this.lastLoadReport = report;
 
           if (report.valid) {
-            this.db = window.SchemaValidator.toDatabase(report);
+            const requiresRecoverySnapshot =
+              report.rejectedWaifus > 0
+              || report.rejectedCards > 0
+              || report.sourceSchemaVersion !== report.schemaVersion;
 
-            if (report.rejectedWaifus || report.rejectedCards || report.sourceSchemaVersion !== report.schemaVersion) {
+            if (requiresRecoverySnapshot) {
+              this.backupCorruptedData(
+                rawData,
+                report.rejectedWaifus || report.rejectedCards
+                  ? "sanitizacion_parcial"
+                  : "migracion_esquema",
+                report.errors
+              );
+
               console.warn(
                 "[Bosozoku Storage] Migración/sanitización aplicada:",
                 {
@@ -49,6 +60,8 @@
                 }
               );
             }
+
+            this.db = window.SchemaValidator.toDatabase(report);
 
             try {
               this.savePhysical();
