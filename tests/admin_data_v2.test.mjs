@@ -280,3 +280,26 @@ test("admin preview module contains no innerHTML sink", async () => {
   const source = await readFile("intento_2/webapp/js/admin/admin_ui.js", "utf8");
   assert.equal(source.includes("innerHTML"), false);
 });
+
+
+test("admin panel does not introduce inline handlers or innerHTML sinks", async () => {
+  const source = await readFile("experimental/admin-panel/index.html", "utf8");
+  assert.equal(source.includes("innerHTML"), false);
+  assert.equal(source.includes("onclick="), false);
+  assert.equal(source.includes("onchange="), false);
+  assert.equal(source.includes("oninput="), false);
+});
+
+test("admin panel loads only data modules that exist in the repository", async () => {
+  const source = await readFile("experimental/admin-panel/index.html", "utf8");
+  const scriptPaths = [...source.matchAll(/<script src="([^"]+)"><\/script>/g)]
+    .map((match) => match[1])
+    .filter((path) => path.startsWith("../../"));
+
+  assert.deepEqual(scriptPaths, [
+    "../../intento_2/webapp/js/data/uuid.js",
+    "../../intento_2/webapp/js/data/schema_validator.js",
+    "../../intento_2/webapp/js/data/default_database.js",
+    "../../intento_2/webapp/js/data/database_manager.js"
+  ]);
+});
