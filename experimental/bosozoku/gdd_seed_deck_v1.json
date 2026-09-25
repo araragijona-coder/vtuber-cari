@@ -1,0 +1,196 @@
+{
+  "contentSchemaVersion": 1,
+  "title": "Rocket Bunny Petty - Roster y mazo semilla",
+  "status": "design-prototype",
+  "sourceScope": "GDD Core & Art Pipeline + Biblia de Lore y Diseño proporcionados en conversación",
+  "roster": [
+    {
+      "id": "waifu_mafuyu",
+      "name": "Okutani Mafuyu",
+      "japanese": "オクタニ マフユ",
+      "origin": "Muffler / Octano",
+      "element": "FIRE",
+      "palette": "Blushing Pink",
+      "role": "Mecánica / Liderazgo",
+      "visualDNA": "pink hair, twintails, heart-shaped neon pink ahoge, mechanic identity, urban kawaii-punk racing aesthetic",
+      "runtimeStatsStatus": "partial",
+      "sourceStats": {
+        "hp": 1200,
+        "atk": 150,
+        "def": 80,
+        "speed": 105
+      }
+    },
+    {
+      "id": "waifu_kurara",
+      "name": "Kawasumi Kurara",
+      "japanese": "カワスミ クララ",
+      "origin": "Clutch / Kawasaki",
+      "element": "WATER",
+      "palette": "Moonlit Rime",
+      "role": "Tanque / Protectora",
+      "visualDNA": "short blue wolf cut, icy blue eyes with concentric road/wheel pupil motif, princely tomboy identity, blue racing jacket, cute keychain",
+      "runtimeStatsStatus": "partial",
+      "sourceStats": {
+        "hp": 1600,
+        "atk": 110,
+        "def": 140,
+        "speed": 90
+      }
+    },
+    {
+      "id": "waifu_nitori",
+      "name": "Nitori",
+      "japanese": "ニトリ",
+      "origin": "Nitrometano",
+      "element": "LIGHT",
+      "palette": "Red / Orange",
+      "role": "Daño Caótico / Evasión",
+      "visualDNA": "orange hair, chaotic energy, nitro-focused bōsōzoku identity",
+      "runtimeStatsStatus": "pending-source-values"
+    },
+    {
+      "id": "waifu_sashi",
+      "name": "Sashi",
+      "japanese": "サシー",
+      "origin": "Chassis / Gear",
+      "element": "WIND",
+      "palette": "Green / Violet",
+      "role": "Táctica / Debuffs",
+      "visualDNA": "purple hair, glasses, analytical chassis/gear identity, refined tactical aesthetic",
+      "runtimeStatsStatus": "pending-source-values"
+    },
+    {
+      "id": "waifu_rinka",
+      "name": "Rinka",
+      "japanese": "リンカ",
+      "origin": "Chain Link / Rin",
+      "element": "DARK",
+      "palette": "Black / White",
+      "role": "Daño Crítico / Sigilo",
+      "visualDNA": "long black hair, silver highlights, stealth-oriented chain/wheel identity",
+      "runtimeStatsStatus": "pending-source-values"
+    },
+    {
+      "id": "waifu_tsubaki_hibana",
+      "name": "Tsubaki Hibana",
+      "japanese": "ツバキ ヒバナ",
+      "origin": "Spark Plug / Hibana",
+      "element": "LIGHT",
+      "palette": "Gold / White",
+      "role": "Control / Cuerpo a Cuerpo",
+      "visualDNA": "blonde high ponytail, spark-plug/chispa identity, disciplined martial-arts presence",
+      "runtimeStatsStatus": "pending-source-values"
+    }
+  ],
+  "deck": [
+    {
+      "id": "card_1_mafu",
+      "ownerId": "waifu_mafuyu",
+      "slot": 1,
+      "type": "ATTACK",
+      "effectType": "DAMAGE",
+      "title": "Mafuyu — Ataque Firma",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_2_mafutech",
+      "ownerId": "waifu_mafuyu",
+      "slot": 2,
+      "type": "TECHNIQUE",
+      "effectType": "NITRO_BOOST",
+      "title": "Mafuyu — Técnica de Nitro",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_3_kura",
+      "ownerId": "waifu_kurara",
+      "slot": 1,
+      "type": "ATTACK",
+      "effectType": "DAMAGE",
+      "title": "Kurara — Ataque Firma",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_4_kuradef",
+      "ownerId": "waifu_kurara",
+      "slot": 2,
+      "type": "TECHNIQUE_DEFENSE",
+      "effectType": "SHIELD",
+      "title": "Kurara — Técnica de Protección",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_5_nito",
+      "ownerId": "waifu_nitori",
+      "slot": 1,
+      "type": "ATTACK",
+      "effectType": "DAMAGE",
+      "title": "Nitori — Ataque Firma",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_6_nitotech",
+      "ownerId": "waifu_nitori",
+      "slot": 2,
+      "type": "TECHNIQUE",
+      "effectType": "NITRO_BOOST",
+      "title": "Nitori — Técnica Nitro",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_7_sash",
+      "ownerId": "waifu_sashi",
+      "slot": 1,
+      "type": "ATTACK",
+      "effectType": "DAMAGE",
+      "title": "Sashi — Ataque Firma",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_8_sashtech",
+      "ownerId": "waifu_sashi",
+      "slot": 2,
+      "type": "TECHNIQUE_DEBUFF",
+      "effectType": "TURBULENCE",
+      "title": "Sashi — Técnica de Turbulencia",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_9_rink",
+      "ownerId": "waifu_rinka",
+      "slot": 1,
+      "type": "ATTACK",
+      "effectType": "DAMAGE",
+      "title": "Rinka — Ataque Firma",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_10_rinktech",
+      "ownerId": "waifu_rinka",
+      "slot": 2,
+      "type": "TECHNIQUE",
+      "effectType": "DAMAGE",
+      "title": "Rinka — Técnica de Crítico",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_11_tsu",
+      "ownerId": "waifu_tsubaki_hibana",
+      "slot": 1,
+      "type": "ATTACK",
+      "effectType": "DAMAGE",
+      "title": "Tsubaki Hibana — Ataque Firma",
+      "status": "prototype-balance-pending"
+    },
+    {
+      "id": "card_12_tsutech",
+      "ownerId": "waifu_tsubaki_hibana",
+      "slot": 2,
+      "type": "TECHNIQUE_CONTROL",
+      "effectType": "SHIELD",
+      "title": "Tsubaki Hibana — Técnica de Control",
+      "status": "prototype-balance-pending"
+    }
+  ]
+}
