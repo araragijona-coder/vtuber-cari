@@ -152,11 +152,11 @@ test("database init backs up malformed local data before seeding defaults", asyn
   const recoveryPayload = JSON.parse(storage.dump(recoveryKeys[0]));
   assert.equal(recoveryPayload.reason, "json_malformado");
   assert.equal(recoveryPayload.payload, "{malformed");
-  assert.deepEqual(db.db, {
+  assert.equal(JSON.stringify(db.db), JSON.stringify({
     schemaVersion: 2,
     waifus: defaults.waifus,
     cards: defaults.cards
-  });
+  }));
 });
 
 test("failed physical commit rolls the in-memory transaction back", async () => {
