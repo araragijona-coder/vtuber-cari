@@ -1,0 +1,39 @@
+{
+  "schema": "rocket-bunny-petty-economy-v1",
+  "status": "gdd",
+  "philosophy": {
+    "studio_share_principle": 50,
+    "player_happiness_principle": 50,
+    "note": "Independiente del 50/50 del banner"
+  },
+  "stamina_reserve": {
+    "status": "defined-concept",
+    "daily_saved_percentage": "PENDING_BALANCE",
+    "capacity": "PENDING_BALANCE"
+  },
+  "recycling": {
+    "recycle_count_for_sr_fragments": 30,
+    "sr_fragments_awarded": 30,
+    "direct_exchange": "1 Motor SR con estadística principal y secundaria elegidas por el jugador"
+  },
+  "wrench_keys": {
+    "status": "defined-concept",
+    "source": "PENDING_RULE",
+    "cost": "PENDING_RULE"
+  },
+  "gacha": {
+    "soft_pity": true,
+    "hard_pity": 90,
+    "promotional_50_50": true,
+    "exact_soft_pity_curve": "PENDING_BALANCE"
+  },
+  "monetization": {
+    "battle_pass": [
+      "free",
+      "paid"
+    ],
+    "monthly_membership": true,
+    "cosmetic_skins_competitive_speed_modifiers": false
+  },
+  "runtime_status": "pending_economy_state_contract"
+}
