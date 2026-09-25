@@ -159,6 +159,70 @@ test("database init backs up malformed local data before seeding defaults", asyn
   }));
 });
 
+
+
+test("partially invalid but parseable data is snapshotted before sanitization", async () => {
+  const { db, storage } = await loadBrowserModules();
+
+  const raw = JSON.stringify({
+    schemaVersion: 1,
+    waifus: [{
+      id: "w1",
+      name: "Valid",
+      rarity: "R",
+      element: "NEUTRAL",
+      baseStats: { hp: 100, atk: 10 }
+    }, {
+      id: "",
+      name: "Invalid",
+      baseStats: { hp: 100, atk: 10 }
+    }],
+    cards: []
+  });
+
+  storage.setItem("bosozoku_admin_db", raw);
+  const result = db.init(null);
+
+  assert.equal(result.success, true);
+  assert.equal(result.source, "localStorage");
+
+  const recoveryKeys = storage.keys().filter((key) =>
+    key.startsWith("bosozoku_admin_db_recovery_")
+  );
+  assert.equal(recoveryKeys.length, 1);
+
+  const recovery = JSON.parse(storage.dump(recoveryKeys[0]));
+  assert.equal(recovery.reason, "sanitizacion_parcial");
+  assert.equal(recovery.payload, raw);
+  assert.equal(db.db.waifus.length, 1);
+  assert.equal(db.db.waifus[0].id, "w1");
+});
+
+test("a valid empty v2 database is preserved rather than reset", async () => {
+  const { db, storage } = await loadBrowserModules();
+
+  const empty = JSON.stringify({
+    schemaVersion: 2,
+    waifus: [],
+    cards: []
+  });
+
+  storage.setItem("bosozoku_admin_db", empty);
+  const result = db.init({
+    schemaVersion: 2,
+    waifus: [{
+      id: "default",
+      name: "Default",
+      baseStats: { hp: 100, atk: 10 }
+    }],
+    cards: []
+  });
+
+  assert.equal(result.source, "localStorage");
+  assert.equal(db.db.waifus.length, 0);
+  assert.equal(JSON.stringify(db.db), empty);
+});
+
 test("failed physical commit rolls the in-memory transaction back", async () => {
   const { db, storage } = await loadBrowserModules();
 
