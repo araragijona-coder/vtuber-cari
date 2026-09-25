@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bot Obrero - Panel de Control Rocket Bunny Petty</title>
+  <style>
+    :root {
+      --bg-main: #1e1e2e;
+      --bg-card: #2b2b3d;
+      --bg-deep: #181825;
+      --bg-code: #11111b;
+      --accent-pink: #ff6b9d;
+      --accent-blue: #4fc3f7;
+      --text-main: #ffffff;
+      --text-muted: #a6adc8;
+      --success: #a6e3a1;
+      --border-radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      margin: 0;
+      padding: 20px;
+      font-size: 16px;
+    }
+
+    button, select, input { font: inherit; }
+
+    .dashboard-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+    }
+
+    .tab-bar {
+      display: flex;
+      background: var(--bg-deep);
+      border-bottom: 2px solid #313244;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 16px;
+      background: none;
+      border: 0;
+      border-bottom: 4px solid transparent;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .tab-button:hover,
+    .tab-button:focus-visible {
+      color: var(--text-main);
+      outline: none;
+    }
+
+    .tab-button.active {
+      color: var(--accent-pink);
+      background: var(--bg-card);
+      border-bottom-color: var(--accent-pink);
+    }
+
+    .tab-content {
+      padding: 24px;
+      display: none;
+    }
+
+    .tab-content.active { display: block; }
+
+    .creator-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .upload-slot {
+      width: 100%;
+      max-width: 280px;
+      aspect-ratio: 1 / 1;
+      border: 3px dashed var(--accent-pink);
+      border-radius: var(--border-radius);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: var(--bg-deep);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .upload-slot:hover,
+    .upload-slot:focus-within {
+      border-color: var(--accent-blue);
+    }
+
+    .upload-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+    }
+
+    .plus-icon {
+      font-size: 4rem;
+      color: var(--accent-pink);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .upload-text {
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .info-box {
+      background: var(--bg-deep);
+      border-radius: var(--border-radius);
+      padding: 18px;
+      margin-bottom: 16px;
+      border-left: 5px solid var(--accent-blue);
+    }
+
+    .info-box.prompt-box { border-left-color: var(--accent-pink); }
+
+    .info-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .info-text {
+      font-size: 1.05rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .prompt-code {
+      font-family: "Courier New", Courier, monospace;
+      background: var(--bg-code);
+      padding: 12px;
+      border-radius: 6px;
+      color: var(--success);
+      word-break: break-word;
+      margin-top: 8px;
+      display: block;
+    }
+
+    .btn-copy,
+    .btn-secondary {
+      color: var(--text-main);
+      border: 0;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn-copy { background: var(--accent-pink); }
+    .btn-secondary { background: #45455c; }
+    .btn-copy:hover,
+    .btn-secondary:hover { opacity: 0.9; }
+
+    .select-character {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--bg-deep);
+      color: var(--text-main);
+      border: 1px solid #313244;
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .status-card {
+      background: var(--bg-deep);
+      padding: 16px;
+      border-radius: 10px;
+    }
+
+    .status-card strong {
+      display: block;
+      font-size: 1.6rem;
+      color: var(--accent-blue);
+      margin-top: 4px;
+    }
+
+    .status-list {
+      line-height: 1.8;
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    .database-preview {
+      width: 100%;
+      min-height: 340px;
+      resize: vertical;
+      background: var(--bg-code);
+      padding: 15px;
+      border: 0;
+      border-radius: 8px;
+      color: var(--success);
+      font-family: "Courier New", Courier, monospace;
+      white-space: pre;
+      overflow: auto;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 10px; }
+      .tab-bar { flex-direction: column; }
+      .creator-grid { grid-template-columns: 1fr; }
+      .upload-slot { max-width: none; }
+      .status-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="dashboard-container" aria-label="Panel administrativo de Bosozoku">
+    <nav class="tab-bar" aria-label="Secciones del panel">
+      <button class="tab-button active" type="button" data-tab="tab-cards" aria-selected="true">
+        🎴 Creador de Cartas
+      </button>
+      <button class="tab-button" type="button" data-tab="tab-waifus" aria-selected="false">
+        👤 Fichas de Waifus
+      </button>
+      <button class="tab-button" type="button" data-tab="tab-status" aria-selected="false">
+        📊 Estado (¿Qué falta?)
+      </button>
+    </nav>
+
+    <section id="tab-cards" class="tab-content active" aria-labelledby="cards-tab-title">
+      <h1 id="cards-tab-title">Asistente de Arte de Cartas</h1>
+
+      <label for="waifu-select"><strong>Selecciona la Waifu:</strong></label>
+      <select id="waifu-select" class="select-character"></select>
+
+      <div class="creator-grid">
+        <div>
+          <button id="upload-trigger" class="upload-slot" type="button" aria-label="Subir ilustración">
+            <span class="plus-icon" aria-hidden="true">+</span>
+            <span class="upload-text">Subir Ilustración</span>
+            <img id="preview-img" alt="Vista previa de la ilustración seleccionada" hidden>
+          </button>
+          <input
+            type="file"
+            id="file-input"
+            accept="image/*"
+            class="sr-only"
+            aria-label="Archivo de ilustración"
+          >
+        </div>
+
+        <div>
+          <div class="info-box">
+            <div class="info-title">📌 Instrucción de Arte (Español)</div>
+            <p class="info-text" id="desc-es"></p>
+          </div>
+
+          <div class="info-box prompt-box">
+            <div class="info-title">🤖 Prompt para PixAI (Inglés)</div>
+            <span class="prompt-code" id="prompt-en"></span>
+            <button id="copy-prompt" class="btn-copy" type="button">📋 Copiar Prompt para PixAI</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-waifus" class="tab-content" aria-labelledby="waifus-tab-title">
+      <h2 id="waifus-tab-title">Fichas de ADN Visual Integradas</h2>
+      <textarea id="database-preview" class="database-preview" readonly aria-label="Base de datos JSON"></textarea>
+      <div class="toolbar">
+        <button id="export-db" class="btn-secondary" type="button">⬇ Exportar JSON</button>
+        <button id="refresh-db" class="btn-secondary" type="button">↻ Actualizar</button>
+      </div>
+    </section>
+
+    <section id="tab-status" class="tab-content" aria-labelledby="status-tab-title">
+      <h2 id="status-tab-title">Progreso Global de Contenido</h2>
+      <div class="status-grid">
+        <div class="status-card">
+          Esquema
+          <strong id="status-schema">—</strong>
+        </div>
+        <div class="status-card">
+          Waifus
+          <strong id="status-waifus">0</strong>
+        </div>
+        <div class="status-card">
+          Cartas
+          <strong id="status-cards">0</strong>
+        </div>
+        <div class="status-card">
+          Recuperaciones
+          <strong id="status-recovery">0</strong>
+        </div>
+      </div>
+      <ul id="status-list" class="status-list"></ul>
+    </section>
+  </main>
+
+  <script src="../../intento_2/webapp/js/data/uuid.js"></script>
+  <script src="../../intento_2/webapp/js/data/schema_validator.js"></script>
+  <script src="../../intento_2/webapp/js/data/default_database.js"></script>
+  <script src="../../intento_2/webapp/js/data/database_manager.js"></script>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const cardDataMap = {
+        mafuyu: {
+          es: "Dame una ilustración de Mafuyu lanzando un ataque de fuego con su llave inglesa gigante. Debe verse alegre y enérgica. Vestimenta: mono de taller amarrado a la cintura. Fondo blanco/plano para no interferir con la carta.",
+          en: "anime style, masterpiece, 1girl, Okutani Mafuyu, pink hair, twintails, bright smile, mechanic jumpsuit, holding a giant glowing wrench, fire particles, dynamic action pose, white background, simple background, isolated, high quality --ar 1:1"
+        },
+        kurara: {
+          es: "Dame una imagen de Kurara creando un escudo de hielo mientras protege con el brazo. Expresión ruda pero preocupada. Vestimenta: chaqueta de cuero azul. Fondo limpio e aislado.",
+          en: "anime style, masterpiece, 1girl, Kawasumi Kurara, blue short hair, tomboy, protective stance, ice shield effect, blue leather jacket, intense gaze, white background, isolated, high quality --ar 1:1"
+        },
+        nitori: {
+          es: "Dame una ilustración de Nitori acelerando su moto envuelta en rayos eléctricos naranjas. Expresión loca e impulsiva. Fondo plano.",
+          en: "anime style, masterpiece, 1girl, Nitori, orange hair, chaotic smile, electric lightning aura, energetic pose, white background, isolated, high quality --ar 1:1"
+        },
+        sashi: {
+          es: "Dame una imagen de Sashi ajustándose los lentes mientras analiza una fórmula holográfica de viento. Aspecto serio pero refinado.",
+          en: "anime style, masterpiece, 1girl, Sashi, purple hair, glasses, stern look, wind magic circles, tactical pose, white background, isolated, high quality --ar 1:1"
+        }
+      };
+
+      const elements = {
+        tabButtons: [...document.querySelectorAll(".tab-button")],
+        tabContents: [...document.querySelectorAll(".tab-content")],
+        waifuSelect: document.getElementById("waifu-select"),
+        descEs: document.getElementById("desc-es"),
+        promptEn: document.getElementById("prompt-en"),
+        copyPrompt: document.getElementById("copy-prompt"),
+        uploadTrigger: document.getElementById("upload-trigger"),
+        fileInput: document.getElementById("file-input"),
+        previewImg: document.getElementById("preview-img"),
+        databasePreview: document.getElementById("database-preview"),
+        exportDb: document.getElementById("export-db"),
+        refreshDb: document.getElementById("refresh-db"),
+        statusSchema: document.getElementById("status-schema"),
+        statusWaifus: document.getElementById("status-waifus"),
+        statusCards: document.getElementById("status-cards"),
+        statusRecovery: document.getElementById("status-recovery"),
+        statusList: document.getElementById("status-list")
+      };
+
+      function showTab(tabId) {
+        elements.tabButtons.forEach((button) => {
+          const active = button.dataset.tab === tabId;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-selected", String(active));
+        });
+
+        elements.tabContents.forEach((content) => {
+          content.classList.toggle("active", content.id === tabId);
+        });
+
+        if (tabId === "tab-waifus") {
+          refreshDatabasePreview();
+        }
+        if (tabId === "tab-status") {
+          refreshStatus();
+        }
+      }
+
+      function populateWaifuSelector() {
+        const previous = elements.waifuSelect.value;
+        elements.waifuSelect.replaceChildren();
+
+        const databaseWaifus = window.DatabaseManager?.db?.waifus || [];
+        const options = databaseWaifus.length > 0
+          ? databaseWaifus.map((waifu) => ({ value: waifu.id, label: waifu.name }))
+          : Object.keys(cardDataMap).map((key) => ({ value: key, label: key }));
+
+        for (const optionData of options) {
+          const option = document.createElement("option");
+          option.value = optionData.value;
+          option.textContent = optionData.label;
+          elements.waifuSelect.appendChild(option);
+        }
+
+        if (options.some((option) => option.value === previous)) {
+          elements.waifuSelect.value = previous;
+        }
+      }
+
+      function updateCardPrompt() {
+        const selected = elements.waifuSelect.value;
+        const predefined = cardDataMap[selected];
+
+        if (predefined) {
+          elements.descEs.textContent = predefined.es;
+          elements.promptEn.textContent = predefined.en;
+          return;
+        }
+
+        const waifu = (window.DatabaseManager?.db?.waifus || [])
+          .find((candidate) => candidate.id === selected);
+
+        if (!waifu) {
+          elements.descEs.textContent = "No hay una Waifu seleccionada.";
+          elements.promptEn.textContent = "";
+          return;
+        }
+
+        elements.descEs.textContent =
+          `Crear una ilustración aislada de ${waifu.name}, respetando su elemento ${waifu.element}, rareza ${waifu.rarity} y sus assets registrados.`;
+        elements.promptEn.textContent =
+          `anime style, 1girl, ${waifu.name}, ${waifu.element.toLowerCase()} theme, isolated, simple background, high quality --ar 1:1`;
+      }
+
+      function refreshDatabasePreview() {
+        if (!window.DatabaseManager) {
+          elements.databasePreview.value = "DatabaseManager no disponible.";
+          return;
+        }
+        elements.databasePreview.value = window.DatabaseManager.exportJSON();
+      }
+
+      function countRecoverySnapshots() {
+        let count = 0;
+        try {
+          for (let index = 0; index < localStorage.length; index += 1) {
+            const key = localStorage.key(index);
+            if (key?.startsWith("bosozoku_admin_db_recovery_")) {
+              count += 1;
+            }
+          }
+        } catch (error) {
+          console.warn("No se pudo contar snapshots de recuperación:", error);
+        }
+        return count;
+      }
+
+      function refreshStatus() {
+        const db = window.DatabaseManager?.db;
+        const report = window.DatabaseManager?.lastLoadReport;
+
+        elements.statusSchema.textContent = db?.schemaVersion
+          ? `v${db.schemaVersion}`
+          : "—";
+        elements.statusWaifus.textContent = String(db?.waifus?.length || 0);
+        elements.statusCards.textContent = String(db?.cards?.length || 0);
+        elements.statusRecovery.textContent = String(countRecoverySnapshots());
+
+        elements.statusList.replaceChildren();
+
+        const lines = [];
+        if (db?.schemaVersion === 2) {
+          lines.push("✅ Base administrativa compatible con schema v2.");
+        } else {
+          lines.push("⚠ No se pudo confirmar el schema v2.");
+        }
+
+        if (report?.sourceSchemaVersion && report.sourceSchemaVersion !== report.schemaVersion) {
+          lines.push(`✅ Migración detectada: v${report.sourceSchemaVersion} → v${report.schemaVersion}.`);
+        }
+
+        if ((report?.rejectedWaifus || 0) + (report?.rejectedCards || 0) > 0) {
+          lines.push(
+            `⚠ Sanitización: ${report.rejectedWaifus} Waifus y ${report.rejectedCards} Cartas rechazadas; el payload original queda preservado en recuperación.`
+          );
+        }
+
+        if (db?.waifus?.length === 0) {
+          lines.push("ℹ No hay fichas de Waifu cargadas en la base actual.");
+        }
+
+        for (const text of lines) {
+          const item = document.createElement("li");
+          item.textContent = text;
+          elements.statusList.appendChild(item);
+        }
+      }
+
+      async function copyPrompt() {
+        const text = elements.promptEn.textContent.trim();
+        if (!text) {
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(text);
+          window.alert("¡Prompt copiado al portapapeles!");
+        } catch (error) {
+          window.alert("No fue posible copiar automáticamente el prompt.");
+          console.warn("Clipboard API falló:", error);
+        }
+      }
+
+      function handleImageUpload(event) {
+        const [file] = event.target.files || [];
+        if (!file || !file.type.startsWith("image/")) {
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+          if (typeof reader.result === "string") {
+            elements.previewImg.src = reader.result;
+            elements.previewImg.hidden = false;
+          }
+        });
+        reader.addEventListener("error", () => {
+          elements.previewImg.removeAttribute("src");
+          elements.previewImg.hidden = true;
+        });
+        reader.readAsDataURL(file);
+      }
+
+      for (const button of elements.tabButtons) {
+        button.addEventListener("click", () => showTab(button.dataset.tab));
+      }
+
+      elements.waifuSelect.addEventListener("change", updateCardPrompt);
+      elements.copyPrompt.addEventListener("click", copyPrompt);
+      elements.uploadTrigger.addEventListener("click", () => elements.fileInput.click());
+      elements.fileInput.addEventListener("change", handleImageUpload);
+      elements.exportDb.addEventListener("click", () => {
+        const result = window.DatabaseManager?.downloadExport();
+        if (result && !result.success) {
+          window.alert(result.error);
+        }
+      });
+      elements.refreshDb.addEventListener("click", () => {
+        populateWaifuSelector();
+        updateCardPrompt();
+        refreshDatabasePreview();
+        refreshStatus();
+      });
+
+      populateWaifuSelector();
+      updateCardPrompt();
+      refreshStatus();
+    })();
+  </script>
+</body>
+</html>
