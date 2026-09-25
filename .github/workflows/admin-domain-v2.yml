@@ -1,0 +1,17 @@
+name: admin-domain-v2
+
+on:
+  push:
+    branches:
+      - feat/admin-domain-v2-safe-storage
+  pull_request:
+
+jobs:
+  browser-data-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test tests/admin_data_v2.test.mjs
