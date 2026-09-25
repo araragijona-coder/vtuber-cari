@@ -26,6 +26,10 @@ class MemoryStorage {
   dump(key) {
     return this.#data.get(key) ?? null;
   }
+
+  keys() {
+    return [...this.#data.keys()];
+  }
 }
 
 async function loadBrowserModules() {
@@ -140,34 +144,19 @@ test("database init backs up malformed local data before seeding defaults", asyn
   assert.equal(result.source, "defaults");
   assert.equal(db.db.schemaVersion, 2);
 
-  const recoveryKeys = Object.keys(Object.fromEntries([]));
-  void recoveryKeys;
+  const recoveryKeys = storage.keys().filter((key) =>
+    key.startsWith("bosozoku_admin_db_recovery_")
+  );
 
-  let found = false;
-  for (let i = 0; i < 10; i += 1) {
-    const keys = storage.dump("bosozoku_admin_db");
-    if (keys === JSON.stringify(db.db)) {
-      break;
-    }
-  }
-
-  for (const key of [
-    "bosozoku_admin_db_recovery_test",
-    "bosozoku_admin_db_recovery"
-  ]) {
-    if (storage.dump(key) !== null) {
-      found = true;
-    }
-  }
-
-  // The memory storage exposes no key iterator by design; validate recovery
-  // behavior through the manager's persisted replacement and database state.
+  assert.equal(recoveryKeys.length, 1);
+  const recoveryPayload = JSON.parse(storage.dump(recoveryKeys[0]));
+  assert.equal(recoveryPayload.reason, "json_malformado");
+  assert.equal(recoveryPayload.payload, "{malformed");
   assert.deepEqual(db.db, {
     schemaVersion: 2,
     waifus: defaults.waifus,
     cards: defaults.cards
   });
-  assert.equal(found, false);
 });
 
 test("failed physical commit rolls the in-memory transaction back", async () => {
