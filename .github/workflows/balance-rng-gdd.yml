@@ -1,0 +1,17 @@
+name: balance-rng-gdd
+
+on:
+  push:
+    branches:
+      - feat/balance-rng-fairness-v1
+  pull_request:
+
+jobs:
+  balance-spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test tests/balance_rng_gdd.test.mjs

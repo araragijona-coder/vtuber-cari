@@ -1,0 +1,61 @@
+{
+  "schema": "rocket-bunny-petty-balance-rng-v1",
+  "status": "gdd",
+  "source_scope": "Balance, Táctica y la Ley del RNG Justo",
+  "tactical_difficulty": {
+    "strategy_required": true,
+    "button_mashing_only": false,
+    "artificial_power_wall_as_primary_difficulty": false,
+    "map_optimal_analysis": true,
+    "tactical_cards": true,
+    "track_positioning": true,
+    "waifu_synergies": true,
+    "automatic_primary_progression_without_decisions": false
+  },
+  "time_and_fuel": {
+    "fuel_is_progress_resource": true,
+    "reserve_tanks": {
+      "free_to_play_capacity_daily_tanks": 2,
+      "garage_max_capacity_daily_tanks": 5
+    },
+    "activity_costs": "PENDING_BALANCE",
+    "recovery_rates": "PENDING_BALANCE",
+    "farm_cycle_duration": "PENDING_BALANCE"
+  },
+  "rng_fiction": {
+    "thematic_personification": "Gremlin del Taller",
+    "alternative_label": "Mecánico Troll",
+    "fiction_changes_underlying_math": false,
+    "rules_must_remain_traceable": true
+  },
+  "failure_tolerance": {
+    "maximum_performance_deficit_percent": 30,
+    "derived_minimum_performance_percent_of_optimal": 70,
+    "fully_useless_equipment_allowed": false,
+    "performance_formula": "PENDING_BALANCE"
+  },
+  "rng_recovery": {
+    "recycling_to_sr_engine": true,
+    "recycling_milestone": 30,
+    "sr_engine_fragments_generated": 30,
+    "direct_sr_engine_stat_selection": "player_choice",
+    "wrench_keys_stat_control": true
+  },
+  "ingenuity_victory": {
+    "strategy_can_compensate_for_suboptimal_build": true,
+    "guarantee_every_stage_is_winable_with_every_build": false,
+    "final_phase_difficulty_data": "PENDING_BALANCE"
+  },
+  "runtime_contract": {
+    "race_state_required_before_enforcement": true,
+    "legacy_combat_integration": false,
+    "future_invariants": [
+      "optimal_reference_performance",
+      "resulting_performance",
+      "relative_deficit",
+      "maximum_deficit_limit",
+      "deficit_source",
+      "available_recovery_path"
+    ]
+  }
+}
