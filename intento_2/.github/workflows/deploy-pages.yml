@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - "webapp/**"
-      - ".github/workflows/deploy-pages.yml"
+      - "intento_2/webapp/**"
+      - "intento_2/.github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -34,7 +34,7 @@ jobs:
       - name: Upload webapp artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./webapp
+          path: ./intento_2/webapp
 
       - name: Deploy to GitHub Pages
         id: deployment
