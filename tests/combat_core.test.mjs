@@ -55,6 +55,20 @@ test("defend absorbs half of the next incoming damage", async () => {
   assert.equal(state.combat.player.hp, 115);
 });
 
+test("resolution clamps HP and action remains an intention", async () => {
+  const core = await loadCore();
+  const state = start(core);
+  const action = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.ATTACK);
+  assert.equal("damage" in action, false);
+  assert.equal("targetHpAfter" in action, false);
+  state.combat.enemy.hp = 1;
+  const resolution = core.CombatEngine.resolveAction(state, action);
+  assert.equal(resolution.targetHpAfter, 0);
+  assert.equal(state.combat.enemy.hp, 0);
+  assert.equal(state.combat.enemy.hp >= 0, true);
+  assert.equal(state.combat.enemy.hp <= state.combat.enemy.maxHp, true);
+});
+
 test("skill is usable once and then rejected", async () => {
   const core = await loadCore();
   const state = start(core);

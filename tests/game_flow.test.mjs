@@ -53,4 +53,20 @@ test("victory and defeat lock further actions", async () => {
   core.CombatEngine.resolveAction(loss, enemyAction);
   assert.equal(loss.combat.outcome, "DEFEAT");
   assert.equal(loss.combat.phase, "DEFEAT");
+  assert.equal(core.CombatEngine.validateAction(loss, playerAttack).error, "COMBAT_FINISHED");
+});
+
+test("simultaneous knockout resolves deterministically as defeat", async () => {
+  const core = await loadCore();
+  const state = core.GameState.createGameState();
+  core.GameState.startBattle(state, {
+    player: { hp: 1, maxHp: 1, stats: { atk: 1, def: 0, skillDamage: 1 } },
+    enemy: { hp: 1, maxHp: 1, stats: { atk: 1, def: 0, skillDamage: 1 } }
+  });
+  const combat = state.combat;
+  assert.equal(core.CombatEngine.checkOutcome({
+    ...combat,
+    player: { ...combat.player, hp: 0 },
+    enemy: { ...combat.enemy, hp: 0 }
+  }), "DEFEAT");
 });
