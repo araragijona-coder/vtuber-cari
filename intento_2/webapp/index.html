@@ -16,11 +16,9 @@
         <canvas id="combat-canvas" aria-label="Canvas de combate"></canvas>
       </div>
 
-      <div class="combat-controls" aria-label="Acciones de combate">
+      <div class="combat-controls" aria-label="Combate">
         <button id="start-battle" type="button">START BATTLE</button>
-        <button id="attack-action" type="button" disabled>ATTACK</button>
-        <button id="defend-action" type="button" disabled>DEFEND</button>
-        <button id="skill-action" type="button" disabled>SKILL</button>
+        <div id="combat-hand" class="combat-hand" aria-label="Mano de cartas"></div>
         <button id="restart-battle" type="button" hidden>RESTART</button>
       </div>
 
@@ -46,6 +44,10 @@
           <strong id="combat-last-action">—</strong>
         </div>
         <div class="hud-card">
+          <span>ENERGY</span>
+          <strong id="combat-energy">—</strong>
+        </div>
+        <div class="hud-card">
           <span>STATUS</span>
           <strong id="combat-status-value">READY</strong>
         </div>
@@ -63,6 +65,8 @@
   </main>
 
   <script src="./js/api.js"></script>
+  <script src="./js/game/cards.js"></script>
+  <script src="./js/game/energy.js"></script>
   <script src="./js/game/state.js"></script>
   <script src="./js/game/actions.js"></script>
   <script src="./js/game/rules.js"></script>

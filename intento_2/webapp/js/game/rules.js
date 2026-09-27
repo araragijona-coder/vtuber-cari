@@ -17,7 +17,7 @@
     const combat = state.combat;
     if (combat.outcome !== OUTCOME.IN_PROGRESS) return { valid: false, error: "COMBAT_FINISHED" };
     if (!action || typeof action !== "object") return { valid: false, error: "INVALID_ACTION" };
-    if (![ACTION_TYPES.ATTACK, ACTION_TYPES.DEFEND, ACTION_TYPES.SKILL].includes(action.type)) {
+    if (![ACTION_TYPES.ATTACK, ACTION_TYPES.DEFEND, ACTION_TYPES.SKILL, ACTION_TYPES.CARD].includes(action.type)) {
       return { valid: false, error: "UNKNOWN_ACTION" };
     }
     if (action.turn !== combat.turn) return { valid: false, error: "STALE_TURN" };
@@ -36,11 +36,29 @@
       return { valid: false, error: "SKILL_UNAVAILABLE" };
     }
 
+    if (action.type === ACTION_TYPES.CARD) {
+      if (combat.activeActor !== "player") return { valid: false, error: "CARD_PLAYER_ONLY" };
+      if (!action.cardInstanceId || !action.cardId) return { valid: false, error: "INVALID_CARD" };
+
+      const card = window.CardSystem.cardInHand(combat.cards, action.cardInstanceId);
+      if (!card || card.cardId !== action.cardId) return { valid: false, error: "CARD_NOT_IN_HAND" };
+
+      const definition = window.CardSystem.definitionFor(action.cardId);
+      if (!definition) return { valid: false, error: "UNKNOWN_CARD" };
+      if (!window.EnergySystem.canSpend(combat.resources, definition.cost)) {
+        return { valid: false, error: "INSUFFICIENT_ENERGY" };
+      }
+      return { valid: true, actor, target, card, definition };
+    }
+
     return { valid: true, actor, target };
   }
 
-  function calculateDamage(action, actor, target) {
+  function calculateDamage(action, actor, target, definition = null) {
     if (action.type === ACTION_TYPES.DEFEND) return 0;
+    if (action.type === ACTION_TYPES.CARD) {
+      return definition.type === ACTION_TYPES.ATTACK ? definition.damage : 0;
+    }
     const raw = action.type === ACTION_TYPES.SKILL ? actor.stats.skillDamage : actor.stats.atk;
     return Math.max(1, raw - target.stats.def);
   }
@@ -48,8 +66,6 @@
   function checkOutcome(combat) {
     const playerDead = combat.player.hp <= 0;
     const enemyDead = combat.enemy.hp <= 0;
-
-    // MVP tie-break: simultaneous KO resolves as player defeat.
     if (playerDead && enemyDead) return OUTCOME.DEFEAT;
     if (enemyDead) return OUTCOME.VICTORY;
     if (playerDead) return OUTCOME.DEFEAT;
@@ -61,13 +77,14 @@
     if (!validation.valid) throw new Error(validation.error);
 
     const combat = state.combat;
-    const { actor, target } = validation;
+    const { actor, target, definition } = validation;
     const targetHpBefore = target.hp;
-    let damage = calculateDamage(action, actor, target);
+    let damage = calculateDamage(action, actor, target, definition);
     const critical = false;
     let targetHpAfter = targetHpBefore;
 
-    if (action.type !== ACTION_TYPES.DEFEND) {
+    const isCardDefense = action.type === ACTION_TYPES.CARD && definition.type === ACTION_TYPES.DEFEND;
+    if (action.type !== ACTION_TYPES.DEFEND && !isCardDefense) {
       const multiplier = target.defending ? 0.5 : 1;
       damage = Math.max(1, Math.floor(damage * multiplier));
       targetHpAfter = Math.max(0, Math.min(target.maxHp, target.hp - damage));
@@ -84,7 +101,6 @@
     };
 
     const outcome = checkOutcome(projectedCombat);
-
     const resolution = Object.freeze({
       actionId: action.id,
       turn: action.turn,
@@ -95,7 +111,9 @@
       outcome,
       actionType: action.type,
       actorId: actor.id,
-      targetId: target.id
+      targetId: target.id,
+      cardId: action.cardId,
+      cardInstanceId: action.cardInstanceId
     });
 
     applyResolution(state, resolution);
@@ -112,7 +130,16 @@
 
     target.hp = Math.max(0, Math.min(target.maxHp, resolution.targetHpAfter));
 
-    if (resolution.actionType === ACTION_TYPES.DEFEND) {
+    if (resolution.actionType === ACTION_TYPES.CARD) {
+      const card = window.CardSystem.cardInHand(combat.cards, resolution.cardInstanceId);
+      const definition = window.CardSystem.definitionFor(resolution.cardId);
+      if (!card || !definition) throw new Error("CARD_STATE_INVALID");
+      if (!window.EnergySystem.spend(combat.resources, definition.cost)) throw new Error("INSUFFICIENT_ENERGY");
+      if (!window.CardSystem.playCard(combat.cards, resolution.cardInstanceId)) throw new Error("CARD_MOVE_FAILED");
+    }
+
+    if (resolution.actionType === ACTION_TYPES.DEFEND ||
+        (resolution.actionType === ACTION_TYPES.CARD && resolution.cardId === "escudo_dark")) {
       const actor = combat.player.id === resolution.actorId ? combat.player : combat.enemy;
       actor.defending = true;
     } else {
@@ -145,6 +172,8 @@
       combat.turn += 1;
       combat.phase = PHASE.PLAYER_TURN;
       combat.activeActor = "player";
+      window.CardSystem.drawCards(combat.cards, 1);
+      window.EnergySystem.refill(combat.resources);
       state.session.lastMessage = "Turno " + combat.turn + " · turno del jugador.";
     }
     return state;

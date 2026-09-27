@@ -79,6 +79,40 @@ canvas {
   box-shadow: 0 12px 36px rgba(0,0,0,.28);
 }
 
+.combat-hand {
+  display: flex;
+  gap: 10px;
+  flex: 1 1 100%;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+}
+.card-button {
+  flex: 1 1 180px;
+  min-width: 170px;
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 8px;
+  text-align: left;
+  padding: 10px;
+}
+.card-button strong {
+  font-size: 13px;
+}
+.card-button small {
+  grid-column: 1 / -1;
+  color: var(--tg-hint-color);
+  font-size: 11px;
+  line-height: 1.25;
+}
+.card-cost {
+  font-weight: 900;
+  white-space: nowrap;
+}
+.card-button:disabled {
+  filter: grayscale(.65);
+}
+
 .combat-controls {
   display: flex;
   align-items: center;

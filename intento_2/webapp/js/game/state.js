@@ -24,7 +24,6 @@
   function createCombatant({ id, hp, maxHp = hp, stats = {} }) {
     const safeMaxHp = Math.max(1, Number(maxHp) || 1);
     const safeHp = Math.min(safeMaxHp, Math.max(0, Number(hp) || 0));
-
     return {
       id: String(id),
       hp: safeHp,
@@ -40,7 +39,6 @@
 
   function createGameState(options = {}) {
     const playerId = String(options.playerId || "local-player");
-
     return {
       screen: "MAIN",
       player: {
@@ -62,13 +60,10 @@
   }
 
   function startBattle(state, config = {}) {
-    if (!state || typeof state !== "object") {
-      throw new TypeError("GameState inválido.");
-    }
+    if (!state || typeof state !== "object") throw new TypeError("GameState inválido.");
 
     const playerConfig = config.player || {};
     const enemyConfig = config.enemy || {};
-
     const battleId = String(config.battleId || "battle-mvp-1");
 
     state.screen = "BATTLE";
@@ -93,10 +88,14 @@
       lastAction: null,
       outcome: OUTCOME.IN_PROGRESS,
       resources: {
-        playerSkill: 1
-      }
+        playerSkill: 1,
+        ...window.EnergySystem.createEnergy(3)
+      },
+      cards: window.CardSystem.createCombatDeckState(4)
     };
 
+    window.CardSystem.drawCards(state.combat.cards, 4);
+    window.EnergySystem.refill(state.combat.resources);
     state.session.lastMessage = "Batalla iniciada · turno 1 · turno del jugador.";
     return state;
   }
