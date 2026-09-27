@@ -1,260 +1,313 @@
-# VTuber Cari
+# Rocket Bunny Petty
 
-Dependency-light, local-first foundation for a modular AI VTuber.
+Rocket Bunny Petty is the Rocket Bunny game project in this repository. The `main` branch is the production-oriented home for the game's Telegram Mini App, browser runtime, game data layer, administration surface, tests, simulations, documentation, and controlled experimental work.
 
-## What is working
+Cari Studio is maintained separately on the `cari-studio` branch.
 
-- Local chat filtering, gating and deterministic comment ranking.
-- Local rule responses for common conversation.
-- **Local-first intelligence order: local rules -> Ollama -> cloud/API fallback.**
-- Ollama is probed before use, so it is not called for messages already handled locally and is not waited on when the service is absent.
-- Cloud/OpenAI-compatible API is secondary and only used when configured and Ollama is unavailable/fails.
-- Session memory plus fail-closed persistent memory.
-- Provider-neutral voice and avatar contracts.
-- Optional local `pyttsx3` TTS.
-- TwitchIO 3 production bridge with managed OAuth tokens and EventSub chat.
-- Twitch OAuth authorization URL contract using TwitchIO 3's documented localhost callback.
-- Dependency-free animated fallback avatar rendered directly in Tkinter.
-- Desktop UI with chat, animated avatar, degraded diagnostics, and a live **CPU/provider usage strip** showing local, Ollama, API, failures and latency.
-- **Work-mode switch:** `🤖 Trabajar modo IA` enables the configured local-first intelligence path; `🛠 Trabajar manual` blocks Ollama/API and exposes application controls that do not require AI.
-- In manual mode, AI-dependent services are explicitly shown as `🔒` instead of being silently invoked.
-- Heavy synchronous pipeline/TTS work is moved off TwitchIO's asyncio event loop.
-- Python 3.11/3.12 compile + unit-test CI.
-- Safe Windows setup script that installs/verifies one step at a time, logs each step, and stops immediately on errors.
-- Startup guard that stops instead of continuing after a fatal initialization error and writes a copyable diagnostic file.
+## Project separation
 
-The core intentionally stays dependency-free. Optional integrations are loaded only when enabled.
-
-## Intelligence modes
-
-Default mode is `auto`:
+The repository is intentionally divided as follows:
 
 ```text
-message
-  |
-  +--> local rule? ---- yes --> answer
-  |
-  no
-  |
-  +--> Ollama running? ---- yes --> local model
-  |                               |
-  |                               +--> failure --> cloud/API (if configured)
-  |
-  no
-  |
-  +--> cloud/API (if configured)
-  |
-  no provider --> local degraded response
+main
+└── Rocket Bunny Petty
+
+cari-studio
+└── Cari Studio / VTuber
 ```
 
-Force a mode with `CARI_LLM_MODE`:
+The Cari Studio branch retains the historical VTuber application, its documentation, tests, scripts, tools, workflows, and experimental Studio material. The `main` branch should contain Rocket Bunny Petty only, apart from repository-level infrastructure that is explicitly shared.
+
+## Current architecture
+
+The current Rocket runtime is centered on the Telegram Mini App under:
 
 ```text
-local   = rules only; never calls a model/API
-ollama  = local Ollama only
-api     = configured OpenAI-compatible API only
-
-auto    = local rules -> Ollama -> API (default)
+intento_2/webapp/
 ```
 
-For the small local model requested for testing, use:
+The active browser entry point is:
+
+```text
+intento_2/webapp/index.html
+```
+
+Its current client-side loading order is:
+
+```text
+index.html
+  ├─ Telegram WebApp SDK
+  ├─ css/style.css
+  ├─ js/api.js
+  ├─ js/combat.js
+  ├─ js/data/*
+  ├─ js/admin/*
+  └─ js/app.js
+```
+
+The runtime is intentionally kept lightweight and browser-oriented. The current API layer exposes a small client boundary with mock responses, while the combat module contains the DTO validation, local state handling, rendering, and demo-turn simulation used by the current Mini App.
+
+## Telegram Mini App
+
+The Mini App is designed to run inside Telegram's Web App environment while remaining usable in a normal browser preview.
+
+The entry point initializes the Telegram Web App when the Telegram SDK is available and otherwise keeps a local-preview path.
+
+GitHub Pages deploys the contents of:
+
+```text
+intento_2/webapp/
+```
+
+The Pages workflow is:
+
+```text
+intento_2/.github/workflows/deploy-pages.yml
+```
+
+It is deliberately preserved as part of the Rocket runtime/deployment surface.
+
+## Runtime
+
+The current runtime is a browser client built from standard HTML, CSS, and JavaScript.
+
+Important runtime components include:
+
+- `index.html` — Mini App entry point and script loading order.
+- `css/style.css` — presentation layer.
+- `js/api.js` — client API boundary used by the current browser runtime.
+- `js/combat.js` — combat DTO validation, combat state, rendering, damage application, and local turn simulation.
+- `js/app.js` — Telegram initialization and browser data-storage initialization.
+- `js/data/` — UUID generation, schema validation, default data, and database management.
+- `js/admin/` — browser administration UI.
+- `js/game.js` — retained game implementation material; it is not removed as part of the Cari separation.
+- `js/scavenged/` — retained experimental/recovered browser material; it is intentionally preserved for later evaluation.
+
+The separation work does not delete or rewrite the protected runtime files.
+
+## Combat
+
+The combat client currently works around explicit data contracts.
+
+`combat.js` validates:
+
+- `CombatInitDTO`
+- `TurnResultDTO`
+- attacker and target descriptors
+- combat math
+- post-action state
+
+The renderer maintains player/enemy combatants, HP state, images/placeholders, turn results, and impact feedback.
+
+A local demo can be started with **Simular Turno** when no combat initialization has been supplied. This is a browser-side demonstration path, not a claim of authoritative server combat resolution.
+
+## Data and economy
+
+The browser data layer is under:
+
+```text
+intento_2/webapp/js/data/
+```
+
+It currently contains:
+
+- `uuid.js`
+- `schema_validator.js`
+- `default_database.js`
+- `database_manager.js`
+
+The data layer includes the structures used by the current browser administration/game data surface, including schema validation and persistent browser-side database handling.
+
+Economic and progression experimentation is kept separate from the runtime in:
+
+```text
+simulation/economy_sim.js
+```
+
+The simulation is analysis/tooling material. It is not treated as the authoritative browser runtime.
+
+The repository also retains the Rocket Bunny design and lore documents:
+
+- `GUIA_DESARROLLO.md`
+- `LORE_Y_DISENO.md`
+
+These documents define the project's broader technical and world-design direction without being mistaken for runtime code.
+
+## Admin panel
+
+The current browser administration surface is under:
+
+```text
+intento_2/webapp/js/admin/
+```
+
+and the repository also retains the experimental standalone administration panel:
+
+```text
+experimental/admin-panel/
+```
+
+The standalone panel remains explicitly experimental and is not removed by the Cari separation.
+
+## Tests
+
+The Rocket repository currently retains the focused browser data contract test:
+
+```text
+tests/admin_data_v2.test.mjs
+```
+
+It can be executed with:
 
 ```bash
-ollama run llama3.2:1b
+node --test tests/admin_data_v2.test.mjs
 ```
 
-Llama 3.2 officially provides a 1B text model intended for local/edge use and multilingual dialogue, including Spanish. citeturn0search0turn0search1
-
-## Manual vs IA work mode
-
-The desktop UI now has an explicit switch:
+This test is also referenced by:
 
 ```text
-🤖 MODO IA
-  local rules -> Ollama -> API fallback
-  AI-dependent controls available
-
-🛠 MODO MANUAL
-  no Ollama
-  no cloud API
-  application/avatar controls remain available
-  AI-dependent services show 🔒
+.github/workflows/admin-domain-v2.yml
 ```
 
-Changing to manual mode rebuilds the pipeline with no LLM responder. This is a real execution guard, not only a visual setting: the manual pipeline cannot call Ollama or the cloud API.
+That workflow remains preserved. Its current trigger configuration targets the corresponding feature branch and pull requests rather than treating the workflow as a main-branch deployment gate.
 
-## Safe Windows setup
+Test execution should always be reported separately from structural repository validation.
 
-Use `scripts/install-safe.ps1` when installing the project. It deliberately performs the work slowly and sequentially:
+## GitHub Pages
 
-1. verify Python;
-2. create/verify `.venv`;
-3. update pip;
-4. install declared dependencies;
-5. compile the application;
-6. run the tests;
-7. check Ollama without forcing it to start;
-8. optionally install Ollama through WinGet only when `-InstallOllama` is explicitly supplied.
-
-Every step is checked before the next one. On failure, the script stops, writes `data/last-install-error.txt`, preserves a transcript under `data/install-logs/`, and asks the user to copy the error message instead of continuing into an unknown state.
-
-Examples:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-safe.ps1
-```
-
-Optional Ollama installation:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-safe.ps1 -InstallOllama
-```
-
-The script does **not** automatically download an Ollama model. If Ollama is installed but the selected model is missing, that is reported and left for an explicit model installation/test.
-
-PowerShell's `Stop` error preference and transcription facilities are used so installation errors terminate the current step and leave a readable diagnostic trail. citeturn0search0turn0search3
-
-## Startup errors
-
-If Cari cannot start, the launcher deliberately stops instead of partially starting. It writes:
+The Telegram Mini App deployment workflow is:
 
 ```text
-data/last-startup-error.txt
+intento_2/.github/workflows/deploy-pages.yml
 ```
 
-and shows a Windows error dialog containing the exception and the file location. Copy that diagnostic to the developer before changing anything manually.
+It watches changes to the Web App and the workflow itself, uploads `intento_2/webapp` as the Pages artifact, and deploys it through GitHub Pages.
 
-## Run locally
+The Cari-specific asset-generation workflow and other historical Cari workflows are no longer part of `main`.
 
-```bash
-python main.py
-```
+## Repository structure
 
-For local Windows speech:
-
-```bash
-pip install -e ".[tts]"
-set CARI_TTS=pyttsx3
-python main.py
-```
-
-For a secondary OpenAI-compatible fallback:
+The Rocket-oriented tree is organized around these areas:
 
 ```text
-CARI_LLM_API_KEY=...
-CARI_LLM_MODEL=...
-CARI_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+.
+├── .github/workflows/
+│   └── admin-domain-v2.yml
+├── intento_2/
+│   ├── .github/workflows/
+│   │   └── deploy-pages.yml
+│   └── webapp/
+│       ├── index.html
+│       ├── css/
+│       └── js/
+│           ├── api.js
+│           ├── app.js
+│           ├── combat.js
+│           ├── data/
+│           ├── admin/
+│           └── scavenged/
+├── experimental/
+│   ├── admin-panel/
+│   ├── diagnostics/
+│   ├── research/
+│   └── README.md
+├── simulation/
+│   └── economy_sim.js
+├── tests/
+│   └── admin_data_v2.test.mjs
+├── GUIA_DESARROLLO.md
+├── LORE_Y_DISENO.md
+└── README.md
 ```
 
-Without a key/model, Cari remains fully local when Ollama is available and otherwise degrades to rules-only behavior.
+Historical development branches remain separate and are not deleted as part of this repository cleanup.
 
-## Twitch
+## Experimental work
 
-Install the optional integration:
+Rocket experimental work belongs under `experimental/` until it has been evaluated.
 
-```bash
-pip install -e ".[twitch]"
-```
-
-The production entrypoint is:
-
-```bash
-python run_twitch.py
-```
-
-Configure these environment variables:
+The repository uses this lifecycle:
 
 ```text
-CARI_TWITCH_CLIENT_ID=...
-CARI_TWITCH_CLIENT_SECRET=...
-CARI_TWITCH_BOT_ID=...
-CARI_TWITCH_OWNER_ID=...
+CANDIDATE
+   ↓
+TESTING
+   ↓
+READY_TO_MERGE
+   ↓
+main
 ```
 
-The bot receives chat, sends accepted messages through the local-first pipeline, optionally uses Ollama, only then falls back to the configured API, speaks through TTS, and responds to Twitch with the generated text.
-
-## Architecture
+Rejected or superseded material follows:
 
 ```text
-Twitch EventSub
-      |
-      v
- filter -> gate -> rank
-      |
-      v
- local rules ----------------------> response
-      |
-      +---- no rule -> Ollama (if running)
-                           |
-                           +---- unavailable/failure -> API (if configured)
-                                           |
-                                           v
-                                    AIResponse contract
-                                      /             \
-                                     v               v
-                                  Voice             Avatar
-                                   |                  |
-                                  TTS          Tk fallback renderer
-
-Memory: session -> explicit promotion -> persistent JSON
-Usage: CPU/process time + local/Ollama/API counters + latency
-Integrity: atomic write + fail-closed load
-Manual mode: responder=None -> rules/application controls only
+CANDIDATE
+   ↓
+REJECTED / ARCHIVED
 ```
 
-## Validation
+Experimental code is not a production dependency merely because it exists in the repository. Changes must be validated, reviewed for dependencies and licensing where relevant, and integrated deliberately.
+
+See [experimental/README.md](experimental/README.md) for the local policy.
+
+## Development
+
+For browser/runtime work, start from:
+
+```text
+intento_2/webapp/index.html
+```
+
+Keep gameplay/runtime changes inside the Rocket surface and preserve the separation between:
+
+- browser presentation;
+- combat logic;
+- data/schema handling;
+- administration;
+- simulation;
+- experimental material.
+
+Before changing protected runtime files, inspect their current consumers and associated tests/workflows.
+
+For the focused browser data test:
 
 ```bash
-python -m unittest discover -s tests -q
-python -m compileall -q app tests
+node --test tests/admin_data_v2.test.mjs
 ```
 
-GitHub Actions runs the same checks on Python 3.11 and 3.12.
+For GitHub Pages, changes to the Mini App should be checked together with:
 
-## Experimental isolation
-
-Uncertain external programs, research patterns and benchmarks belong under `experimental/` until tested. They are not treated as production dependencies merely because an open-source project demonstrates the idea.
-
-The current Ollama benchmark scripts can compare small local models on the actual machine instead of guessing performance. Llama 3.2 1B has official quantized variants as small as roughly 771 MB for Q4_0. citeturn0search2turn0search6
-
-## Closure status
-
-**Software foundation: GREEN only after the latest GitHub Actions run is verified.** CI is the automated gate; local model performance still needs a real run on the target PC.
-
-Remaining external/operational items for literal **100% stream-ready**:
-
-1. Real Cari artwork/model assets.
-2. Twitch Developer application + OAuth authorization.
-3. Production TTS voice.
-4. OBS/capture configuration.
-5. Real Twitch end-to-end rehearsal: chat -> decision -> answer -> voice -> avatar -> capture.
-6. Benchmark Ollama on the target PC and choose the best small model.
-
-These cannot honestly be marked green from repository CI alone because they require the user's local assets, accounts and streaming environment.
-
-
-## Cari Studio
-
-El estado y la bitácora de continuidad de Cari Studio están en [`main/`](main/) y [`main/CARI_STUDIO_BITACORA.md`](main/CARI_STUDIO_BITACORA.md). Los componentes todavía no validados permanecen en la única zona `experimental/`.
-
-
-## Cari Studio — Windows
-
-La distribución principal de Cari Studio está en [`main/`](main/).
-
-Instalación Windows:
-
-```powershell
-cd .\main
-Set-ExecutionPolicy -Scope Process Bypass
-.\INSTALL_WINDOWS.ps1
+```text
+intento_2/.github/workflows/deploy-pages.yml
 ```
 
-Ejecución posterior:
+## Cari Studio separation
 
-```powershell
-cd .\main
-.\RUN_CARI_STUDIO.ps1
+Cari Studio is not part of Rocket Bunny Petty's `main` runtime.
+
+Its dedicated branch is:
+
+```text
+cari-studio
 ```
 
-**Estado actual de Cari Studio: 63% de ingeniería.** La distribución es un self-build reproducible para Windows, no un instalador MSI/EXE firmado todavía. La bitácora canónica está en [`main/CARI_STUDIO_BITACORA.md`](main/CARI_STUDIO_BITACORA.md).
+The Cari branch retains the Studio application and its historical documentation, tests, scripts, tools, and workflows. The separation is intentionally performed without deleting the historical branch or rewriting its contents.
+
+No Cari Studio dependency should be reintroduced into Rocket Bunny Petty's runtime merely for convenience. If a future feature genuinely belongs to Rocket, it should be reimplemented or integrated as a Rocket-specific component with its own validation.
+
+## Scope of this branch
+
+The purpose of `main` is now clear:
+
+```text
+Rocket Bunny Petty
+├── Telegram Mini App
+├── browser combat/runtime
+├── game data and administration
+├── Rocket tests
+├── economy simulation
+├── Rocket documentation
+└── controlled experimental work
+```
+
+Cari Studio remains a separate project surface on `cari-studio`.
