@@ -85,7 +85,7 @@
 
     nextBattleButton?.addEventListener("click", () => {
       hideReward();
-      window.CariCombat.startBattle();
+      window.CariCombat.nextBattle();
     });
 
     let lastOutcome = gameState.combat?.outcome || null;

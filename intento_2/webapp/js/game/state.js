@@ -21,11 +21,13 @@
     return JSON.parse(JSON.stringify(value));
   }
 
-  function createCombatant({ id, hp, maxHp = hp, stats = {} }) {
+  function createCombatant({ id, hp, maxHp = hp, stats = {}, name = "", archetype = "", actions = [], availableActions = actions, aiProfile = "" }) {
     const safeMaxHp = Math.max(1, Number(maxHp) || 1);
     const safeHp = Math.min(safeMaxHp, Math.max(0, Number(hp) || 0));
     return {
       id: String(id),
+      name: String(name || ""),
+      archetype: String(archetype || ""),
       hp: safeHp,
       maxHp: safeMaxHp,
       stats: {
@@ -33,8 +35,39 @@
         def: Math.max(0, Number(stats.def) || 0),
         skillDamage: Math.max(0, Number(stats.skillDamage) || 0)
       },
+      actions: Array.isArray(actions) ? [...actions] : [],
+      availableActions: Array.isArray(availableActions) ? [...availableActions] : [],
+      aiProfile: String(aiProfile || ""),
       defending: false
     };
+  }
+
+  function createEnemyCombatant(enemyConfig) {
+    if (enemyConfig?.id && window.EnemyCatalog?.definitionFor(enemyConfig.id)) {
+      const catalogEnemy = window.EnemyCatalog.createEnemy(enemyConfig.id);
+      return createCombatant({
+        ...catalogEnemy,
+        hp: enemyConfig.hp ?? catalogEnemy.hp,
+        maxHp: enemyConfig.maxHp ?? catalogEnemy.maxHp,
+        stats: enemyConfig.stats || catalogEnemy.stats,
+        name: enemyConfig.name ?? catalogEnemy.name,
+        archetype: enemyConfig.archetype ?? catalogEnemy.archetype,
+        actions: enemyConfig.actions || catalogEnemy.actions,
+        availableActions: enemyConfig.availableActions || catalogEnemy.availableActions,
+        aiProfile: enemyConfig.aiProfile ?? catalogEnemy.aiProfile
+      });
+    }
+    return createCombatant({
+      id: enemyConfig?.id || "enemy-mvp",
+      hp: enemyConfig?.hp ?? 100,
+      maxHp: enemyConfig?.maxHp ?? enemyConfig?.hp ?? 100,
+      stats: enemyConfig?.stats || { atk: 15, def: 3, skillDamage: 30 },
+      name: enemyConfig?.name || "ENEMY",
+      archetype: enemyConfig?.archetype || "DEMO",
+      actions: enemyConfig?.actions || ["ATTACK"],
+      availableActions: enemyConfig?.availableActions || ["ATTACK"],
+      aiProfile: enemyConfig?.aiProfile || "AGGRESSIVE_ATTACK"
+    });
   }
 
   function createGameState(options = {}) {
@@ -61,10 +94,10 @@
 
   function startBattle(state, config = {}) {
     if (!state || typeof state !== "object") throw new TypeError("GameState inválido.");
-
     const playerConfig = config.player || {};
     const enemyConfig = config.enemy || {};
     const battleId = String(config.battleId || "battle-mvp-1");
+    const enemy = createEnemyCombatant(enemyConfig);
 
     state.screen = "BATTLE";
     state.player.currentBattleId = battleId;
@@ -78,12 +111,7 @@
         maxHp: playerConfig.maxHp ?? playerConfig.hp ?? 120,
         stats: playerConfig.stats || { atk: 20, def: 5, skillDamage: 40 }
       }),
-      enemy: createCombatant({
-        id: enemyConfig.id || "enemy-mvp",
-        hp: enemyConfig.hp ?? 100,
-        maxHp: enemyConfig.maxHp ?? enemyConfig.hp ?? 100,
-        stats: enemyConfig.stats || { atk: 15, def: 3, skillDamage: 30 }
-      }),
+      enemy,
       activeActor: "player",
       lastAction: null,
       outcome: OUTCOME.IN_PROGRESS,
@@ -93,7 +121,6 @@
       },
       cards: window.CardSystem.createCombatDeckState(4)
     };
-
     window.CardSystem.drawCards(state.combat.cards, 4);
     window.EnergySystem.refill(state.combat.resources);
     state.session.lastMessage = "Batalla iniciada · turno 1 · turno del jugador.";

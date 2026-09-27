@@ -6,7 +6,9 @@
   const statusEl = document.getElementById("combat-status");
   const resultEl = document.getElementById("combat-result");
   const playerHpEl = document.getElementById("combat-player-hp");
+  const enemyNameEl = document.getElementById("combat-enemy-name");
   const enemyHpEl = document.getElementById("combat-enemy-hp");
+  const enemyArchetypeEl = document.getElementById("combat-enemy-archetype");
   const turnEl = document.getElementById("combat-turn");
   const actorEl = document.getElementById("combat-actor");
   const lastActionEl = document.getElementById("combat-last-action");
@@ -15,19 +17,29 @@
   const handEl = document.getElementById("combat-hand");
   const startButton = document.getElementById("start-battle");
   const restartButton = document.getElementById("restart-battle");
-  let battleSequence = 0;
 
+  let battleSequence = 0;
+  let enemySequence = -1;
+  let currentEnemyId = null;
   const view = { gameState: null, lastWidth: 0, lastHeight: 0, impact: null };
 
-  function createDemoBattle() {
+  function nextEnemyId() {
+    enemySequence += 1;
+    return window.EnemyCatalog.sequenceAt(enemySequence);
+  }
+
+  function createBattleConfig(enemyId) {
     battleSequence += 1;
+    const id = enemyId || nextEnemyId();
     const battleId = typeof window.generateUUID === "function"
       ? window.generateUUID()
       : "battle-mvp-" + Date.now() + "-" + battleSequence;
+    const enemy = window.EnemyCatalog.createEnemy(id);
+    currentEnemyId = enemy.id;
     return {
       battleId,
       player: { id: "player-demo", hp: 120, maxHp: 120, stats: { atk: 20, def: 5, skillDamage: 40 } },
-      enemy: { id: "enemy-demo-" + battleSequence, hp: 100 + Math.max(0, battleSequence - 1) * 10, maxHp: 100 + Math.max(0, battleSequence - 1) * 10, stats: { atk: 15, def: 3, skillDamage: 30 } }
+      enemy
     };
   }
 
@@ -37,9 +49,19 @@
   }
 
   function startBattle(config = null) {
-    window.GameState.startBattle(view.gameState, config || createDemoBattle());
+    const battleConfig = config || createBattleConfig(nextEnemyId());
+    currentEnemyId = battleConfig.enemy?.id || currentEnemyId;
+    window.GameState.startBattle(view.gameState, battleConfig);
     view.impact = null;
     renderUi();
+  }
+
+  function restartBattle() {
+    startBattle(createBattleConfig(currentEnemyId));
+  }
+
+  function nextBattle() {
+    startBattle();
   }
 
   function showResult(resolution) {
@@ -51,9 +73,8 @@
   }
 
   function playCard(cardInstanceId) {
-    if (!view.gameState?.combat) return;
-    const combat = view.gameState.combat;
-    if (combat.activeActor !== "player" || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
+    const combat = view.gameState?.combat;
+    if (!combat || combat.activeActor !== "player" || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
 
     try {
       const action = window.GameActions.createPlayerCardAction(view.gameState, cardInstanceId);
@@ -115,10 +136,11 @@
     const game = view.gameState;
     const combat = game?.combat;
     const outcome = combat?.outcome || null;
-    const playerTurn = outcome === window.GameState.OUTCOME.IN_PROGRESS && combat.activeActor === "player";
 
     if (playerHpEl) playerHpEl.textContent = combat ? Math.round(combat.player.hp) + " / " + Math.round(combat.player.maxHp) : "—";
+    if (enemyNameEl) enemyNameEl.textContent = combat?.enemy?.name || "—";
     if (enemyHpEl) enemyHpEl.textContent = combat ? Math.round(combat.enemy.hp) + " / " + Math.round(combat.enemy.maxHp) : "—";
+    if (enemyArchetypeEl) enemyArchetypeEl.textContent = combat?.enemy?.archetype || "—";
     if (turnEl) turnEl.textContent = combat ? String(combat.turn) : "—";
     if (actorEl) actorEl.textContent = combat ? (combat.activeActor === "player" ? "PLAYER" : "ENEMY") : "—";
     if (lastActionEl) lastActionEl.textContent = formatLastAction(combat);
@@ -167,8 +189,8 @@
     context.strokeRect(x, y, width, height);
     context.fillStyle = team === "player" ? "rgba(61,132,194,.38)" : "rgba(194,61,103,.38)";
     context.fillRect(x + 8, y + 8, width - 16, height - 78);
-    drawText(team === "player" ? "PLAYER" : "ENEMY", x + width / 2, y + height / 2 - 8, 18, "800", "center", "rgba(255,255,255,.7)");
-    drawText(fighter.id, x + 10, y + height - 58, 13, "700");
+    drawText(team === "player" ? "PLAYER" : fighter.name || "ENEMY", x + width / 2, y + height / 2 - 8, 18, "800", "center", "rgba(255,255,255,.7)");
+    drawText(team === "player" ? fighter.id : fighter.archetype, x + 10, y + height - 58, 13, "700");
     drawText("HP " + Math.round(fighter.hp) + " / " + Math.round(fighter.maxHp), x + 10, y + height - 38, 12, "600", "left", "rgba(255,255,255,.72)");
     drawHpBar(x + 10, y + height - 20, width - 20, 8, fighter.hp, fighter.maxHp);
   }
@@ -189,7 +211,7 @@
       const combat = game.combat;
       drawText("BATTLE  " + combat.battleId, width / 2, 14, 14, "800", "center", "rgba(255,255,255,.8)");
       drawText("PLAYER", 18, 42, 12, "800", "left", "#75c8ff");
-      drawText("ENEMY", width - 18, 42, 12, "800", "right", "#ff83aa");
+      drawText(combat.enemy.name || "ENEMY", width - 18, 42, 12, "800", "right", "#ff83aa");
       drawFighter(combat.player, 14, 62, width / 2 - 28, height - 120, "player");
       drawFighter(combat.enemy, width / 2 + 14, 62, width / 2 - 28, height - 120, "enemy");
     }
@@ -198,12 +220,14 @@
 
   window.CariCombat = Object.freeze({
     startBattle,
+    restartBattle,
+    nextBattle,
     actionButton: playCard,
     getGameState: () => view.gameState
   });
 
   startButton?.addEventListener("click", () => startBattle());
-  restartButton?.addEventListener("click", () => startBattle());
+  restartButton?.addEventListener("click", () => restartBattle());
   window.addEventListener("resize", resizeCanvas, { passive: true });
   initGameState();
   resizeCanvas();
