@@ -21,8 +21,8 @@
 
   function initStorage() {
     if (
-      typeof window.DatabaseManager === "undefined"
-      || typeof window.SchemaValidator === "undefined"
+      typeof window.DatabaseManager === "undefined" ||
+      typeof window.SchemaValidator === "undefined"
     ) {
       console.warn("[Bosozoku Storage] Módulos de almacenamiento no cargados.");
       return null;
@@ -35,18 +35,16 @@
     const result = window.DatabaseManager.init(defaultData);
 
     console.log(
-      `[Bosozoku Storage] v${window.DatabaseManager.db.schemaVersion} | ` +
-      `Waifus: ${window.DatabaseManager.db.waifus.length} | ` +
-      `Cartas: ${window.DatabaseManager.db.cards.length} | ` +
-      `Origen: ${result?.source || "desconocido"}`
+      "[Bosozoku Storage] v" + window.DatabaseManager.db.schemaVersion +
+      " | Waifus: " + window.DatabaseManager.db.waifus.length +
+      " | Cartas: " + window.DatabaseManager.db.cards.length +
+      " | Origen: " + (result?.source || "desconocido")
     );
 
     return result;
   }
 
   const webApp = window.Telegram?.WebApp;
-
-  // El almacenamiento se inicializa sin alterar el runtime de combate existente.
   initStorage();
   initTelegram(webApp);
 })();

@@ -3,327 +3,184 @@
 
   const canvas = document.getElementById("combat-canvas");
   const context = canvas?.getContext("2d") ?? null;
-  const simulateButton = document.getElementById("simulate-turn");
-  const combatStatus = document.getElementById("combat-status");
+  const statusEl = document.getElementById("combat-status");
+  const turnEl = document.getElementById("combat-turn");
+  const actorEl = document.getElementById("combat-actor");
+  const resultEl = document.getElementById("combat-result");
+  const startButton = document.getElementById("start-battle");
+  const attackButton = document.getElementById("attack-action");
+  const defendButton = document.getElementById("defend-action");
+  const skillButton = document.getElementById("skill-action");
+  const restartButton = document.getElementById("restart-battle");
 
-  const state = {
-    combatInit: null,
-    turnResult: null,
-    currentHp: new Map(),
+  const view = {
+    gameState: null,
     imageCache: new Map(),
-    simulationTurn: 0,
-    lastRenderWidth: 0,
-    lastRenderHeight: 0,
+    lastWidth: 0,
+    lastHeight: 0,
     impact: null
   };
 
   function isPlainObject(value) {
-    return value !== null &&
-      typeof value === "object" &&
-      !Array.isArray(value);
+    return value !== null && typeof value === "object" && !Array.isArray(value);
   }
 
   function hasExactKeys(object, keys) {
     if (!isPlainObject(object)) return false;
-
     const actual = Object.keys(object).sort();
     const expected = [...keys].sort();
-
-    return actual.length === expected.length &&
-      actual.every((key, index) => key === expected[index]);
+    return actual.length === expected.length && actual.every((key, i) => key === expected[i]);
   }
 
-  function isString(value) {
-    return typeof value === "string";
-  }
-
-  function isFiniteNumber(value) {
-    return typeof value === "number" && Number.isFinite(value);
-  }
-
-  function isInteger(value) {
-    return Number.isInteger(value);
-  }
-
-  function isBoolean(value) {
-    return typeof value === "boolean";
-  }
-
-  function isTeam(value) {
-    return value === "player" || value === "enemy";
-  }
-
-  function validateCombatant(value) {
+  function isCombatant(value) {
     return hasExactKeys(value, [
-      "slot",
-      "character_id",
-      "name",
-      "level",
-      "hp",
-      "max_hp",
-      "card_hd_url",
-      "sprite_base_url"
+      "slot", "character_id", "name", "level", "hp", "max_hp", "card_hd_url", "sprite_base_url"
     ]) &&
-      isInteger(value.slot) &&
-      isString(value.character_id) &&
-      isString(value.name) &&
-      isInteger(value.level) &&
-      isFiniteNumber(value.hp) &&
-      isFiniteNumber(value.max_hp) &&
-      isString(value.card_hd_url) &&
-      isString(value.sprite_base_url);
-  }
-
-  function validateTeam(value) {
-    return Array.isArray(value) && value.every(validateCombatant);
+      Number.isInteger(value.slot) &&
+      typeof value.character_id === "string" &&
+      typeof value.name === "string" &&
+      Number.isInteger(value.level) &&
+      Number.isFinite(value.hp) &&
+      Number.isFinite(value.max_hp) &&
+      typeof value.card_hd_url === "string" &&
+      typeof value.sprite_base_url === "string";
   }
 
   function validateCombatInitDTO(dto) {
-    return hasExactKeys(dto, [
-      "battle_id",
-      "player_team",
-      "enemy_team"
-    ]) &&
-      isString(dto.battle_id) &&
-      validateTeam(dto.player_team) &&
-      validateTeam(dto.enemy_team);
-  }
-
-  function validateAttacker(value) {
-    return hasExactKeys(value, [
-      "team",
-      "slot",
-      "trigger_cut_in"
-    ]) &&
-      isTeam(value.team) &&
-      isInteger(value.slot) &&
-      isBoolean(value.trigger_cut_in);
-  }
-
-  function validateTarget(value) {
-    return hasExactKeys(value, [
-      "team",
-      "slot"
-    ]) &&
-      isTeam(value.team) &&
-      isInteger(value.slot);
-  }
-
-  function validateCombatMath(value) {
-    return hasExactKeys(value, [
-      "damage_dealt",
-      "is_critical",
-      "elemental_modifier"
-    ]) &&
-      isFiniteNumber(value.damage_dealt) &&
-      isBoolean(value.is_critical) &&
-      isFiniteNumber(value.elemental_modifier);
-  }
-
-  function validatePostActionState(value) {
-    return hasExactKeys(value, [
-      "target_remaining_hp",
-      "is_target_dead"
-    ]) &&
-      isFiniteNumber(value.target_remaining_hp) &&
-      isBoolean(value.is_target_dead);
+    return hasExactKeys(dto, ["battle_id", "player_team", "enemy_team"]) &&
+      typeof dto.battle_id === "string" &&
+      Array.isArray(dto.player_team) && dto.player_team.every(isCombatant) &&
+      Array.isArray(dto.enemy_team) && dto.enemy_team.every(isCombatant);
   }
 
   function validateTurnResultDTO(dto) {
     return hasExactKeys(dto, [
-      "turn_number",
-      "action_type",
-      "attacker",
-      "target",
-      "combat_math",
-      "post_action_state"
+      "turn_number", "action_type", "attacker", "target", "combat_math", "post_action_state"
     ]) &&
-      isInteger(dto.turn_number) &&
-      isString(dto.action_type) &&
-      validateAttacker(dto.attacker) &&
-      validateTarget(dto.target) &&
-      validateCombatMath(dto.combat_math) &&
-      validatePostActionState(dto.post_action_state);
+      Number.isInteger(dto.turn_number) &&
+      typeof dto.action_type === "string" &&
+      isPlainObject(dto.attacker) &&
+      ["player", "enemy"].includes(dto.attacker.team) &&
+      Number.isInteger(dto.attacker.slot) &&
+      typeof dto.attacker.trigger_cut_in === "boolean" &&
+      isPlainObject(dto.target) &&
+      ["player", "enemy"].includes(dto.target.team) &&
+      Number.isInteger(dto.target.slot) &&
+      isPlainObject(dto.combat_math) &&
+      Number.isFinite(dto.combat_math.damage_dealt) &&
+      typeof dto.combat_math.is_critical === "boolean" &&
+      Number.isFinite(dto.combat_math.elemental_modifier) &&
+      isPlainObject(dto.post_action_state) &&
+      Number.isFinite(dto.post_action_state.target_remaining_hp) &&
+      typeof dto.post_action_state.is_target_dead === "boolean";
   }
 
-  function combatantKey(team, slot) {
-    return team + ":" + String(slot);
+  function createDemoBattle() {
+    return {
+      battleId: "mvp-pages",
+      player: {
+        id: "player-demo",
+        hp: 120,
+        maxHp: 120,
+        stats: { atk: 20, def: 5, skillDamage: 40 }
+      },
+      enemy: {
+        id: "enemy-demo",
+        hp: 100,
+        maxHp: 100,
+        stats: { atk: 15, def: 3, skillDamage: 30 }
+      }
+    };
   }
 
-  function clamp(value, minimum, maximum) {
-    return Math.min(maximum, Math.max(minimum, value));
+  function initGameState() {
+    view.gameState = window.GameState.createGameState({ playerId: "local-player" });
+    view.gameState.screen = "MAIN";
+    renderUi();
   }
 
-  function allCombatants() {
-    if (!state.combatInit) return [];
-    return [
-      ...state.combatInit.player_team.map((value) => ({ ...value, team: "player" })),
-      ...state.combatInit.enemy_team.map((value) => ({ ...value, team: "enemy" }))
-    ];
+  function startBattle() {
+    window.GameState.startBattle(view.gameState, createDemoBattle());
+    renderUi();
   }
 
-  function findCombatant(team, slot) {
-    return allCombatants().find((value) =>
-      value.team === team && value.slot === slot
-    ) ?? null;
+  function showResult(resolution) {
+    view.impact = {
+      team: resolution.targetId === view.gameState.combat.player.id ? "player" : "enemy",
+      damage: resolution.damage,
+      critical: resolution.critical,
+      startedAt: performance.now()
+    };
   }
 
-  function resetCurrentHp() {
-    state.currentHp.clear();
+  function actionButton(type) {
+    if (!view.gameState?.combat) return;
+    if (view.gameState.combat.activeActor !== "player") return;
 
-    for (const combatant of allCombatants()) {
-      const key = combatantKey(combatant.team, combatant.slot);
-      state.currentHp.set(
-        key,
-        clamp(combatant.hp, 0, Math.max(0, combatant.max_hp))
-      );
+    try {
+      const action = window.GameActions.createPlayerAction(view.gameState, type);
+      const resolution = window.CombatEngine.resolveAction(view.gameState, action);
+      showResult(resolution);
+      renderUi();
+
+      if (resolution.outcome === window.GameState.OUTCOME.IN_PROGRESS &&
+          view.gameState.combat.activeActor === "enemy") {
+        window.setTimeout(runEnemyTurn, 260);
+      }
+    } catch (error) {
+      view.gameState.session.lastMessage = "Acción rechazada · " + error.message;
+      renderUi();
     }
   }
 
-  function currentHpFor(combatant) {
-    const key = combatantKey(combatant.team, combatant.slot);
-
-    if (!state.currentHp.has(key)) {
-      state.currentHp.set(
-        key,
-        clamp(combatant.hp, 0, Math.max(0, combatant.max_hp))
-      );
+  function runEnemyTurn() {
+    if (!view.gameState?.combat || view.gameState.combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
+      return;
     }
 
-    return state.currentHp.get(key);
-  }
+    const action = window.EnemyAI.decide(view.gameState);
+    if (!action) {
+      renderUi();
+      return;
+    }
 
-  function applyTurnResult(dto) {
-    const target = findCombatant(dto.target.team, dto.target.slot);
-    if (!target) return;
-
-    state.currentHp.set(
-      combatantKey(dto.target.team, dto.target.slot),
-      clamp(
-        dto.post_action_state.target_remaining_hp,
-        0,
-        Math.max(0, target.max_hp)
-      )
-    );
-  }
-
-  function setStatus(message) {
-    if (combatStatus) {
-      combatStatus.textContent = message;
+    try {
+      const resolution = window.CombatEngine.resolveAction(view.gameState, action);
+      showResult(resolution);
+      renderUi();
+    } catch (error) {
+      view.gameState.session.lastMessage = "Turno enemigo rechazado · " + error.message;
+      renderUi();
     }
   }
 
   function resizeCanvas() {
     if (!canvas || !context) return;
-
     const rect = canvas.getBoundingClientRect();
     const ratio = Math.max(1, window.devicePixelRatio || 1);
-
     canvas.width = Math.max(1, Math.round(rect.width * ratio));
     canvas.height = Math.max(1, Math.round(rect.height * ratio));
-
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    state.lastRenderWidth = rect.width;
-    state.lastRenderHeight = rect.height;
+    view.lastWidth = rect.width;
+    view.lastHeight = rect.height;
   }
 
-  function getImageUrls(combatant) {
-    return [combatant.card_hd_url, combatant.sprite_base_url]
-      .filter((value, index, array) =>
-        value.length > 0 && array.indexOf(value) === index
-      );
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
   }
 
   function requestImage(url) {
-    if (!url) return null;
-
-    const existing = state.imageCache.get(url);
-    if (existing) return existing;
-
-    const entry = {
-      status: "loading",
-      image: null
-    };
-    state.imageCache.set(url, entry);
-
+    if (!url || view.imageCache.has(url)) return view.imageCache.get(url) || null;
+    const entry = { status: "loading", image: null };
+    view.imageCache.set(url, entry);
     const image = new Image();
-    image.onload = () => {
-      entry.status = "ready";
-      entry.image = image;
-    };
-    image.onerror = () => {
-      entry.status = "failed";
-      entry.image = null;
-    };
+    image.onload = () => { entry.status = "ready"; entry.image = image; };
+    image.onerror = () => { entry.status = "failed"; };
     image.src = url;
-
     return entry;
   }
 
-  function findLoadedImage(combatant) {
-    for (const url of getImageUrls(combatant)) {
-      const entry = requestImage(url);
-      if (entry?.status === "ready" && entry.image) {
-        return entry.image;
-      }
-    }
-
-    return null;
-  }
-
-  function drawBackground(width, height) {
-    const gradient = context.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, "#0a1020");
-    gradient.addColorStop(0.58, "#17213a");
-    gradient.addColorStop(1, "#070b14");
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, width, height);
-
-    const arenaGradient = context.createRadialGradient(
-      width / 2,
-      height * 0.58,
-      30,
-      width / 2,
-      height * 0.58,
-      Math.max(width, height) * 0.65
-    );
-    arenaGradient.addColorStop(0, "rgba(60, 87, 140, 0.34)");
-    arenaGradient.addColorStop(1, "rgba(8, 12, 24, 0)");
-    context.fillStyle = arenaGradient;
-    context.fillRect(0, 0, width, height);
-
-    context.strokeStyle = "rgba(180, 208, 255, 0.10)";
-    context.lineWidth = 1;
-
-    for (let x = 0; x <= width; x += Math.max(50, width / 12)) {
-      context.beginPath();
-      context.moveTo(x, 0);
-      context.lineTo(x, height);
-      context.stroke();
-    }
-
-    for (let y = 0; y <= height; y += Math.max(50, height / 8)) {
-      context.beginPath();
-      context.moveTo(0, y);
-      context.lineTo(width, y);
-      context.stroke();
-    }
-
-    context.fillStyle = "rgba(255,255,255,0.055)";
-    context.beginPath();
-    context.ellipse(
-      width / 2,
-      height * 0.64,
-      Math.min(width * 0.30, 360),
-      Math.min(height * 0.10, 70),
-      0,
-      0,
-      Math.PI * 2
-    );
-    context.fill();
-  }
-
-  function drawText(text, x, y, size, weight, align = "left", color = "#ffffff") {
+  function drawText(text, x, y, size, weight, align = "left", color = "#fff") {
     context.font = weight + " " + size + "px system-ui, sans-serif";
     context.textAlign = align;
     context.textBaseline = "top";
@@ -332,551 +189,142 @@
   }
 
   function drawHpBar(x, y, width, height, hp, maxHp) {
-    const safeMax = Math.max(1, maxHp);
-    const ratio = clamp(hp / safeMax, 0, 1);
-
-    context.fillStyle = "rgba(0,0,0,0.48)";
+    const ratio = clamp(hp / Math.max(1, maxHp), 0, 1);
+    context.fillStyle = "rgba(0,0,0,.55)";
     context.fillRect(x, y, width, height);
-
-    context.fillStyle = ratio > 0.5
-      ? "#39d98a"
-      : ratio > 0.25
-        ? "#f1c75b"
-        : "#ff6b6b";
+    context.fillStyle = ratio > .5 ? "#39d98a" : ratio > .25 ? "#f1c75b" : "#ff6b6b";
     context.fillRect(x, y, width * ratio, height);
-
-    context.strokeStyle = "rgba(255,255,255,0.26)";
-    context.lineWidth = 1;
+    context.strokeStyle = "rgba(255,255,255,.28)";
     context.strokeRect(x, y, width, height);
   }
 
-  function drawPlaceholder(x, y, width, height, combatant) {
-    const hue = combatant.team === "player" ? 211 : 342;
-    context.fillStyle = "hsl(" + hue + " 42% 24% / 0.95)";
+  function drawFighter(fighter, x, y, width, height, team) {
+    context.fillStyle = "rgba(15,20,35,.9)";
     context.fillRect(x, y, width, height);
-
-    context.strokeStyle = "rgba(255,255,255,0.22)";
+    context.strokeStyle = team === "player" ? "rgba(106,181,255,.65)" : "rgba(255,111,150,.65)";
     context.strokeRect(x, y, width, height);
 
-    drawText(
-      "SPRITE",
-      x + width / 2,
-      y + height * 0.36,
-      11,
-      "700",
-      "center",
-      "rgba(255,255,255,0.62)"
-    );
-    drawText(
-      "NO IMAGE",
-      x + width / 2,
-      y + height * 0.54,
-      12,
-      "600",
-      "center",
-      "rgba(255,255,255,0.46)"
-    );
-  }
-
-  function drawImageContain(image, x, y, width, height) {
-    const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
-    const drawWidth = image.naturalWidth * scale;
-    const drawHeight = image.naturalHeight * scale;
-    const drawX = x + (width - drawWidth) / 2;
-    const drawY = y + (height - drawHeight) / 2;
-
-    context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
-  }
-
-  function drawCombatant(combatant, x, y, width, height) {
-    const hp = currentHpFor(combatant);
-    const maxHp = Math.max(1, combatant.max_hp);
-    const imageHeight = Math.max(84, height - 92);
-    const image = findLoadedImage(combatant);
-
-    context.fillStyle = "rgba(15, 20, 35, 0.88)";
-    context.fillRect(x, y, width, height);
-    context.strokeStyle = combatant.team === "player"
-      ? "rgba(106, 181, 255, 0.55)"
-      : "rgba(255, 111, 150, 0.55)";
-    context.lineWidth = 1.5;
-    context.strokeRect(x, y, width, height);
-
-    if (image) {
-      drawImageContain(image, x + 8, y + 8, width - 16, imageHeight - 12);
+    const imageEntry = fighter.sprite ? requestImage(fighter.sprite) : null;
+    if (imageEntry?.status === "ready") {
+      const image = imageEntry.image;
+      const scale = Math.min((width - 16) / image.naturalWidth, (height - 80) / image.naturalHeight);
+      const dw = image.naturalWidth * scale;
+      const dh = image.naturalHeight * scale;
+      context.drawImage(image, x + (width - dw) / 2, y + 8, dw, dh);
     } else {
-      drawPlaceholder(x + 8, y + 8, width - 16, imageHeight - 12, combatant);
+      context.fillStyle = team === "player" ? "rgba(61,132,194,.38)" : "rgba(194,61,103,.38)";
+      context.fillRect(x + 8, y + 8, width - 16, height - 78);
+      drawText("SPRITE PLACEHOLDER", x + width / 2, y + height / 2 - 8, 13, "700", "center", "rgba(255,255,255,.65)");
     }
 
-    const labelY = y + imageHeight;
-    const label = "#" + combatant.slot + " " + combatant.name;
-
-    drawText(
-      label.length > 24 ? label.slice(0, 23) + "…" : label,
-      x + 8,
-      labelY + 2,
-      13,
-      "700"
-    );
-    drawText(
-      "Lv." + combatant.level,
-      x + width - 8,
-      labelY + 2,
-      11,
-      "600",
-      "right",
-      "rgba(255,255,255,0.62)"
-    );
-
-    drawHpBar(x + 8, labelY + 23, width - 16, 9, hp, maxHp);
-    drawText(
-      Math.round(hp) + " / " + Math.round(maxHp),
-      x + 8,
-      labelY + 36,
-      11,
-      "600",
-      "left",
-      "rgba(255,255,255,0.72)"
-    );
+    drawText(fighter.id, x + 10, y + height - 58, 13, "700");
+    drawText("HP " + Math.round(fighter.hp) + " / " + Math.round(fighter.maxHp), x + 10, y + height - 38, 12, "600", "left", "rgba(255,255,255,.72)");
+    drawHpBar(x + 10, y + height - 20, width - 20, 8, fighter.hp, fighter.maxHp);
   }
 
-  function drawTeam(team, x, y, width, maxHeight) {
-    const characters = team === "player"
-      ? state.combatInit.player_team
-      : state.combatInit.enemy_team;
-
-    if (characters.length === 0) {
-      drawText("Sin combatientes", x, y + 54, 14, "600", "left", "rgba(255,255,255,0.45)");
-      return;
-    }
-
-    const columns = characters.length > 1 && width >= 250 ? 2 : 1;
-    const gap = 10;
-    const cardWidth = Math.max(120, (width - gap * (columns - 1)) / columns);
-    const rows = Math.ceil(characters.length / columns);
-    const rowGap = 10;
-    const cardHeight = Math.max(
-      170,
-      Math.min(235, (maxHeight - 70 - rowGap * (rows - 1)) / rows)
-    );
-
-    characters.forEach((combatant, index) => {
-      const column = index % columns;
-      const row = Math.floor(index / columns);
-      drawCombatant(
-        { ...combatant, team },
-        x + column * (cardWidth + gap),
-        y + 52 + row * (cardHeight + rowGap),
-        cardWidth,
-        cardHeight
-      );
-    });
-  }
-
-  function impactTargetPosition() {
-    if (!state.impact || !state.combatInit) return null;
-
-    const target = findCombatant(
-      state.impact.team,
-      state.impact.slot
-    );
-    if (!target) return null;
-
-    const width = state.lastRenderWidth;
-    const height = state.lastRenderHeight;
-    const sectionWidth = width / 2 - 28;
-    const teamX = state.impact.team === "player" ? 14 : width / 2 + 14;
-    const team = state.impact.team === "player"
-      ? state.combatInit.player_team
-      : state.combatInit.enemy_team;
-    const index = team.findIndex((value) => value.slot === state.impact.slot);
-
-    if (index < 0) return null;
-
-    const columns = team.length > 1 && sectionWidth >= 250 ? 2 : 1;
-    const gap = 10;
-    const cardWidth = Math.max(120, (sectionWidth - gap * (columns - 1)) / columns);
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    const rows = Math.ceil(team.length / columns);
-    const rowGap = 10;
-    const cardHeight = Math.max(
-      170,
-      Math.min(235, (height - 90 - rowGap * (rows - 1)) / rows)
-    );
-
-    return {
-      x: teamX + column * (cardWidth + gap) + cardWidth / 2,
-      y: 76 + row * (cardHeight + rowGap) + 16
-    };
-  }
-
-  function drawImpact(now) {
-    if (!state.impact) return;
-
-    const elapsed = now - state.impact.startedAt;
-    const duration = 950;
-
-    if (elapsed >= duration) {
-      state.impact = null;
-      return;
-    }
-
-    const point = impactTargetPosition();
-    if (!point) return;
-
-    const progress = elapsed / duration;
-    const alpha = 1 - progress;
-    const rise = progress * 56;
-    const scale = 1 + (state.impact.critical ? Math.sin(progress * Math.PI) * 0.16 : 0);
-
-    context.save();
-    context.globalAlpha = alpha;
-    context.translate(point.x, point.y - rise);
-    context.scale(scale, scale);
-
-    drawText(
-      state.impact.critical
-        ? "CRÍTICO  -" + Math.round(state.impact.damage)
-        : "-" + Math.round(state.impact.damage),
-      0,
-      0,
-      state.impact.critical ? 24 : 21,
-      "800",
-      "center",
-      state.impact.critical ? "#ffd86b" : "#ffffff"
-    );
-
-    if (state.impact.critical) {
-      drawText(
-        "★",
-        0,
-        -26,
-        16,
-        "800",
-        "center",
-        "#ff9d5c"
-      );
-    }
-    context.restore();
-  }
-
-  function drawCombatFrame(now = performance.now()) {
+  function drawFrame(now = performance.now()) {
     if (!canvas || !context) return;
 
-    if (
-      state.lastRenderWidth !== canvas.getBoundingClientRect().width ||
-      state.lastRenderHeight !== canvas.getBoundingClientRect().height
-    ) {
-      resizeCanvas();
-    }
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width !== view.lastWidth || rect.height !== view.lastHeight) resizeCanvas();
 
-    const width = state.lastRenderWidth;
-    const height = state.lastRenderHeight;
-
+    const width = view.lastWidth;
+    const height = view.lastHeight;
     context.clearRect(0, 0, width, height);
-    drawBackground(width, height);
 
-    if (!state.combatInit) {
-      drawText("Esperando CombatInitDTO…", width / 2, height / 2 - 18, 20, "700", "center");
-      drawText(
-        "Usá «Simular Turno» para abrir una batalla de prueba local.",
-        width / 2,
-        height / 2 + 16,
-        13,
-        "500",
-        "center",
-        "rgba(255,255,255,0.62)"
-      );
-      drawImpact(now);
-      window.requestAnimationFrame(drawCombatFrame);
+    const gradient = context.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, "#0a1020");
+    gradient.addColorStop(1, "#070b14");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, width, height);
+
+    const game = view.gameState;
+    if (!game?.combat) {
+      drawText("ROCKET BUNNY PETTY", width / 2, height * .35, 24, "800", "center");
+      drawText("Iniciá una batalla MVP para comenzar.", width / 2, height * .35 + 38, 14, "500", "center", "rgba(255,255,255,.65)");
+      window.requestAnimationFrame(drawFrame);
       return;
     }
 
-    drawText(
-      "BATTLE  " + state.combatInit.battle_id,
-      width / 2,
-      15,
-      14,
-      "700",
-      "center",
-      "rgba(255,255,255,0.78)"
-    );
-    drawText(
-      "PLAYER",
-      18,
-      42,
-      12,
-      "800",
-      "left",
-      "#75c8ff"
-    );
-    drawText(
-      "ENEMY",
-      width - 18,
-      42,
-      12,
-      "800",
-      "right",
-      "#ff83aa"
-    );
+    const combat = game.combat;
+    drawText("BATTLE  " + combat.battleId, width / 2, 14, 14, "800", "center", "rgba(255,255,255,.8)");
+    drawText("PLAYER", 18, 42, 12, "800", "left", "#75c8ff");
+    drawText("ENEMY", width - 18, 42, 12, "800", "right", "#ff83aa");
 
-    drawTeam("player", 14, 62, width / 2 - 28, height - 62);
-    drawTeam("enemy", width / 2 + 14, 62, width / 2 - 28, height - 62);
+    drawFighter(combat.player, 14, 62, width / 2 - 28, height - 120, "player");
+    drawFighter(combat.enemy, width / 2 + 14, 62, width / 2 - 28, height - 120, "enemy");
 
-    if (state.turnResult) {
-      const turn = state.turnResult;
-      const criticalText = turn.combat_math.is_critical ? " · CRÍTICO" : "";
-      drawText(
-        "TURNO " + turn.turn_number + " · " + turn.action_type + criticalText,
-        width / 2,
-        height - 30,
-        12,
-        "700",
-        "center",
-        "rgba(255,255,255,0.72)"
-      );
-    }
-
-    drawImpact(now);
-    window.requestAnimationFrame(drawCombatFrame);
-  }
-
-  function logCombatInitDTO(dto) {
-    console.log("[CariCombat] CombatInitDTO ready:", {
-      battle_id: dto.battle_id,
-      player_team: dto.player_team,
-      enemy_team: dto.enemy_team
-    });
-  }
-
-  function logTurnResultDTO(dto) {
-    console.log("[CariCombat] TurnResultDTO ready:", {
-      turn_number: dto.turn_number,
-      action_type: dto.action_type,
-      attacker: dto.attacker,
-      target: dto.target,
-      combat_math: dto.combat_math,
-      post_action_state: dto.post_action_state
-    });
-  }
-
-  function receiveCombatInit(dto) {
-    if (!validateCombatInitDTO(dto)) {
-      console.error(
-        "[CariCombat] Invalid CombatInitDTO. Expected exactly: " +
-        "battle_id, player_team, enemy_team."
-      );
-      return false;
-    }
-
-    state.combatInit = structuredClone(dto);
-    state.turnResult = null;
-    state.simulationTurn = 0;
-    resetCurrentHp();
-
-    for (const combatant of allCombatants()) {
-      for (const url of getImageUrls(combatant)) {
-        requestImage(url);
+    if (view.impact) {
+      const elapsed = now - view.impact.startedAt;
+      const duration = 850;
+      if (elapsed >= duration) {
+        view.impact = null;
+      } else {
+        const pointX = view.impact.team === "player" ? width * .25 : width * .75;
+        const pointY = height * .62 - (elapsed / duration) * 50;
+        context.save();
+        context.globalAlpha = 1 - elapsed / duration;
+        drawText(
+          "-" + Math.round(view.impact.damage),
+          pointX,
+          pointY,
+          24,
+          "800",
+          "center",
+          view.impact.critical ? "#ffd86b" : "#fff"
+        );
+        context.restore();
       }
     }
 
-    logCombatInitDTO(state.combatInit);
-    setStatus("CombatInitDTO recibido · " + state.combatInit.battle_id);
-    return true;
+    window.requestAnimationFrame(drawFrame);
   }
 
-  function receiveTurnResult(dto) {
-    if (!validateTurnResultDTO(dto)) {
-      console.error(
-        "[CariCombat] Invalid TurnResultDTO. Expected exactly: " +
-        "turn_number, action_type, attacker, target, combat_math, " +
-        "post_action_state."
-      );
-      return false;
+  function renderUi() {
+    const game = view.gameState;
+    const combat = game?.combat;
+
+    if (statusEl) statusEl.textContent = game?.session?.lastMessage || "Esperando.";
+    if (turnEl) turnEl.textContent = combat ? String(combat.turn) : "—";
+    if (actorEl) actorEl.textContent = combat
+      ? (combat.activeActor === "player" ? "PLAYER" : "ENEMY")
+      : "—";
+
+    if (resultEl) {
+      resultEl.textContent = combat?.outcome === window.GameState.OUTCOME.VICTORY
+        ? "VICTORY"
+        : combat?.outcome === window.GameState.OUTCOME.DEFEAT
+          ? "DEFEAT"
+          : "";
     }
 
-    state.turnResult = structuredClone(dto);
-    applyTurnResult(state.turnResult);
+    const playerTurn = combat?.outcome === window.GameState.OUTCOME.IN_PROGRESS &&
+      combat.activeActor === "player";
 
-    state.impact = {
-      team: dto.target.team,
-      slot: dto.target.slot,
-      damage: dto.combat_math.damage_dealt,
-      critical: dto.combat_math.is_critical,
-      startedAt: performance.now()
-    };
+    if (attackButton) attackButton.disabled = !playerTurn;
+    if (defendButton) defendButton.disabled = !playerTurn;
+    if (skillButton) skillButton.disabled = !playerTurn || combat.resources.playerSkill <= 0;
 
-    logTurnResultDTO(state.turnResult);
-    setStatus(
-      "TurnResultDTO recibido · turno " + dto.turn_number +
-      (dto.combat_math.is_critical ? " · crítico" : "")
-    );
-    return true;
-  }
-
-  function receiveCombatInitJSON(json) {
-    try {
-      return receiveCombatInit(JSON.parse(json));
-    } catch (error) {
-      console.error("[CariCombat] Invalid CombatInitDTO JSON:", error);
-      return false;
-    }
-  }
-
-  function receiveTurnResultJSON(json) {
-    try {
-      return receiveTurnResult(JSON.parse(json));
-    } catch (error) {
-      console.error("[CariCombat] Invalid TurnResultDTO JSON:", error);
-      return false;
-    }
-  }
-
-  function receiveCombatState(dto) {
-    return receiveCombatInit(dto);
-  }
-
-  function receiveCombatResult(dto) {
-    return receiveTurnResult(dto);
-  }
-
-  function receiveCombatEvent(_dto) {}
-
-  function receivePlayerState(_dto) {}
-
-  function createDemoCombat() {
-    return {
-      battle_id: "demo-pages",
-      player_team: [
-        {
-          slot: 0,
-          character_id: "cari-demo",
-          name: "Cari",
-          level: 12,
-          hp: 240,
-          max_hp: 240,
-          card_hd_url: "",
-          sprite_base_url: ""
-        },
-        {
-          slot: 1,
-          character_id: "ally-demo",
-          name: "Aliada",
-          level: 10,
-          hp: 185,
-          max_hp: 185,
-          card_hd_url: "",
-          sprite_base_url: ""
-        }
-      ],
-      enemy_team: [
-        {
-          slot: 0,
-          character_id: "enemy-demo",
-          name: "Rival",
-          level: 11,
-          hp: 260,
-          max_hp: 260,
-          card_hd_url: "",
-          sprite_base_url: ""
-        },
-        {
-          slot: 1,
-          character_id: "enemy-2-demo",
-          name: "Guardia",
-          level: 9,
-          hp: 170,
-          max_hp: 170,
-          card_hd_url: "",
-          sprite_base_url: ""
-        }
-      ]
-    };
-  }
-
-  function livingTarget(team) {
-    const candidates = team === "player"
-      ? state.combatInit.player_team
-      : state.combatInit.enemy_team;
-
-    return candidates.find((combatant) => currentHpFor({ ...combatant, team }) > 0) ?? null;
-  }
-
-  function simulateTurn() {
-    if (!state.combatInit) {
-      receiveCombatInit(createDemoCombat());
-      setStatus("Combate demo local listo · URLs de imagen vacías → placeholder activo.");
-    }
-
-    const nextTurn = state.simulationTurn + 1;
-    const attackingTeam = nextTurn % 2 === 1 ? "player" : "enemy";
-    const defendingTeam = attackingTeam === "player" ? "enemy" : "player";
-    const attacker = livingTarget(attackingTeam);
-    const target = livingTarget(defendingTeam);
-
-    if (!attacker || !target) {
-      setStatus("Combate terminado · presioná «Simular Turno» después de cargar un nuevo CombatInitDTO.");
-      return false;
-    }
-
-    const critical = nextTurn % 4 === 0;
-    const baseDamage = 18 + ((nextTurn - 1) % 3) * 7;
-    const damage = critical ? baseDamage * 1.5 : baseDamage;
-    const remainingHp = clamp(
-      currentHpFor({ ...target, team: defendingTeam }) - damage,
-      0,
-      target.max_hp
-    );
-
-    const dto = {
-      turn_number: nextTurn,
-      action_type: critical ? "critical_attack" : "basic_attack",
-      attacker: {
-        team: attackingTeam,
-        slot: attacker.slot,
-        trigger_cut_in: critical
-      },
-      target: {
-        team: defendingTeam,
-        slot: target.slot
-      },
-      combat_math: {
-        damage_dealt: damage,
-        is_critical: critical,
-        elemental_modifier: 1
-      },
-      post_action_state: {
-        target_remaining_hp: remainingHp,
-        is_target_dead: remainingHp <= 0
-      }
-    };
-
-    state.simulationTurn = nextTurn;
-    return receiveTurnResult(dto);
+    if (startButton) startButton.hidden = Boolean(combat);
+    if (restartButton) restartButton.hidden = !combat || combat.outcome === window.GameState.OUTCOME.IN_PROGRESS;
   }
 
   window.CariCombat = Object.freeze({
-    canvas,
-    context,
-    resizeCanvas,
     validateCombatInitDTO,
     validateTurnResultDTO,
-    receiveCombatInit,
-    receiveTurnResult,
-    receiveCombatInitJSON,
-    receiveTurnResultJSON,
-    receiveCombatState,
-    receiveCombatResult,
-    receiveCombatEvent,
-    receivePlayerState,
-    simulateTurn
+    startBattle,
+    actionButton,
+    getGameState: () => view.gameState
   });
 
+  startButton?.addEventListener("click", startBattle);
+  attackButton?.addEventListener("click", () => actionButton(window.GameActions.ACTION_TYPES.ATTACK));
+  defendButton?.addEventListener("click", () => actionButton(window.GameActions.ACTION_TYPES.DEFEND));
+  skillButton?.addEventListener("click", () => actionButton(window.GameActions.ACTION_TYPES.SKILL));
+  restartButton?.addEventListener("click", startBattle);
   window.addEventListener("resize", resizeCanvas, { passive: true });
 
-  simulateButton?.addEventListener("click", simulateTurn);
-
+  initGameState();
   resizeCanvas();
-  drawCombatFrame();
+  drawFrame();
 })();

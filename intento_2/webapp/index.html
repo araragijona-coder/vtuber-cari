@@ -5,59 +5,47 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#111318">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Cari WebApp</title>
+  <title>Rocket Bunny Petty · MVP</title>
   <link rel="stylesheet" href="./css/style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <main id="app" aria-label="Cari WebApp">
-    <section
-      id="combat"
-      aria-label="Combate"
-      style="width:100%;max-width:1100px;margin:0 auto;padding:12px;"
-    >
-      <div
-        style="width:100%;height:min(72vh,680px);min-height:480px;border-radius:16px;overflow:hidden;background:#080d18;box-shadow:0 12px 36px rgba(0,0,0,.28);"
-      >
-        <canvas
-          id="combat-canvas"
-          aria-label="Canvas de combate"
-          style="width:100%;height:100%;"
-        ></canvas>
+  <main id="app" aria-label="Rocket Bunny Petty">
+    <section id="combat" aria-label="Combate" style="width:100%;max-width:1100px;margin:0 auto;padding:12px;">
+      <div style="width:100%;height:min(68vh,640px);min-height:440px;border-radius:16px;overflow:hidden;background:#080d18;box-shadow:0 12px 36px rgba(0,0,0,.28);">
+        <canvas id="combat-canvas" aria-label="Canvas de combate" style="width:100%;height:100%;"></canvas>
       </div>
 
-      <div
-        style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0 4px;"
-      >
-        <button
-          id="simulate-turn"
-          type="button"
-          style="min-height:48px;padding:12px 18px;border:0;border-radius:12px;background:var(--tg-button-color);color:var(--tg-button-text-color);font-weight:700;cursor:pointer;touch-action:manipulation;"
-        >
-          Simular Turno
-        </button>
-        <span
-          id="combat-status"
-          role="status"
-          aria-live="polite"
-          style="font-size:13px;color:var(--tg-hint-color);"
-        >
-          Esperando CombatInitDTO.
-        </span>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0 4px;">
+        <button id="start-battle" type="button">START BATTLE</button>
+        <button id="attack-action" type="button" disabled>ATTACK</button>
+        <button id="defend-action" type="button" disabled>DEFEND</button>
+        <button id="skill-action" type="button" disabled>SKILL</button>
+        <button id="restart-battle" type="button" hidden>RESTART</button>
       </div>
+
+      <div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 0 10px;font-size:13px;">
+        <span>Turno: <strong id="combat-turn">—</strong></span>
+        <span>Actor: <strong id="combat-actor">—</strong></span>
+        <span>Resultado: <strong id="combat-result"></strong></span>
+      </div>
+
+      <p id="combat-status" role="status" aria-live="polite">Esperando una batalla.</p>
     </section>
   </main>
 
   <script src="./js/api.js"></script>
+  <script src="./js/game/state.js"></script>
+  <script src="./js/game/actions.js"></script>
+  <script src="./js/game/rules.js"></script>
+  <script src="./js/game/enemy.js"></script>
   <script src="./js/combat.js"></script>
 
-  <!-- Datos/administración: no introduce IDs ni runtime de juego adicionales. -->
   <script src="./js/data/uuid.js"></script>
   <script src="./js/data/schema_validator.js"></script>
   <script src="./js/data/default_database.js"></script>
   <script src="./js/data/database_manager.js"></script>
   <script src="./js/admin/admin_ui.js"></script>
-
   <script src="./js/app.js"></script>
 </body>
 </html>
