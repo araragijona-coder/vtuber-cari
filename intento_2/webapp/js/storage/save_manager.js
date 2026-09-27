@@ -220,8 +220,17 @@
       losses: current.player.losses
     };
 
-    if (outcome === "VICTORY") next.player.wins += 1;
-    if (outcome === "DEFEAT") next.player.losses += 1;
+    const battleId = gameState.combat ? String(gameState.combat.battleId) : null;
+    const duplicateTerminalResult = Boolean(
+      battleId &&
+      current.lastBattle &&
+      String(current.lastBattle.battleId) === battleId &&
+      current.lastBattle.outcome === outcome &&
+      (outcome === "VICTORY" || outcome === "DEFEAT")
+    );
+
+    if (!duplicateTerminalResult && outcome === "VICTORY") next.player.wins += 1;
+    if (!duplicateTerminalResult && outcome === "DEFEAT") next.player.losses += 1;
 
     next.progression = clone(current.progression);
     next.completedBattles = [...current.completedBattles];
@@ -233,11 +242,12 @@
         turn: Number(gameState.combat.turn),
         outcome: gameState.combat.outcome,
         playerHp: Number(gameState.combat.player.hp),
-        enemyHp: Number(gameState.combat.enemy.hp)
+        enemyHp: Number(gameState.combat.enemy.hp),
+        completedAt: new Date().toISOString()
       };
 
       if (
-        (outcome === "VICTORY" || outcome === "DEFEAT") &&
+        outcome === "VICTORY" &&
         !next.completedBattles.includes(String(gameState.combat.battleId))
       ) {
         next.completedBattles.push(String(gameState.combat.battleId));

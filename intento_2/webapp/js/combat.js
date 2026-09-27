@@ -16,6 +16,7 @@
   const defendButton = document.getElementById("defend-action");
   const skillButton = document.getElementById("skill-action");
   const restartButton = document.getElementById("restart-battle");
+  let battleSequence = 0;
 
   const view = {
     gameState: null,
@@ -80,8 +81,13 @@
   }
 
   function createDemoBattle() {
+    battleSequence += 1;
+    const battleId = typeof window.generateUUID === "function"
+      ? window.generateUUID()
+      : "battle-mvp-" + Date.now() + "-" + battleSequence;
+
     return {
-      battleId: "mvp-pages",
+      battleId,
       player: {
         id: "player-demo",
         hp: 120,
@@ -89,9 +95,9 @@
         stats: { atk: 20, def: 5, skillDamage: 40 }
       },
       enemy: {
-        id: "enemy-demo",
-        hp: 100,
-        maxHp: 100,
+        id: "enemy-demo-" + battleSequence,
+        hp: 100 + Math.max(0, battleSequence - 1) * 10,
+        maxHp: 100 + Math.max(0, battleSequence - 1) * 10,
         stats: { atk: 15, def: 3, skillDamage: 30 }
       }
     };
@@ -103,8 +109,8 @@
     renderUi();
   }
 
-  function startBattle() {
-    window.GameState.startBattle(view.gameState, createDemoBattle());
+  function startBattle(config = null) {
+    window.GameState.startBattle(view.gameState, config || createDemoBattle());
     view.impact = null;
     renderUi();
   }

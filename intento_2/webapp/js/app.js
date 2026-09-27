@@ -44,21 +44,49 @@
     return result;
   }
 
+  function syncPlayerFromSave(save, gameState) {
+    gameState.player.id = save.player.id;
+    gameState.player.level = save.player.level;
+    gameState.player.xp = save.player.xp;
+    gameState.player.currency = save.player.currency;
+    gameState.player.wins = save.player.wins;
+    gameState.player.losses = save.player.losses;
+  }
+
   function initPlayerSave() {
-    if (typeof window.SaveManager === "undefined" || typeof window.CariCombat === "undefined") {
-      console.warn("[Player Save] SaveManager o CariCombat no está disponible.");
+    if (
+      typeof window.SaveManager === "undefined" ||
+      typeof window.RewardSystem === "undefined" ||
+      typeof window.CariCombat === "undefined"
+    ) {
+      console.warn("[Player Save] Módulos de progresión no disponibles.");
       return;
     }
 
     const gameState = window.CariCombat.getGameState();
     const loaded = window.SaveManager.load();
+    syncPlayerFromSave(loaded.save, gameState);
 
-    gameState.player.id = loaded.save.player.id;
-    gameState.player.level = loaded.save.player.level;
-    gameState.player.xp = loaded.save.player.xp;
-    gameState.player.currency = loaded.save.player.currency;
-    gameState.player.wins = loaded.save.player.wins;
-    gameState.player.losses = loaded.save.player.losses;
+    const rewardPanel = document.getElementById("reward-panel");
+    const rewardXpEl = document.getElementById("reward-xp");
+    const rewardCurrencyEl = document.getElementById("reward-currency");
+    const nextBattleButton = document.getElementById("next-battle");
+
+    function hideReward() {
+      if (rewardPanel) rewardPanel.hidden = true;
+    }
+
+    function showReward(reward) {
+      if (!rewardPanel) return;
+      rewardPanel.hidden = false;
+      if (rewardXpEl) rewardXpEl.textContent = String(reward.xp);
+      if (rewardCurrencyEl) rewardCurrencyEl.textContent = String(reward.currency);
+    }
+
+    nextBattleButton?.addEventListener("click", () => {
+      hideReward();
+      window.CariCombat.startBattle();
+    });
 
     let lastOutcome = gameState.combat?.outcome || null;
 
@@ -70,14 +98,40 @@
       const current = window.CariCombat.getGameState();
       const outcome = current.combat?.outcome || null;
 
-      if (outcome && outcome !== lastOutcome) {
-        if (outcome === window.GameState.OUTCOME.VICTORY ||
-            outcome === window.GameState.OUTCOME.DEFEAT) {
-          const result = window.SaveManager.saveFromGameState(current, outcome);
-          if (!result.success) {
-            console.error("[Player Save] No se pudo guardar el resultado:", result.error);
+      if (outcome === window.GameState.OUTCOME.VICTORY && outcome !== lastOutcome) {
+        const reward = window.RewardSystem.createReward({
+          battleId: current.combat.battleId
+        });
+        const claimed = window.RewardSystem.claimReward(
+          window.SaveManager.load().save,
+          reward,
+          {
+            battleId: current.combat.battleId,
+            outcome
+          }
+        );
+
+        if (!claimed.success) {
+          console.error("[Reward] No se pudo reclamar:", claimed.error);
+        } else {
+          const saved = window.SaveManager.save(claimed.save);
+          if (!saved.success) {
+            console.error("[Player Save] No se pudo guardar la recompensa:", saved.error);
+          } else {
+            syncPlayerFromSave(saved.save, current);
+            showReward(claimed.reward);
           }
         }
+      } else if (outcome === window.GameState.OUTCOME.DEFEAT && outcome !== lastOutcome) {
+        const saved = window.SaveManager.saveFromGameState(current, outcome);
+        if (!saved.success) {
+          console.error("[Player Save] No se pudo guardar la derrota:", saved.error);
+        } else {
+          syncPlayerFromSave(saved.save, current);
+        }
+        hideReward();
+      } else if (outcome === window.GameState.OUTCOME.IN_PROGRESS) {
+        hideReward();
       }
 
       lastOutcome = outcome;

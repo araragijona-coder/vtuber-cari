@@ -52,6 +52,12 @@
       </div>
 
       <p id="combat-result" class="combat-result" role="status" aria-live="assertive"></p>
+      <section id="reward-panel" class="reward-panel" hidden aria-label="Recompensa de victoria">
+        <strong>REWARD</strong>
+        <span>+<b id="reward-xp">0</b> XP</span>
+        <span>+<b id="reward-currency">0</b> Currency</span>
+        <button id="next-battle" type="button">NEXT BATTLE</button>
+      </section>
       <p id="combat-status" class="combat-message" role="status" aria-live="polite">Esperando una batalla.</p>
     </section>
   </main>
@@ -61,6 +67,7 @@
   <script src="./js/game/actions.js"></script>
   <script src="./js/game/rules.js"></script>
   <script src="./js/game/enemy.js"></script>
+  <script src="./js/game/rewards.js"></script>
   <script src="./js/combat.js"></script>
 
   <script src="./js/data/uuid.js"></script>
