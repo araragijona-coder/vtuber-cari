@@ -21,8 +21,7 @@ const files = [
   "avatar/activity-motion.js",
   "avatar/overlay-main.js",
   "renderer/main.js",
-  "renderer/menu-config.js",
-  "renderer/cyber-combat-hud.js"
+  "renderer/menu-config.js"
 ];
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cari-esm-"));
