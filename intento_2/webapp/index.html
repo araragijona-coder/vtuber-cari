@@ -11,12 +11,12 @@
 </head>
 <body>
   <main id="app" aria-label="Rocket Bunny Petty">
-    <section id="combat" aria-label="Combate" style="width:100%;max-width:1100px;margin:0 auto;padding:12px;">
-      <div style="width:100%;height:min(68vh,640px);min-height:440px;border-radius:16px;overflow:hidden;background:#080d18;box-shadow:0 12px 36px rgba(0,0,0,.28);">
-        <canvas id="combat-canvas" aria-label="Canvas de combate" style="width:100%;height:100%;"></canvas>
+    <section id="combat" aria-label="Combate">
+      <div class="combat-stage">
+        <canvas id="combat-canvas" aria-label="Canvas de combate"></canvas>
       </div>
 
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0 4px;">
+      <div class="combat-controls" aria-label="Acciones de combate">
         <button id="start-battle" type="button">START BATTLE</button>
         <button id="attack-action" type="button" disabled>ATTACK</button>
         <button id="defend-action" type="button" disabled>DEFEND</button>
@@ -24,13 +24,35 @@
         <button id="restart-battle" type="button" hidden>RESTART</button>
       </div>
 
-      <div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 0 10px;font-size:13px;">
-        <span>Turno: <strong id="combat-turn">—</strong></span>
-        <span>Actor: <strong id="combat-actor">—</strong></span>
-        <span>Resultado: <strong id="combat-result"></strong></span>
+      <div class="combat-hud" aria-label="Estado del combate">
+        <div class="hud-card">
+          <span>PLAYER</span>
+          <strong id="combat-player-hp">—</strong>
+        </div>
+        <div class="hud-card">
+          <span>ENEMY</span>
+          <strong id="combat-enemy-hp">—</strong>
+        </div>
+        <div class="hud-card">
+          <span>TURN</span>
+          <strong id="combat-turn">—</strong>
+        </div>
+        <div class="hud-card">
+          <span>ACTIVE ACTOR</span>
+          <strong id="combat-actor">—</strong>
+        </div>
+        <div class="hud-card">
+          <span>LAST ACTION</span>
+          <strong id="combat-last-action">—</strong>
+        </div>
+        <div class="hud-card">
+          <span>STATUS</span>
+          <strong id="combat-status-value">READY</strong>
+        </div>
       </div>
 
-      <p id="combat-status" role="status" aria-live="polite">Esperando una batalla.</p>
+      <p id="combat-result" class="combat-result" role="status" aria-live="assertive"></p>
+      <p id="combat-status" class="combat-message" role="status" aria-live="polite">Esperando una batalla.</p>
     </section>
   </main>
 

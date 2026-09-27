@@ -4,9 +4,13 @@
   const canvas = document.getElementById("combat-canvas");
   const context = canvas?.getContext("2d") ?? null;
   const statusEl = document.getElementById("combat-status");
+  const resultEl = document.getElementById("combat-result");
+  const playerHpEl = document.getElementById("combat-player-hp");
+  const enemyHpEl = document.getElementById("combat-enemy-hp");
   const turnEl = document.getElementById("combat-turn");
   const actorEl = document.getElementById("combat-actor");
-  const resultEl = document.getElementById("combat-result");
+  const lastActionEl = document.getElementById("combat-last-action");
+  const statusValueEl = document.getElementById("combat-status-value");
   const startButton = document.getElementById("start-battle");
   const attackButton = document.getElementById("attack-action");
   const defendButton = document.getElementById("defend-action");
@@ -101,6 +105,7 @@
 
   function startBattle() {
     window.GameState.startBattle(view.gameState, createDemoBattle());
+    view.impact = null;
     renderUi();
   }
 
@@ -116,6 +121,7 @@
   function actionButton(type) {
     if (!view.gameState?.combat) return;
     if (view.gameState.combat.activeActor !== "player") return;
+    if (view.gameState.combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
 
     try {
       const action = window.GameActions.createPlayerAction(view.gameState, type);
@@ -134,7 +140,9 @@
   }
 
   function runEnemyTurn() {
-    if (!view.gameState?.combat || view.gameState.combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
+    if (!view.gameState?.combat ||
+        view.gameState.combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS ||
+        view.gameState.combat.activeActor !== "enemy") {
       return;
     }
 
@@ -152,6 +160,17 @@
       view.gameState.session.lastMessage = "Turno enemigo rechazado · " + error.message;
       renderUi();
     }
+  }
+
+  function formatLastAction(combat) {
+    const lastAction = combat?.lastAction;
+    if (!lastAction) return "—";
+
+    if (lastAction.actorId === combat.enemy.id) {
+      return "ENEMY " + lastAction.actionType;
+    }
+
+    return lastAction.actionType;
   }
 
   function resizeCanvas() {
@@ -283,30 +302,44 @@
   function renderUi() {
     const game = view.gameState;
     const combat = game?.combat;
+    const outcome = combat?.outcome || null;
+    const inProgress = outcome === window.GameState.OUTCOME.IN_PROGRESS;
+    const playerTurn = inProgress && combat.activeActor === "player";
 
-    if (statusEl) statusEl.textContent = game?.session?.lastMessage || "Esperando.";
+    if (playerHpEl) {
+      playerHpEl.textContent = combat ? Math.round(combat.player.hp) + " / " + Math.round(combat.player.maxHp) : "—";
+    }
+    if (enemyHpEl) {
+      enemyHpEl.textContent = combat ? Math.round(combat.enemy.hp) + " / " + Math.round(combat.enemy.maxHp) : "—";
+    }
     if (turnEl) turnEl.textContent = combat ? String(combat.turn) : "—";
     if (actorEl) actorEl.textContent = combat
       ? (combat.activeActor === "player" ? "PLAYER" : "ENEMY")
       : "—";
+    if (lastActionEl) lastActionEl.textContent = formatLastAction(combat);
+
+    if (statusValueEl) {
+      statusValueEl.textContent = outcome || "READY";
+    }
 
     if (resultEl) {
-      resultEl.textContent = combat?.outcome === window.GameState.OUTCOME.VICTORY
+      resultEl.textContent = outcome === window.GameState.OUTCOME.VICTORY
         ? "VICTORY"
-        : combat?.outcome === window.GameState.OUTCOME.DEFEAT
+        : outcome === window.GameState.OUTCOME.DEFEAT
           ? "DEFEAT"
           : "";
     }
 
-    const playerTurn = combat?.outcome === window.GameState.OUTCOME.IN_PROGRESS &&
-      combat.activeActor === "player";
+    if (statusEl) {
+      statusEl.textContent = game?.session?.lastMessage || "Esperando una batalla.";
+    }
 
     if (attackButton) attackButton.disabled = !playerTurn;
     if (defendButton) defendButton.disabled = !playerTurn;
     if (skillButton) skillButton.disabled = !playerTurn || combat.resources.playerSkill <= 0;
 
     if (startButton) startButton.hidden = Boolean(combat);
-    if (restartButton) restartButton.hidden = !combat || combat.outcome === window.GameState.OUTCOME.IN_PROGRESS;
+    if (restartButton) restartButton.hidden = !combat || inProgress;
   }
 
   window.CariCombat = Object.freeze({
