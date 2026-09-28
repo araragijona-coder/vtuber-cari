@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {runPhase7} from './phase7_redline_causal.mjs';
+const x=runPhase7();
+assert.equal(x.seeds.count,10000);
+assert.equal(x.A.simulations,10000);
+assert.equal(x.B.simulations,10000);
+assert.equal(x.A.nitroAllocation.redline,0);
+assert.ok(x.B.nitroAllocation.redline>0);
+assert.ok(x.paired.actionDivergence>0);
+assert.ok(x.paired.timingDivergence>0);
+assert.equal(x.determinism.A,true);
+assert.equal(x.determinism.B,true);
+assert.equal(x.counterfactuals.length,4);
+console.log('phase7_redline_causal.test.mjs: PASS');
