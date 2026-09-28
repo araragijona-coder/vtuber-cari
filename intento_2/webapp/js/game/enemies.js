@@ -8,84 +8,56 @@
     ELITE: "ELITE"
   });
 
-  const ENEMY_DEFINITIONS = Object.freeze({
-    street_punk: Object.freeze({
-      id: "street_punk",
-      name: "STREET PUNK",
-      archetype: ARCHETYPES.AGGRESSIVE,
-      maxHp: 100,
-      attack: 14,
-      defense: 0,
-      actions: Object.freeze(["ATTACK"]),
-      aiProfile: "AGGRESSIVE_ATTACK"
-    }),
-    iron_guard: Object.freeze({
-      id: "iron_guard",
-      name: "IRON GUARD",
-      archetype: ARCHETYPES.DEFENSIVE,
-      maxHp: 130,
-      attack: 10,
-      defense: 6,
-      actions: Object.freeze(["ATTACK", "DEFEND"]),
-      aiProfile: "DEFEND_LOW_HP"
-    }),
-    nitro_raider: Object.freeze({
-      id: "nitro_raider",
-      name: "NITRO RAIDER",
-      archetype: ARCHETYPES.TACTICAL,
-      maxHp: 110,
-      attack: 12,
-      defense: 3,
-      actions: Object.freeze(["ATTACK", "DEFEND"]),
-      aiProfile: "ALTERNATE_TURN"
-    }),
-    banchou_rookie: Object.freeze({
-      id: "banchou_rookie",
-      name: "BANCHOU ROOKIE",
-      archetype: ARCHETYPES.ELITE,
-      maxHp: 180,
-      attack: 18,
-      defense: 5,
-      actions: Object.freeze(["ATTACK", "DEFEND"]),
-      aiProfile: "ELITE_PRIORITY"
-    })
+  const IDENTITY = Object.freeze({
+    street_punk: Object.freeze({ visualProfile: "street-rider", combatProfile: "pressure", futurePlayableProfile: "aggressive-rider" }),
+    iron_guard: Object.freeze({ visualProfile: "armored-guard", combatProfile: "fortress", futurePlayableProfile: "defensive-rider" }),
+    nitro_raider: Object.freeze({ visualProfile: "nitro-raider", combatProfile: "tempo", futurePlayableProfile: "tactical-rider" }),
+    banchou_rookie: Object.freeze({ visualProfile: "rookie-banchou", combatProfile: "elite", futurePlayableProfile: "elite-rider" })
   });
 
-  const ENEMY_SEQUENCE = Object.freeze([
-    "street_punk",
-    "iron_guard",
-    "nitro_raider",
-    "banchou_rookie"
-  ]);
+  const META = Object.freeze({
+    street_punk: Object.freeze({ name: "STREET PUNK", archetype: ARCHETYPES.AGGRESSIVE, actions: Object.freeze(["ATTACK"]), aiProfile: "AGGRESSIVE_ATTACK" }),
+    iron_guard: Object.freeze({ name: "IRON GUARD", archetype: ARCHETYPES.DEFENSIVE, actions: Object.freeze(["ATTACK", "DEFEND"]), aiProfile: "DEFEND_LOW_HP" }),
+    nitro_raider: Object.freeze({ name: "NITRO RAIDER", archetype: ARCHETYPES.TACTICAL, actions: Object.freeze(["ATTACK", "DEFEND"]), aiProfile: "ALTERNATE_TURN" }),
+    banchou_rookie: Object.freeze({ name: "BANCHOU ROOKIE", archetype: ARCHETYPES.ELITE, actions: Object.freeze(["ATTACK", "DEFEND"]), aiProfile: "ELITE_PRIORITY" })
+  });
 
-  function clone(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
+  const ENEMY_SEQUENCE = Object.freeze(Object.keys(META));
 
   function definitionFor(enemyId) {
-    return ENEMY_DEFINITIONS[String(enemyId)] || null;
+    const id = String(enemyId);
+    const balance = window.CombatBalance.enemy(id);
+    const meta = META[id];
+    if (!balance || !meta) return null;
+    return Object.freeze({
+      id,
+      name: meta.name,
+      archetype: meta.archetype,
+      maxHp: balance.maxHp,
+      attack: balance.attack,
+      defense: balance.defense,
+      actions: meta.actions,
+      aiProfile: balance.aiProfile,
+      identity: IDENTITY[id]
+    });
   }
 
   function createEnemy(enemyId) {
     const definition = definitionFor(enemyId);
     if (!definition) throw new Error("UNKNOWN_ENEMY:" + String(enemyId));
-
     return {
       id: definition.id,
       name: definition.name,
       archetype: definition.archetype,
       hp: definition.maxHp,
       maxHp: definition.maxHp,
-      stats: {
-        atk: definition.attack,
-        def: definition.defense,
-        skillDamage: definition.attack
-      },
+      stats: { atk: definition.attack, def: definition.defense, skillDamage: definition.attack },
       attack: definition.attack,
       defense: definition.defense,
       actions: [...definition.actions],
       availableActions: [...definition.actions],
       aiProfile: definition.aiProfile,
+      identity: { ...definition.identity },
       defending: false
     };
   }
@@ -97,11 +69,9 @@
 
   window.EnemyCatalog = Object.freeze({
     ARCHETYPES,
-    ENEMY_DEFINITIONS,
     ENEMY_SEQUENCE,
     definitionFor,
     createEnemy,
-    sequenceAt,
-    clone
+    sequenceAt
   });
 })();

@@ -21,7 +21,7 @@
     return JSON.parse(JSON.stringify(value));
   }
 
-  function createCombatant({ id, hp, maxHp = hp, stats = {}, name = "", archetype = "", actions = [], availableActions = actions, aiProfile = "" }) {
+  function createCombatant({ id, hp, maxHp = hp, stats = {}, name = "", archetype = "", actions = [], availableActions = actions, aiProfile = "", identity = null }) {
     const safeMaxHp = Math.max(1, Number(maxHp) || 1);
     const safeHp = Math.min(safeMaxHp, Math.max(0, Number(hp) || 0));
     return {
@@ -38,6 +38,7 @@
       actions: Array.isArray(actions) ? [...actions] : [],
       availableActions: Array.isArray(availableActions) ? [...availableActions] : [],
       aiProfile: String(aiProfile || ""),
+      identity: identity ? clone(identity) : null,
       defending: false
     };
   }
@@ -54,7 +55,8 @@
         archetype: enemyConfig.archetype ?? catalogEnemy.archetype,
         actions: enemyConfig.actions || catalogEnemy.actions,
         availableActions: enemyConfig.availableActions || catalogEnemy.availableActions,
-        aiProfile: enemyConfig.aiProfile ?? catalogEnemy.aiProfile
+        aiProfile: enemyConfig.aiProfile ?? catalogEnemy.aiProfile,
+        identity: enemyConfig.identity || catalogEnemy.identity
       });
     }
     return createCombatant({
@@ -74,21 +76,10 @@
     const playerId = String(options.playerId || "local-player");
     return {
       screen: "MAIN",
-      player: {
-        id: playerId,
-        xp: 0,
-        level: 1,
-        currency: 0,
-        wins: 0,
-        losses: 0,
-        currentBattleId: null
-      },
+      player: { id: playerId, xp: 0, level: 1, currency: 0, wins: 0, losses: 0, currentBattleId: null },
       combat: null,
       progression: {},
-      session: {
-        lastMessage: "Esperando una batalla.",
-        actionCounter: 0
-      }
+      session: { lastMessage: "Esperando una batalla.", actionCounter: 0, battleSequence: 0 }
     };
   }
 
@@ -97,12 +88,16 @@
     const playerConfig = config.player || {};
     const enemyConfig = config.enemy || {};
     const battleId = String(config.battleId || "battle-mvp-1");
+    const seed = window.CombatRNG.normalizeSeed(config.seed ?? battleId);
     const enemy = createEnemyCombatant(enemyConfig);
+    state.session.battleSequence += 1;
 
     state.screen = "BATTLE";
     state.player.currentBattleId = battleId;
     state.combat = {
       battleId,
+      seed,
+      rng: window.CombatRNG.create(seed),
       phase: PHASE.PLAYER_TURN,
       turn: 1,
       player: createCombatant({
@@ -115,10 +110,7 @@
       activeActor: "player",
       lastAction: null,
       outcome: OUTCOME.IN_PROGRESS,
-      resources: {
-        playerSkill: 1,
-        ...window.EnergySystem.createEnergy(3)
-      },
+      resources: { playerSkill: 1, ...window.EnergySystem.createEnergy(3) },
       cards: window.CardSystem.createCombatDeckState(4)
     };
     window.CardSystem.drawCards(state.combat.cards, 4);
@@ -139,13 +131,5 @@
     return clone(state);
   }
 
-  window.GameState = Object.freeze({
-    OUTCOME,
-    PHASE,
-    createCombatant,
-    createGameState,
-    startBattle,
-    setMain,
-    snapshot
-  });
+  window.GameState = Object.freeze({ OUTCOME, PHASE, createCombatant, createGameState, startBattle, setMain, snapshot });
 })();

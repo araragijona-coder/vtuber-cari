@@ -4,17 +4,19 @@ import { test } from "node:test";
 import vm from "node:vm";
 
 async function loadCatalog() {
-  const context = vm.createContext({ window: {}, JSON, Number, String, Object, Array, Error });
-  vm.runInContext(await readFile("intento_2/webapp/js/game/enemies.js", "utf8"), context);
+  const context = vm.createContext({ window: {}, Number, String, Object, Array, Error });
+  for (const path of [
+    "intento_2/webapp/js/game/balance.js",
+    "intento_2/webapp/js/game/enemies.js"
+  ]) vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
   return context.window.EnemyCatalog;
 }
 
 test("MVP enemy catalog has four unique valid definitions", async () => {
   const catalog = await loadCatalog();
-  const ids = catalog.ENEMY_SEQUENCE;
-  assert.equal(ids.length, 4);
-  assert.equal(new Set(ids).size, 4);
-  for (const id of ids) {
+  assert.equal(catalog.ENEMY_SEQUENCE.length, 4);
+  assert.equal(new Set(catalog.ENEMY_SEQUENCE).size, 4);
+  for (const id of catalog.ENEMY_SEQUENCE) {
     const enemy = catalog.definitionFor(id);
     assert.ok(enemy);
     assert.ok(enemy.name);
@@ -25,6 +27,8 @@ test("MVP enemy catalog has four unique valid definitions", async () => {
     assert.ok(Array.isArray(enemy.actions));
     assert.ok(enemy.actions.includes("ATTACK"));
     assert.ok(enemy.aiProfile);
+    assert.ok(enemy.identity.visualProfile);
+    assert.ok(enemy.identity.futurePlayableProfile);
   }
 });
 
@@ -35,9 +39,11 @@ test("createEnemy creates independent state copies", async () => {
   first.hp = 1;
   first.stats.atk = 999;
   first.actions.push("SKILL");
+  first.identity.visualProfile = "mutated";
   assert.equal(second.hp, second.maxHp);
   assert.notEqual(second.stats.atk, 999);
   assert.equal(second.actions.includes("SKILL"), false);
+  assert.notEqual(second.identity.visualProfile, "mutated");
   assert.equal(catalog.definitionFor("iron_guard").maxHp, 130);
 });
 

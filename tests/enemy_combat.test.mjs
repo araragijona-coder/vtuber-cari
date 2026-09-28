@@ -8,6 +8,8 @@ async function loadCombat() {
     window: {}, JSON, Number, String, Object, Array, Error, TypeError, Math
   });
   for (const path of [
+    "intento_2/webapp/js/game/balance.js",
+    "intento_2/webapp/js/game/rng.js",
     "intento_2/webapp/js/game/cards.js",
     "intento_2/webapp/js/game/energy.js",
     "intento_2/webapp/js/game/enemies.js",
@@ -15,16 +17,15 @@ async function loadCombat() {
     "intento_2/webapp/js/game/actions.js",
     "intento_2/webapp/js/game/rules.js",
     "intento_2/webapp/js/game/enemy.js"
-  ]) {
-    vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
-  }
+  ]) vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
   return context.window;
 }
 
-function battle(w, enemyId) {
+function battle(w, enemyId, seed = 424242) {
   const state = w.GameState.createGameState({ playerId: "test-player" });
   w.GameState.startBattle(state, {
     battleId: "test-battle",
+    seed,
     player: { id: "player", hp: 120, maxHp: 120, stats: { atk: 20, def: 5, skillDamage: 40 } },
     enemy: w.EnemyCatalog.createEnemy(enemyId)
   });
@@ -33,21 +34,20 @@ function battle(w, enemyId) {
   return state;
 }
 
-test("enemy attack changes HP only after CombatEngine resolution", async () => {
+test("enemy attack changes HP only through CombatEngine", async () => {
   const w = await loadCombat();
   const state = battle(w, "street_punk");
   const before = state.combat.player.hp;
   const action = w.EnemyAI.decide(state);
   assert.equal(state.combat.player.hp, before);
   const resolution = w.CombatEngine.resolveAction(state, action);
-  assert.equal(resolution.damage, 9);
-  assert.equal(state.combat.player.hp, before - 9);
+  assert.ok(resolution.damage >= 7 && resolution.damage <= 9);
+  assert.equal(state.combat.player.hp, before - resolution.damage);
 });
 
 test("enemy defend flows through the same resolution path", async () => {
   const w = await loadCombat();
   const state = battle(w, "iron_guard");
-  state.combat.turn = 1;
   state.combat.enemy.hp = 40;
   const action = w.EnemyAI.decide(state);
   assert.equal(action.type, "DEFEND");

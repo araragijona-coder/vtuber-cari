@@ -12,25 +12,25 @@
       id: "disparo_neon",
       name: "DISPARO NEÓN",
       type: CARD_TYPES.ATTACK,
-      cost: 1,
-      damage: 18,
-      description: "Ataque directo que inflige 18 de daño."
+      cost: window.CombatBalance.card("disparo_neon").cost,
+      damage: window.CombatBalance.card("disparo_neon").damage,
+      description: "Ataque fiable: daño moderado con variación y crítico controlados."
     }),
     embestida_nitro: Object.freeze({
       id: "embestida_nitro",
       name: "EMBESTIDA NITRO",
       type: CARD_TYPES.ATTACK,
-      cost: 2,
-      damage: 38,
-      description: "Ataque pesado que inflige 38 de daño."
+      cost: window.CombatBalance.card("embestida_nitro").cost,
+      damage: window.CombatBalance.card("embestida_nitro").damage,
+      description: "Golpe pesado: mayor riesgo de variación, pero más daño y crítico."
     }),
     escudo_dark: Object.freeze({
       id: "escudo_dark",
       name: "ESCUDO DARK",
       type: CARD_TYPES.DEFEND,
-      cost: 1,
-      damage: 0,
-      description: "Activa defensa simple y reduce a la mitad el próximo daño recibido."
+      cost: window.CombatBalance.card("escudo_dark").cost,
+      damage: window.CombatBalance.card("escudo_dark").damage,
+      description: "Reduce a la mitad el próximo daño recibido. Consume una acción."
     })
   });
 
@@ -48,59 +48,51 @@
     return CARD_DEFINITIONS[String(cardId)] || null;
   }
 
-  function createDeck() {
-    return INITIAL_DECK.map((cardId, index) => ({
-      instanceId: "card-" + String(index + 1),
-      cardId
-    }));
+  function createPhysicalCard(cardId, index) {
+    const definition = definitionFor(cardId);
+    if (!definition) throw new Error("UNKNOWN_CARD:" + String(cardId));
+    return { instanceId: cardId + "-" + index, cardId };
   }
 
   function createCombatDeckState(handLimit = 4) {
-    const drawPile = createDeck();
     return {
       handLimit: Math.max(1, Number(handLimit) || 4),
-      drawPile,
+      drawPile: INITIAL_DECK.map(createPhysicalCard),
       hand: [],
       discardPile: []
     };
   }
 
-  function drawCards(combat, count = 1) {
-    const drawn = [];
-    const amount = Math.max(0, Number(count) || 0);
-
-    for (let i = 0; i < amount; i += 1) {
-      if (combat.hand.length >= combat.handLimit) break;
-
-      if (combat.drawPile.length === 0 && combat.discardPile.length > 0) {
-        combat.drawPile = combat.discardPile.splice(0);
-      }
-
-      if (combat.drawPile.length === 0) break;
-
-      const card = combat.drawPile.shift();
-      combat.hand.push(card);
-      drawn.push(clone(card));
+  function drawCard(state) {
+    if (!state || state.hand.length >= state.handLimit) return null;
+    if (state.drawPile.length === 0 && state.discardPile.length > 0) {
+      state.drawPile = state.discardPile.splice(0);
     }
+    const card = state.drawPile.shift() || null;
+    if (card) state.hand.push(card);
+    return card;
+  }
 
+  function drawCards(state, count) {
+    const drawn = [];
+    for (let index = 0; index < Number(count); index += 1) {
+      const card = drawCard(state);
+      if (!card) break;
+      drawn.push(card);
+    }
     return drawn;
   }
 
-  function cardInHand(combat, cardInstanceId) {
-    return combat.hand.find((card) => card.instanceId === String(cardInstanceId)) || null;
+  function cardInHand(state, instanceId) {
+    return state?.hand?.find((card) => card.instanceId === String(instanceId)) || null;
   }
 
-  function playCard(combat, cardInstanceId) {
-    const index = combat.hand.findIndex((card) => card.instanceId === String(cardInstanceId));
+  function playCard(state, instanceId) {
+    const index = state.hand.findIndex((card) => card.instanceId === String(instanceId));
     if (index < 0) return null;
-
-    const [card] = combat.hand.splice(index, 1);
-    combat.discardPile.push(card);
-    return clone(card);
-  }
-
-  function discardCard(combat, cardInstanceId) {
-    return playCard(combat, cardInstanceId);
+    const [card] = state.hand.splice(index, 1);
+    state.discardPile.push(card);
+    return card;
   }
 
   function hydrateCard(card) {
@@ -112,13 +104,12 @@
     CARD_TYPES,
     CARD_DEFINITIONS,
     INITIAL_DECK,
-    createDeck,
+    definitionFor,
     createCombatDeckState,
+    drawCard,
     drawCards,
     cardInHand,
     playCard,
-    discardCard,
-    definitionFor,
     hydrateCard
   });
 })();

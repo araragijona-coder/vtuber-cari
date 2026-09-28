@@ -68,6 +68,7 @@
     view.impact = {
       team: resolution.targetId === view.gameState.combat.player.id ? "player" : "enemy",
       damage: resolution.damage,
+      critical: Boolean(resolution.critical),
       startedAt: performance.now()
     };
   }
@@ -143,10 +144,10 @@
     if (enemyArchetypeEl) enemyArchetypeEl.textContent = combat?.enemy?.archetype || "—";
     if (turnEl) turnEl.textContent = combat ? String(combat.turn) : "—";
     if (actorEl) actorEl.textContent = combat ? (combat.activeActor === "player" ? "PLAYER" : "ENEMY") : "—";
-    if (lastActionEl) lastActionEl.textContent = formatLastAction(combat);
+    if (lastActionEl) lastActionEl.textContent = formatLastAction(combat) + (combat?.lastAction?.critical ? " · CRÍTICO" : "");
     if (statusValueEl) statusValueEl.textContent = outcome || "READY";
     if (energyEl) energyEl.textContent = combat ? combat.resources.energy + " / " + combat.resources.maxEnergy : "—";
-    if (resultEl) resultEl.textContent = outcome === window.GameState.OUTCOME.VICTORY ? "VICTORY" : outcome === window.GameState.OUTCOME.DEFEAT ? "DEFEAT" : "";
+    if (resultEl) resultEl.textContent = outcome === window.GameState.OUTCOME.VICTORY ? "VICTORY" : outcome === window.GameState.OUTCOME.DEFEAT ? "DEFEAT" : (combat?.lastAction?.damage > 0 ? ((combat.lastAction.critical ? "CRÍTICO · " : "") + "-" + combat.lastAction.damage) : "");
     if (statusEl) statusEl.textContent = game?.session?.lastMessage || "Esperando una batalla.";
     if (startButton) startButton.hidden = Boolean(combat);
     if (restartButton) restartButton.hidden = !combat || outcome === window.GameState.OUTCOME.IN_PROGRESS;
