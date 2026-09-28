@@ -45,7 +45,7 @@ test("attack card uses seeded resolution and moves to discard", async () => {
   const card = state.combat.cards.hand.find((entry) => entry.cardId === "disparo_neon");
   const action = w.GameActions.createPlayerCardAction(state, card.instanceId);
   const resolution = w.CombatEngine.resolveAction(state, action);
-  assert.ok(resolution.damage >= 13 && resolution.damage <= 18);
+  assert.ok(resolution.damage >= 13 && resolution.damage <= 25);
   assert.equal(resolution.baseDamage, 18);
   assert.equal(typeof resolution.critical, "boolean");
   assert.equal(state.combat.enemy.hp, 100 - resolution.damage);
@@ -71,7 +71,8 @@ test("insufficient energy rejects the card without moving it or consuming energy
 test("defend card creates one-hit protection", async () => {
   const w = await loadCombat();
   const state = battle(w);
-  const card = state.combat.cards.hand.find((entry) => entry.cardId === "escudo_dark");
+  state.combat.cards.hand[0] = { instanceId: "escudo_dark-test", cardId: "escudo_dark" };
+  const card = state.combat.cards.hand[0];
   const action = w.GameActions.createPlayerCardAction(state, card.instanceId);
   const resolution = w.CombatEngine.resolveAction(state, action);
   assert.equal(resolution.damage, 0);

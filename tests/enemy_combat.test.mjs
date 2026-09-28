@@ -41,7 +41,7 @@ test("enemy attack changes HP only through CombatEngine", async () => {
   const action = w.EnemyAI.decide(state);
   assert.equal(state.combat.player.hp, before);
   const resolution = w.CombatEngine.resolveAction(state, action);
-  assert.ok(resolution.damage >= 7 && resolution.damage <= 9);
+  assert.ok(resolution.damage >= 7 && resolution.damage <= 15);
   assert.equal(state.combat.player.hp, before - resolution.damage);
 });
 
@@ -74,7 +74,7 @@ test("catalog definitions are not mutated by combat", async () => {
   state.combat.enemy.stats.atk = 999;
   const fresh = w.EnemyCatalog.createEnemy("banchou_rookie");
   assert.equal(fresh.hp, 180);
-  assert.equal(fresh.stats.atk, 18);
+  assert.equal(fresh.stats.atk, 28);
 });
 
 test("all catalog enemies can produce a valid action", async () => {

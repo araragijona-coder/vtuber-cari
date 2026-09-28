@@ -57,10 +57,20 @@ test("different seeds can change a resolution", async () => {
   assert.ok(results.size > 1);
 });
 
+test("card damage resolution remains finite and HP bounded", async () => {
+  const w = await loadCombat();
+  const state = battle(w, 1);
+  const result = firstAttack(w, state);
+  assert.equal(Number.isFinite(result.damage), true);
+  assert.equal(Number.isFinite(state.combat.enemy.hp), true);
+  assert.ok(state.combat.enemy.hp >= 0 && state.combat.enemy.hp <= state.combat.enemy.maxHp);
+});
+
 test("defense consumes the next-hit protection", async () => {
   const w = await loadCombat();
   const state = battle(w, 100, "street_punk");
-  const shield = state.combat.cards.hand.find((entry) => entry.cardId === "escudo_dark");
+  state.combat.cards.hand[0] = { instanceId: "escudo_dark-test", cardId: "escudo_dark" };
+  const shield = state.combat.cards.hand[0];
   const defend = w.GameActions.createPlayerCardAction(state, shield.instanceId);
   w.CombatEngine.resolveAction(state, defend);
   const enemyAction = w.EnemyAI.decide(state);

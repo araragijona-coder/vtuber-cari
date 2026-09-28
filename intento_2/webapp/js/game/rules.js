@@ -47,7 +47,12 @@
   }
 
   function balanceForAction(action, definition = null) {
-    if (action.type === ACTION_TYPES.CARD && definition) return window.CombatBalance.card(definition.id);
+    if (action.type === ACTION_TYPES.CARD && definition) {
+      return Object.freeze({
+        ...window.CombatBalance.BALANCE.damage,
+        ...window.CombatBalance.card(definition.id)
+      });
+    }
     return window.CombatBalance.BALANCE.damage;
   }
 

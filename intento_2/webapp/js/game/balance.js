@@ -31,7 +31,7 @@
       street_punk: Object.freeze({ maxHp: 100, attack: 14, defense: 0, aiProfile: "AGGRESSIVE_ATTACK" }),
       iron_guard: Object.freeze({ maxHp: 130, attack: 10, defense: 6, aiProfile: "DEFEND_LOW_HP" }),
       nitro_raider: Object.freeze({ maxHp: 110, attack: 12, defense: 3, aiProfile: "ALTERNATE_TURN" }),
-      banchou_rookie: Object.freeze({ maxHp: 180, attack: 18, defense: 5, aiProfile: "ELITE_PRIORITY" })
+      banchou_rookie: Object.freeze({ maxHp: 180, attack: 28, defense: 5, aiProfile: "ELITE_PRIORITY" })
     })
   });
 
