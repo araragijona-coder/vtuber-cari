@@ -1,0 +1,103 @@
+name: rocket-bunny-phase12r-real-cost
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase12r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout experiment commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify mandatory base and experiment checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="109bb04255e578b14aa6d942d2180451e4fba580"
+          HEAD="$(git rev-parse HEAD)"
+          PARENT="$(git rev-parse HEAD^)"
+          printf 'HEAD=%s\nPARENT=%s\nBASE=%s\n' "$HEAD" "$PARENT" "$BASE"
+          test "$PARENT" = "$BASE"
+          git merge-base --is-ancestor "$BASE" "$HEAD"
+
+      - name: Verify historical files and production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f tools/design_prototypes/rocket_bunny_phase6/phase6_redline.mjs
+          test -f tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs
+          test -f tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.test.mjs
+          test -f tools/design_prototypes/rocket_bunny_phase10/phase10_redline_cost.mjs
+          test -f tools/design_prototypes/rocket_bunny_phase11/phase11_nitro_25_29.mjs
+          git show "109bb04255e578b14aa6d942d2180451e4fba580:intento_2/webapp/index.html" > /tmp/index-baseline.html
+          cmp -s /tmp/index-baseline.html intento_2/webapp/index.html
+
+      - name: Configure Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run authentic Phase 9 regression
+        shell: bash
+        run: node tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs | tee phase9-output.json
+
+      - name: Validate Phase 9 control
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const r=JSON.parse(fs.readFileSync('phase9-output.json','utf8'));
+          const e={setA:9548,setB:1687,setC:961,union:10274};
+          for(const [k,v] of Object.entries(e))if(r.candidateCounts[k]!==v)throw new Error(`Phase9 mismatch ${k}=${r.candidateCounts[k]} expected ${v}`);
+          console.log('PHASE9_CONTROL A=9548 B=1687 C=961 UNION=10274');
+          NODE
+
+      - name: Run historical Phase 9 test
+        shell: bash
+        run: node tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.test.mjs
+
+      - name: Run Phase 12R experiment
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/design_prototypes/rocket_bunny_phase12r/phase12r_real_cost.mjs | tee phase12r-output.json
+
+      - name: Run Phase 12R test suite
+        shell: bash
+        run: node tools/design_prototypes/rocket_bunny_phase12r/phase12r_real_cost.test.mjs
+
+      - name: Verify only research files changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only 109bb04255e578b14aa6d942d2180451e4fba580 HEAD)"
+          printf '%s\n' "$changed"
+          test -n "$changed"
+          while IFS= read -r file; do
+            case "$file" in
+              .github/workflows/rocket-bunny-phase12r.yml|tools/design_prototypes/rocket_bunny_phase12r/*) ;;
+              *) echo "UNAUTHORIZED_FILE=$file"; exit 1 ;;
+            esac
+          done <<< "$changed"
+          test "$(printf '%s\n' "$changed" | grep -c '^\.github/workflows/rocket-bunny-phase12r\.yml$')" -eq 1
+
+      - name: Upload Phase 12R evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocket-bunny-phase12r-evidence
+          path: |
+            phase9-output.json
+            phase12r-output.json
+          if-no-files-found: warn
