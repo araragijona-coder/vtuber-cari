@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {DECK,ENEMIES,POLICIES,SEEDS,run,paired,experiment} from './phase4_counterfactual.mjs';
+assert.equal(SEEDS.length,10000);
+assert.deepEqual(DECK,['shot','shot','guard','pump','ram','guard','ram']);
+assert.deepEqual(ENEMIES,['basic','reactive','pressure']);
+assert.deepEqual(POLICIES,['aggressive','defensive','generator','redline','adaptive']);
+const c=run(100001,false),n=run(100002,true);
+assert.equal(c.nitroGenerated,0);assert.equal(c.nitroSpent,0);assert.equal(c.redlineUses,0);
+assert.ok(n.nitroGenerated>0);assert.ok(n.nitroSpent>0);
+assert.ok(paired(100002).actionDiverged);
+const r=experiment();
+assert.equal(r.models.nitro_off.simulations,10000);
+assert.equal(r.models.nitro_on.simulations,10000);
+assert.ok(r.pairedSummary.actionDivergenceRate>0);
+assert.ok(r.pairedSummary.timingDivergenceRate>0);
+assert.ok(r.nitroSpendingDistribution.ramShareOfNitroSpenderActions>0);
+assert.equal(r.determinism.samePairedResults,true);
+console.log('phase4 tests: PASS');
