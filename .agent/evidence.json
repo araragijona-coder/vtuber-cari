@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "evidence": [{
+    "evidence_id": "GIT-FASE1-BASE",
+    "type": "GIT",
+    "source": "GitHub API compare cari-studio against required base",
+    "timestamp": "2026-09-28T05:14:02Z",
+    "status": "INSPECTED",
+    "command": null,
+    "cwd": null,
+    "exit_code": null,
+    "stdout": null,
+    "stderr": null,
+    "duration_ms": null,
+    "base_sha": "15ca16f506900055d4be696bec958d1250f3c2fd",
+    "head_sha": "15ca16f506900055d4be696bec958d1250f3c2fd",
+    "git_status": "REMOTE_COMPARE_IDENTICAL",
+    "changed_files": [],
+    "path": null,
+    "exists": null,
+    "file_type": null,
+    "size": null,
+    "hash": null
+  }]
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "BOT-IA-FASE-1",
+  "timestamp": "2026-09-28T05:14:02Z",
+  "base_sha": "15ca16f506900055d4be696bec958d1250f3c2fd",
+  "current_sha": "15ca16f506900055d4be696bec958d1250f3c2fd",
+  "phase": "INIT",
+  "status": "RUNNING",
+  "scope": {
+    "allowed_files": [],
+    "allowed_directories": ["app/supervisor/", ".agent/", "tests/supervisor/"],
+    "allowed_operations": ["create", "modify", "read", "test"]
+  },
+  "protected_paths": ["app/brain/", "app/intelligence/", "app/memory/", "app/pipeline/", "app/twitch/", "main", "intento_2/", "Rocket Bunny Petty"],
+  "modified_files": [],
+  "evidence_ids": ["GIT-FASE1-BASE"]
+}

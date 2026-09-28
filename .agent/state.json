@@ -1,0 +1,28 @@
+{
+  "task_id": "BOT-IA-FASE-1",
+  "task": "",
+  "repo": "araragijona-coder/vtuber-cari",
+  "base_sha": "15ca16f506900055d4be696bec958d1250f3c2fd",
+  "current_sha": null,
+  "phase": "INIT",
+  "status": "RUNNING",
+  "scope": {
+    "allowed_files": [],
+    "allowed_directories": ["app/supervisor/", ".agent/", "tests/supervisor/"],
+    "allowed_operations": ["create", "modify", "read", "test"]
+  },
+  "protected_paths": ["app/brain/", "app/intelligence/", "app/memory/", "app/pipeline/", "app/twitch/", "main", "intento_2/", "Rocket Bunny Petty"],
+  "modified_files": [],
+  "created_files": [],
+  "deleted_files": [],
+  "renamed_files": [],
+  "tests_required": [],
+  "tests_executed": [],
+  "claims": [],
+  "evidence_ids": ["GIT-FASE1-BASE"],
+  "blockers": [],
+  "repair_attempts": [],
+  "next_action": "Observe repository before implementation",
+  "created_at": "2026-09-28T05:14:02Z",
+  "updated_at": "2026-09-28T05:14:02Z"
+}
