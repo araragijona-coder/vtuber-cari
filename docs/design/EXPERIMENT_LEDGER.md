@@ -12,3 +12,11 @@ Frozen union: all 10,274 states have Nitro >=30, so forced resolution is identic
 Phase 10B: cost 25 fixed; amplification changes ATTACK incoming 45->56 while resource/action accounting remains unchanged.
 Decision: SUPPORTS / MODIFY.
 Next: targeted 25–29 Nitro state generation and human playtest.
+
+## Phase 11
+Base: b9ccbe8bfea3f1c2e1e1cc24321182c87dc68e99
+Question: Can valid Nitro 25–29 states be generated without changing the historical Redline/Nitro mechanics?
+Method: exact Phase 9 control first; 10,000-seed adaptive reachability audit; controlled action-selection harness using exact Phase 6 runtime; 250-seed deterministic replay.
+Control: A=9,548; B=1,687; C=961; Union=10,274; PASS.
+Result: historical Nitro values preserve modulo 5. Nitro 26–29 are unreachable. One mechanically reached Nitro-25 proof state was reproduced at seed 107771; it is not a >=500-state population.
+Decision: BLOCKED / RESEARCH MORE. Full cost-25-vs-30 paired damage/risk experiment was not run.

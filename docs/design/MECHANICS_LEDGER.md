@@ -18,3 +18,6 @@ Phase 9: SUPPORTS / RESEARCH MORE.
 Phase 10: SUPPORTS / MODIFY.
 
 Phase 10 found additional observed Redline eligibility at Nitro 20–24 for cost 20, while costs 25 and 30 were identical in the 10,000-seed adaptive sample. The Phase 9 union had Nitro >=30 throughout, so forced-resolution math did not separate 25 from 30.
+
+## Phase 11 reachability fact
+Phase 11 VERIFIED that the historical Nitro arithmetic preserves multiples of 5: initial 0; +35 Pump; -25 Guard; -40 Ram; -25 Redline; cap 100. Therefore Nitro 26–29 are unreachable without changing the mechanics. A controlled, mechanically reached Nitro-25 state was reproduced at seed 107771. Phase 11 was BLOCKED before full 25-vs-30 paired resolution.
