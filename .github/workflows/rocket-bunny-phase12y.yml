@@ -1,0 +1,85 @@
+name: rocket-bunny-phase12y-execution-bridge
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase12y:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mandatory historical revision
+        uses: actions/checkout@v4
+        with:
+          ref: d22a31d7a57c73ae6fc6f0856b14d4acf2ecd228
+          fetch-depth: 1
+
+      - name: Verify checked-out SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD="$(git rev-parse HEAD)"
+          EXPECTED="d22a31d7a57c73ae6fc6f0856b14d4acf2ecd228"
+          printf 'HEAD=%s\nEXPECTED=%s\n' "$HEAD" "$EXPECTED"
+          test "$HEAD" = "$EXPECTED"
+
+      - name: Configure Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify Node and historical files
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          npm --version
+          test -f tools/design_prototypes/rocket_bunny_phase6/phase6_redline.mjs
+          test -f tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs
+          test -f tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.test.mjs
+          test -f tools/design_prototypes/rocket_bunny_phase10/phase10_redline_cost.mjs
+          test -f tools/design_prototypes/rocket_bunny_phase11/phase11_nitro_25_29.mjs
+
+      - name: Execute real Phase 9 harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs | tee phase9-output.json
+
+      - name: Validate Phase 9 control
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const result = JSON.parse(fs.readFileSync('phase9-output.json', 'utf8'));
+          const expected = {setA: 9548, setB: 1687, setC: 961, union: 10274};
+          const actual = result.candidateCounts;
+          for (const [key, value] of Object.entries(expected)) {
+            if (actual[key] !== value) {
+              throw new Error(`Phase 9 control mismatch: ${key}=${actual[key]}, expected ${value}`);
+            }
+          }
+          console.log(`PHASE9_CONTROL A=${actual.setA} B=${actual.setB} C=${actual.setC} UNION=${actual.union}`);
+          NODE
+
+      - name: Execute real Phase 9 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.test.mjs | tee phase9-test.log
+
+      - name: Upload raw research execution logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocket-bunny-phase12y-phase9-execution
+          path: |
+            phase9-output.json
+            phase9-test.log
+          if-no-files-found: warn
