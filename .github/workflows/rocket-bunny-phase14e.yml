@@ -1,0 +1,78 @@
+name: rocket-bunny-phase14e
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/design_prototypes/rocket_bunny_phase14e/**'
+      - '.github/workflows/rocket-bunny-phase14e.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  ARTIFACT_ID: 11051122672
+  ARTIFACT_SHA256: acd9dea52a01069790f6165a57753353bc45178d6a68a92d81bb1c9d338166e7
+  JSON_SHA256: 4f239b3ac7df734d56f0be5dba70003bc7448948ad5adc83ade7bb3c6c913ad1
+  SOURCE_COMMIT: 60b2fe0adefff620cf5865d5d6757c26d935bf0b
+
+jobs:
+  phase14e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout analysis commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Configure Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download immutable Phase 14-B artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p phase14e-input
+          curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" -o phase14e-input/phase14b.zip
+          echo "${ARTIFACT_SHA256}  phase14e-input/phase14b.zip" | sha256sum -c -
+          unzip -q phase14e-input/phase14b.zip -d phase14e-input/unpacked
+          echo "${JSON_SHA256}  phase14e-input/unpacked/rocket-bunny-phase14b.json" | sha256sum -c -
+      - name: Verify historical source commit
+        run: test "$(git rev-parse "${SOURCE_COMMIT}^{commit}")" = "${SOURCE_COMMIT}"
+      - name: Static check
+        run: node --check tools/design_prototypes/rocket_bunny_phase14e/phase14e_reconstruct.mjs
+      - name: Reconstruct Phase 14-E analysis
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          rm -rf phase14e-output && mkdir -p phase14e-output
+          node tools/design_prototypes/rocket_bunny_phase14e/phase14e_reconstruct.mjs phase14e-input/unpacked/rocket-bunny-phase14b.json phase14e-output/phase14e-reconstructed-evidence.json phase14e-output/phase14e-reconstructed-report.md
+      - name: Validate provenance contract
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const r=JSON.parse(fs.readFileSync('phase14e-output/phase14e-reconstructed-evidence.json','utf8'));
+          if(r.classification!=='RECONSTRUCTED_WITH_EXPLICIT_METHOD')throw new Error('classification');
+          if(r.bootstrapProvenance.bootstrapResamples!==10000)throw new Error('resamples');
+          if(r.bootstrapProvenance.bootstrapSeed!==141405)throw new Error('seed');
+          if(r.bootstrapProvenance.intervalMethod!=='percentile')throw new Error('interval method');
+          if(r.bootstrapProvenance.confidenceLevel!==0.95)throw new Error('confidence');
+          if(r.bootstrapProvenance.resamplingUnit!=='paired stateKey')throw new Error('resampling unit');
+          if(r.historicalArtifact!=='UNCHANGED')throw new Error('artifact mutation');
+          if(r.gameplayDesignChanges!=='NONE')throw new Error('design mutation');
+          for(const [name,c] of Object.entries(r.comparisons)){if(c.N<=0)throw new Error('empty '+name);for(const m of ['playerHPDelta','enemyHPDelta','survival']){const x=c.metrics[m];if(x.N!==c.N)throw new Error('N mismatch');if(!Array.isArray(x.confidenceInterval)||x.confidenceInterval.length!==2)throw new Error('CI')}}
+          console.log('PHASE14E_GATE PASS');
+          NODE
+      - name: Upload reconstructed evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocket-bunny-phase14e-reconstructed-evidence
+          path: phase14e-output/*
+          if-no-files-found: error
