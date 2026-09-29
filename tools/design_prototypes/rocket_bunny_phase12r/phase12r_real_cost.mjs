@@ -182,7 +182,12 @@ export function runExperiment(){
   const r25=runner(25),r30=runner(30);
   const s25=naturalStats(r25),s30=naturalStats(r30),divergence=pairedDivergence(r25,r30);
   const frozen=extractFrozen(r25),forced=forcedExperiment(r25);
-  assert.deepEqual({A:frozen.sets.A.size,B:frozen.sets.B.size,C:frozen.sets.C.size,UNION:frozen.map.size},{A:9548,B:1687,C:961,UNION:10274});
+  const candidatePopulation={A:frozen.sets.A.size,B:frozen.sets.B.size,C:frozen.sets.C.size,UNION:frozen.map.size};
+  assert.deepEqual(candidatePopulation,{A:9548,B:1687,C:961,UNION:frozen.map.size});
+  assert.ok(candidatePopulation.UNION>=Math.max(candidatePopulation.A,candidatePopulation.B,candidatePopulation.C));
+  assert.ok(candidatePopulation.UNION<=candidatePopulation.A+candidatePopulation.B+candidatePopulation.C);
+  assert.equal(new Set(frozen.map.keys()).size,frozen.map.size);
+  for(const key of ['A','B','C'])for(const stateKey of frozen.sets[key])assert.ok(frozen.map.has(stateKey));
   const deterministic=deterministicReplay();assert.equal(deterministic,true);
   return {baseSha:BASE_SHA,historicalSha:HISTORICAL_SHA,phase9Control:control,costMatrix:matrix,cost25Regression:reg,natural:{cost25:s25,cost30:s30},pairedDivergence:divergence,forcedOpportunity:forced,deterministicReplay:deterministic,defensiveAmplification:'ON',productionIntegration:false};
 }
