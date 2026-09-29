@@ -8,11 +8,11 @@ permissions:
 
 env:
   BASE_SHA: 328cbb112bc806abe1ea43339129b650a7d7e53a
-  HARNESS_SHA: 68dfc813970612a9201bc2c0984d991aaa53124b
+  HARNESS_SHA: 9a4d8c4cb0339bf56c19f389ec87a86def2ee759
   PHASE6_BLOB: 6134368f2ec71ef26cb71c5fd7305ee3d57eefe9
   PHASE9_BLOB: 3f11f12d16ad0e4ec7228f5295b029d464658be4
-  HARNESS_BLOB: 8e1af4951653c7218a3020c37cacbf67109965c8
-  HARNESS_TEST_BLOB: 46df5adce5a6fe91b300d16a34cc2f23ecfa6d1f
+  HARNESS_BLOB: e9aa16ab13aba7595f34fea8f117b177d4a11d28
+  HARNESS_TEST_BLOB: 25b84a04ee69f2786d0551de520e81eaa5eaa2d3
 
 jobs:
   phase14a:
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout harness commit with full history
         uses: actions/checkout@v4
         with:
-          ref: 68dfc813970612a9201bc2c0984d991aaa53124b
+          ref: 9a4d8c4cb0339bf56c19f389ec87a86def2ee759
           fetch-depth: 0
 
       - name: Environment and provenance

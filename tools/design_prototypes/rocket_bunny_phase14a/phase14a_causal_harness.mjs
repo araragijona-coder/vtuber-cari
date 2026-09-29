@@ -40,6 +40,7 @@ function freeze(t,seed,CARDS){
 
 function collectNatural(runner){
   const map=new Map();
+  const observedStates=new Map();
   const sets={A:new Set(),B:new Set(),C:new Set()};
   const collisions=[];
   let observed=0;
@@ -49,15 +50,18 @@ function collectNatural(runner){
       if(!t.redlineEligible)continue;
       observed++;
       const f=freeze(t,seed,runner.CARDS);
-      const prior=map.get(f.stateKey);
+      const prior=observedStates.get(f.stateKey);
       if(prior && prior.fullStateKey!==f.fullStateKey)collisions.push({stateKey:f.stateKey,first:prior.fullStateKey,second:f.fullStateKey});
-      if(!prior)map.set(f.stateKey,f);
+      if(!prior)observedStates.set(f.stateKey,f);
       if(f.guardLegal)sets.A.add(f.stateKey);
       if(f.ramLegal)sets.B.add(f.stateKey);
       if(f.guardLegal&&f.ramLegal)sets.C.add(f.stateKey);
     }
   }
-  return {map,sets,observed,collisions};
+  const causalUnion=new Set([...sets.A,...sets.B,...sets.C]);
+  for(const stateKey of causalUnion)map.set(stateKey,observedStates.get(stateKey));
+  const nonCausalRedlineEligible=[...observedStates.keys()].filter(stateKey=>!causalUnion.has(stateKey));
+  return {map,sets,observed,observedStates,causalUnion,redlineEligibleWithoutGuardOrRam:nonCausalRedlineEligible.length,collisions};
 }
 
 function branch(runner,frozen,action){
@@ -135,6 +139,13 @@ export function runTests(){
   assert.equal(natural.sets.B.size,EXPECTED.B);
   assert.equal(natural.sets.C.size,EXPECTED.C);
   assert.equal(natural.map.size,EXPECTED.UNION);
+  assert.equal(natural.causalUnion.size,EXPECTED.UNION);
+  assert.equal(natural.observed,12171);
+  assert.equal(natural.observedStates.size,12171);
+  assert.equal(natural.redlineEligibleWithoutGuardOrRam,natural.observedStates.size-natural.causalUnion.size);
+  assert.equal(natural.causalUnion.size+natural.redlineEligibleWithoutGuardOrRam,natural.observedStates.size);
+  for(const stateKey of natural.causalUnion)assert.equal(natural.observedStates.has(stateKey),true);
+  for(const stateKey of natural.observedStates.keys())if(!natural.causalUnion.has(stateKey))assert.equal(natural.map.has(stateKey),false);
   assert.equal(natural.collisions.length,0);
   assert.equal(deterministicReplay(runner,natural).pass,true);
   return 'PASS';
@@ -146,7 +157,7 @@ export function runExperiment(){
   assert.equal(control.sets.noSpenderAvailable,EXPECTED.NO_SPENDER);
   const runner=loadInstrumented(PHASE6_SOURCE);
   const natural=collectNatural(runner);
-  assert.equal(natural.sets.A.size,EXPECTED.A);assert.equal(natural.sets.B.size,EXPECTED.B);assert.equal(natural.sets.C.size,EXPECTED.C);assert.equal(natural.map.size,EXPECTED.UNION);assert.equal(natural.collisions.length,0);
+  assert.equal(natural.sets.A.size,EXPECTED.A);assert.equal(natural.sets.B.size,EXPECTED.B);assert.equal(natural.sets.C.size,EXPECTED.C);assert.equal(natural.map.size,EXPECTED.UNION);assert.equal(natural.causalUnion.size,EXPECTED.UNION);assert.equal(natural.observed,12171);assert.equal(natural.observedStates.size,12171);assert.equal(natural.redlineEligibleWithoutGuardOrRam,natural.observedStates.size-natural.causalUnion.size);assert.equal(natural.causalUnion.size+natural.redlineEligibleWithoutGuardOrRam,natural.observedStates.size);assert.equal(natural.collisions.length,0);
   const replay=deterministicReplay(runner,natural);assert.equal(replay.pass,true);
   const rows=new Map();
   const add=(f,a)=>{const b=branch(runner,f,a);const row={state:f,action:a,metrics:metrics(f,b,a,runner)};(rows.get(f.stateKey)||[]).push(row);};
@@ -167,7 +178,7 @@ export function runExperiment(){
     }
   }
   const rejected={};for(const f of natural.map.values()){if(!f.redlineLegal)rejected.redline_illegal=(rejected.redline_illegal||0)+1;if(!f.guardLegal)rejected.guard_illegal=(rejected.guard_illegal||0)+1;if(!f.ramLegal)rejected.ram_illegal=(rejected.ram_illegal||0)+1;}
-  return {baseSha:BASE_SHA,seeds:{start:SEED_START,end:SEED_END,count:SEED_COUNT},phase9Control:control.candidateCounts,noSpenderControl:control.sets.noSpenderAvailable,naturalStateObservationCount:natural.observed,naturalStates:natural.map.size,noSpenderNaturalStates:[...natural.map.values()].filter(f=>f.availableActions.includes('shot')).length,populations:{A:natural.sets.A.size,B:natural.sets.B.size,C:natural.sets.C.size,UNION:natural.map.size},syntheticStates:0,deterministicReplay:replay,rejectedStateAccounting:rejected,comparisons,mechanicSelection:null};
+  return {baseSha:BASE_SHA,seeds:{start:SEED_START,end:SEED_END,count:SEED_COUNT},phase9Control:control.candidateCounts,noSpenderControl:control.sets.noSpenderAvailable,naturalStateObservationCount:natural.observed,naturalUniqueRedlineEligibleStates:natural.observedStates.size,naturalStates:natural.map.size,redlineEligibleWithoutGuardOrRam:natural.redlineEligibleWithoutGuardOrRam,noSpenderNaturalStates:[...natural.map.values()].filter(f=>f.availableActions.includes('shot')).length,populations:{A:natural.sets.A.size,B:natural.sets.B.size,C:natural.sets.C.size,UNION:natural.map.size},syntheticStates:0,deterministicReplay:replay,rejectedStateAccounting:rejected,comparisons,mechanicSelection:null};
 }
 
 if(process.argv[1]?.endsWith('phase14a_causal_harness.mjs'))console.log(JSON.stringify(runExperiment(),null,2));
