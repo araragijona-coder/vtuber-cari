@@ -1,0 +1,177 @@
+name: rocket-bunny-phase14a
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASE_SHA: 328cbb112bc806abe1ea43339129b650a7d7e53a
+  HARNESS_SHA: 68dfc813970612a9201bc2c0984d991aaa53124b
+  PHASE6_BLOB: 6134368f2ec71ef26cb71c5fd7305ee3d57eefe9
+  PHASE9_BLOB: 3f11f12d16ad0e4ec7228f5295b029d464658be4
+  HARNESS_BLOB: 8e1af4951653c7218a3020c37cacbf67109965c8
+  HARNESS_TEST_BLOB: 46df5adce5a6fe91b300d16a34cc2f23ecfa6d1f
+
+jobs:
+  phase14a:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout harness commit with full history
+        uses: actions/checkout@v4
+        with:
+          ref: 68dfc813970612a9201bc2c0984d991aaa53124b
+          fetch-depth: 0
+
+      - name: Environment and provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          npm --version
+          echo "OS=$RUNNER_OS"
+          echo "PWD=$PWD"
+          echo "WORKFLOW_SHA=$GITHUB_SHA"
+          echo "BASE_SHA=$BASE_SHA"
+          echo "HARNESS_SHA=$HARNESS_SHA"
+          test "$(git rev-parse HEAD)" = "$HARNESS_SHA"
+          test "$(git rev-parse "$BASE_SHA^{commit}")" = "$BASE_SHA"
+
+      - name: Verify immutable runtime and harness blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          p6="$(git rev-parse "$BASE_SHA:tools/design_prototypes/rocket_bunny_phase6/phase6_redline.mjs")"
+          p9="$(git rev-parse "$BASE_SHA:tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs")"
+          h="$(git rev-parse "$HARNESS_SHA:tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.mjs")"
+          ht="$(git rev-parse "$HARNESS_SHA:tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs")"
+          echo "PHASE6_BLOB=$p6"
+          echo "PHASE9_BLOB=$p9"
+          echo "HARNESS_BLOB=$h"
+          echo "HARNESS_TEST_BLOB=$ht"
+          test "$p6" = "$PHASE6_BLOB"
+          test "$p9" = "$PHASE9_BLOB"
+          test "$h" = "$HARNESS_BLOB"
+          test "$ht" = "$HARNESS_TEST_BLOB"
+
+      - name: Build exact experimental worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/rocket-bunny-phase14a"
+          git worktree add --detach "$RUNNER_TEMP/rocket-bunny-phase14a" "$BASE_SHA"
+          cd "$RUNNER_TEMP/rocket-bunny-phase14a"
+          git checkout "$HARNESS_SHA" -- tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.mjs tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git hash-object tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.mjs)" = "$HARNESS_BLOB"
+          test "$(git hash-object tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs)" = "$HARNESS_TEST_BLOB"
+          test "$(git rev-parse HEAD:tools/design_prototypes/rocket_bunny_phase6/phase6_redline.mjs)" = "$PHASE6_BLOB"
+          test "$(git rev-parse HEAD:tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs)" = "$PHASE9_BLOB"
+          echo "EXPERIMENTAL_RUNTIME=$BASE_SHA"
+          echo "RESEARCH_HARNESS=$HARNESS_SHA"
+
+      - name: Configure Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Static tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14a"
+          node --check tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.mjs
+          node --check tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs
+
+      - name: Runtime capability, controls, and deterministic harness gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14a"
+          node tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs | tee "$GITHUB_WORKSPACE/phase14a-validation.log"
+
+      - name: Explicit Phase 9 control validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14a"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { runPhase9 } from './tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs';
+          const source=fs.readFileSync('./tools/design_prototypes/rocket_bunny_phase6/phase6_redline.mjs','utf8');
+          const r=runPhase9(source);
+          const e={setA:9548,setB:1687,setC:961,union:10274};
+          for(const [k,v] of Object.entries(e))if(r.candidateCounts[k]!==v)throw new Error('control mismatch '+k);
+          if(r.sets.noSpenderAvailable!==9406)throw new Error('no-spender control mismatch');
+          console.log('PHASE9_CONTROL A=9548 B=1687 C=961 UNION=10274');
+          console.log('NO_SPENDER_CONTROL 9406');
+          NODE
+
+      - name: Deterministic replay 100001-100250
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14a"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { loadInstrumented } from './tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs';
+          const source=fs.readFileSync('./tools/design_prototypes/rocket_bunny_phase6/phase6_redline.mjs','utf8');
+          const runner=loadInstrumented(source);
+          for(let seed=100001;seed<=100250;seed++){
+            const a=runner.run(seed,'B','adaptive','basic','normal',true);
+            const b=runner.run(seed,'B','adaptive','basic','normal',true);
+            if(JSON.stringify(a.trace)!==JSON.stringify(b.trace))throw new Error('replay mismatch '+seed);
+          }
+          console.log('DETERMINISTIC_REPLAY PASS seeds=100001-100250 count=250');
+          NODE
+
+      - name: Execute authentic Phase 14-A
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14a"
+          mkdir -p research-results
+          node tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.mjs > research-results/rocket-bunny-phase14a.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const r=JSON.parse(fs.readFileSync('research-results/rocket-bunny-phase14a.json','utf8'));
+          if(r.baseSha!=='328cbb112bc806abe1ea43339129b650a7d7e53a')throw new Error('base mismatch');
+          if(r.seeds?.start!==100001||r.seeds?.end!==110000||r.seeds?.count!==10000)throw new Error('seed range mismatch');
+          const e={A:9548,B:1687,C:961,UNION:10274};
+          for(const [k,v] of Object.entries(e))if(r.populations?.[k]!==v)throw new Error('population mismatch '+k);
+          if(r.noSpenderControl!==9406)throw new Error('no-spender mismatch');
+          if(r.syntheticStates!==0)throw new Error('synthetic states detected');
+          if(r.deterministicReplay?.pass!==true)throw new Error('harness replay failed');
+          NODE
+
+      - name: Verify production and historical runtime untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14a"
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          test -z "$(git diff --name-only HEAD -- intento_2/webapp)"
+          test -z "$(git diff --name-only HEAD -- tools/design_prototypes/rocket_bunny_phase6 tools/design_prototypes/rocket_bunny_phase9)"
+          echo "PRODUCTION_MODIFIED=NO"
+          echo "MECHANICS_MODIFIED=NO"
+          echo "RNG_MODIFIED=NO"
+
+      - name: Prepare artifact bundle
+        shell: bash
+        if: always()
+        run: |
+          set -euo pipefail
+          rm -rf "$GITHUB_WORKSPACE/phase14a-artifacts"
+          mkdir -p "$GITHUB_WORKSPACE/phase14a-artifacts"
+          if [ -f "$RUNNER_TEMP/rocket-bunny-phase14a/research-results/rocket-bunny-phase14a.json" ]; then cp "$RUNNER_TEMP/rocket-bunny-phase14a/research-results/rocket-bunny-phase14a.json" "$GITHUB_WORKSPACE/phase14a-artifacts/"; fi
+          if [ -f "$RUNNER_TEMP/rocket-bunny-phase14a/research-results/rocket-bunny-phase14a.md" ]; then cp "$RUNNER_TEMP/rocket-bunny-phase14a/research-results/rocket-bunny-phase14a.md" "$GITHUB_WORKSPACE/phase14a-artifacts/"; fi
+          if [ -f "$GITHUB_WORKSPACE/phase14a-validation.log" ]; then cp "$GITHUB_WORKSPACE/phase14a-validation.log" "$GITHUB_WORKSPACE/phase14a-artifacts/"; fi
+
+      - name: Upload authentic evidence and logs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocket-bunny-phase14a-evidence
+          path: phase14a-artifacts/*
+          if-no-files-found: warn
