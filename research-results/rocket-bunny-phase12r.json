@@ -1,0 +1,221 @@
+{
+  "baseSha": "109bb04255e578b14aa6d942d2180451e4fba580",
+  "historicalSha": "d22a31d7a57c73ae6fc6f0856b14d4acf2ecd228",
+  "phase9Control": {
+    "A": 9548,
+    "B": 1687,
+    "C": 961,
+    "UNION": 10274
+  },
+  "costMatrix": [
+    {
+      "initial": 25,
+      "cost": 25,
+      "legal": true,
+      "ok": true,
+      "finalNitro": 0,
+      "nitroSpent": 25
+    },
+    {
+      "initial": 25,
+      "cost": 30,
+      "legal": false,
+      "ok": false,
+      "finalNitro": 25,
+      "nitroSpent": 0
+    },
+    {
+      "initial": 29,
+      "cost": 25,
+      "legal": true,
+      "ok": true,
+      "finalNitro": 4,
+      "nitroSpent": 25
+    },
+    {
+      "initial": 29,
+      "cost": 30,
+      "legal": false,
+      "ok": false,
+      "finalNitro": 29,
+      "nitroSpent": 0
+    },
+    {
+      "initial": 30,
+      "cost": 25,
+      "legal": true,
+      "ok": true,
+      "finalNitro": 5,
+      "nitroSpent": 25
+    },
+    {
+      "initial": 30,
+      "cost": 30,
+      "legal": true,
+      "ok": true,
+      "finalNitro": 0,
+      "nitroSpent": 30
+    },
+    {
+      "initial": 35,
+      "cost": 25,
+      "legal": true,
+      "ok": true,
+      "finalNitro": 10,
+      "nitroSpent": 25
+    },
+    {
+      "initial": 35,
+      "cost": 30,
+      "legal": true,
+      "ok": true,
+      "finalNitro": 5,
+      "nitroSpent": 30
+    }
+  ],
+  "cost25Regression": {
+    "match": true,
+    "historicalHash": "73ba384a8cf893840a74ec556ea9bd806105297a3bfcd221577ba224f3e04fdf",
+    "patchedHash": "73ba384a8cf893840a74ec556ea9bd806105297a3bfcd221577ba224f3e04fdf"
+  },
+  "natural": {
+    "cost25": {
+      "opportunities": 12171,
+      "activations": 4311,
+      "activationRate": 0.3542026127680552,
+      "missed": 7860,
+      "nitroSpentPerRun": 22.07,
+      "remainingNitro": 7.799,
+      "energySpent": 12.5583,
+      "riskEvents": 0,
+      "riskRate": 0,
+      "winRate": 0.4405,
+      "avgTurns": 5.5855,
+      "nitro25StateCount": 0,
+      "nitro25Seeds": [],
+      "nitroGe30StateCount": 12171
+    },
+    "cost30": {
+      "opportunities": 12177,
+      "activations": 4313,
+      "activationRate": 0.3541923298020859,
+      "missed": 7864,
+      "nitroSpentPerRun": 24.0815,
+      "remainingNitro": 5.7875,
+      "energySpent": 12.5603,
+      "riskEvents": 0,
+      "riskRate": 0,
+      "winRate": 0.4405,
+      "avgTurns": 5.5864,
+      "nitro25StateCount": 0,
+      "nitro25Seeds": [],
+      "nitroGe30StateCount": 12177
+    }
+  },
+  "pairedDivergence": {
+    "action": 0.004,
+    "timing": 0.0002,
+    "outcome": 0
+  },
+  "forcedOpportunity": {
+    "counts": {
+      "A": 9548,
+      "B": 1687,
+      "C": 961,
+      "UNION": 12171
+    },
+    "summary": {
+      "A": {
+        "25": {
+          "directAffectedCardDamage": 26.797235023041473,
+          "baseAffectedCardDamage": 22.508902387934647,
+          "pureRedlineBonus": 4.288332635106826,
+          "incomingDamage": 4.684645999162128,
+          "remainingNitro": 11.658986175115208,
+          "remainingEnergy": 0.5964599916212819,
+          "survivalRate": 0.8433179723502304,
+          "riskEvents": 1496,
+          "attackStates": 1496,
+          "oneHitSurvivalRate": 0
+        },
+        "30": {
+          "directAffectedCardDamage": 26.797235023041473,
+          "baseAffectedCardDamage": 22.508902387934647,
+          "pureRedlineBonus": 4.288332635106826,
+          "incomingDamage": 4.684645999162128,
+          "remainingNitro": 6.658986175115207,
+          "remainingEnergy": 0.5964599916212819,
+          "survivalRate": 0.8433179723502304,
+          "riskEvents": 1496,
+          "attackStates": 1496,
+          "oneHitSurvivalRate": 0
+        },
+        "states": 9548
+      },
+      "B": {
+        "25": {
+          "directAffectedCardDamage": 25.89093064611737,
+          "baseAffectedCardDamage": 29.360403082394782,
+          "pureRedlineBonus": -3.469472436277414,
+          "incomingDamage": 1.6212211025489034,
+          "remainingNitro": 20.275637225844694,
+          "remainingEnergy": 0.14522821576763487,
+          "survivalRate": 0.9585062240663901,
+          "riskEvents": 70,
+          "attackStates": 70,
+          "oneHitSurvivalRate": 0
+        },
+        "30": {
+          "directAffectedCardDamage": 25.89093064611737,
+          "baseAffectedCardDamage": 29.360403082394782,
+          "pureRedlineBonus": -3.469472436277414,
+          "incomingDamage": 1.6212211025489034,
+          "remainingNitro": 15.275637225844696,
+          "remainingEnergy": 0.14522821576763487,
+          "survivalRate": 0.9585062240663901,
+          "riskEvents": 70,
+          "attackStates": 70,
+          "oneHitSurvivalRate": 0
+        },
+        "states": 1687
+      },
+      "C": {
+        "25": {
+          "directAffectedCardDamage": 25.398543184183143,
+          "baseAffectedCardDamage": 28.5213319458897,
+          "pureRedlineBonus": -3.1227887617065555,
+          "incomingDamage": 2.845993756503642,
+          "remainingNitro": 20.4474505723205,
+          "remainingEnergy": 0.25494276795005205,
+          "survivalRate": 0.927159209157128,
+          "riskEvents": 70,
+          "attackStates": 70,
+          "oneHitSurvivalRate": 0
+        },
+        "30": {
+          "directAffectedCardDamage": 25.398543184183143,
+          "baseAffectedCardDamage": 28.5213319458897,
+          "pureRedlineBonus": -3.1227887617065555,
+          "incomingDamage": 2.845993756503642,
+          "remainingNitro": 15.4474505723205,
+          "remainingEnergy": 0.25494276795005205,
+          "survivalRate": 0.927159209157128,
+          "riskEvents": 70,
+          "attackStates": 70,
+          "oneHitSurvivalRate": 0
+        },
+        "states": 961
+      }
+    },
+    "risk": {
+      "attackStates": 2178,
+      "defendStates": 9993,
+      "risk25": 1551,
+      "risk30": 1551,
+      "oneHitSurvivalDivergence": 0
+    }
+  },
+  "deterministicReplay": true,
+  "defensiveAmplification": "ON",
+  "productionIntegration": false
+}
