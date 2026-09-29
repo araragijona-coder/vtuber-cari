@@ -1,0 +1,151 @@
+name: rocket-bunny-phase14b
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/design_prototypes/rocket_bunny_phase14b/**'
+      - '.github/workflows/rocket-bunny-phase14b.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASE_SHA: 328cbb112bc806abe1ea43339129b650a7d7e53a
+  PHASE14A_SHA: 605e9114e246116674749f42e1b6f3c546c36d59
+  PHASE6_BLOB: 6134368f2ec71ef26cb71c5fd7305ee3d57eefe9
+  PHASE9_BLOB: 3f11f12d16ad0e4ec7228f5295b029d464658be4
+  PHASE14A_HARNESS_BLOB: e9aa16ab13aba7595f34fea8f117b177d4a11d28
+  PHASE14A_TEST_BLOB: 25b84a04ee69f2786d0551de520e81eaa5eaa2d3
+
+jobs:
+  phase14b:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout executing main commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Configure Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify immutable provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse "$BASE_SHA^{commit}")" = "$BASE_SHA"
+          test "$(git rev-parse "$PHASE14A_SHA^{commit}")" = "$PHASE14A_SHA"
+          test "$(git rev-parse "$BASE_SHA:tools/design_prototypes/rocket_bunny_phase6/phase6_redline.mjs")" = "$PHASE6_BLOB"
+          test "$(git rev-parse "$BASE_SHA:tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs")" = "$PHASE9_BLOB"
+          test "$(git rev-parse "$PHASE14A_SHA:tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.mjs")" = "$PHASE14A_HARNESS_BLOB"
+          test "$(git rev-parse "$PHASE14A_SHA:tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs")" = "$PHASE14A_TEST_BLOB"
+          test "$(git rev-parse HEAD:tools/design_prototypes/rocket_bunny_phase6/phase6_redline.mjs)" = "$PHASE6_BLOB"
+          test "$(git rev-parse HEAD:tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs)" = "$PHASE9_BLOB"
+
+      - name: Build exact historical experimental worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/rocket-bunny-phase14b"
+          git worktree add --detach "$RUNNER_TEMP/rocket-bunny-phase14b" "$BASE_SHA"
+          cd "$RUNNER_TEMP/rocket-bunny-phase14b"
+          git checkout "$PHASE14A_SHA" -- tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.mjs tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs
+          git checkout "$GITHUB_SHA" -- tools/design_prototypes/rocket_bunny_phase14b/phase14b_causal_intervention.mjs
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git hash-object tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.mjs)" = "$PHASE14A_HARNESS_BLOB"
+          test "$(git hash-object tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs)" = "$PHASE14A_TEST_BLOB"
+          test "$(git rev-parse HEAD:tools/design_prototypes/rocket_bunny_phase6/phase6_redline.mjs)" = "$PHASE6_BLOB"
+          test "$(git rev-parse HEAD:tools/design_prototypes/rocket_bunny_phase9/phase9_forced_choice.mjs)" = "$PHASE9_BLOB"
+
+      - name: Verify Phase 14-A reproducibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14b"
+          node tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs
+
+      - name: Static checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14b"
+          node --check tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.mjs
+          node --check tools/design_prototypes/rocket_bunny_phase14a/phase14a_causal_harness.test.mjs
+          node --check tools/design_prototypes/rocket_bunny_phase14b/phase14b_causal_intervention.mjs
+
+      - name: Execute authentic Phase 14-B intervention
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14b"
+          rm -rf research-results
+          mkdir -p research-results
+          node tools/design_prototypes/rocket_bunny_phase14b/phase14b_causal_intervention.mjs research-results/rocket-bunny-phase14b.json
+
+      - name: Validate Phase 14-B gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14b"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const r=JSON.parse(fs.readFileSync('research-results/rocket-bunny-phase14b.json','utf8'));
+          const e={A:9548,B:1687,C:961,UNION:10274,EXCLUDED:1897};
+          for(const [k,v] of Object.entries(e))if(r.inputPopulation[k]!==v)throw new Error('population mismatch '+k);
+          if(r.branchCounts.total!==25353)throw new Error('branch total mismatch');
+          if(r.branchCounts.A_REDLINE!==9548||r.branchCounts.A_GUARD!==9548)throw new Error('A branches mismatch');
+          if(r.branchCounts.B_REDLINE!==1687||r.branchCounts.B_RAM!==1687)throw new Error('B branches mismatch');
+          if(r.branchCounts.C_REDLINE!==961||r.branchCounts.C_GUARD!==961||r.branchCounts.C_RAM!==961)throw new Error('C branches mismatch');
+          if(r.syntheticStates!==0)throw new Error('synthetic states detected');
+          if(r.deterministicReplay?.pass!==true)throw new Error('deterministic replay failed');
+          if(r.pairingValidation?.uniqueInputStates!==10274)throw new Error('unique input state mismatch');
+          if(r.pairingValidation?.cStates!==961)throw new Error('C state mismatch');
+          for(const [name,s] of Object.entries(r.summaries)){
+            if(s.N<=0)throw new Error('empty comparison '+name);
+            if(s.pairedStateKeys!==s.N)throw new Error('duplicate stateKey in '+name);
+          }
+          console.log('PHASE14B_GATES PASS');
+          NODE
+
+      - name: Production and runtime integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14b"
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          test -z "$(git diff --name-only HEAD -- intento_2/webapp)"
+          test -z "$(git diff --name-only HEAD -- tools/design_prototypes/rocket_bunny_phase6 tools/design_prototypes/rocket_bunny_phase9)"
+          echo "PRODUCTION_MODIFIED=NO"
+          echo "MECHANICS_MODIFIED=NO"
+          echo "RNG_MODIFIED=NO"
+
+      - name: Artifact integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rocket-bunny-phase14b"
+          sha256sum research-results/rocket-bunny-phase14b.json | tee "$GITHUB_WORKSPACE/phase14b-sha256.txt"
+
+      - name: Bundle evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$GITHUB_WORKSPACE/phase14b-artifacts"
+          mkdir -p "$GITHUB_WORKSPACE/phase14b-artifacts"
+          if [ -f "$RUNNER_TEMP/rocket-bunny-phase14b/research-results/rocket-bunny-phase14b.json" ]; then cp "$RUNNER_TEMP/rocket-bunny-phase14b/research-results/rocket-bunny-phase14b.json" "$GITHUB_WORKSPACE/phase14b-artifacts/"; fi
+          if [ -f "$GITHUB_WORKSPACE/phase14b-sha256.txt" ]; then cp "$GITHUB_WORKSPACE/phase14b-sha256.txt" "$GITHUB_WORKSPACE/phase14b-artifacts/"; fi
+
+      - name: Upload Phase 14-B evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocket-bunny-phase14b-evidence
+          path: phase14b-artifacts/*
+          if-no-files-found: error
