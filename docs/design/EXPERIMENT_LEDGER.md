@@ -20,3 +20,34 @@ Method: exact Phase 9 control first; 10,000-seed adaptive reachability audit; co
 Control: A=9,548; B=1,687; C=961; Union=10,274; PASS.
 Result: historical Nitro values preserve modulo 5. Nitro 26–29 are unreachable. One mechanically reached Nitro-25 proof state was reproduced at seed 107771; it is not a >=500-state population.
 Decision: BLOCKED / RESEARCH MORE. Full cost-25-vs-30 paired damage/risk experiment was not run.
+
+## Phase 14 — evidence chain
+Phase 14-A: COMPLETED — AUTHENTIC causal experimental evidence.
+Phase 14-B: COMPLETED — AUTHENTIC HISTORICAL PAIRED EVIDENCE.
+
+Phase 14-C: COMPLETED in the project phase history. The original Phase 14-C bootstrap procedure and historical interval values are not recoverable from the current repository evidence.
+
+Phase 14-D: COMPLETED in the project phase history. No missing Phase 14-C bootstrap result is relabeled as recovered evidence.
+
+Phase 14-E: COMPLETED — RECONSTRUCTED_WITH_EXPLICIT_METHOD.
+
+Phase 14-E reconstructs statistical analysis from the immutable Phase 14-B evidence using an explicit paired-bootstrap method. Its own provenance states:
+- ORIGINAL BOOTSTRAP PROCEDURE NOT RECOVERABLE.
+- HISTORICAL INTERVALS NOT AVAILABLE FOR EXACT HISTORICAL REPRODUCTION.
+- Historical artifact unchanged.
+- Gameplay/design changes: NONE.
+
+The Phase 14-E reconstruction is therefore not:
+- recovered Phase 14-C;
+- the original Phase 14-C result;
+- a historical bootstrap reproduction;
+- new gameplay evidence.
+
+This ledger records evidence state only; it does not authorize gameplay or runtime changes.
+
+## Current evidence boundary
+Human playtesting: UNKNOWN / NOT RUN.
+
+Nitro / Redline: OPEN DESIGN QUESTION.
+
+No formal subsequent Phase 15 was defined in the repository before the documentation synchronization task.
