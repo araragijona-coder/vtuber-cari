@@ -19,7 +19,7 @@ jobs:
       - name: Checkout experiment commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
       - name: Verify mandatory base and experiment checkout
