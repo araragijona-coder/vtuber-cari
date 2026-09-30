@@ -75,5 +75,5 @@ test("invalid choice cannot mutate progression", async () => {
   const result = context.window.ProgressionSystem.applyChoice(prepared, "not-a-real-choice");
   assert.equal(result.success, false);
   assert.equal(result.error, "INVALID_PROGRESSION_CHOICE");
-  assert.deepEqual(prepared.progression.cardDamageBonuses, {});
+  assert.equal(Object.keys(prepared.progression.cardDamageBonuses).length, 0);
 });
