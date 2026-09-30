@@ -63,7 +63,18 @@
         <strong>REWARD</strong>
         <span>+<b id="reward-xp">0</b> XP</span>
         <span>+<b id="reward-currency">0</b> Currency</span>
-        <button id="next-battle" type="button">NEXT BATTLE</button>
+        <div id="progression-choice" aria-label="Decisión de progreso">
+          <strong>PROGRESSION CHOICE</strong>
+          <p>Elegí una mejora persistente para tu próximo combate.</p>
+          <div id="progression-options" class="progression-options"></div>
+          <p id="progression-change" class="progression-change"></p>
+          <button id="progression-confirm" type="button" disabled>CONFIRM</button>
+        </div>
+        <div id="next-objective" hidden>
+          <strong>NEXT OBJECTIVE</strong>
+          <span>Volvé a combatir con tu mejora guardada.</span>
+        </div>
+        <button id="next-battle" type="button" hidden>START NEXT COMBAT</button>
       </section>
       <p id="combat-status" class="combat-message" role="status" aria-live="polite">Esperando una batalla.</p>
     </section>
@@ -81,6 +92,7 @@
   <script src="./js/game/rules.js"></script>
   <script src="./js/game/enemy.js"></script>
   <script src="./js/game/rewards.js"></script>
+  <script src="./js/progression.js"></script>
   <script src="./js/combat.js"></script>
 
   <script src="./js/data/uuid.js"></script>

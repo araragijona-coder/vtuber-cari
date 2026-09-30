@@ -37,7 +37,9 @@
       if (!action.cardInstanceId || !action.cardId) return { valid: false, error: "INVALID_CARD" };
       const card = window.CardSystem.cardInHand(combat.cards, action.cardInstanceId);
       if (!card || card.cardId !== action.cardId) return { valid: false, error: "CARD_NOT_IN_HAND" };
-      const definition = window.CardSystem.definitionFor(action.cardId);
+      const baseDefinition = window.CardSystem.definitionFor(action.cardId);
+      const bonus = window.ProgressionSystem?.bonusForCard?.(combat.progression, action.cardId) || 0;
+      const definition = baseDefinition && bonus > 0 ? { ...baseDefinition, damage: baseDefinition.damage + bonus } : baseDefinition;
       if (!definition) return { valid: false, error: "UNKNOWN_CARD" };
       if (!window.EnergySystem.canSpend(combat.resources, definition.cost)) return { valid: false, error: "INSUFFICIENT_ENERGY" };
       return { valid: true, actor, target, card, definition };

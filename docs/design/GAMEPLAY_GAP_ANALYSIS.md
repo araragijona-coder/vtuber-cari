@@ -3,7 +3,7 @@
 ## Phase
 POST-PHASE 16 — CHARACTER ART, WARDROBE & GAMEPLAY COMPLETION SPECIFICATION
 
-**STATUS:** SPECIFICATION COMPLETE  
+**STATUS:** SPECIFICATION COMPLETE · POST-COMBAT PROGRESSION BRIDGE PROTOTYPE IMPLEMENTED  
 **BASE SHA:** 88fccdd5109bff5c8257c5492b4e0ee9606c63a9  
 **RUNTIME GAMEPLAY CHANGES:** NONE  
 **PHASE 14–16 EVIDENCE MODIFIED:** NO
@@ -27,7 +27,7 @@ IMPLEMENTED/VERIFIED means directly evidenced in runtime code. DOCUMENTED_ONLY m
 | Rewards | IMPLEMENTED | rewards.js + app.js | YES | broader reward choices/sinks | P0 | VERIFIED |
 | BTP | DOCUMENTED_ONLY | Product System Spec | NO | product decision and implementation | P2 | HYPOTHESIS |
 | Garage | DOCUMENTED_ONLY | design/product docs | NO | UI, build data, progression | P1 | PROPOSED |
-| Progression | PARTIAL | XP, level, currency, save | YES | meaningful progression choices | P0 | PARTIAL |
+| Progression | PROTOTYPE | XP, level, currency, save, one persistent card-damage choice | YES | broader progression system | P0 | PROTOTYPE |
 | Collection | PARTIAL infrastructure | database schema; default arrays empty | NO meaningful collection UX | content and UI | P1 | PARTIAL |
 | Story | MISSING | no runtime story flow identified | NO | scene/event system | P1 | MISSING |
 | Relationships | DOCUMENTED_ONLY | design/player-behavior docs | NO | relationship state/events | P2 | PROPOSED |
@@ -51,7 +51,7 @@ IMPLEMENTED/VERIFIED means directly evidenced in runtime code. DOCUMENTED_ONLY m
 
 The actual runtime is a compact loop:
 
-START BATTLE → PLAYER TURN → CARD/ENERGY ACTION → ENEMY TURN → SEEDED RESOLUTION → REPEAT → VICTORY/DEFEAT → REWARD/SAVE → NEXT BATTLE.
+START BATTLE → PLAYER TURN → CARD/ENERGY ACTION → ENEMY TURN → SEEDED RESOLUTION → REPEAT → VICTORY/DEFEAT → REWARD → PROGRESSION CHOICE → SAVE → NEXT OBJECTIVE → NEXT BATTLE.
 
 Verified runtime content includes:
 - Energy maximum 3 in the current combat state;
@@ -88,6 +88,8 @@ Required for a coherent minimum product slice:
 8. persistent save;
 9. telemetry for the funnel.
 
+The controlled prototype now implements items 5–9 for the bounded post-combat bridge; onboarding and broader preparation remain future gaps.
+
 ## Backlog
 
 | ID | System | Task | Dependencies | Spec | Complexity | Validation | Target |
@@ -103,4 +105,4 @@ Required for a coherent minimum product slice:
 | GP-09 | Nitro/Redline | separate runtime specification | historical evidence + validation | NO | high | explicit gate | separate phase |
 | GP-10 | Relationships | deterministic authored events | story/save | NO | medium | human playtest | narrative prototype |
 
-No backlog item is implemented by this audit.
+The separate controlled prototype implements the bounded post-combat progression bridge; it does not implement GP-02 or the broader backlog.

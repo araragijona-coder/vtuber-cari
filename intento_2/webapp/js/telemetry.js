@@ -133,6 +133,11 @@
     track("reward_received", safePayload(reward), context);
   }
 
+  function progressionViewed(context = {}) { track("progression_viewed", safePayload(context), context); }
+  function progressionSelected(option, context = {}) { track("progression_selected", safePayload(option), context); }
+  function progressionSaved(option, context = {}) { track("progression_saved", safePayload(option), context); }
+  function nextObjectiveViewed(objective, context = {}) { track("next_objective_viewed", safePayload(objective), context); }
+
   window.RocketBunnyTelemetry = Object.freeze({
     EVENT_VERSION,
     sessionId,
@@ -144,7 +149,11 @@
     beginCombat,
     recordCombatAction,
     completeCombat,
-    rewardReceived
+    rewardReceived,
+    progressionViewed,
+    progressionSelected,
+    progressionSaved,
+    nextObjectiveViewed
   });
 
   if (typeof document !== "undefined") {

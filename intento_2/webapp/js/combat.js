@@ -37,10 +37,12 @@
       : "battle-mvp-" + Date.now() + "-" + battleSequence;
     const enemy = window.EnemyCatalog.createEnemy(id);
     currentEnemyId = enemy.id;
+    const saved = typeof window.SaveManager?.load === "function" ? window.SaveManager.load().save : null;
     return {
       battleId,
       player: { id: "player-demo", hp: 120, maxHp: 120, stats: { atk: 20, def: 5, skillDamage: 40 } },
-      enemy
+      enemy,
+      progression: saved?.progression || {}
     };
   }
 
@@ -52,7 +54,11 @@
   function startBattle(config = null) {
     const battleConfig = config || createBattleConfig(nextEnemyId());
     currentEnemyId = battleConfig.enemy?.id || currentEnemyId;
+    if (battleConfig.progression && typeof window.ProgressionSystem?.normalizeProgression === "function") {
+      view.gameState.progression = window.ProgressionSystem.normalizeProgression(battleConfig.progression);
+    }
     window.GameState.startBattle(view.gameState, battleConfig);
+    if (view.gameState.combat) view.gameState.combat.progression = view.gameState.progression;
     view.impact = null;
     const combat = view.gameState.combat;
     combatTelemetry.set(combat.battleId, {
@@ -172,7 +178,9 @@
     handEl.replaceChildren();
     const playerTurn = combat?.outcome === window.GameState.OUTCOME.IN_PROGRESS && combat.activeActor === "player";
     for (const card of combat?.cards?.hand || []) {
-      const definition = window.CardSystem.hydrateCard(card);
+      const baseDefinition = window.CardSystem.hydrateCard(card);
+      const bonus = window.ProgressionSystem?.bonusForCard?.(game?.progression, card.cardId) || 0;
+      const definition = baseDefinition && bonus > 0 ? { ...baseDefinition, damage: baseDefinition.damage + bonus } : baseDefinition;
       if (!definition) continue;
       const button = document.createElement("button");
       button.type = "button";

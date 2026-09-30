@@ -51,6 +51,7 @@
     gameState.player.currency = save.player.currency;
     gameState.player.wins = save.player.wins;
     gameState.player.losses = save.player.losses;
+    gameState.progression = window.ProgressionSystem?.normalizeProgression(save.progression) || {};
   }
 
   function initPlayerSave() {
@@ -70,18 +71,87 @@
     const rewardPanel = document.getElementById("reward-panel");
     const rewardXpEl = document.getElementById("reward-xp");
     const rewardCurrencyEl = document.getElementById("reward-currency");
+    const progressionOptionsEl = document.getElementById("progression-options");
+    const progressionChangeEl = document.getElementById("progression-change");
+    const progressionConfirmButton = document.getElementById("progression-confirm");
+    const nextObjectiveEl = document.getElementById("next-objective");
     const nextBattleButton = document.getElementById("next-battle");
+    let selectedChoiceId = null;
 
     function hideReward() {
       if (rewardPanel) rewardPanel.hidden = true;
+      selectedChoiceId = null;
     }
 
-    function showReward(reward) {
-      if (!rewardPanel) return;
-      rewardPanel.hidden = false;
-      if (rewardXpEl) rewardXpEl.textContent = String(reward.xp);
-      if (rewardCurrencyEl) rewardCurrencyEl.textContent = String(reward.currency);
+    function renderProgressionChoices(save) {
+      if (!progressionOptionsEl || !window.ProgressionSystem) return;
+      progressionOptionsEl.replaceChildren();
+      selectedChoiceId = null;
+      if (progressionConfirmButton) {
+        progressionConfirmButton.hidden = false;
+        progressionConfirmButton.disabled = true;
+      }
+      if (progressionChangeEl) progressionChangeEl.textContent = "Elegí una mejora para tu próximo combate.";
+      for (const option of window.ProgressionSystem.options()) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "progression-choice";
+        button.dataset.choiceId = option.id;
+        button.innerHTML = "<strong>" + option.label + "</strong><small>" + option.description + "</small>";
+        button.addEventListener("click", () => {
+          selectedChoiceId = option.id;
+          for (const sibling of progressionOptionsEl.querySelectorAll("button")) sibling.setAttribute("aria-pressed", String(sibling === button));
+          if (progressionChangeEl) progressionChangeEl.textContent = option.description + " [PROTOTYPE VALUE: +" + option.value + "].";
+          if (progressionConfirmButton) progressionConfirmButton.disabled = false;
+          window.RocketBunnyTelemetry?.progressionSelected(option, { combat_id: save?.progression?.pendingDecision?.battleId ?? null });
+        });
+        button.setAttribute("aria-pressed", "false");
+        progressionOptionsEl.appendChild(button);
+      }
     }
+
+    function showProgression(save, reward) {
+      if (!rewardPanel || !window.ProgressionSystem) return;
+      rewardPanel.hidden = false;
+      if (rewardXpEl) rewardXpEl.textContent = String(reward?.xp ?? 0);
+      if (rewardCurrencyEl) rewardCurrencyEl.textContent = String(reward?.currency ?? 0);
+      if (nextObjectiveEl) nextObjectiveEl.hidden = true;
+      if (nextBattleButton) nextBattleButton.hidden = true;
+      renderProgressionChoices(save);
+      window.RocketBunnyTelemetry?.progressionViewed({ battle_id: save?.progression?.pendingDecision?.battleId ?? reward?.battleId ?? null });
+    }
+
+    function showNextObjective(save) {
+      if (!rewardPanel || !window.ProgressionSystem) return;
+      rewardPanel.hidden = false;
+      if (progressionOptionsEl) progressionOptionsEl.replaceChildren();
+      if (progressionConfirmButton) progressionConfirmButton.hidden = true;
+      if (progressionChangeEl) {
+        const choice = save?.progression?.lastChoice;
+        progressionChangeEl.textContent = choice ? "PROGRESSION SELECTED · " + choice.cardId + " +" + choice.value + " damage." : "PROGRESSION SELECTED";
+      }
+      if (nextObjectiveEl) nextObjectiveEl.hidden = false;
+      if (nextBattleButton) nextBattleButton.hidden = false;
+      window.RocketBunnyTelemetry?.nextObjectiveViewed({ objective: "NEXT_BATTLE", battle_id: save?.lastBattle?.battleId ?? null });
+    }
+
+    progressionConfirmButton?.addEventListener("click", () => {
+      if (!selectedChoiceId) return;
+      const currentSave = window.SaveManager.load().save;
+      const result = window.ProgressionSystem.applyChoice(currentSave, selectedChoiceId);
+      if (!result.success) {
+        if (progressionChangeEl) progressionChangeEl.textContent = "No se pudo guardar la elección · " + result.error;
+        return;
+      }
+      const saved = window.SaveManager.save(result.save);
+      if (!saved.success) {
+        if (progressionChangeEl) progressionChangeEl.textContent = "No se pudo guardar la progresión · " + saved.error;
+        return;
+      }
+      syncPlayerFromSave(saved.save, window.CariCombat.getGameState());
+      window.RocketBunnyTelemetry?.progressionSaved(result.option, { combat_id: result.save.progression.lastChoice?.battleId ?? null });
+      showNextObjective(saved.save);
+    });
 
     nextBattleButton?.addEventListener("click", () => {
       hideReward();
@@ -92,6 +162,14 @@
 
     if (loaded.reason && loaded.source === "defaults") {
       console.info("[Player Save] Recuperando defaults:", loaded.reason);
+    }
+
+    const pending = window.ProgressionSystem?.pendingDecision(loaded.save);
+    if (pending) {
+      const pendingReward = window.ProgressionSystem.findReward(loaded.save, pending.battleId);
+      if (pendingReward) showProgression(loaded.save, pendingReward);
+    } else if (loaded.save?.progression?.nextObjective) {
+      showNextObjective(loaded.save);
     }
 
     window.setInterval(() => {
@@ -114,15 +192,14 @@
         if (!claimed.success) {
           console.error("[Reward] No se pudo reclamar:", claimed.error);
         } else {
-          const saved = window.SaveManager.save(claimed.save);
+          const progressionReady = window.ProgressionSystem.prepareAfterReward(claimed.save, claimed.reward);
+          const saved = window.SaveManager.save(progressionReady);
           if (!saved.success) {
-            console.error("[Player Save] No se pudo guardar la recompensa:", saved.error);
+            console.error("[Player Save] No se pudo guardar recompensa + progresión:", saved.error);
           } else {
             syncPlayerFromSave(saved.save, current);
-            showReward(claimed.reward);
-            window.RocketBunnyTelemetry?.rewardReceived(claimed.reward, {
-              combat_id: current.combat.battleId
-            });
+            showProgression(saved.save, claimed.reward);
+            window.RocketBunnyTelemetry?.rewardReceived(claimed.reward, { combat_id: current.combat.battleId });
           }
         }
       } else if (outcome === window.GameState.OUTCOME.DEFEAT && outcome !== lastOutcome) {
