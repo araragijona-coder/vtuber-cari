@@ -120,6 +120,9 @@
           } else {
             syncPlayerFromSave(saved.save, current);
             showReward(claimed.reward);
+            window.RocketBunnyTelemetry?.rewardReceived(claimed.reward, {
+              combat_id: current.combat.battleId
+            });
           }
         }
       } else if (outcome === window.GameState.OUTCOME.DEFEAT && outcome !== lastOutcome) {

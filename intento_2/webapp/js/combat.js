@@ -22,6 +22,7 @@
   let enemySequence = -1;
   let currentEnemyId = null;
   const view = { gameState: null, lastWidth: 0, lastHeight: 0, impact: null };
+  const combatTelemetry = new Map();
 
   function nextEnemyId() {
     enemySequence += 1;
@@ -53,6 +54,16 @@
     currentEnemyId = battleConfig.enemy?.id || currentEnemyId;
     window.GameState.startBattle(view.gameState, battleConfig);
     view.impact = null;
+    const combat = view.gameState.combat;
+    combatTelemetry.set(combat.battleId, {
+      cards: Object.create(null),
+      initialPlayerHp: combat.player.hp,
+      lastPlayerHp: combat.player.hp,
+      initialNitro: combat.resources?.nitro ?? null,
+      redlineTurns: 0,
+      redlineMaxLevel: null
+    });
+    window.RocketBunnyTelemetry?.beginCombat(combat);
     renderUi();
   }
 
@@ -73,6 +84,39 @@
     };
   }
 
+  function recordBattleAction(combat, action) {
+    const metrics = combatTelemetry.get(combat.battleId);
+    if (metrics && action?.cardId) {
+      metrics.cards[action.cardId] = (metrics.cards[action.cardId] || 0) + 1;
+    }
+    window.RocketBunnyTelemetry?.recordCombatAction(combat, action);
+  }
+
+  function completeBattleTelemetry(combat) {
+    const metrics = combatTelemetry.get(combat.battleId);
+    if (!metrics) return;
+
+    const initialHp = Math.max(1, metrics.initialPlayerHp);
+    const currentHp = Math.max(0, combat.player.hp);
+    const nitroSpent = metrics.initialNitro == null || combat.resources?.nitro == null
+      ? null
+      : Math.max(0, metrics.initialNitro - combat.resources.nitro);
+    const redlineTurns = combat.redlineTurnsActive ?? metrics.redlineTurns ?? null;
+    const redlineMaxLevel = combat.redlineMaxLevel ?? metrics.redlineMaxLevel ?? null;
+
+    window.RocketBunnyTelemetry?.completeCombat(combat, combat.outcome, {
+      turns_elapsed: combat.turn ?? null,
+      damage_taken: Math.max(0, metrics.initialPlayerHp - combat.player.hp),
+      hp_remaining_pct: Math.round((currentHp / initialHp) * 10000) / 100,
+      nitro_spent: nitroSpent,
+      redline_turns_active: redlineTurns,
+      redline_max_level: redlineMaxLevel,
+      cards_played_distribution: { ...metrics.cards }
+    });
+
+    combatTelemetry.delete(combat.battleId);
+  }
+
   function playCard(cardInstanceId) {
     const combat = view.gameState?.combat;
     if (!combat || combat.activeActor !== "player" || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
@@ -80,7 +124,11 @@
     try {
       const action = window.GameActions.createPlayerCardAction(view.gameState, cardInstanceId);
       const resolution = window.CombatEngine.resolveAction(view.gameState, action);
+      recordBattleAction(combat, action);
       showResult(resolution);
+      if (resolution.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
+        completeBattleTelemetry(combat);
+      }
       renderUi();
       if (resolution.outcome === window.GameState.OUTCOME.IN_PROGRESS && combat.activeActor === "enemy") {
         window.setTimeout(runEnemyTurn, 260);
@@ -98,7 +146,11 @@
     if (!action) return;
     try {
       const resolution = window.CombatEngine.resolveAction(view.gameState, action);
+      recordBattleAction(combat, action);
       showResult(resolution);
+      if (resolution.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
+        completeBattleTelemetry(combat);
+      }
       renderUi();
     } catch (error) {
       view.gameState.session.lastMessage = "Turno enemigo rechazado · " + error.message;
