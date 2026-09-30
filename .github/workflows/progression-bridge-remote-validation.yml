@@ -1,0 +1,73 @@
+name: Progression Bridge Remote Validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "intento_2/webapp/js/combat.js"
+      - ".github/workflows/progression-bridge-remote-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Real checkout + progression bridge validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main commit
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify real checkout identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          ACTUAL_HEAD="$(git rev-parse HEAD)"
+          echo "git rev-parse HEAD=$ACTUAL_HEAD"
+          test "$GITHUB_SHA" = "$ACTUAL_HEAD"
+
+      - name: Validate combat renderHand scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require("node:fs");
+          const source = fs.readFileSync("intento_2/webapp/js/combat.js", "utf8");
+          const start = source.indexOf("function renderHand(combat)");
+          const end = source.indexOf("\n  function renderUi()", start);
+          if (start < 0 || end < 0) {
+            throw new Error("renderHand scope could not be located");
+          }
+          const scope = source.slice(start, end);
+          if (!scope.includes("view.gameState?.progression")) {
+            throw new Error("renderHand does not contain view.gameState?.progression");
+          }
+          if (scope.includes("game?.progression")) {
+            throw new Error("renderHand still contains game?.progression");
+          }
+          console.log("renderHand scope check: PASS");
+          NODE
+
+      - name: Run progression bridge tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/progression_bridge.test.mjs
+
+      - name: Run relevant combat save telemetry regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/card_combat.test.mjs \
+            tests/save_manager.test.mjs \
+            tests/telemetry.test.mjs

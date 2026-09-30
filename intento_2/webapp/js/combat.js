@@ -179,7 +179,7 @@
     const playerTurn = combat?.outcome === window.GameState.OUTCOME.IN_PROGRESS && combat.activeActor === "player";
     for (const card of combat?.cards?.hand || []) {
       const baseDefinition = window.CardSystem.hydrateCard(card);
-      const bonus = window.ProgressionSystem?.bonusForCard?.(game?.progression, card.cardId) || 0;
+      const bonus = window.ProgressionSystem?.bonusForCard?.(view.gameState?.progression, card.cardId) || 0;
       const definition = baseDefinition && bonus > 0 ? { ...baseDefinition, damage: baseDefinition.damage + bonus } : baseDefinition;
       if (!definition) continue;
       const button = document.createElement("button");
