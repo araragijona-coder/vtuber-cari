@@ -51,3 +51,64 @@ Human playtesting: UNKNOWN / NOT RUN.
 Nitro / Redline: OPEN DESIGN QUESTION.
 
 No formal subsequent Phase 15 was defined in the repository before the documentation synchronization task.
+
+## Post-Phase 16 — statistical specification repair
+
+The first authorized Phase 16 execution attempt was BLOCKED before experimental population generation because the preregistered pairwise section specified paired contrasts, paired mean differences, 95% CIs and Holm correction but did not specify the inferential test producing the 15 pairwise p-values.
+
+The repair is specification-only. No experimental data were generated and no historical evidence was changed.
+
+### Repaired pairwise inferential procedure
+
+For each co-primary metric independently:
+
+- Omnibus test: Friedman test across N25–N30, two-sided, alpha = 0.05.
+- Pairwise inferential test: **two-sided Wilcoxon signed-rank test** on the within-baseline paired differences for each preregistered Nitro pair.
+- Pairing unit: complete historical baseline containing all six conditions.
+- Number of pairwise contrasts: 15.
+- Pairwise p-value: construct the signed-rank statistic from non-zero paired differences; rank absolute differences using average ranks for ties; use the tie-adjusted normal approximation with continuity correction; compute the two-sided p-value from the standard normal distribution. If all paired differences are zero, the pairwise p-value is 1.
+- Multiple-comparison correction: Holm applied separately to the 15 pairwise p-values within each co-primary metric family.
+- Alpha: 0.05, two-sided.
+- Effect estimate: paired mean difference, unchanged.
+- Effect CI: 95% percentile bootstrap CI, unchanged from the experimental specification.
+- The Wilcoxon test supplies the pairwise inferential p-value; it does not replace or redefine the preregistered paired mean-difference effect estimate.
+
+### Survival
+
+Survival remains unchanged:
+
+- Omnibus: Cochran's Q.
+- Pairwise: McNemar.
+- 15 preregistered contrasts.
+- Two-sided alpha = 0.05.
+- Holm separately across the 15 McNemar p-values.
+
+### Bootstrap
+
+Bootstrap remains unchanged and is not part of the pairwise hypothesis test:
+
+- 10,000 resamples.
+- Seed 161601.
+- Resampling unit: complete baseline containing all six conditions.
+- 95% percentile CI.
+- Bootstrap is used exclusively for confidence intervals of effect estimates.
+
+### Statistical integrity validation
+
+- Omnibus test defined: PASS.
+- Pairwise inferential test defined: PASS.
+- Pairwise unit defined: PASS.
+- Number of pairwise comparisons defined: PASS.
+- Two-sided alpha defined: PASS.
+- Holm correction defined: PASS.
+- Effect estimator defined: PASS.
+- Confidence interval method defined: PASS.
+- Bootstrap seed defined: PASS.
+- Bootstrap resampling unit defined: PASS.
+- Survival omnibus defined: PASS.
+- Survival pairwise test defined: PASS.
+- Historical population unchanged: PASS.
+- Experimental population unchanged: PASS.
+- No execution performed: PASS.
+
+No additional critical statistical gap was identified in the repaired specification. This repair does not authorize Phase 16 execution. A new explicit human authorization gate is required.
