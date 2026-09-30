@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - "intento_2/webapp/js/combat.js"
+      - "tests/progression_bridge.test.mjs"
       - ".github/workflows/progression-bridge-remote-validation.yml"
 
 permissions:

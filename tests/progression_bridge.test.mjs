@@ -31,7 +31,7 @@ function victorySave(manager) {
 test("progression starts empty and exposes exactly two valid choices", async () => {
   const context = await loadModules();
   const save = context.window.SaveManager.createDefaultSave();
-  assert.deepEqual(save.progression, {});
+  assert.equal(Object.keys(save.progression).length, 0);
   const options = context.window.ProgressionSystem.options();
   assert.equal(options.length, 2);
   assert.ok(options.every((option) => option.effect === "card_damage"));
@@ -42,7 +42,7 @@ test("reward creates a pending progression decision in the existing save", async
   const save = victorySave(context.window.SaveManager);
   const prepared = context.window.ProgressionSystem.prepareAfterReward(save, save.rewardLedger[0]);
   assert.equal(prepared.progression.pendingDecision.battleId, "battle-1");
-  assert.deepEqual(prepared.progression.cardDamageBonuses, {});
+  assert.equal(Object.keys(prepared.progression.cardDamageBonuses).length, 0);
 });
 
 test("selected progression persists through save and reload", async () => {
