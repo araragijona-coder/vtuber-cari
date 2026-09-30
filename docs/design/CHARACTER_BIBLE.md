@@ -1,0 +1,160 @@
+# Rocket Bunny Petty — Character Bible
+
+## Status
+
+CHARACTER SPECIFICATION BASELINE.
+
+Current runtime character information is limited mainly to enemy identity metadata. No character art asset set was identified in the repository tree.
+
+## Required schema
+
+Every future character record must contain:
+- character_id
+- display_name
+- age
+- age_status
+- faction
+- role
+- personality
+- narrative_function
+- combat_role
+- visual_identity
+- color_palette
+- silhouette
+- vehicle
+- relationship_links
+
+## Adult presentation gate
+
+AUTHOR DECISION:
+
+adult_presentation_eligible = true only when:
+- age_status = VERIFIED
+- age >= 18
+
+Appearance, height, license, independence, occupation, narrative role or anime stylization cannot substitute for explicit adult age.
+
+ERO_KAWAII is therefore unavailable to any character whose adult status is not explicitly verified.
+
+## Current runtime records
+
+### street_punk
+- display_name: STREET PUNK
+- age: UNKNOWN
+- age_status: UNKNOWN
+- faction: UNKNOWN
+- role: enemy combatant
+- combat_role: AGGRESSIVE
+- visual_identity: street-rider
+- personality: not authored in runtime
+- narrative_function: UNKNOWN
+- color_palette: UNKNOWN
+- silhouette: UNKNOWN
+- vehicle: UNKNOWN
+- relationship_links: none established
+- adult_presentation_eligible: false
+
+### iron_guard
+- display_name: IRON GUARD
+- age: UNKNOWN
+- age_status: UNKNOWN
+- faction: UNKNOWN
+- role: enemy combatant
+- combat_role: DEFENSIVE
+- visual_identity: armored-guard
+- personality: not authored in runtime
+- narrative_function: UNKNOWN
+- color_palette: UNKNOWN
+- silhouette: UNKNOWN
+- vehicle: UNKNOWN
+- relationship_links: none established
+- adult_presentation_eligible: false
+
+### nitro_raider
+- display_name: NITRO RAIDER
+- age: UNKNOWN
+- age_status: UNKNOWN
+- faction: UNKNOWN
+- role: enemy combatant
+- combat_role: TACTICAL
+- visual_identity: nitro-raider
+- personality: not authored in runtime
+- narrative_function: UNKNOWN
+- color_palette: UNKNOWN
+- silhouette: UNKNOWN
+- vehicle: UNKNOWN
+- relationship_links: none established
+- adult_presentation_eligible: false
+
+### banchou_rookie
+- display_name: BANCHOU ROOKIE
+- age: UNKNOWN
+- age_status: UNKNOWN
+- faction: UNKNOWN
+- role: elite enemy combatant
+- combat_role: ELITE
+- visual_identity: rookie-banchou
+- personality: not authored in runtime
+- narrative_function: UNKNOWN
+- color_palette: UNKNOWN
+- silhouette: UNKNOWN
+- vehicle: UNKNOWN
+- relationship_links: none established
+- adult_presentation_eligible: false
+
+## Proposed roster slots
+
+PROPOSED ONLY:
+- protagonist/player character;
+- primary romantic counterpart;
+- rival/banchou;
+- garage/support character;
+- faction representative;
+- story bosses.
+
+No names, ages, relationships or sexuality are invented by this phase.
+
+## Character design language
+
+BŌSŌZOKU — PROPOSED:
+- motorcycle-centered silhouette;
+- faction marks and patches;
+- durable street/riding materials;
+- protective details;
+- expressive poses.
+
+MONSTERS OF SPEED — PROPOSED:
+- aerodynamic silhouette;
+- speed-oriented shapes;
+- sport/cyberpunk materials;
+- technical/racing cues.
+
+These are abstract design principles, not copies of external franchises.
+
+## Relationship model
+
+Relationship links should be explicit:
+source_character → relationship_type → target_character → state/progression
+
+Candidate types:
+- ally
+- rival
+- romance
+- mentor
+- faction tie
+- family
+- garage partnership
+
+No relationship is canonical until authored and recorded.
+
+## Character-to-gameplay rule
+
+A character should ideally provide at least one of:
+- narrative choice;
+- combat identity;
+- card/deck identity;
+- enemy behavior;
+- garage/build identity;
+- authored reaction.
+
+A decorative-only character remains possible when the presentation goal justifies the production cost.
