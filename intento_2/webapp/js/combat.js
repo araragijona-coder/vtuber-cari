@@ -64,7 +64,7 @@
   function setBar(element, value, max) {
     if (!element) return;
     const ratio = Math.min(1, Math.max(0, Number(value || 0) / Math.max(1, Number(max || 1))));
-    element.style.width = (ratio * 100).toFixed(2) + "%";
+    if (element.style) element.style.width = (ratio * 100).toFixed(2) + "%";
     element.setAttribute("aria-valuenow", String(Math.round(Number(value || 0) * 10) / 10));
     element.setAttribute("aria-valuemax", String(Number(max || 0)));
   }
