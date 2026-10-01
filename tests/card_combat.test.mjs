@@ -40,11 +40,12 @@ function battle(w) {
   return state;
 }
 
-test("battle starts with four cards and three tactical roles", async () => {
+test("battle starts with five cards and three tactical roles", async () => {
   const w = await loadCombat();
   const state = battle(w);
-  assert.equal(state.combat.cards.hand.length, 4);
-  assert.equal(state.combat.resources.energy, 100);
+  assert.equal(state.combat.cards.hand.length, 5);
+  assert.equal(state.combat.resources.energy, 35);
+  assert.equal(state.combat.resources.currentEnergy, 35);
   assert.equal(new Set(state.combat.cards.hand.map(card => w.CardSystem.definitionFor(card.cardId).type)).size, 3);
 });
 
@@ -64,7 +65,7 @@ test("insufficient energy rejects skill without consuming it", async () => {
   const w = await loadCombat();
   const state = battle(w);
   const card = state.combat.cards.hand.find(entry => entry.cardId === "embestida_nitro");
-  state.combat.resources.energy = 1;
+  state.combat.resources.currentEnergy = 1;
   assert.throws(
     () => w.CombatEngine.resolveAction(state, w.GameActions.createPlayerSkillAction(state, card.instanceId)),
     /INSUFFICIENT_ENERGY/
