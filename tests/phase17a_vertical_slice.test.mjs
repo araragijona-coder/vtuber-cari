@@ -40,7 +40,7 @@ test("the new model starts with an active clock, autos and a compact tactical ha
   const state = w.GameState.createGameState();
   w.GameState.startBattle(state);
   assert.equal(state.combat.clock.stepMs, 100);
-  assert.equal(state.combat.cards.hand.length, 4);
+  assert.equal(state.combat.cards.hand.length, 5);
   assert.ok(state.combat.player.autoAttack);
   assert.ok(state.combat.enemy.autoAttack);
 });
