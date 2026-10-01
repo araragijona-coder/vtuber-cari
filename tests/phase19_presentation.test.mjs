@@ -281,7 +281,7 @@ test("state-specific fighter assets override the generic sprite slot", async () 
     targetId: "enemy",
     damage: 7
   });
-  presentation.render(combat, 1000);
+  presentation.render(combat, 1100);
   assert.ok(loaded.imageSources.includes("player-attack.png"));
   assert.equal(loaded.imageSources.includes("player-idle.png"), false);
 });
