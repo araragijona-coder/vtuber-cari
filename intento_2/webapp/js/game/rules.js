@@ -402,7 +402,13 @@
 
     const recycleCountBefore = Number(combat.cards.recycleCount || 0);
     window.CardSystem.playCard(combat.cards, card.instanceId);
+    const recycleBefore = Number(combat.cards.recycleCount || 0);
     window.CardSystem.refillHand(combat.cards);
+    if (Number(combat.cards.recycleCount || 0) > recycleBefore) {
+      emitCombatEvent(combat, "deck_recycled", {
+        recycleCount: Number(combat.cards.recycleCount || 0)
+      });
+    }
     combat.cooldowns[action.cardId] = Number(definition.cooldownMs || 0);
     if (Number(combat.cards.recycleCount || 0) > recycleCountBefore) {
       combat.cycleCount = Number(combat.cards.recycleCount || 0);
@@ -487,6 +493,7 @@
     finishIfNeeded(state);
 
     const resolution = makeResolution(combat, action, {
+      actionType: ACTION_TYPES.BURST,
       cost: 0,
       chargeBefore,
       chargeAfter: window.BurstSystem.chargeOf(combat),
