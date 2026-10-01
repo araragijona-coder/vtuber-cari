@@ -245,3 +245,32 @@ No character or card in this document is runtime content.
 - Hideout Guides — Akiko / Metis, Chasing Kaleidorider.
 - GameDeveloper — Enemy Attacks and Telegraphing; The 12 principles of animation in video games.
 External sources are used for patterns and principles only. No external character, text, exact kit, art or balance is copied.
+
+## Phase 21 — research and vertical slice
+
+### VERIFIED FROM EXTERNAL SOURCES
+
+- Honkai: Star Rail official/HoYoLAB material describes Preservation as defensive/protective, Harmony as buff-oriented, Nihility as enemy weakening, and Abundance as healing-oriented. This supports role families as high-level combat functions rather than identical kits. Sources: https://www.hoyolab.com/article/17237205 and https://wiki.hoyolab.com/pc/hsr/aggregate/character?lang=en-us
+- Public Chasing KaleidoRIDER material establishes the high-level combination of motorcycle riders and card-based combat. It is used only as category-level inspiration; no names, assets, balance or implementation are copied. Sources: https://kaleidorider.com/ and https://gachagames.fandom.com/wiki/Chasing_Kaleidorider
+- Magic: The Gathering design commentary provides a general precedent for assigning mechanics to the play pattern a card is intended to encourage. Source: https://magic.wizards.com/en/news/making-magic/designing-boros-2013-02-04
+
+### VERIFIED FROM CURRENT CODE
+
+- HEAL clamps at max HP and does not revive or regenerate over time.
+- DAMAGE_OUT BUFF is timed and uses replace stacking.
+- CLEANSE explicitly removes WEAK and EXPOSED only.
+- MULTI-HIT is one action with deterministic per-hit resolution; BREAK damage is per hit.
+- DAMAGE REDUCTION modifies incoming HP damage and does not reduce BREAK damage or consume Shield.
+- Save schema remains version 1.
+
+### CURRENT PROPOSED PLAYABLE KIT — YURI
+
+Yuri is a STRIKER with the proposed SPEED / BREAK subrole. The first runtime kit contains RACHA NEÓN, IMPULSO MACH, DERRAPE YURI and LÍNEA DE RUPTURA. This is a proposed gameplay identity, not a rewrite of historical lore.
+
+### TEST-ONLY CHARACTER — TEST SUPPORT
+
+TEST SUPPORT exists only to validate HEAL, BUFF, CLEANSE and DAMAGE REDUCTION. It is not a roster/canon declaration.
+
+### OPEN DESIGN QUESTION
+
+Ally targeting beyond the current one-player/one-enemy slice, regeneration, AoE, counter/interception, cooldown manipulation, slow/telegraph manipulation, Momentum, G-Force Affinity, Mach Breaker and the final Yuri canon kit remain future decisions.

@@ -214,3 +214,23 @@ Class: Debuffer / Setup. Primary effect: BREAK preparation. Secondary effect: fu
 - Hideout Guides — Akiko and Metis, Chasing Kaleidorider.
 - GameDeveloper — Enemy Attacks and Telegraphing.
 External sources were used for patterns only; Mach-Girls does not copy names, kits, numbers, text, UI or proprietary implementation.
+
+## Phase 21 — implemented primitive catalog
+
+### VERIFIED FROM CURRENT CODE
+
+| Effect | Runtime support | Current system | Rule |
+|---|---|---|---|
+| HEAL | VERIFIED | CombatEffects + SkillResolver | Single target/self/ally-shaped targeting; current slice resolves self; max HP clamp; no regen/revive. |
+| DAMAGE_OUT BUFF | VERIFIED | ModifierSystem | Timed, replace stacking, affects HP damage output but not BREAK damage. |
+| CLEANSE | VERIFIED | CombatEffects + StatusSystem | Removes requested WEAK/EXPOSED only. |
+| MULTI-HIT | VERIFIED | SkillResolver + CombatEngine | One action, deterministic hits, BREAK damage per hit. |
+| DAMAGE REDUCTION | VERIFIED | ModifierSystem + rollDamage | Timed incoming HP-damage mitigation; separate from Shield/Block. |
+
+### DELIBERATELY NOT IMPLEMENTED
+
+Still PROPOSED / OPEN DESIGN QUESTION: AOE, counter, interception, cooldown manipulation, slow, target manipulation, defense reduction, telegraph modification, Momentum, G-Force Affinity and Mach Breaker.
+
+### CARD OWNERSHIP METADATA
+
+Every runtime card definition now carries characterId, class and subrole metadata. The nine historical/MVP cards keep characterId = null so they remain reusable vocabulary. New Phase 21 kit cards are owned explicitly by yuri or test_support.

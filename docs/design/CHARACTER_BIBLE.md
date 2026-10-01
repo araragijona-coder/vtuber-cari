@@ -240,3 +240,36 @@ Phase 20 is documentation only. A design record does not make a character playab
 The existing adult-presentation gate remains unchanged: age_status must be VERIFIED and age must be >= 18 before any character is eligible for ERO_KAWAII presentation.
 
 APEX, VECTORIA and INERCIA are PROPOSED DESIGN EXAMPLES, not runtime characters.
+
+
+## Phase 21 — vertical-slice kit records
+
+### CURRENT PROPOSED PLAYABLE KIT — Yuri
+
+- character_id: yuri
+- display_name: YURI
+- age: UNKNOWN
+- age_status: UNKNOWN
+- class: STRIKER
+- subrole: SPEED / BREAK
+- status: CURRENT PROPOSED PLAYABLE KIT
+- canon_lore_changed: false
+
+The existing adult-presentation gate is unchanged. No adult eligibility is inferred from this kit.
+
+### TEST-ONLY CHARACTER — TEST SUPPORT
+
+- character_id: test_support
+- display_name: TEST SUPPORT
+- age: UNKNOWN
+- age_status: UNKNOWN
+- class: SUPPORT
+- subrole: HYBRID SUPPORT
+- test_only: true
+- canon: false
+
+This fixture exists only to validate HEAL, BUFF, CLEANSE and DAMAGE REDUCTION. It is not part of the canonical roster.
+
+### Phase 21 boundary
+
+No final roster, faction, relationship, lore, age or commercial naming decision is established by these runtime records.

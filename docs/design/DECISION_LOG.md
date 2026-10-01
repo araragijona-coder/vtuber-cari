@@ -119,3 +119,26 @@ OPEN DESIGN QUESTION:
 - future roster and faction assignments.
 
 No Phase 21 implementation is authorized by this entry.
+
+
+## Phase 21 — core combat effects and character kit vertical slice
+
+Phase 21: IMPLEMENTED — CONTROLLED VERTICAL SLICE.
+
+VERIFIED FROM CURRENT CODE:
+- entry HEAD was 68e73d2af910b38510732d0b9883b32cf53f5400;
+- generic HEAL, DAMAGE_OUT BUFF, CLEANSE, MULTI-HIT and DAMAGE REDUCTION primitives are implemented;
+- the nine previous MVP cards remain in the catalog with characterId = null;
+- SaveManager remains saveVersion 1.
+
+CURRENT PROPOSED:
+- Yuri is the default proposed playable kit: STRIKER / SPEED-BREAK;
+- TEST SUPPORT is test-only and not canon;
+- the new character layer is configuration/metadata, not a final roster system.
+
+OPEN DESIGN QUESTION:
+- final Yuri canon kit;
+- ally targeting outside the one-player/one-enemy slice;
+- AOE, regeneration, counter/interception, cooldown manipulation, slow, target manipulation;
+- Momentum, G-Force Affinity and Mach Breaker;
+- APEX, VECTORIA and INERCIA remain non-playable design examples.

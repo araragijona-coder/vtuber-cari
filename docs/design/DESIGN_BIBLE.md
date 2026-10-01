@@ -111,3 +111,20 @@ Future characters should receive distinct class, driving-style, card and present
 
 OPEN DESIGN QUESTION:
 Any effect absent from the support matrix requires a later explicit implementation decision and must not be inferred as already supported.
+
+
+## Phase 21 — character kit vertical slice
+
+### VERIFIED FROM CURRENT CODE
+
+The runtime now supports a small generic effect layer for HEAL, timed damage-output BUFF, CLEANSE, deterministic MULTI-HIT and timed incoming DAMAGE REDUCTION.
+
+### CURRENT PROPOSED
+
+The default player battle uses the proposed Yuri vertical-slice kit. A test-only URL mode loads TEST SUPPORT for controlled validation.
+
+This is an implementation proof, not a declaration of final roster or canon.
+
+### OPEN DESIGN QUESTION
+
+Future kits still require decisions on final class/subrole taxonomy, ally targeting, broader roster composition, advanced support/control primitives and final Yuri canon identity.
