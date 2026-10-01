@@ -4,7 +4,7 @@ import { test } from "node:test";
 import vm from "node:vm";
 
 async function loadTelemetry() {
-  const window = {};
+  const window = { addEventListener() {} };
   const document = {
     documentElement: { dataset: { gameVersion: "test" } },
     visibilityState: "visible",
@@ -61,7 +61,7 @@ test("battle lifecycle preserves nullable fields instead of inventing values", a
   assert.equal(battle[1].event_name, "battle_action");
   assert.equal(battle[2].event_name, "battle_completed");
   assert.equal(battle[2].payload.damage_taken, null);
-  assert.deepEqual(battle[2].payload.cards_played_distribution, { shot: 1 });
+  assert.equal(JSON.stringify(battle[2].payload.cards_played_distribution), JSON.stringify({ shot: 1 }));
 });
 
 test("flush returns and clears the current batch", async () => {

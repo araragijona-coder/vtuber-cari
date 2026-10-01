@@ -61,7 +61,7 @@ test("save then load preserves player data", async () => {
   const loaded = manager.load();
 
   assert.equal(loaded.source, "localStorage");
-  assert.deepEqual(loaded.save.player, save.player);
+  assert.equal(JSON.stringify(loaded.save.player), JSON.stringify(save.player));
 });
 
 test("corrupt JSON safely falls back to defaults", async () => {
@@ -132,7 +132,7 @@ test("saveFromGameState records victory once per battle", async () => {
   const loaded = manager.load().save;
   assert.equal(loaded.player.wins, 1);
   assert.equal(loaded.player.losses, 0);
-  assert.deepEqual(loaded.completedBattles, ["battle-1"]);
+  assert.equal(JSON.stringify(loaded.completedBattles), JSON.stringify(["battle-1"]));
   assert.equal(loaded.lastBattle.outcome, "VICTORY");
 });
 
@@ -155,6 +155,6 @@ test("saveFromGameState records defeat once per battle", async () => {
   const loaded = manager.load().save;
   assert.equal(loaded.player.wins, 0);
   assert.equal(loaded.player.losses, 1);
-  assert.deepEqual(loaded.completedBattles, ["battle-2"]);
+  assert.equal(JSON.stringify(loaded.completedBattles), JSON.stringify(["battle-2"]));
   assert.equal(loaded.lastBattle.outcome, "DEFEAT");
 });

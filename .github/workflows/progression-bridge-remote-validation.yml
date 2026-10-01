@@ -6,6 +6,8 @@ on:
     paths:
       - "intento_2/webapp/js/combat.js"
       - "tests/progression_bridge.test.mjs"
+      - "tests/save_manager.test.mjs"
+      - "tests/telemetry.test.mjs"
       - ".github/workflows/progression-bridge-remote-validation.yml"
 
 permissions:
@@ -59,16 +61,44 @@ jobs:
           NODE
 
       - name: Run progression bridge tests
+        id: progression
+        continue-on-error: true
         shell: bash
-        run: |
-          set -euo pipefail
-          node --test tests/progression_bridge.test.mjs
+        run: node --test tests/progression_bridge.test.mjs
 
-      - name: Run relevant combat save telemetry regressions
+      - name: Run card combat tests
+        id: combat
+        continue-on-error: true
         shell: bash
+        run: node --test tests/card_combat.test.mjs
+
+      - name: Run save manager tests
+        id: save
+        continue-on-error: true
+        shell: bash
+        run: node --test tests/save_manager.test.mjs
+
+      - name: Run telemetry tests
+        id: telemetry
+        continue-on-error: true
+        shell: bash
+        run: node --test tests/telemetry.test.mjs
+
+      - name: Require all test suites to pass
+        if: always()
+        shell: bash
+        env:
+          PROGRESSION_OUTCOME: ${{ steps.progression.outcome }}
+          COMBAT_OUTCOME: ${{ steps.combat.outcome }}
+          SAVE_OUTCOME: ${{ steps.save.outcome }}
+          TELEMETRY_OUTCOME: ${{ steps.telemetry.outcome }}
         run: |
           set -euo pipefail
-          node --test \
-            tests/card_combat.test.mjs \
-            tests/save_manager.test.mjs \
-            tests/telemetry.test.mjs
+          echo "progression_bridge: $PROGRESSION_OUTCOME"
+          echo "card_combat: $COMBAT_OUTCOME"
+          echo "save_manager: $SAVE_OUTCOME"
+          echo "telemetry: $TELEMETRY_OUTCOME"
+          test "$PROGRESSION_OUTCOME" = "success"
+          test "$COMBAT_OUTCOME" = "success"
+          test "$SAVE_OUTCOME" = "success"
+          test "$TELEMETRY_OUTCOME" = "success"
