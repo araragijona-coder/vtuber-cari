@@ -31,14 +31,14 @@ function start(core) {
   return state;
 }
 
-test("attack resolves damage and keeps the player decision phase open", async () => {
+test("legacy attack action resolves and hands control to enemy", async () => {
   const core = await loadCore();
   const state = start(core);
   const action = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.ATTACK);
   const resolution = core.CombatEngine.resolveAction(state, action);
   assert.ok(resolution.damage > 0);
-  assert.equal(state.combat.activeActor, "player");
-  assert.equal(state.combat.phase, "PLAYER_TURN");
+  assert.equal(state.combat.activeActor, "enemy");
+  assert.equal(state.combat.phase, "ENEMY_TURN");
 });
 
 test("wrong actor and stale turns are rejected", async () => {

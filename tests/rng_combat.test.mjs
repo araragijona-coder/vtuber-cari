@@ -10,6 +10,7 @@ async function loadCombat() {
     "intento_2/webapp/js/game/rng.js",
     "intento_2/webapp/js/game/cards.js",
     "intento_2/webapp/js/game/energy.js",
+    "intento_2/webapp/js/game/status.js",
     "intento_2/webapp/js/game/enemies.js",
     "intento_2/webapp/js/game/state.js",
     "intento_2/webapp/js/game/actions.js",

@@ -12,7 +12,7 @@ async function loadEnergy() {
 test("energy starts at 3/3 and refills to max", async () => {
   const energy = await loadEnergy();
   const resources = energy.createEnergy(3);
-  assert.deepEqual(resources, { energy: 3, maxEnergy: 3 });
+  assert.equal(JSON.stringify(resources), JSON.stringify({ energy: 3, maxEnergy: 3 }));
   resources.energy = 1;
   energy.refill(resources);
   assert.equal(resources.energy, 3);

@@ -19,7 +19,7 @@
     street_punk: Object.freeze({ name: "STREET PUNK", archetype: ARCHETYPES.AGGRESSIVE, actions: Object.freeze(["ATTACK"]), aiProfile: "AGGRESSIVE_ATTACK" }),
     iron_guard: Object.freeze({ name: "IRON GUARD", archetype: ARCHETYPES.DEFENSIVE, actions: Object.freeze(["ATTACK", "DEFEND"]), aiProfile: "DEFEND_LOW_HP" }),
     nitro_raider: Object.freeze({ name: "NITRO RAIDER", archetype: ARCHETYPES.TACTICAL, actions: Object.freeze(["ATTACK", "DEFEND"]), aiProfile: "ALTERNATE_TURN" }),
-    banchou_rookie: Object.freeze({ name: "BANCHOU ROOKIE", archetype: ARCHETYPES.ELITE, actions: Object.freeze(["ATTACK", "DEFEND"]), aiProfile: "ELITE_PRIORITY" })
+    banchou_rookie: Object.freeze({ name: "BANCHOU ROOKIE", archetype: ARCHETYPES.ELITE, actions: Object.freeze(["ATTACK", "DEFEND", "DEBUFF"]), aiProfile: "ELITE_PRIORITY" })
   });
 
   const ENEMY_SEQUENCE = Object.freeze(Object.keys(META));
