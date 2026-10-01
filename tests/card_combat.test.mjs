@@ -33,11 +33,16 @@ function battle(window, overrides = {}) {
   return state;
 }
 
-test("battle starts with 4-card hand and 3/3 energy", async () => {
+test("battle starts with 4-card hand, 3/3 energy and all tactical roles", async () => {
   const w = await loadCombat();
   const state = battle(w);
   assert.equal(state.combat.cards.hand.length, 4);
   assert.equal(state.combat.resources.energy, 3);
+
+  const types = new Set(
+    state.combat.cards.hand.map((entry) => w.CardSystem.definitionFor(entry.cardId).type)
+  );
+  assert.deepEqual(types, new Set(["ATTACK", "DEFENSE", "SKILL"]));
 });
 
 test("attack card uses seeded resolution and moves to discard", async () => {
@@ -72,8 +77,8 @@ test("insufficient energy rejects the card without moving it or consuming energy
 test("defend card creates one-hit protection", async () => {
   const w = await loadCombat();
   const state = battle(w);
-  state.combat.cards.hand[0] = { instanceId: "escudo_dark-test", cardId: "escudo_dark" };
-  const card = state.combat.cards.hand[0];
+  const card = state.combat.cards.hand.find((entry) => entry.cardId === "escudo_dark");
+  assert.ok(card);
   const action = w.GameActions.createPlayerCardAction(state, card.instanceId);
   const resolution = w.CombatEngine.resolveAction(state, action);
   assert.equal(resolution.damage, 0);
