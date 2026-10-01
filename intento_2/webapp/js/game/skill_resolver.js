@@ -20,7 +20,12 @@
       statusApplied: null,
       statusDurationMs: 0,
       targeting: definition.targeting,
-      conditionalTriggered: false
+      conditionalTriggered: false,
+      healAmount: Number(effects.heal || 0),
+      buff: effects.buff ? { ...effects.buff } : null,
+      cleanseTypes: Array.isArray(effects.cleanse) ? effects.cleanse.map(String) : [],
+      damageReduction: effects.damageReduction ? { ...effects.damageReduction } : null,
+      multiHit: effects.multiHit ? { ...effects.multiHit } : null
     };
 
     if (definition.type === CARD_TYPES.DEFENSE) {

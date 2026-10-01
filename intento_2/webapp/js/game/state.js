@@ -40,6 +40,7 @@
       availableActions: Array.isArray(availableActions) ? [...availableActions] : [],
       aiProfile: String(aiProfile || ""),
       identity: identity ? clone(identity) : null,
+      modifiers: window.ModifierSystem?.createModifiers?.() || { damageOut: null, damageReduction: null },
       defending: false,
       block: 0,
       blockRemainingMs: 0,
@@ -151,6 +152,9 @@
     const battleId = String(config.battleId || "battle-mvp-1");
     const seed = window.CombatRNG.normalizeSeed(config.seed ?? battleId);
     const enemy = createEnemyCombatant(enemyConfig);
+    const character = config.character ||
+      window.CharacterKitSystem?.definitionFor?.(config.characterId) ||
+      null;
     const playerAutoBalance = window.CombatBalance.BALANCE.playerAutoAttack;
 
     const player = createCombatant({
@@ -158,6 +162,7 @@
       hp: playerConfig.hp ?? 120,
       maxHp: playerConfig.maxHp ?? playerConfig.hp ?? 120,
       stats: playerConfig.stats || { atk: 20, def: 5, skillDamage: 40 },
+      identity: playerConfig.identity || character,
       autoAttack: window.AutoAttackSystem.create(
         playerConfig.autoAttack || playerAutoBalance
       )
@@ -185,7 +190,11 @@
       battleId,
       seed,
       rulesVersion: "phase18-semi-real-time-v1",
-      deckVersion: "phase18-opening-role-v1",
+      deckVersion: Array.isArray(config.cardIds) && config.cardIds.length
+        ? "phase21-character-kit-v1"
+        : "phase18-opening-role-v1",
+      characterId: String(config.characterId || character?.characterId || "legacy"),
+      character: character ? clone(character) : null,
       rng: window.CombatRNG.create(seed),
       clock: window.CombatClock.create(window.CombatBalance.BALANCE.timing.fixedStepMs),
       phase: PHASE.REAL_TIME,
@@ -203,7 +212,7 @@
         burstMax: 100,
         playerAbilityUses: 1
       }),
-      cards: window.CardSystem.createCombatDeckState(5),
+      cards: window.CardSystem.createCombatDeckState(5, config.cardIds),
       cooldowns: {},
       enemyIntent: null,
       enemyBehavior: null,
