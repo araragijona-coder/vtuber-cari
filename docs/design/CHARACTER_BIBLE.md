@@ -197,3 +197,46 @@ A character should ideally provide at least one of:
 - authored reaction.
 
 A decorative-only character remains possible when the presentation goal justifies the production cost.
+
+
+## Phase 20 — class and card design system
+
+CURRENT DESIGN SYSTEM:
+
+Future characters follow the pipeline:
+
+```text
+PERSONALITY
+↓
+FANTASY
+↓
+BAND / PHILOSOPHY
+↓
+DRIVING STYLE
+↓
+PRIMARY CLASS
+↓
+SUBROLE
+↓
+AUTO-COMBAT BEHAVIOR
+↓
+RESOURCE / RHYTHM
+↓
+CARD IDENTITY
+↓
+EFFECTS
+↓
+ANIMATION
+↓
+VFX / AUDIO / UI
+```
+
+The formal design system is defined in:
+- `docs/design/CHARACTER_CLASS_CARD_EFFECT_SYSTEM.md`
+- `docs/design/CARD_EFFECT_CATALOG.md`
+
+Phase 20 is documentation only. A design record does not make a character playable.
+
+The existing adult-presentation gate remains unchanged: age_status must be VERIFIED and age must be >= 18 before any character is eligible for ERO_KAWAII presentation.
+
+APEX, VECTORIA and INERCIA are PROPOSED DESIGN EXAMPLES, not runtime characters.

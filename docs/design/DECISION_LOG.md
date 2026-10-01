@@ -85,3 +85,37 @@ This documentation phase does not create a gameplay implementation phase.
 10. Which single gameplay gap should be prototyped first under a controlled validation phase?
 
 These remain OPEN DESIGN QUESTION items unless a later explicit and verifiable decision changes their status. This list is not a roadmap.
+
+
+## Phase 20 — character identity, class and card effect specification
+
+Phase 20: COMPLETED — DESIGN DOCUMENTATION ONLY.
+
+VERIFIED FROM CURRENT CODE:
+- entry HEAD was `9fcb2f04d7ffcff22d129e0b09fe81f3df7b5815`;
+- nine current card identities exist in the runtime;
+- current primitives cover direct/conditional damage, shield, Energy, draw, WEAK, EXPOSED, BREAK and Burst;
+- healing, regeneration, general buffs, cleanse, AoE, multi-hit, counters, interception, cooldown manipulation and Momentum are not general runtime card primitives;
+- Phase 20 did not change runtime combat systems.
+
+PROPOSED:
+- STRIKER / DPS, DEFENDER / TANK, SUPPORT / HEALER and DEBUFFER / CONTROL as base role families;
+- personality × class design matrix;
+- driving-style vocabulary;
+- official character/card templates;
+- role-integrity review;
+- APEX, VECTORIA and INERCIA as design examples.
+
+OPEN DESIGN QUESTION:
+- final class taxonomy and subroles;
+- timing-window primitive;
+- AoE/multi-hit model;
+- healing/regeneration model;
+- buff/cleanse/cooldown support;
+- counter/interception model;
+- Momentum;
+- G-Force Affinity;
+- Mach Breaker;
+- future roster and faction assignments.
+
+No Phase 21 implementation is authorized by this entry.

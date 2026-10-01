@@ -95,3 +95,19 @@ The authoritative gap inventory is GAMEPLAY_GAP_ANALYSIS.md.
 
 ## Non-goals
 Do not use this document to rank the game against competitors, approve a prototype for runtime, or create a composite score for mechanics.
+
+
+## Phase 20 design-system references
+
+The detailed future character and card specification is defined in:
+- `docs/design/CHARACTER_CLASS_CARD_EFFECT_SYSTEM.md`
+- `docs/design/CARD_EFFECT_CATALOG.md`
+
+VERIFIED FROM CURRENT CODE:
+The present runtime remains the Phase 18/19 semi-real-time MVP slice with nine cards and a limited effect primitive set.
+
+PROPOSED:
+Future characters should receive distinct class, driving-style, card and presentation identities.
+
+OPEN DESIGN QUESTION:
+Any effect absent from the support matrix requires a later explicit implementation decision and must not be inferred as already supported.
