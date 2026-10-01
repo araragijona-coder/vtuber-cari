@@ -14,6 +14,27 @@ The project is expanding from a protagonist-centered concept into a broader univ
 
 Yuri remains a central protagonist. Future characters should have distinct identities rather than being Yuri variants.
 
+## Protagonist continuity
+
+### OPEN DESIGN QUESTION
+
+The current documentation contains two protagonist-related names:
+- **Yuri** — existing protagonist/central-character reference and Phase 21 proposed playable identity.
+- **Maki Mach** — later CURRENT PROPOSED CHARACTER CONCEPT from the Mach-Girls creative direction.
+
+The repository does not establish their identity relationship.
+
+Until a later explicit decision:
+
+~~~
+Yuri = existing valid reference
+Maki Mach = current proposed concept
+Yuri ↔ Maki Mach = OPEN DESIGN QUESTION
+~~~
+
+This is a documentation boundary only. It does not modify the combat runtime, character IDs, assets or historical lore.
+
+
 This section is a current creative overlay. It does not rewrite the historical lore in LORE_Y_DISENO.md, rename repository/runtime paths, or change gameplay rules.
 
 See MACH_GIRLS_CREATIVE_DIRECTION.md for the detailed creative framework.

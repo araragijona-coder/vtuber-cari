@@ -111,6 +111,27 @@ relationship function
 
 The franchise should support distinct archetypes, factions and rivalries rather than reskinning the same mechanical identity.
 
+## Phase 22 — protagonist continuity
+
+### CURRENT DOCUMENTATION STATE
+
+The relationship between the pre-existing **Yuri** protagonist reference and the later **Maki Mach** character concept is **OPEN DESIGN QUESTION**.
+
+The repository does not currently establish:
+- Yuri = Maki Mach;
+- Yuri and Maki Mach are distinct people;
+- Maki Mach is an alias, replacement or renamed Yuri.
+
+Until a later explicit decision:
+- Yuri remains the existing protagonist/Phase 21 proposed playable reference.
+- Maki Mach remains a CURRENT PROPOSED CHARACTER CONCEPT.
+- No runtime rename, merge or split is authorized.
+- Historical Yuri references are preserved.
+- No new lore is invented to reconcile the names.
+
+See [MACH_GIRLS_MASTER_REFERENCE.md](MACH_GIRLS_MASTER_REFERENCE.md) for the formal continuity decision and [DECISION_LOG.md](DECISION_LOG.md) for the durable phase record.
+
+
 ## 4. Narrative name contrast
 
 PROPOSED NARRATIVE THEME:

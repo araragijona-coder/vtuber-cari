@@ -142,3 +142,42 @@ OPEN DESIGN QUESTION:
 - AOE, regeneration, counter/interception, cooldown manipulation, slow, target manipulation;
 - Momentum, G-Force Affinity and Mach Breaker;
 - APEX, VECTORIA and INERCIA remain non-playable design examples.
+
+## Phase 22 — Yuri / Maki Mach protagonist continuity
+
+Phase 22: **COMPLETED — DOCUMENTATION DECISION C**.
+
+### HISTORICAL / ESTABLISHED DESIGN REFERENCE
+
+- Pre-Mach-Girls documents already use **Yuri** as the protagonist/central-character reference.
+- POST_PHASE16_CHARACTER_GAMEPLAY_SPEC.md contains the pre-Mach product identity **DETERMINISTIC YURI CYBERPUNK BŌSŌZOKU CARD BATTLER**.
+- LORE_Y_DISENO.md establishes the historical protagonist's lore and world context but does not identify that protagonist as Maki Mach.
+- Phase 21 uses technical identity character_id: yuri for the CURRENT PROPOSED PLAYABLE KIT.
+
+### CURRENT PROPOSED
+
+- Maki Mach was introduced by the later Mach-Girls creative-direction layer as a CURRENT PROPOSED CHARACTER CONCEPT centered on speed/Mach and surpassing the sound barrier.
+
+### DECISION
+
+**C — YURI / MAKI MACH RELATIONSHIP STILL UNRESOLVED**
+
+No repository evidence is sufficient to conclude either:
+- Yuri = Maki Mach, or
+- Yuri and Maki Mach are separate people.
+
+### IMPACT
+
+- Yuri remains the valid existing protagonist/Phase 21 proposed playable reference.
+- Maki Mach remains a proposed character concept.
+- No rename, merge or split is performed.
+- No definitive maki_mach runtime characterId is created.
+- No historical Yuri lore is rewritten.
+- No alias, genealogy, replacement or secret-identity lore is invented.
+- Asset work must remain neutral and must not force the identities together or apart.
+
+### STATUS
+
+OPEN DESIGN QUESTION
+
+This entry is the durable decision record for the Yuri/Maki continuity question.

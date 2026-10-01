@@ -149,6 +149,63 @@ Status: **OPEN DESIGN QUESTION — YURI ↔ MAKI MACH RELATIONSHIP / CONTINUITY*
 
 Until explicitly resolved, do not rename Yuri to Maki, rename Maki to Yuri, assume they are aliases, rewrite Yuri historical lore, or create a new playable Maki runtime entity.
 
+## 7A. Protagonist Continuity — Yuri / Maki Mach
+
+### Question
+
+**What is the relationship between Yuri and Maki Mach?**
+
+### Evidence
+
+**HISTORICAL / ESTABLISHED DESIGN REFERENCE**
+- Pre-Mach-Girls product/design documents already identify **Yuri** as the protagonist/central character reference. In particular, POST_PHASE16_CHARACTER_GAMEPLAY_SPEC.md uses Yuri in the product identity, while the historical lore file LORE_Y_DISENO.md describes the protagonist's established world/lore without introducing the name Maki Mach.
+- The Phase 21 vertical slice uses the technical identity character_id: yuri for the CURRENT PROPOSED PLAYABLE KIT.
+- **Maki Mach** is introduced in the later Mach-Girls creative-direction layer as a **CURRENT PROPOSED CHARACTER CONCEPT** centered on speed, Mach and the sound-barrier ambition.
+- No inspected repository source establishes that Yuri = Maki Mach, that they are different people, or that one is an alias/replacement for the other.
+
+### Decision
+
+**C — RELATIONSHIP STILL UNRESOLVED**
+
+Classification:
+
+~~~
+YURI / MAKI RELATIONSHIP
+= OPEN DESIGN QUESTION
+~~~
+
+The repository therefore must not silently merge or split the identities.
+
+### Consequences
+
+- **Yuri** remains the existing protagonist/central-character reference and the Phase 21 yuri playable-kit identity.
+- **Maki Mach** remains a **CURRENT PROPOSED CHARACTER CONCEPT** only.
+- No runtime migration from yuri to maki_mach is authorized.
+- No new definitive maki_mach runtime characterId is created by this phase.
+- No historical Yuri lore is rewritten as Maki Mach lore.
+- No Maki Mach lore, genealogy, alias explanation or replacement relationship is invented.
+- Future documentation must refer to the relationship as OPEN DESIGN QUESTION until an explicit decision resolves it.
+- Asset Studio / character assets must remain identity-neutral with respect to a Yuri/Maki merge or split.
+
+### Temporary identity protocol
+
+~~~
+Yuri
+= valid existing protagonist/current proposed playable reference
+
+Maki Mach
+= valid current proposed character concept
+
+Yuri ↔ Maki Mach
+= OPEN DESIGN QUESTION
+
+No rename
+No merge
+No split
+No new lore
+~~~
+
+
 ## 8. Characters ≠ classes
 
 Character concepts:

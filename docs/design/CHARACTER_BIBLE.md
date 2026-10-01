@@ -241,6 +241,40 @@ The existing adult-presentation gate remains unchanged: age_status must be VERIF
 
 APEX, VECTORIA and INERCIA are PROPOSED DESIGN EXAMPLES, not runtime characters.
 
+## Phase 22 — protagonist continuity
+
+### HISTORICAL / ESTABLISHED DESIGN REFERENCE
+
+- Yuri is already used as the protagonist/central-character reference in pre-Mach-Girls product/design documentation.
+- The historical lore source LORE_Y_DISENO.md does not establish Maki Mach as the protagonist's name.
+- Phase 21 implemented the current proposed playable identity with character_id: yuri.
+
+### CURRENT PROPOSED
+
+- Maki Mach is a later **CURRENT PROPOSED CHARACTER CONCEPT** introduced by the Mach-Girls creative direction.
+- Maki Mach is not automatically the same character as Yuri, and is not automatically a replacement.
+- The existing adult-presentation gate remains unchanged; no adult status is inferred for either name.
+
+### OPEN DESIGN QUESTION
+
+**YURI ↔ MAKI MACH RELATIONSHIP / CONTINUITY**
+
+Decision for Phase 22:
+
+~~~
+C) RELATIONSHIP STILL UNRESOLVED
+~~~
+
+Therefore:
+- keep character_id: yuri for the Phase 21 proposed playable kit;
+- do not create a definitive maki_mach runtime identity;
+- do not rename or merge/split authored character records;
+- do not add genealogy, alias logic or replacement lore;
+- future asset work must not force a Yuri/Maki merge or split.
+
+The unresolved relationship is documented centrally in MACH_GIRLS_MASTER_REFERENCE.md and DECISION_LOG.md.
+
+
 
 ## Phase 21 — vertical-slice kit records
 
