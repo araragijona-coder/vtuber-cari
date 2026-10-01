@@ -7,6 +7,7 @@
     ABILITY: "ABILITY",
     AUTO_ATTACK: "AUTO_ATTACK",
     ENEMY_BEHAVIOR: "ENEMY_BEHAVIOR",
+    BURST: "BURST",
     END_TURN: "END_TURN"
   });
 
@@ -52,6 +53,19 @@
     return Object.freeze({ ...action, type: ACTION_TYPES.CARD });
   }
 
+  function createPlayerBurstAction(state) {
+    const combat = state?.combat;
+    if (!combat) throw new Error("NO_COMBAT");
+    return createAction({
+      id: nextActionId(state, combat.player.id),
+      type: ACTION_TYPES.BURST,
+      actorId: combat.player.id,
+      targetId: combat.enemy.id,
+      simulationTick: combat.simulationTick,
+      source: "PLAYER_BURST"
+    });
+  }
+
   function createPlayerAbilityAction(state) {
     const combat = state?.combat;
     if (!combat) throw new Error("NO_COMBAT");
@@ -81,6 +95,7 @@
     createPlayerSkillAction,
     createPlayerCardAction,
     createPlayerAbilityAction,
+    createPlayerBurstAction,
     createPlayerEndTurnAction
   });
 })();
