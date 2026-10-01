@@ -10,8 +10,9 @@
   function createState() {
     return {
       behaviorIndex: 0,
-      cooldownMs: 1200,
-      intervalMs: 1800,
+      cooldownMs: 0,
+      intervalMs: Number(window.CombatBalance.BALANCE.timing.enemyIntentIntervalMs || 1800),
+      telegraphMs: Number(window.CombatBalance.BALANCE.timing.enemyTelegraphMs || 1200),
       currentIntent: null
     };
   }
@@ -59,37 +60,55 @@
     return "UNKNOWN";
   }
 
-  function previewIntent(combat) {
-    const state = combat?.enemyBehavior;
-    const type = nextType(combat?.enemy, state?.behaviorIndex || 0);
+  function previewIntent(combat, startedTick = combat?.simulationTick || 0) {
+    if (!combat?.enemy) return null;
+    const state = combat.enemyBehavior;
+    const index = state?.behaviorIndex || 0;
+    const type = nextType(combat.enemy, index);
     if (!type) return null;
+
     const value = valueFor(combat.enemy, type, combat);
+    const leadMs = Number(state?.telegraphMs || 1200);
+    const stepMs = Number(window.CombatBalance.BALANCE.timing.fixedStepMs || 100);
+    const leadTicks = Math.max(1, Math.ceil(leadMs / stepMs));
+
     return {
+      turn: Math.floor((startedTick * stepMs) / 1000) + 1,
       type,
       value,
       label: labelFor(type, value),
-      remainingMs: Number(state?.cooldownMs || 0)
+      startedTick,
+      resolveTick: startedTick + leadTicks,
+      remainingTicks: leadTicks,
+      remainingMs: leadTicks * stepMs
     };
   }
 
   function update(combat, stepMs) {
     if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return null;
-    const state = combat.enemyBehavior;
-    if (!state || window.BreakSystem.isBroken(combat.enemy.breakState)) return null;
+    if (window.BreakSystem.isBroken(combat.enemy.breakState)) return null;
 
-    state.cooldownMs -= Number(stepMs || window.CombatClock.DEFAULT_STEP_MS);
-    if (state.cooldownMs > 0) {
-      if (combat.enemyIntent) combat.enemyIntent.remainingMs = state.cooldownMs;
-      return null;
+    const state = combat.enemyBehavior;
+    const delta = Math.max(0, Number(stepMs) || window.CombatClock.DEFAULT_STEP_MS);
+
+    if (combat.enemyIntent) {
+      const intent = combat.enemyIntent;
+      intent.remainingMs = Math.max(0, Number(intent.remainingMs || 0) - delta);
+      intent.remainingTicks = Math.max(0, Number(intent.remainingTicks || 0) - 1);
+      if (intent.remainingTicks > 0) return null;
+
+      state.behaviorIndex += 1;
+      state.currentIntent = { ...intent, remainingMs: 0, remainingTicks: 0 };
+      state.cooldownMs = state.intervalMs;
+      combat.enemyIntent = null;
+      return state.currentIntent;
     }
 
-    const intent = combat.enemyIntent || previewIntent(combat);
-    if (!intent) return null;
+    state.cooldownMs = Math.max(0, Number(state.cooldownMs || 0) - delta);
+    if (state.cooldownMs > 0) return null;
 
-    state.behaviorIndex += 1;
-    state.cooldownMs = state.intervalMs;
-    state.currentIntent = intent;
-    return intent;
+    combat.enemyIntent = previewIntent(combat, combat.simulationTick);
+    return null;
   }
 
   function actionFor(combat, intent) {
@@ -106,9 +125,11 @@
   function resolveIntent(combat, intent) {
     if (!intent) return null;
     const action = actionFor(combat, intent);
+
     if (intent.type === ACTION_TYPES.ATTACK) {
       return window.CombatEngine.resolveEnemyAttack(combat, action, intent.value);
     }
+
     if (intent.type === ACTION_TYPES.DEFEND) {
       combat.enemy.block += intent.value;
       combat.enemy.blockRemainingMs = Math.max(combat.enemy.blockRemainingMs, 1200);
@@ -123,11 +144,12 @@
         intent
       };
     }
+
     if (intent.type === ACTION_TYPES.DEBUFF) {
-      window.StatusSystem.apply(
+      window.StatusSystem.applyTimedMs(
         combat.player,
         window.StatusSystem.STATUS_TYPES.WEAK,
-        intent.value
+        2200
       );
       return {
         actionId: action.id,
@@ -137,10 +159,11 @@
         damage: 0,
         breakDamage: 0,
         statusApplied: "WEAK",
-        statusDurationMs: intent.value,
+        statusDurationMs: 2200,
         intent
       };
     }
+
     return null;
   }
 
