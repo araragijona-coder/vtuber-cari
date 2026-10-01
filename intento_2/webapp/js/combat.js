@@ -35,7 +35,14 @@
   let currentEnemyId = null;
   let simulationFrame = null;
   let lastSimulationTime = null;
-  const view = { gameState: null, lastWidth: 0, lastHeight: 0, impact: null, lastTelemetryActionId: null };
+  const view = {
+    gameState: null,
+    lastWidth: 0,
+    lastHeight: 0,
+    impact: null,
+    lastTelemetryActionId: null,
+    lastEnemyIntentKey: null
+  };
   const combatTelemetry = new Map();
 
   function nextEnemyId() {
@@ -112,12 +119,32 @@
 
   function captureLatestAction(combat) {
     const action = combat?.lastAction;
-    if (!action || action.actionId === view.lastTelemetryActionId) return;
-    view.lastTelemetryActionId = action.actionId;
-    window.RocketBunnyTelemetry?.recordCombatAction(combat, {
-      ...action,
-      type: action.actionType
-    });
+    if (action && action.actionId !== view.lastTelemetryActionId) {
+      view.lastTelemetryActionId = action.actionId;
+      window.RocketBunnyTelemetry?.recordCombatAction(combat, {
+        ...action,
+        type: action.actionType
+      });
+
+      if (action.actionType === "AUTO_ATTACK" && action.source === "ENEMY_AUTO_ATTACK") {
+        window.RocketBunnyTelemetry?.enemyAttackResolved(combat, action);
+      }
+      if (action.actionType === "ENEMY_BEHAVIOR" && action.intent?.type === "ATTACK") {
+        window.RocketBunnyTelemetry?.enemyAttackResolved(combat, action);
+      }
+      if (action.broke) {
+        window.RocketBunnyTelemetry?.breakStarted(combat, action);
+      }
+    }
+
+    const intentKey = combat?.enemyIntent
+      ? String(combat.enemyIntent.startedTick) + ":" + String(combat.enemyIntent.type)
+      : null;
+    if (intentKey && intentKey !== view.lastEnemyIntentKey) {
+      view.lastEnemyIntentKey = intentKey;
+      window.RocketBunnyTelemetry?.enemyTelegraph(combat, combat.enemyIntent);
+    }
+    if (!combat?.enemyIntent) view.lastEnemyIntentKey = null;
   }
 
   function initGameState() {
@@ -137,6 +164,7 @@
     view.gameState.combat.progression = view.gameState.progression;
     view.impact = null;
     view.lastTelemetryActionId = null;
+    view.lastEnemyIntentKey = null;
 
     const combat = view.gameState.combat;
     combatTelemetry.set(combat.battleId, {
@@ -223,6 +251,7 @@
         ...resolution,
         type: resolution.actionType
       });
+      window.RocketBunnyTelemetry?.burstUsed(combat, resolution);
       view.gameState.session.lastMessage = "BURST · " + resolution.damage + " DAMAGE" +
         (resolution.brokenPayoff ? " · BREAK PAYOFF" : "");
       showResult(resolution);
