@@ -101,16 +101,17 @@
     })
   });
 
+  // The opening hand intentionally exposes all three tactical roles.
   const INITIAL_DECK = Object.freeze([
     "disparo_neon",
+    "escudo_dark",
+    "pulso_debilitante",
     "embestida_nitro",
     "derrape_expuesto",
-    "escudo_dark",
     "barricada_neon",
     "espejo_urbano",
     "lectura_tactica",
-    "sobrecarga",
-    "pulso_debilitante"
+    "sobrecarga"
   ]);
 
   function clone(value) {
