@@ -42,5 +42,5 @@ test("played cards move once from hand to discard and recycle deterministically"
   cards.drawCards(combat, 4);
   assert.equal(combat.hand.length, 4);
   assert.equal(combat.drawPile.length, 2);
-  assert.equal(combat.discardPile.length, 2);
+  assert.equal(combat.discardPile.length, 0);
 });

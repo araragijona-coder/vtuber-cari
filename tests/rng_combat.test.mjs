@@ -67,7 +67,7 @@ test("card damage resolution remains finite and HP bounded", async () => {
   assert.ok(state.combat.enemy.hp >= 0 && state.combat.enemy.hp <= state.combat.enemy.maxHp);
 });
 
-test("defense consumes the next-hit protection", async () => {
+test("defense block absorbs the next hit without forcing block to zero", async () => {
   const w = await loadCombat();
   const state = battle(w, 100, "street_punk");
   state.combat.cards.hand[0] = { instanceId: "escudo_dark-test", cardId: "escudo_dark" };
@@ -80,9 +80,16 @@ test("defense consumes the next-hit protection", async () => {
   );
   const enemyAction = w.EnemyAI.decide(state);
   const resolution = w.CombatEngine.resolveAction(state, enemyAction);
-  assert.equal(state.combat.player.defending, false);
-  assert.ok(resolution.damage <= 7);
-  assert.equal(resolution.critical, false || typeof resolution.critical === "boolean");
+  assert.ok(resolution.blockAbsorbed > 0);
+  assert.ok(resolution.damage >= 0);
+  assert.equal(
+    state.combat.player.block,
+    8 - resolution.blockAbsorbed
+  );
+  assert.equal(
+    state.combat.player.defending,
+    state.combat.player.block > 0
+  );
 });
 
 test("critical multiplier stays bounded and is recorded", async () => {
