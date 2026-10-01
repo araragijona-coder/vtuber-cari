@@ -86,6 +86,11 @@ button:not(:disabled):hover { filter: brightness(1.12); }
 .card-attack { border-color: rgba(255,99,128,.35); }
 .card-defense { border-color: rgba(99,190,255,.35); }
 .card-skill { border-color: rgba(255,209,92,.35); }
+#burst-action:not(:disabled) {
+  border-color: rgba(255,211,106,.65);
+  box-shadow: 0 0 0 1px rgba(255,211,106,.15), 0 0 18px rgba(255,211,106,.12);
+}
+#burst-action:disabled { box-shadow: none; }
 
 .combat-hud {
   display: grid;
