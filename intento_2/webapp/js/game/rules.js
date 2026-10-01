@@ -156,6 +156,10 @@
         combat,
         Number(window.CombatBalance.BALANCE.burst.breakCharge || 0)
       );
+      emitCombatEvent(combat, "break_started", {
+        breakDamage: result.applied,
+        breakWindowMs: target.breakState.windowMs
+      });
     }
     return result;
   }
@@ -396,9 +400,16 @@
       }
     }
 
+    const recycleCountBefore = Number(combat.cards.recycleCount || 0);
     window.CardSystem.playCard(combat.cards, card.instanceId);
     window.CardSystem.refillHand(combat.cards);
     combat.cooldowns[action.cardId] = Number(definition.cooldownMs || 0);
+    if (Number(combat.cards.recycleCount || 0) > recycleCountBefore) {
+      combat.cycleCount = Number(combat.cards.recycleCount || 0);
+      emitCombatEvent(combat, "deck_recycled", {
+        cycleCount: combat.cycleCount
+      });
+    }
 
     window.BurstSystem.gain(
       combat,
@@ -654,6 +665,9 @@
     const breakEnded = window.BreakSystem.advance(combat.enemy.breakState, stepMs);
     if (breakEnded) {
       combat.burstWindowEndedAt = combat.elapsedMs;
+      emitCombatEvent(combat, "break_ended", {
+        breakMax: combat.enemy.breakState.max
+      });
       combat.lastAction = Object.freeze({
         actionId: "break-end-" + combat.simulationTick,
         actionType: "BREAK_END",
@@ -725,14 +739,6 @@
       window.CardSystem.drawCard(combat.cards);
     }
 
-    if (combat.enemyIntent) {
-      emitCombatEvent(combat, "enemy_telegraph", {
-        intent: combat.enemyIntent.type,
-        value: combat.enemyIntent.value,
-        remainingMs: combat.enemyIntent.remainingMs,
-        remainingTicks: combat.enemyIntent.remainingTicks
-      });
-    }
   }
 
   function advanceTime(state, deltaMs) {
