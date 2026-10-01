@@ -74,12 +74,11 @@ async function loadPresentationWithImageTracking(source) {
     constructor() {
       this.complete = true;
       this.naturalWidth = 128;
-      this.src = "";
-      imageSources.push(this.src);
+      this._src = "";
     }
     set src(value) {
       this._src = String(value);
-      imageSources[imageSources.length - 1] = this._src;
+      imageSources.push(this._src);
     }
     get src() {
       return this._src;
