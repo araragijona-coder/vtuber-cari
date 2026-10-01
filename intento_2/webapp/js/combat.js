@@ -6,30 +6,42 @@
   const statusEl = document.getElementById("combat-status");
   const resultEl = document.getElementById("combat-result");
   const playerHpEl = document.getElementById("combat-player-hp");
+  const playerHpFillEl = document.getElementById("combat-player-hp-fill");
   const playerBlockEl = document.getElementById("combat-player-block");
   const playerStatusesEl = document.getElementById("combat-player-statuses");
   const playerAutoEl = document.getElementById("combat-player-auto");
+  const playerNameEl = document.getElementById("combat-player-name");
   const enemyNameEl = document.getElementById("combat-enemy-name");
   const enemyHpEl = document.getElementById("combat-enemy-hp");
+  const enemyHpFillEl = document.getElementById("combat-enemy-hp-fill");
   const enemyBlockEl = document.getElementById("combat-enemy-block");
   const enemyBreakEl = document.getElementById("combat-enemy-break");
+  const enemyBreakFillEl = document.getElementById("combat-enemy-break-fill");
   const enemyStatusesEl = document.getElementById("combat-enemy-statuses");
   const enemyIntentEl = document.getElementById("combat-enemy-intent");
+  const enemyIntentIconEl = document.getElementById("combat-enemy-intent-icon");
+  const enemyIntentTimeEl = document.getElementById("combat-enemy-intent-time");
   const enemyAutoEl = document.getElementById("combat-enemy-auto");
   const combatTimeEl = document.getElementById("combat-time");
   const combatPhaseEl = document.getElementById("combat-phase");
   const lastActionEl = document.getElementById("combat-last-action");
   const statusValueEl = document.getElementById("combat-status-value");
   const energyEl = document.getElementById("combat-energy");
+  const energyFillEl = document.getElementById("combat-energy-fill");
   const energyRegenEl = document.getElementById("combat-energy-regen");
   const abilityEl = document.getElementById("combat-ability-status");
   const burstEl = document.getElementById("combat-burst");
-  const handEl = document.getElementById("combat-hand");
-  const startButton = document.getElementById("start-battle");
+  const burstFillEl = document.getElementById("combat-burst-fill");
+  const burstReadyEl = document.getElementById("combat-burst-ready");
   const burstButton = document.getElementById("burst-action");
   const abilityButton = document.getElementById("character-ability");
+  const handEl = document.getElementById("combat-hand");
+  const breakBannerEl = document.getElementById("combat-break-banner");
+  const burstBannerEl = document.getElementById("combat-burst-banner");
+  const startButton = document.getElementById("start-battle");
   const restartButton = document.getElementById("restart-battle");
 
+  const presentation = window.CombatPresentation?.create?.(canvas, context) || null;
   let battleSequence = 0;
   let enemySequence = -1;
   let currentEnemyId = null;
@@ -39,12 +51,34 @@
     gameState: null,
     lastWidth: 0,
     lastHeight: 0,
-    impact: null,
     lastTelemetryActionId: null,
     lastEnemyIntentKey: null
   };
   const combatTelemetry = new Map();
   const handButtonCache = new Map();
+
+  function setText(element, value) {
+    if (element && element.textContent !== String(value)) element.textContent = String(value);
+  }
+
+  function setBar(element, value, max) {
+    if (!element) return;
+    const ratio = Math.min(1, Math.max(0, Number(value || 0) / Math.max(1, Number(max || 1))));
+    element.style.width = (ratio * 100).toFixed(2) + "%";
+    element.setAttribute("aria-valuenow", String(Math.round(Number(value || 0) * 10) / 10));
+    element.setAttribute("aria-valuemax", String(Number(max || 0)));
+  }
+
+  function setHidden(element, hidden) {
+    if (element) element.hidden = Boolean(hidden);
+  }
+
+  function iconForIntent(type) {
+    if (type === "ATTACK") return "!";
+    if (type === "DEFEND") return "◆";
+    if (type === "DEBUFF") return "☄";
+    return "•";
+  }
 
   function nextEnemyId() {
     enemySequence += 1;
@@ -56,7 +90,7 @@
     const id = enemyId || nextEnemyId();
     const battleId = typeof window.generateUUID === "function"
       ? window.generateUUID()
-      : "battle-phase18-" + Date.now() + "-" + battleSequence;
+      : "battle-phase19-" + Date.now() + "-" + battleSequence;
     const enemy = window.EnemyCatalog.createEnemy(id);
     currentEnemyId = enemy.id;
     const saved = typeof window.SaveManager?.load === "function"
@@ -127,16 +161,10 @@
         type: action.actionType
       });
 
+      presentation?.onAction(combat, action);
+
       if (action.actionType === "AUTO_ATTACK" && action.source === "ENEMY_AUTO_ATTACK") {
         window.RocketBunnyTelemetry?.enemyAttackResolved(combat, action);
-      }
-      if (action.actionType === "AUTO_ATTACK") {
-        view.impact = {
-          targetId: action.targetId || null,
-          damage: Number(action.damage || 0),
-          critical: Boolean(action.critical),
-          startedAt: performance.now()
-        };
       }
       if (action.actionType === "ENEMY_BEHAVIOR" && action.intent?.type === "ATTACK") {
         window.RocketBunnyTelemetry?.enemyAttackResolved(combat, action);
@@ -174,16 +202,13 @@
 
     window.GameState.startBattle(view.gameState, battleConfig);
     view.gameState.combat.progression = view.gameState.progression;
-    view.impact = null;
-    view.lastTelemetryActionId = null;
-    view.lastEnemyIntentKey = null;
-
     const combat = view.gameState.combat;
     combatTelemetry.set(combat.battleId, {
       initialPlayerHp: combat.player.hp,
       cards: Object.create(null)
     });
 
+    presentation?.onCombatStart(combat);
     window.RocketBunnyTelemetry?.beginCombat(combat);
     renderUi();
     startSimulation();
@@ -195,15 +220,6 @@
 
   function nextBattle() {
     startBattle();
-  }
-
-  function showResult(resolution) {
-    view.impact = {
-      targetId: resolution?.targetId || null,
-      damage: Number(resolution?.damage || 0),
-      critical: Boolean(resolution?.critical),
-      startedAt: performance.now()
-    };
   }
 
   function completeBattleTelemetry(combat) {
@@ -228,6 +244,19 @@
     metrics.cards[cardId] = (metrics.cards[cardId] || 0) + 1;
   }
 
+  function showResult(resolution, combat) {
+    presentation?.onAction(combat, resolution);
+    if (resultEl) {
+      const parts = [];
+      if (resolution?.critical) parts.push("CRÍTICO");
+      if (resolution?.damage > 0) parts.push("-" + resolution.damage);
+      if (resolution?.breakDamage > 0) parts.push("BRK -" + resolution.breakDamage);
+      if (resolution?.blockAbsorbed > 0) parts.push("BLOCK " + resolution.blockAbsorbed);
+      if (resolution?.broke) parts.push("BREAK");
+      setText(resultEl, parts.join(" · ") || "SKILL");
+    }
+  }
+
   function playCard(cardInstanceId) {
     const combat = view.gameState?.combat;
     if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
@@ -240,7 +269,7 @@
         ...resolution,
         type: resolution.actionType
       });
-      showResult(resolution);
+      showResult(resolution, combat);
       if (resolution.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
         stopSimulation();
         completeBattleTelemetry(combat);
@@ -266,7 +295,7 @@
       window.RocketBunnyTelemetry?.burstUsed(combat, resolution);
       view.gameState.session.lastMessage = "BURST · " + resolution.damage + " DAMAGE" +
         (resolution.brokenPayoff ? " · BREAK PAYOFF" : "");
-      showResult(resolution);
+      showResult(resolution, combat);
       renderUi();
     } catch (error) {
       view.gameState.session.lastMessage = "Burst rechazada · " + error.message;
@@ -286,6 +315,7 @@
         type: resolution.actionType
       });
       view.gameState.session.lastMessage = "ABILITY · " + window.CharacterAbilitySystem.definition().name;
+      showResult(resolution, combat);
       renderUi();
     } catch (error) {
       view.gameState.session.lastMessage = "Ability rechazada · " + error.message;
@@ -307,12 +337,8 @@
   function statusText(combatant) {
     return window.StatusSystem.entries(combatant)
       .map((status) => {
-        if (status.remainingMs > 0) {
-          return status.label + " " + (status.remainingMs / 1000).toFixed(1) + "s";
-        }
-        if (status.durationTicks > 0) {
-          return status.label + " " + (status.durationTicks / 10).toFixed(1) + "s";
-        }
+        if (status.remainingMs > 0) return status.label + " " + (status.remainingMs / 1000).toFixed(1) + "s";
+        if (status.durationTicks > 0) return status.label + " " + (status.durationTicks / 10).toFixed(1) + "s";
         return status.label + " " + status.turns;
       })
       .join(" · ") || "—";
@@ -322,18 +348,15 @@
     const intent = combat?.enemyIntent;
     if (!intent) {
       const cooldown = Number(combat?.enemyBehavior?.cooldownMs || 0);
-      return cooldown > 0
-        ? "ENEMY RECOVERING · " + (cooldown / 1000).toFixed(1) + "s"
-        : "—";
+      return cooldown > 0 ? "RECOVERING · " + (cooldown / 1000).toFixed(1) + "s" : "—";
     }
-    const seconds = Math.max(0, Number(intent.remainingMs || 0)) / 1000;
-    return intent.label + " · " + seconds.toFixed(1) + "s";
+    return intent.label || intent.type || "UNKNOWN";
   }
 
   function formatAuto(fighter) {
     const attack = fighter?.autoAttack;
     if (!attack) return "—";
-    return "AUTO · " + Math.max(0, attack.cooldownMs / 1000).toFixed(1) + "s";
+    return Math.max(0, attack.cooldownMs / 1000).toFixed(1) + "s";
   }
 
   function cardEffectText(definition) {
@@ -347,6 +370,12 @@
     if (effects.applyStatus) parts.push(effects.applyStatus);
     if (effects.conditional) parts.push("COND");
     return parts.join(" · ") || "UTILITY";
+  }
+
+  function cardVisual(definition) {
+    if (definition.type === "ATTACK") return { glyph: "✦", role: "ATTACK" };
+    if (definition.type === "DEFENSE") return { glyph: "◇", role: "DEFENSE" };
+    return { glyph: "⚡", role: "SKILL" };
   }
 
   function renderHand(combat) {
@@ -378,29 +407,43 @@
         handButtonCache.set(cardInstanceId, button);
       }
 
-      button.className = "card-button card-" + definition.type.toLowerCase();
-      button.dataset.cardInstanceId = cardInstanceId;
-
       const cooldown = Number(combat.cooldowns[card.cardId] || 0);
+      const visual = cardVisual(definition);
       const disabled =
         combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS ||
         !window.EnergySystem.canSpend(combat.resources, definition.cost) ||
         cooldown > 0;
-      button.disabled = disabled;
+      const cooldownText = cooldown > 0 ? "CD " + (cooldown / 1000).toFixed(1) + "s" : "READY";
+      const signature = [
+        definition.name,
+        definition.type,
+        definition.cost,
+        cardEffectText(definition),
+        definition.description,
+        cooldownText,
+        disabled
+      ].join("|");
 
-      const cooldownText = cooldown > 0
-        ? "CD " + (cooldown / 1000).toFixed(1) + "s"
-        : "READY";
-      button.innerHTML =
-        "<strong>" + definition.name + "</strong>" +
-        "<span class=\"card-cost\">⚡ " + definition.cost + "</span>" +
-        "<small class=\"card-type\">" + definition.type + " SKILL · " + cooldownText + "</small>" +
-        "<small>" + cardEffectText(definition) + " · " + definition.description + "</small>";
+      button.className = "card-button card-" + definition.type.toLowerCase();
+      button.dataset.cardInstanceId = cardInstanceId;
+      button.dataset.ready = String(!disabled);
+      button.disabled = disabled;
+      button.setAttribute("aria-label", definition.name + " · " + visual.role + " · " + definition.cost + " Energy");
+      button.setAttribute("aria-keyshortcuts", "Enter Space");
+
+      if (button.dataset.renderSignature !== signature) {
+        button.innerHTML =
+          "<span class='card-glyph' aria-hidden='true'>" + visual.glyph + "</span>" +
+          "<span class='card-main'><strong>" + definition.name + "</strong><span class='card-role'>" + visual.role + "</span></span>" +
+          "<span class='card-cost'>⚡ " + definition.cost + "</span>" +
+          "<span class='card-description'>" + definition.description + "</span>" +
+          "<span class='card-effect'>" + cardEffectText(definition) + "</span>" +
+          "<span class='card-cooldown'>" + cooldownText + "</span>";
+        button.dataset.renderSignature = signature;
+      }
 
       const currentChild = handEl.children[index] || null;
-      if (currentChild !== button) {
-        handEl.insertBefore(button, currentChild);
-      }
+      if (currentChild !== button) handEl.insertBefore(button, currentChild);
     });
 
     for (const [cardInstanceId, button] of handButtonCache) {
@@ -416,81 +459,106 @@
     const outcome = combat?.outcome || null;
     const ability = window.CharacterAbilitySystem?.definition?.();
 
-    if (playerHpEl) playerHpEl.textContent = combat ? Math.ceil(combat.player.hp) + " / " + combat.player.maxHp : "—";
-    if (playerBlockEl) playerBlockEl.textContent = combat ? String(Math.ceil(combat.player.block || 0)) : "—";
-    if (playerStatusesEl) playerStatusesEl.textContent = combat ? statusText(combat.player) : "—";
-    if (playerAutoEl) playerAutoEl.textContent = combat ? formatAuto(combat.player) : "—";
+    setText(playerHpEl, combat ? Math.ceil(combat.player.hp) + " / " + combat.player.maxHp : "—");
+    setBar(playerHpFillEl, combat?.player?.hp, combat?.player?.maxHp);
+    setText(playerBlockEl, combat ? String(Math.ceil(combat.player.block || 0)) : "—");
+    setText(playerStatusesEl, combat ? statusText(combat.player) : "—");
+    setText(playerAutoEl, combat ? formatAuto(combat.player) : "—");
+    setText(playerNameEl, combat ? "BŌSŌZOKU" : "BŌSŌZOKU");
 
-    if (enemyNameEl) enemyNameEl.textContent = combat?.enemy?.name || "—";
-    if (enemyHpEl) enemyHpEl.textContent = combat ? Math.ceil(combat.enemy.hp) + " / " + combat.enemy.maxHp : "—";
-    if (enemyBlockEl) enemyBlockEl.textContent = combat ? String(Math.ceil(combat.enemy.block || 0)) : "—";
+    setText(enemyNameEl, combat?.enemy?.name || "—");
+    setText(enemyHpEl, combat ? Math.ceil(combat.enemy.hp) + " / " + combat.enemy.maxHp : "—");
+    setBar(enemyHpFillEl, combat?.enemy?.hp, combat?.enemy?.maxHp);
+    setText(enemyBlockEl, combat ? String(Math.ceil(combat.enemy.block || 0)) : "—");
+
+    const broken = Boolean(combat && window.BreakSystem.isBroken(combat.enemy.breakState));
     if (enemyBreakEl) {
-      enemyBreakEl.textContent = combat
-        ? (window.BreakSystem.isBroken(combat.enemy.breakState)
-          ? "0 / " + combat.enemy.breakState.max + " · BURST"
-          : Math.ceil(combat.enemy.breakState.current) + " / " + combat.enemy.breakState.max)
-        : "—";
+      setText(enemyBreakEl, combat
+        ? (broken ? "VULNERABLE · " + (combat.enemy.breakState.remainingMs / 1000).toFixed(1) + "s" : Math.ceil(combat.enemy.breakState.current) + " / " + combat.enemy.breakState.max)
+        : "—");
     }
-    if (enemyStatusesEl) enemyStatusesEl.textContent = combat ? statusText(combat.enemy) : "—";
-    if (enemyAutoEl) enemyAutoEl.textContent = combat ? formatAuto(combat.enemy) : "—";
-    if (enemyIntentEl) enemyIntentEl.textContent = combat ? formatIntent(combat) : "—";
+    setBar(enemyBreakFillEl, combat?.enemy?.breakState?.current, combat?.enemy?.breakState?.max);
+    setText(enemyStatusesEl, combat ? statusText(combat.enemy) : "—");
+    setText(enemyAutoEl, combat ? formatAuto(combat.enemy) : "—");
 
-    if (combatTimeEl) {
-      combatTimeEl.textContent = combat
-        ? (combat.elapsedMs / 1000).toFixed(1) + " s · T" + combat.simulationTick
-        : "—";
-    }
-    if (combatPhaseEl) combatPhaseEl.textContent = combat
-      ? (window.BurstSystem.isActive(combat) ? "BREAK WINDOW" : combat.phase)
-      : "READY";
-    if (energyEl) energyEl.textContent = combat ? Math.floor(combat.resources.energy) + " / " + combat.resources.maxEnergy : "—";
-    if (energyRegenEl) energyRegenEl.textContent = combat ? combat.resources.energyRegen.toFixed(1) + " /s" : "—";
-    if (burstEl) {
-      burstEl.textContent = combat
-        ? Math.floor(window.BurstSystem.chargeOf(combat)) + " / " + window.BurstSystem.maxChargeOf(combat)
-        : "—";
-    }
+    const intent = combat?.enemyIntent || null;
+    setText(enemyIntentEl, combat ? formatIntent(combat) : "—");
+    setText(enemyIntentTimeEl, intent ? (Math.max(0, Number(intent.remainingMs || 0)) / 1000).toFixed(1) + "s" : "—");
+    setText(enemyIntentIconEl, iconForIntent(intent?.type));
+
+    if (combatTimeEl) setText(combatTimeEl, combat ? (combat.elapsedMs / 1000).toFixed(1) + " s · T" + combat.simulationTick : "—");
+    setText(combatPhaseEl, combat ? (broken ? "BREAK WINDOW" : combat.phase) : "READY");
+
+    const energy = combat ? Number(combat.resources.energy || 0) : 0;
+    const maxEnergy = combat ? Number(combat.resources.maxEnergy || 0) : 0;
+    setText(energyEl, combat ? Math.floor(energy) + " / " + maxEnergy : "—");
+    setBar(energyFillEl, energy, maxEnergy);
+    setText(energyRegenEl, combat ? combat.resources.energyRegen.toFixed(1) + " /s" : "—");
+
+    const burstCharge = combat ? Number(window.BurstSystem.chargeOf(combat)) : 0;
+    const burstMax = combat ? Number(window.BurstSystem.maxChargeOf(combat)) : 100;
+    const burstReady = Boolean(combat && window.BurstSystem.canUse(combat));
+    setText(burstEl, combat ? Math.floor(burstCharge) + " / " + burstMax : "—");
+    setBar(burstFillEl, burstCharge, burstMax);
+    setText(burstReadyEl, combat ? (burstReady ? "BURST READY" : "CHARGING") : "CHARGING");
+    if (burstReadyEl) burstReadyEl.dataset.ready = String(burstReady);
+    if (burstReadyEl) burstReadyEl.className = "resource-subline ready-state" + (burstReady ? " burst-ready" : "");
+
     if (burstButton) {
-      burstButton.disabled = !combat || !window.BurstSystem.canUse(combat);
+      burstButton.disabled = !combat || !burstReady;
       burstButton.hidden = !combat || outcome !== window.GameState.OUTCOME.IN_PROGRESS;
-      burstButton.textContent = combat && window.BurstSystem.isActive(combat) ? "BURST · BREAK" : "BURST";
+      burstButton.textContent = broken ? "BURST · BREAK" : "BURST";
+      burstButton.setAttribute("aria-label", broken ? "BURST during BREAK window" : "BURST");
     }
-    if (abilityEl) {
-      abilityEl.textContent = combat
-        ? ability.name + " · " + combat.resources.playerAbilityUses + "/1"
-        : "—";
-      abilityButton?.setAttribute("aria-label", ability.name + " · " + ability.condition);
-    }
-    if (lastActionEl) {
-      lastActionEl.textContent =
-        formatLastAction(combat) +
-        (combat?.lastAction?.critical ? " · CRÍTICO" : "") +
-        (combat?.lastAction?.blockAbsorbed ? " · BLOCK " + combat.lastAction.blockAbsorbed : "") +
-        (combat?.lastAction?.broke ? " · BREAK" : "");
-    }
-    if (statusValueEl) statusValueEl.textContent = outcome || "READY";
-    if (statusEl) statusEl.textContent = game?.session?.lastMessage || "Esperando una batalla.";
 
-    if (startButton) startButton.hidden = Boolean(combat);
-    if (restartButton) restartButton.hidden = !combat;
+    if (abilityEl) {
+      setText(abilityEl, combat ? ability.name + " · " + combat.resources.playerAbilityUses + "/1" : "—");
+    }
     if (abilityButton) {
       abilityButton.disabled = !combat || !window.CharacterAbilitySystem.canUse(combat);
       abilityButton.hidden = !combat || outcome !== window.GameState.OUTCOME.IN_PROGRESS;
+      abilityButton.textContent = ability?.name || "ABILITY";
+      abilityButton.setAttribute("aria-label", ability ? ability.name + " · " + ability.condition : "Character ability");
     }
 
-    if (resultEl) {
-      if (!combat) resultEl.textContent = "";
-      else if (outcome === window.GameState.OUTCOME.VICTORY) resultEl.textContent = "VICTORY";
-      else if (outcome === window.GameState.OUTCOME.DEFEAT) resultEl.textContent = "DEFEAT";
-      else if (window.BurstSystem.isActive(combat)) resultEl.textContent = "BREAK WINDOW · DAMAGE x" + window.BurstSystem.multiplier(combat).toFixed(2);
+    if (lastActionEl) {
+      setText(lastActionEl,
+        formatLastAction(combat) +
+        (combat?.lastAction?.critical ? " · CRÍTICO" : "") +
+        (combat?.lastAction?.blockAbsorbed ? " · BLOCK " + combat.lastAction.blockAbsorbed : "") +
+        (combat?.lastAction?.broke ? " · BREAK" : "")
+      );
+    }
+    setText(statusValueEl, outcome || "READY");
+    if (statusEl) setText(statusEl, game?.session?.lastMessage || "Esperando una batalla.");
+
+    setHidden(startButton, Boolean(combat));
+    setHidden(restartButton, !combat);
+
+    if (breakBannerEl) {
+      breakBannerEl.hidden = !broken;
+      breakBannerEl.dataset.active = String(broken);
+    }
+    if (burstBannerEl) {
+      burstBannerEl.hidden = !combat || !combat.lastAction || combat.lastAction.actionType !== "BURST";
+      burstBannerEl.dataset.active = String(combat?.lastAction?.actionType === "BURST");
+    }
+
+    if (resultEl && combat) {
+      if (outcome === window.GameState.OUTCOME.VICTORY) setText(resultEl, "VICTORY");
+      else if (outcome === window.GameState.OUTCOME.DEFEAT) setText(resultEl, "DEFEAT");
+      else if (broken) setText(resultEl, "BREAK WINDOW · BURST");
       else if (combat.lastAction?.damage > 0) {
-        resultEl.textContent =
+        setText(resultEl,
           (combat.lastAction.critical ? "CRÍTICO · " : "") +
           "-" + combat.lastAction.damage +
-          (combat.lastAction.breakDamage ? " · BRK " + combat.lastAction.breakDamage : "");
-      } else {
-        resultEl.textContent = "";
+          (combat.lastAction.breakDamage ? " · BRK " + combat.lastAction.breakDamage : "")
+        );
+      } else if (!resultEl.textContent || resultEl.textContent === "VICTORY" || resultEl.textContent === "DEFEAT") {
+        setText(resultEl, "");
       }
+    } else if (resultEl) {
+      setText(resultEl, "");
     }
 
     renderHand(combat);
@@ -507,88 +575,8 @@
     view.lastHeight = rect.height;
   }
 
-  function drawText(text, x, y, size, weight, align = "left", color = "#fff") {
-    context.font = weight + " " + size + "px system-ui, sans-serif";
-    context.textAlign = align;
-    context.textBaseline = "top";
-    context.fillStyle = color;
-    context.fillText(text, x, y);
-  }
-
-  function drawBar(x, y, width, height, value, max, fillColor) {
-    const ratio = Math.min(1, Math.max(0, value / Math.max(1, max)));
-    context.fillStyle = "rgba(0,0,0,.55)";
-    context.fillRect(x, y, width, height);
-    context.fillStyle = fillColor;
-    context.fillRect(x, y, width * ratio, height);
-    context.strokeStyle = "rgba(255,255,255,.25)";
-    context.strokeRect(x, y, width, height);
-  }
-
-  function drawFighter(fighter, x, y, width, height, team) {
-    context.fillStyle = "rgba(15,20,35,.9)";
-    context.fillRect(x, y, width, height);
-    context.strokeStyle = team === "player" ? "rgba(106,181,255,.65)" : "rgba(255,111,150,.65)";
-    context.strokeRect(x, y, width, height);
-
-    drawText(
-      team === "player" ? "PLAYER" : fighter.name || "ENEMY",
-      x + width / 2, y + 24, 18, "800", "center", "rgba(255,255,255,.82)"
-    );
-    drawText("AUTO · " + (fighter.autoAttack?.damage || 0) + " DMG", x + width / 2, y + 50, 11, "700", "center", "rgba(255,255,255,.58)");
-
-    drawText("HP " + Math.ceil(fighter.hp) + " / " + fighter.maxHp, x + 10, y + height - 86, 12, "600");
-    drawText("SHIELD " + Math.ceil(fighter.block || 0), x + 10, y + height - 66, 12, "700");
-    drawText(statusText(fighter), x + 10, y + height - 46, 11, "700", "left", "rgba(255,255,255,.65)");
-    drawBar(x + 10, y + height - 30, width - 20, 8, fighter.hp, fighter.maxHp, "#54d58c");
-
-    if (team === "enemy" && fighter.breakState) {
-      drawText(
-        window.BreakSystem.isBroken(fighter.breakState)
-          ? "BURST " + (fighter.breakState.remainingMs / 1000).toFixed(1) + "s"
-          : "BREAK " + fighter.breakState.current + " / " + fighter.breakState.max,
-        x + 10, y + 8, 11, "800", "left", "#ffd36a"
-      );
-      drawBar(x + 10, y + 18, width - 20, 6, fighter.breakState.current, fighter.breakState.max, "#ffd36a");
-    }
-  }
-
-  function drawFrame() {
-    if (!canvas || !context) return;
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width !== view.lastWidth || rect.height !== view.lastHeight) resizeCanvas();
-
-    const width = view.lastWidth;
-    const height = view.lastHeight;
-    context.clearRect(0, 0, width, height);
-    context.fillStyle = "#080d18";
-    context.fillRect(0, 0, width, height);
-
-    const combat = view.gameState?.combat;
-    if (!combat) {
-      drawText("ROCKET BUNNY PETTY", width / 2, height * .34, 24, "800", "center");
-      drawText("Iniciá un combate semi-real-time.", width / 2, height * .34 + 38, 14, "500", "center", "rgba(255,255,255,.65)");
-    } else {
-      drawText(
-        "TIME " + (combat.elapsedMs / 1000).toFixed(1) + "s · TICK " + combat.simulationTick,
-        width / 2, 12, 14, "800", "center", "rgba(255,255,255,.82)"
-      );
-      drawText(
-        "AUTO FIGHT · " + (combat.activeActor || "combat").toUpperCase(),
-        width / 2, 34, 11, "800", "center", "rgba(255,255,255,.58)"
-      );
-      drawText(formatIntent(combat), width / 2, 52, 12, "800", "center", "#ffd36a");
-      if (window.BurstSystem.isActive(combat)) {
-        drawText(
-          "BREAK WINDOW · x" + window.BurstSystem.multiplier(combat).toFixed(2),
-          width / 2, 72, 12, "900", "center", "#ff8fbd"
-        );
-      }
-
-      drawFighter(combat.player, 14, 92, width / 2 - 28, height - 132, "player");
-      drawFighter(combat.enemy, width / 2 + 14, 92, width / 2 - 28, height - 132, "enemy");
-    }
-
+  function drawFrame(now) {
+    presentation?.render(view.gameState?.combat || null, now);
     window.requestAnimationFrame(drawFrame);
   }
 
@@ -599,7 +587,8 @@
     actionButton: playCard,
     useAbility,
     useBurst,
-    getGameState: () => view.gameState
+    getGameState: () => view.gameState,
+    getPresentation: () => presentation
   });
 
   startButton?.addEventListener("click", () => startBattle());
@@ -610,5 +599,5 @@
 
   initGameState();
   resizeCanvas();
-  drawFrame();
+  window.requestAnimationFrame(drawFrame);
 })();

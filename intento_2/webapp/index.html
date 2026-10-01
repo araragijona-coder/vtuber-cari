@@ -3,107 +3,154 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#111318">
+  <meta name="theme-color" content="#0a0d16">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Rocket Bunny Petty · Semi-Real-Time Combat</title>
+  <title>Rocket Bunny Petty · Live Combat</title>
   <link rel="stylesheet" href="./css/style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <main id="app" aria-label="Rocket Bunny Petty">
     <section id="combat" aria-label="Combate semi-real-time">
-      <div class="combat-stage">
-        <canvas id="combat-canvas" aria-label="Canvas de combate"></canvas>
+      <header class="combat-header">
+        <div>
+          <p class="eyebrow">ROCKET BUNNY PETTY</p>
+          <h1>LIVE BATTLE</h1>
+        </div>
+        <div class="combat-mode-badge" aria-label="Modo de combate">SEMI-REAL-TIME</div>
+      </header>
+
+      <div class="combat-stage" id="combat-arena">
+        <canvas id="combat-canvas" aria-label="Arena de combate animada"></canvas>
+
+        <div class="arena-hud enemy-hud" aria-label="Estado del enemigo">
+          <div class="fighter-name">
+            <span class="fighter-side enemy-side">ENEMY</span>
+            <strong id="combat-enemy-name">—</strong>
+          </div>
+          <div class="hud-meter hp-meter">
+            <span class="hud-meter-label">HP</span>
+            <span class="hud-meter-value" id="combat-enemy-hp">—</span>
+            <div class="hud-meter-track"><div id="combat-enemy-hp-fill" class="hud-meter-fill"></div></div>
+          </div>
+          <div class="enemy-break-inline">
+            <span>BREAK</span>
+            <strong id="combat-enemy-break">—</strong>
+            <div class="hud-meter-track break-track"><div id="combat-enemy-break-fill" class="hud-meter-fill"></div></div>
+          </div>
+          <p id="combat-enemy-statuses" class="status-line">—</p>
+        </div>
+
+        <div id="enemy-intent-banner" class="intent-banner" aria-live="polite" aria-label="Intención del enemigo">
+          <span id="combat-enemy-intent-icon" class="intent-icon" aria-hidden="true">!</span>
+          <div class="intent-copy">
+            <span>INCOMING</span>
+            <strong id="combat-enemy-intent">—</strong>
+          </div>
+          <strong id="combat-enemy-intent-time" class="intent-time">—</strong>
+        </div>
+
+        <div class="arena-hud player-hud" aria-label="Estado del jugador">
+          <div class="fighter-name">
+            <span class="fighter-side player-side">PLAYER</span>
+            <strong id="combat-player-name">BŌSŌZOKU</strong>
+          </div>
+          <div class="hud-meter hp-meter">
+            <span class="hud-meter-label">HP</span>
+            <span class="hud-meter-value" id="combat-player-hp">—</span>
+            <div class="hud-meter-track"><div id="combat-player-hp-fill" class="hud-meter-fill"></div></div>
+          </div>
+          <div class="shield-line">
+            <span>SHIELD</span>
+            <strong id="combat-player-block">—</strong>
+          </div>
+          <p id="combat-player-statuses" class="status-line">—</p>
+        </div>
+
+        <div id="combat-break-banner" class="impact-banner break-banner" hidden role="status" aria-live="assertive">
+          <span>BREAK!</span>
+          <small>VULNERABLE WINDOW</small>
+        </div>
+
+        <div id="combat-burst-banner" class="impact-banner burst-banner" hidden role="status" aria-live="assertive">
+          <span>BURST!</span>
+          <small>BREAK PAYOFF</small>
+        </div>
+
+        <p id="combat-result" class="combat-result" role="status" aria-live="assertive"></p>
+
+        <div class="combat-stage-controls">
+          <button id="start-battle" class="primary-action" type="button">START BATTLE</button>
+          <button id="restart-battle" class="secondary-action" type="button" hidden>RESTART</button>
+        </div>
       </div>
 
-      <div class="combat-controls" aria-label="Controles de combate">
-        <button id="start-battle" type="button">START BATTLE</button>
-        <button id="burst-action" type="button" hidden>BURST</button>
-        <button id="character-ability" type="button" hidden>ABILITY</button>
+      <section class="resource-dock" aria-label="Recursos de combate">
+        <div class="resource-card energy-resource">
+          <div class="resource-heading">
+            <span>ENERGY</span>
+            <strong id="combat-energy">—</strong>
+          </div>
+          <div class="resource-meter">
+            <div id="combat-energy-fill" class="resource-meter-fill"></div>
+          </div>
+          <div class="resource-subline">
+            <span>Regeneration</span>
+            <strong id="combat-energy-regen">—</strong>
+          </div>
+        </div>
+
+        <div class="resource-card burst-resource" id="burst-resource">
+          <div class="resource-heading">
+            <span>BURST</span>
+            <strong id="combat-burst">—</strong>
+          </div>
+          <div class="resource-meter burst-meter">
+            <div id="combat-burst-fill" class="resource-meter-fill"></div>
+          </div>
+          <div id="combat-burst-ready" class="resource-subline ready-state">CHARGING</div>
+        </div>
+
+        <div class="resource-actions">
+          <button id="burst-action" class="burst-action" type="button" hidden disabled>
+            BURST
+          </button>
+          <button id="character-ability" class="ability-action" type="button" hidden disabled>
+            ABILITY
+          </button>
+        </div>
+      </section>
+
+      <section class="skills-section" aria-label="Skills disponibles">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">PLAYER INPUT</span>
+            <h2>SKILLS</h2>
+          </div>
+          <span class="section-hint">La pelea continúa mientras elegís.</span>
+        </div>
         <div id="combat-hand" class="combat-hand" aria-label="Mano de skills"></div>
-        <button id="restart-battle" type="button" hidden>RESTART</button>
+      </section>
+
+      <div class="combat-feedback-shell">
+        <p id="combat-status" class="combat-message" role="status" aria-live="polite">
+          Esperando una batalla.
+        </p>
       </div>
 
-      <div class="combat-hud" aria-label="Estado del combate">
-        <div class="hud-card">
-          <span>PLAYER HP</span>
-          <strong id="combat-player-hp">—</strong>
+      <details class="debug-panel">
+        <summary>Developer telemetry &amp; combat state</summary>
+        <div class="debug-grid">
+          <div class="hud-card"><span>PLAYER AUTO</span><strong id="combat-player-auto">—</strong></div>
+          <div class="hud-card"><span>ENEMY SHIELD</span><strong id="combat-enemy-block">—</strong></div>
+          <div class="hud-card"><span>ENEMY AUTO</span><strong id="combat-enemy-auto">—</strong></div>
+          <div class="hud-card"><span>TIME / TICK</span><strong id="combat-time">—</strong></div>
+          <div class="hud-card"><span>COMBAT STATE</span><strong id="combat-phase">READY</strong></div>
+          <div class="hud-card"><span>ABILITY</span><strong id="combat-ability-status">—</strong></div>
+          <div class="hud-card hud-wide"><span>LAST ACTION</span><strong id="combat-last-action">—</strong></div>
+          <div class="hud-card"><span>OUTCOME</span><strong id="combat-status-value">READY</strong></div>
         </div>
-        <div class="hud-card">
-          <span>PLAYER SHIELD</span>
-          <strong id="combat-player-block">—</strong>
-        </div>
-        <div class="hud-card hud-wide">
-          <span>PLAYER STATUS</span>
-          <strong id="combat-player-statuses">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>AUTO ATTACK</span>
-          <strong id="combat-player-auto">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>ENERGY</span>
-          <strong id="combat-energy">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>ENERGY REGEN</span>
-          <strong id="combat-energy-regen">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>BURST</span>
-          <strong id="combat-burst">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>ENEMY</span>
-          <strong id="combat-enemy-name">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>ENEMY HP</span>
-          <strong id="combat-enemy-hp">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>ENEMY SHIELD</span>
-          <strong id="combat-enemy-block">—</strong>
-        </div>
-        <div class="hud-card hud-wide break-card">
-          <span>BREAK</span>
-          <strong id="combat-enemy-break">—</strong>
-        </div>
-        <div class="hud-card hud-wide">
-          <span>ENEMY STATUS</span>
-          <strong id="combat-enemy-statuses">—</strong>
-        </div>
-        <div class="hud-card hud-wide intent-card">
-          <span>ENEMY INTENT</span>
-          <strong id="combat-enemy-intent">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>ENEMY AUTO</span>
-          <strong id="combat-enemy-auto">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>TIME</span>
-          <strong id="combat-time">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>COMBAT STATE</span>
-          <strong id="combat-phase">READY</strong>
-        </div>
-        <div class="hud-card">
-          <span>ABILITY</span>
-          <strong id="combat-ability-status">—</strong>
-        </div>
-        <div class="hud-card hud-wide">
-          <span>LAST ACTION</span>
-          <strong id="combat-last-action">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>STATUS</span>
-          <strong id="combat-status-value">READY</strong>
-        </div>
-      </div>
-
-      <p id="combat-result" class="combat-result" role="status" aria-live="assertive"></p>
+      </details>
 
       <section id="reward-panel" class="reward-panel" hidden aria-label="Recompensa de victoria">
         <strong>REWARD</strong>
@@ -122,8 +169,6 @@
         </div>
         <button id="next-battle" type="button" hidden>START NEXT COMBAT</button>
       </section>
-
-      <p id="combat-status" class="combat-message" role="status" aria-live="polite">Esperando una batalla.</p>
     </section>
   </main>
 
@@ -156,6 +201,7 @@
   <script src="./js/data/database_manager.js"></script>
   <script src="./js/admin/admin_ui.js"></script>
   <script src="./js/storage/save_manager.js"></script>
+  <script src="./js/combat_presentation.js"></script>
   <script src="./js/combat.js"></script>
   <script src="./js/app.js"></script>
 </body>
