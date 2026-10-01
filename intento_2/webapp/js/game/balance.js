@@ -4,18 +4,30 @@
   // All numbers in this module are [PROTOTYPE BALANCE].
   const BALANCE = Object.freeze({
     timing: Object.freeze({
-      fixedStepMs: 100
+      fixedStepMs: 100,
+      enemyTelegraphMs: 1200,
+      enemyIntentIntervalMs: 1800
     }),
     energy: Object.freeze({
       maxEnergy: 100,
+      startEnergy: 35,
       regenPerSecond: 12
     }),
     break: Object.freeze({
       max: 100,
-      windowMs: 2500
+      windowMs: 2500,
+      vulnerabilityMultiplier: 1.75
     }),
     burst: Object.freeze({
-      damageMultiplier: 1.75
+      maxCharge: 100,
+      passiveChargePerTick: 1,
+      skillCharge: 8,
+      playerAutoCharge: 2,
+      incomingDamageCharge: 5,
+      breakCharge: 20,
+      damage: 32,
+      breakDamage: 24,
+      brokenMultiplier: 1.35
     }),
     playerAutoAttack: Object.freeze({
       intervalMs: 900,
