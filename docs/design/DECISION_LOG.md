@@ -47,9 +47,28 @@ Design records:
 
 The audit establishes that the current runtime remains an MVP combat slice. Garage, narrative, relationship, route, recurring-content, challenge-mode, wardrobe and character-art systems are not implemented merely because they are documented.
 
+## Creative pivot — 2026-10-01
+
+Recorded as a documentation/direction decision only.
+
+- Rocket Bunny Petty = HISTORICAL / ORIGINAL WORKING TITLE.
+- Mach-Girls = PROPOSED CURRENT FRANCHISE / DESIGN DIRECTION.
+- Final commercial/legal naming remains OPEN DESIGN QUESTION.
+- Yuri remains a central protagonist.
+- Franchise direction expands toward an ensemble universe of characters, motorcycles, speed, bands, rivalries, technology and personality.
+- 2.5D anime/cyberpunk/bōsōzoku presentation is PROPOSED.
+- Character creation follows personality → role → driving style → combat identity → card effects → VFX → animation → UI presentation.
+- G-Force Affinity is OPEN DESIGN QUESTION / PROPOSED.
+- Mach Breaker is OPEN DESIGN QUESTION / PROPOSED.
+- Sound Barrier Dolls and Gravity Queens are PROPOSED faction concepts.
+- Phase 19 remains CURRENT COMBAT PRESENTATION WORK and is not reopened by this pivot.
+- Nitro global and Redline global remain unchanged and are not introduced by this documentation phase.
+- Phase 14–16 evidence remains unchanged.
+
+Detailed direction: MACH_GIRLS_CREATIVE_DIRECTION.md.
+
 ## Current state
-Current HEAD before this documentation phase:
-88fccdd5109bff5c8257c5492b4e0ee9606c63a9
+Current HEAD before the Mach-Girls documentation pivot: 7a5b06d282af9f93c84d587921ada009ecbdc08a
 
 This documentation phase does not create a gameplay implementation phase.
 

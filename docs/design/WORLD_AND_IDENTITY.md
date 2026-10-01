@@ -1,5 +1,57 @@
 # Rocket Bunny Petty — World & Identity
 
+## Current creative direction
+
+```text
+Rocket Bunny Petty
+= HISTORICAL / ORIGINAL WORKING TITLE
+
+Mach-Girls
+= PROPOSED CURRENT FRANCHISE / DESIGN DIRECTION
+```
+
+The project is expanding from a protagonist-centered concept into a broader universe of girls, motorcycles, speed, rivalries, technology and personality.
+
+Yuri remains a central protagonist. Future characters should have distinct identities rather than being Yuri variants.
+
+This section is a current creative overlay. It does not rewrite the historical lore in LORE_Y_DISENO.md, rename repository/runtime paths, or change gameplay rules.
+
+See MACH_GIRLS_CREATIVE_DIRECTION.md for the detailed creative framework.
+
+## Creative-to-combat bridge
+
+PROPOSED:
+
+```text
+VELOCITY · MOMENTUM · TIMING · G-FORCE · BREAK · BURST · SYNC · IMPACT
+```
+
+Phase 19 remains the CURRENT COMBAT PRESENTATION WORK. Mach-Girls adds a creative direction around that existing slice; it does not authorize a combat-system redesign.
+
+## Identity expansion rule
+
+Future characters should be designed through:
+
+```text
+PERSONALITY
+↓
+ROLE
+↓
+DRIVING STYLE
+↓
+COMBAT IDENTITY
+↓
+CARD EFFECTS
+↓
+VFX
+↓
+ANIMATION
+↓
+UI PRESENTATION
+```
+
+These are PROPOSED design rules, not implemented mechanics.
+
 ## Direction
 VELOCIDAD · INGENIERÍA · RIESGO · RITMO · REPUTACIÓN · ASFALTO
 

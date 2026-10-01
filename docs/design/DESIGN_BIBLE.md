@@ -5,6 +5,22 @@ ROCKET BUNNY PETTY = small-scale game + strong identity + memorable characters +
 
 This is a product/design direction, not a claim of superiority over other games.
 
+## Naming and franchise direction
+
+```text
+Rocket Bunny Petty
+= HISTORICAL / ORIGINAL WORKING TITLE
+
+Mach-Girls
+= PROPOSED CURRENT FRANCHISE / DESIGN DIRECTION
+```
+
+This is a creative-direction record only. It is not a commercial/legal rename and does not authorize repository, URL, route, asset or file renaming.
+
+Yuri remains a central protagonist. The future franchise scope is an ensemble universe rather than a story model restricted to one character.
+
+Detailed creative rules are centralized in MACH_GIRLS_CREATIVE_DIRECTION.md.
+
 ## Product identity baseline
 
 AUTHOR DECISION:

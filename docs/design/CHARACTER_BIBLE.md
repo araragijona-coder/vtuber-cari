@@ -102,6 +102,45 @@ ERO_KAWAII is therefore unavailable to any character whose adult status is not e
 - relationship_links: none established
 - adult_presentation_eligible: false
 
+## Mach-Girls roster direction
+
+PROPOSED CURRENT FRANCHISE / DESIGN DIRECTION:
+
+The roster may expand beyond the original protagonist-centered framing.
+
+Yuri remains a central character. New characters must not be authored as mechanical copies of Yuri.
+
+Future characters should be defined by the chain:
+
+```text
+PERSONALITY
+↓
+ROLE
+↓
+DRIVING STYLE
+↓
+COMBAT IDENTITY
+↓
+CARD EFFECTS
+↓
+VFX
+↓
+ANIMATION
+↓
+UI PRESENTATION
+```
+
+Primary future combat-role families:
+
+- STRIKER / DPS — speed, momentum, multi-hit, burst, BREAK exploitation.
+- DEFENDER / TANK — shield, interception, protection, stability, counters.
+- SUPPORT / HEALER — healing, regeneration, buffs, cleanse, Energy/cooldown support.
+- DEBUFFER / CONTROL — WEAK, EXPOSED, defense reduction, telegraph control, BREAK preparation.
+
+A character may have incidental damage outside its primary role; the constraint is identity coherence across personality, mechanics and presentation.
+
+See MACH_GIRLS_CREATIVE_DIRECTION.md for the full role and roster framework.
+
 ## Proposed roster slots
 
 PROPOSED ONLY:

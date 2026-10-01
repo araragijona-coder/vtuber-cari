@@ -12,6 +12,46 @@ Compact 2D cyberpunk bōsōzoku card battler, anime-styled character presentatio
 
 This is a design target, not evidence that the current repository contains this art.
 
+## Mach-Girls 2.5D direction
+
+PROPOSED CURRENT VISUAL DIRECTION:
+
+```text
+2.5D anime
++
+cyberpunk
++
+bōsōzoku
++
+futuristic street racing
++
+neon
++
+aerodynamic design
++
+dynamic combat camera
+```
+
+The target is spectacle through low-cost compositing rather than AAA 3D production.
+
+Preferred building blocks:
+
+- 2D character art;
+- parallax backgrounds;
+- sprite animation;
+- layered FX;
+- particles;
+- lighting;
+- camera movement;
+- screen shake;
+- motion trails;
+- glow;
+- impact frames;
+- UI animation;
+- depth simulation.
+
+Future production should preserve compatibility with the current Canvas + DOM architecture.
+
 ## Art layers
 
 BACKGROUND → ENVIRONMENT FX → CHARACTER/VEHICLE → COMBAT FX → UI → PORTRAIT/CUT-IN

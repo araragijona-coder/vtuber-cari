@@ -4,6 +4,18 @@ Rocket Bunny Petty is the Rocket Bunny game project in this repository. The `mai
 
 Cari Studio is maintained separately on the `cari-studio` branch.
 
+## Naming status
+
+```text
+Rocket Bunny Petty
+= HISTORICAL / ORIGINAL WORKING TITLE
+
+Mach-Girls
+= PROPOSED CURRENT FRANCHISE / DESIGN DIRECTION
+```
+
+This does not rename the repository, branch, deployment URL, runtime paths or historical assets. main remains the Rocket-oriented runtime surface while the creative direction evolves.
+
 ## Project separation
 
 The repository is intentionally divided as follows:
