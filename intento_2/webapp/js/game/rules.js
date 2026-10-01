@@ -31,6 +31,16 @@
     return combat?.resources?.burstCharge ?? 0;
   }
 
+  function emitEffectEvent(combat, type, payload = {}) {
+    const event = emitCombatEvent(combat, type, payload);
+    try {
+      window.RocketBunnyTelemetry?.combatEffect?.(combat, type, payload);
+    } catch (error) {
+      void error;
+    }
+    return event;
+  }
+
   function cardDefinitionFor(combat, cardId) {
     const base = window.CardSystem.definitionFor(cardId);
     if (!base) return null;
@@ -89,9 +99,9 @@
     };
 
     let baseDamage = Math.max(0, Number(overrides.damage ?? baseDefinition.damage ?? 0));
-    if (window.StatusSystem.has(actor, STATUS_TYPES.WEAK)) {
-      baseDamage *= 0.75;
-    }
+    const damageOutMultiplier = window.ModifierSystem?.damageOutMultiplier?.(actor) || 1;
+    if (window.StatusSystem.has(actor, STATUS_TYPES.WEAK)) baseDamage *= 0.75;
+    baseDamage *= damageOutMultiplier;
     if (
       window.BurstSystem.isActive(combat) &&
       target === combat.enemy &&
@@ -108,19 +118,26 @@
     const defense = Math.max(0, Number(target.stats?.def) || 0);
     let rawDamage = Math.max(0, Math.floor(baseDamage * variance.value) - defense);
     if (criticalRoll.value) rawDamage = Math.floor(rawDamage * balance.criticalMultiplier);
-    if (window.StatusSystem.has(target, STATUS_TYPES.EXPOSED)) {
-      rawDamage = Math.floor(rawDamage * 1.25);
-    }
+    if (window.StatusSystem.has(target, STATUS_TYPES.EXPOSED)) rawDamage = Math.floor(rawDamage * 1.25);
     rawDamage = rawDamage > 0 ? Math.max(1, rawDamage) : 0;
 
+    const reductionFraction = window.ModifierSystem?.damageReductionFraction?.(target) || 0;
+    const mitigatedDamage = rawDamage > 0
+      ? Math.max(1, Math.floor(rawDamage * (1 - reductionFraction)))
+      : 0;
+    const damageReductionApplied = Math.max(0, rawDamage - mitigatedDamage);
     const block = Math.max(0, Number(target.block || 0));
-    const blockAbsorbed = Math.min(block, rawDamage);
-    const damage = Math.max(0, rawDamage - blockAbsorbed);
+    const blockAbsorbed = Math.min(block, mitigatedDamage);
+    const damage = Math.max(0, mitigatedDamage - blockAbsorbed);
 
     return {
       damage,
       rawDamage,
+      mitigatedDamage,
       blockAbsorbed,
+      damageReductionApplied,
+      damageReductionFraction: reductionFraction,
+      damageOutMultiplier,
       critical: Boolean(criticalRoll.value),
       variance: variance.value,
       defense,
@@ -253,6 +270,8 @@
       damage: result.damage,
       rawDamage: result.rawDamage,
       blockAbsorbed: result.blockAbsorbed,
+      damageReductionApplied: result.damageReductionApplied,
+      damageReductionFraction: result.damageReductionFraction,
       hpBefore: hp.hpBefore,
       hpAfter: hp.hpAfter,
       targetHpAfter: hp.hpAfter,
@@ -336,9 +355,7 @@
     const rngStateBefore = combat.rng.state;
     const skillMeta = window.SkillResolver.resolve({ combat, actor, target, definition });
 
-    if (!window.EnergySystem.spend(combat.resources, definition.cost)) {
-      throw new Error("INSUFFICIENT_ENERGY");
-    }
+    if (!window.EnergySystem.spend(combat.resources, definition.cost)) throw new Error("INSUFFICIENT_ENERGY");
 
     combat.inputLog.push(Object.freeze({
       type: "SKILL",
@@ -358,74 +375,134 @@
     let rawDamage = 0;
     let blockAbsorbed = 0;
     let critical = false;
-    let variance = 1;
+    let varianceTotal = 0;
+    let varianceCount = 0;
     let breakResult = { applied: 0, broke: false };
+    let multiHitResults = [];
 
     if (definition.type === window.CardSystem.CARD_TYPES.ATTACK) {
-      const rolled = rollDamage(combat, actor, target, {
-        ...definition,
-        damage: Number(definition.damage) + (
-          skillMeta.conditionalTriggered ? Number(definition.effects?.bonus || 0) : 0
-        )
-      });
-      combat.rng = Object.freeze({
-        seed: combat.seed >>> 0,
-        state: rolled.rng.state >>> 0
-      });
-      const hp = applyDamage(target, rolled);
-      damage = rolled.damage;
-      rawDamage = rolled.rawDamage;
-      blockAbsorbed = rolled.blockAbsorbed;
-      critical = rolled.critical;
-      variance = rolled.variance;
-      breakResult = applyBreak(combat, target, definition.breakDamage);
-      void hp;
+      const multiHit = skillMeta.multiHit;
+      const hitCount = Math.max(1, Math.floor(Number(multiHit?.hits || 1)));
+
+      for (let hitIndex = 0; hitIndex < hitCount; hitIndex += 1) {
+        const hitDamage = Number(multiHit?.damagePerHit ?? definition.damage ?? 0);
+        const hitBreak = Number(multiHit?.breakDamagePerHit ?? definition.breakDamage ?? 0);
+        const rolled = rollDamage(combat, actor, target, { ...definition, damage: hitDamage, breakDamage: hitBreak });
+        combat.rng = Object.freeze({ seed: combat.seed >>> 0, state: rolled.rng.state >>> 0 });
+        const hp = applyDamage(target, rolled);
+        const appliedBreak = applyBreak(combat, target, hitBreak);
+
+        damage += rolled.damage;
+        rawDamage += rolled.rawDamage;
+        blockAbsorbed += rolled.blockAbsorbed;
+        critical = critical || rolled.critical;
+        varianceTotal += rolled.variance;
+        varianceCount += 1;
+        breakResult = {
+          applied: breakResult.applied + appliedBreak.applied,
+          broke: breakResult.broke || appliedBreak.broke
+        };
+        multiHitResults.push({
+          index: hitIndex + 1,
+          damage: rolled.damage,
+          rawDamage: rolled.rawDamage,
+          blockAbsorbed: rolled.blockAbsorbed,
+          damageReductionApplied: rolled.damageReductionApplied,
+          breakDamage: appliedBreak.applied,
+          critical: rolled.critical,
+          variance: rolled.variance,
+          hpAfter: hp.hpAfter
+        });
+
+        if (appliedBreak.broke || hp.hpAfter <= 0) break;
+      }
+
+      if (multiHitResults.length > 1) {
+        emitEffectEvent(combat, "multi_hit", {
+          cardId: definition.cardId,
+          hitCount: multiHitResults.length,
+          totalDamage: damage,
+          totalBreakDamage: breakResult.applied
+        });
+      }
     } else {
       if (skillMeta.blockGained > 0) {
         actor.block += skillMeta.blockGained;
         actor.blockRemainingMs = Math.max(actor.blockRemainingMs, skillMeta.blockDurationMs);
         actor.defending = true;
       }
-      if (skillMeta.energyGain > 0) {
-        window.EnergySystem.gain(combat.resources, skillMeta.energyGain);
-      }
+      if (skillMeta.energyGain > 0) window.EnergySystem.gain(combat.resources, skillMeta.energyGain);
       if (skillMeta.statusApplied) {
         const receiver = definition.effects?.statusTarget === "enemy"
           ? combat.enemy
-          : definition.targeting === "self"
-            ? actor
-            : target;
+          : definition.targeting === "self" ? actor : target;
         window.StatusSystem.applyTimedMs(receiver, skillMeta.statusApplied, skillMeta.statusDurationMs);
       }
-      if (skillMeta.drawCount > 0) {
-        window.CardSystem.drawCards(combat.cards, skillMeta.drawCount);
+      if (skillMeta.drawCount > 0) window.CardSystem.drawCards(combat.cards, skillMeta.drawCount);
+      if (skillMeta.breakDamage > 0) breakResult = applyBreak(combat, target, skillMeta.breakDamage);
+
+      if (skillMeta.healAmount > 0) {
+        const healTarget = window.CombatEngine?.resolveTarget?.(combat, actor, definition, action.targetId) || actor;
+        const heal = window.CombatEffects.applyHeal(healTarget, skillMeta.healAmount);
+        emitEffectEvent(combat, "heal_applied", {
+          cardId: definition.cardId, targetId: healTarget.id,
+          requested: heal.requested, amount: heal.amount,
+          hpBefore: heal.hpBefore, hpAfter: heal.hpAfter
+        });
+        skillMeta.healApplied = heal.amount;
       }
-      if (skillMeta.breakDamage > 0) {
-        breakResult = applyBreak(combat, target, skillMeta.breakDamage);
+
+      if (skillMeta.buff) {
+        const buffTarget = window.CombatEngine?.resolveTarget?.(combat, actor, definition, action.targetId) || actor;
+        const buff = window.CombatEffects.applyBuff(buffTarget, { ...skillMeta.buff, sourceId: definition.cardId });
+        skillMeta.buffApplied = buff ? {
+          type: buff.type, amount: buff.amount, durationMs: buff.durationMs, stacking: "replace"
+        } : null;
+        emitEffectEvent(combat, "buff_applied", {
+          cardId: definition.cardId, targetId: buffTarget.id,
+          type: buff?.type || skillMeta.buff.type || "DAMAGE_OUT",
+          amount: buff?.amount ?? skillMeta.buff.amount ?? 0,
+          durationMs: buff?.durationMs ?? skillMeta.buff.durationMs ?? 0,
+          stacking: "replace"
+        });
+      }
+
+      if (skillMeta.cleanseTypes.length > 0) {
+        const cleanseTarget = window.CombatEngine?.resolveTarget?.(combat, actor, definition, action.targetId) || actor;
+        const removed = window.CombatEffects.applyCleanse(cleanseTarget, skillMeta.cleanseTypes);
+        skillMeta.cleanseRemoved = [...removed];
+        emitEffectEvent(combat, "cleanse", {
+          cardId: definition.cardId, targetId: cleanseTarget.id,
+          requested: [...skillMeta.cleanseTypes], removed: [...removed]
+        });
+      }
+
+      if (skillMeta.damageReduction) {
+        const reductionTarget = window.CombatEngine?.resolveTarget?.(combat, actor, definition, action.targetId) || actor;
+        const reduction = window.CombatEffects.applyDamageReduction(reductionTarget, {
+          ...skillMeta.damageReduction, sourceId: definition.cardId
+        });
+        skillMeta.damageReductionApplied = reduction ? {
+          type: reduction.type, amount: reduction.amount, durationMs: reduction.durationMs, stacking: "replace"
+        } : null;
+        emitEffectEvent(combat, "damage_reduction_applied", {
+          cardId: definition.cardId, targetId: reductionTarget.id,
+          amount: reduction?.amount ?? skillMeta.damageReduction.amount ?? 0,
+          durationMs: reduction?.durationMs ?? skillMeta.damageReduction.durationMs ?? 0,
+          stacking: "replace"
+        });
       }
     }
 
-    const recycleCountBefore = Number(combat.cards.recycleCount || 0);
     window.CardSystem.playCard(combat.cards, card.instanceId);
     const recycleBefore = Number(combat.cards.recycleCount || 0);
     window.CardSystem.refillHand(combat.cards);
     if (Number(combat.cards.recycleCount || 0) > recycleBefore) {
-      emitCombatEvent(combat, "deck_recycled", {
-        recycleCount: Number(combat.cards.recycleCount || 0)
-      });
+      emitCombatEvent(combat, "deck_recycled", { recycleCount: Number(combat.cards.recycleCount || 0) });
     }
     combat.cooldowns[action.cardId] = Number(definition.cooldownMs || 0);
-    if (Number(combat.cards.recycleCount || 0) > recycleCountBefore) {
-      combat.cycleCount = Number(combat.cards.recycleCount || 0);
-      emitCombatEvent(combat, "deck_recycled", {
-        cycleCount: combat.cycleCount
-      });
-    }
 
-    window.BurstSystem.gain(
-      combat,
-      Number(window.CombatBalance.BALANCE.burst.skillCharge || 0)
-    );
+    window.BurstSystem.gain(combat, Number(window.CombatBalance.BALANCE.burst.skillCharge || 0));
     logPlayerInput(combat, action);
     finishIfNeeded(state);
 
@@ -437,7 +514,7 @@
       rawDamage,
       blockAbsorbed,
       critical,
-      variance,
+      variance: varianceCount > 0 ? varianceTotal / varianceCount : 1,
       breakDamage: breakResult.applied,
       broke: breakResult.broke,
       burst: window.BurstSystem.isActive(combat),
@@ -447,6 +524,12 @@
       statusDurationMs: skillMeta.statusDurationMs,
       drawCount: skillMeta.drawCount,
       conditionalTriggered: skillMeta.conditionalTriggered,
+      healAmount: skillMeta.healApplied || 0,
+      buffApplied: skillMeta.buffApplied || null,
+      cleanseRemoved: skillMeta.cleanseRemoved || [],
+      damageReductionApplied: skillMeta.damageReductionApplied || null,
+      hits: multiHitResults.length > 1 ? multiHitResults : null,
+      hitCount: multiHitResults.length || 0,
       rngStateBefore,
       rngStateAfter: combat.rng.state
     });
@@ -598,6 +681,29 @@
     window.StatusSystem.advance(combat.player, stepMs);
     window.StatusSystem.advance(combat.enemy, stepMs);
 
+    for (const fighter of [combat.player, combat.enemy]) {
+      const expired = window.ModifierSystem?.advance?.(fighter, stepMs) || [];
+      for (const modifier of expired) {
+        emitEffectEvent(combat, "modifier_expired", {
+          targetId: fighter.id,
+          type: modifier.type,
+          sourceId: modifier.sourceId,
+          amount: modifier.amount
+        });
+        combat.lastAction = Object.freeze({
+          actionId: "modifier-expired-" + combat.simulationTick + "-" + fighter.id + "-" + modifier.type,
+          actionType: "MODIFIER_EXPIRED",
+          actorId: fighter.id,
+          targetId: fighter.id,
+          simulationTick: combat.simulationTick,
+          elapsedMs: combat.elapsedMs,
+          modifierType: modifier.type,
+          amount: modifier.amount,
+          outcome: combat.outcome
+        });
+      }
+    }
+
     for (const cardId of Object.keys(combat.cooldowns)) {
       combat.cooldowns[cardId] = Math.max(0, Number(combat.cooldowns[cardId]) - stepMs);
       if (combat.cooldowns[cardId] <= 0) delete combat.cooldowns[cardId];
@@ -616,9 +722,7 @@
     const breakEnded = window.BreakSystem.advance(combat.enemy.breakState, stepMs);
     if (breakEnded) {
       combat.burstWindowEndedAt = combat.elapsedMs;
-      emitCombatEvent(combat, "break_ended", {
-        breakMax: combat.enemy.breakState.max
-      });
+      emitCombatEvent(combat, "break_ended", { breakMax: combat.enemy.breakState.max });
       combat.lastAction = Object.freeze({
         actionId: "break-end-" + combat.simulationTick,
         actionType: "BREAK_END",
@@ -634,10 +738,7 @@
     combat.enemy.breakCurrent = combat.enemy.breakState.current;
     combat.enemy.breakMax = combat.enemy.breakState.max;
 
-    window.BurstSystem.gain(
-      combat,
-      Number(window.CombatBalance.BALANCE.burst.passiveChargePerTick || 0)
-    );
+    window.BurstSystem.gain(combat, Number(window.CombatBalance.BALANCE.burst.passiveChargePerTick || 0));
 
     const baseRegen = Number(window.CombatBalance.BALANCE.energy.regenPerSecond);
     combat.resources.energyRegen = baseRegen * window.BurstSystem.energyRegenMultiplier(combat);
@@ -647,25 +748,13 @@
 
     if (!window.BreakSystem.isBroken(combat.enemy.breakState)) {
       window.AutoAttackSystem.advance(combat.enemy.autoAttack, stepMs, () => {
-        resolveAutoAttack(
-          combat,
-          combat.enemy,
-          combat.player,
-          combat.enemy.autoAttack,
-          "ENEMY_AUTO_ATTACK"
-        );
+        resolveAutoAttack(combat, combat.enemy, combat.player, combat.enemy.autoAttack, "ENEMY_AUTO_ATTACK");
       });
     }
     if (combat.outcome !== OUTCOME.IN_PROGRESS) return;
 
     window.AutoAttackSystem.advance(combat.player.autoAttack, stepMs, () => {
-      resolveAutoAttack(
-        combat,
-        combat.player,
-        combat.enemy,
-        combat.player.autoAttack,
-        "PLAYER_AUTO_ATTACK"
-      );
+      resolveAutoAttack(combat, combat.player, combat.enemy, combat.player.autoAttack, "PLAYER_AUTO_ATTACK");
     });
     if (combat.outcome !== OUTCOME.IN_PROGRESS) return;
 
@@ -689,7 +778,6 @@
     if (combat.cards.hand.length < combat.cards.handLimit && combat.elapsedMs % 700 === 0) {
       window.CardSystem.drawCard(combat.cards);
     }
-
   }
 
   function advanceTime(state, deltaMs) {
