@@ -210,10 +210,13 @@
       progression: clone(state.progression || {}),
       break: breakState,
       burstWindowEndedAt: null,
-      inputLog: []
+      inputLog: [],
+      events: [],
+      cycleCount: 0
     };
 
     window.EnergySystem.sync(state.combat.resources);
+    window.BurstSystem.sync(state.combat);
     window.CardSystem.drawCards(state.combat.cards, 5);
 
     state.combat.enemyBehavior = window.EnemyBehaviorSystem.createState(state.combat);
