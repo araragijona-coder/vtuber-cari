@@ -4,6 +4,44 @@
   const BREAK_DAMAGE_MULTIPLIER = 1.75;
   const BREAK_ENERGY_REGEN_MULTIPLIER = 1.25;
 
+  function chargeOf(combat) {
+    return Math.max(0, Number(combat?.resources?.burstCharge || 0));
+  }
+
+  function maxChargeOf(combat) {
+    return Math.max(
+      1,
+      Number(combat?.resources?.burstMax || window.CombatBalance.BALANCE.burst.maxCharge)
+    );
+  }
+
+  function gain(combat, amount) {
+    if (!combat?.resources) return 0;
+    const max = maxChargeOf(combat);
+    combat.resources.burstCharge = Math.min(
+      max,
+      chargeOf(combat) + Math.max(0, Number(amount) || 0)
+    );
+    return combat.resources.burstCharge;
+  }
+
+  function canUse(combat) {
+    return Boolean(
+      combat &&
+      combat.outcome === window.GameState.OUTCOME.IN_PROGRESS &&
+      chargeOf(combat) >= maxChargeOf(combat)
+    );
+  }
+
+  function activate(combat) {
+    if (!canUse(combat)) throw new Error("BURST_UNAVAILABLE");
+    combat.resources.burstCharge = 0;
+    return {
+      chargeBefore: maxChargeOf(combat),
+      chargeAfter: 0
+    };
+  }
+
   function isActive(combat) {
     return Boolean(
       combat &&
@@ -12,7 +50,9 @@
   }
 
   function multiplier(combat) {
-    return isActive(combat) ? BREAK_DAMAGE_MULTIPLIER : 1;
+    return isActive(combat)
+      ? Number(window.CombatBalance.BALANCE.break.vulnerabilityMultiplier || BREAK_DAMAGE_MULTIPLIER)
+      : 1;
   }
 
   function energyRegenMultiplier(combat) {
@@ -20,12 +60,19 @@
   }
 
   function label(combat) {
-    return isActive(combat) ? "BURST WINDOW" : "—";
+    if (!combat) return "—";
+    if (isActive(combat)) return "BURST WINDOW";
+    return canUse(combat) ? "BURST READY" : "CHARGING " + chargeOf(combat) + " / " + maxChargeOf(combat);
   }
 
   window.BurstSystem = Object.freeze({
     BREAK_DAMAGE_MULTIPLIER,
     BREAK_ENERGY_REGEN_MULTIPLIER,
+    chargeOf,
+    maxChargeOf,
+    gain,
+    canUse,
+    activate,
     isActive,
     multiplier,
     energyRegenMultiplier,
