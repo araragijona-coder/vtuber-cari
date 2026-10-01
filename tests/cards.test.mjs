@@ -14,10 +14,10 @@ async function loadCards() {
 
 test("card definitions expose explicit roles, costs, targeting and effects", async () => {
   const cards = await loadCards();
-  assert.equal(Object.keys(cards.CARD_DEFINITIONS).length, 9);
-  assert.equal(Object.values(cards.CARD_DEFINITIONS).filter(card => card.type === "ATTACK").length, 3);
+  assert.equal(Object.keys(cards.CARD_DEFINITIONS).length, 17);
+  assert.equal(Object.values(cards.CARD_DEFINITIONS).filter(card => card.type === "ATTACK").length, 6);
   assert.equal(Object.values(cards.CARD_DEFINITIONS).filter(card => card.type === "DEFENSE").length, 3);
-  assert.equal(Object.values(cards.CARD_DEFINITIONS).filter(card => card.type === "SKILL").length, 3);
+  assert.equal(Object.values(cards.CARD_DEFINITIONS).filter(card => card.type === "SKILL").length, 8);
   for (const card of Object.values(cards.CARD_DEFINITIONS)) {
     assert.ok(card.cardId && card.name && card.targeting);
     assert.ok(Number.isFinite(card.cost));
