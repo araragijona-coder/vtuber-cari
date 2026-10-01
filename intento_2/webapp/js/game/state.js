@@ -104,12 +104,14 @@
 
   function startBattle(state, config = {}) {
     if (!state || typeof state !== "object") throw new TypeError("GameState inválido.");
+
     const playerConfig = config.player || {};
     const enemyConfig = config.enemy || {};
     const battleId = String(config.battleId || "battle-mvp-1");
     const seed = window.CombatRNG.normalizeSeed(config.seed ?? battleId);
     const enemy = createEnemyCombatant(enemyConfig);
     const playerAutoBalance = window.CombatBalance.BALANCE.playerAutoAttack;
+
     const player = createCombatant({
       id: playerConfig.id || "player",
       hp: playerConfig.hp ?? 120,
@@ -124,16 +126,24 @@
       window.CombatBalance.BALANCE.break.max,
       window.CombatBalance.BALANCE.break.windowMs
     );
+
     enemy.breakState = breakState;
+
+    const energy = window.EnergySystem.createRealtimeEnergy({
+      maxEnergy: window.CombatBalance.BALANCE.energy.maxEnergy,
+      currentEnergy: 35,
+      energyRegen: window.CombatBalance.BALANCE.energy.regenPerSecond
+    });
 
     state.session.battleSequence += 1;
     state.screen = "BATTLE";
     state.player.currentBattleId = battleId;
     state.combat = {
+      mode: "SEMI_REALTIME",
       battleId,
       seed,
       rulesVersion: "phase18-semi-real-time-v1",
-      deckVersion: "phase17-opening-diversity-v1",
+      deckVersion: "phase18-opening-role-v1",
       rng: window.CombatRNG.create(seed),
       clock: window.CombatClock.create(window.CombatBalance.BALANCE.timing.fixedStepMs),
       phase: PHASE.REAL_TIME,
@@ -146,22 +156,25 @@
       lastAction: null,
       outcome: OUTCOME.IN_PROGRESS,
       resources: {
-        ...window.EnergySystem.createEnergy({
-          maxEnergy: window.CombatBalance.BALANCE.energy.maxEnergy,
-          energyRegen: window.CombatBalance.BALANCE.energy.regenPerSecond
-        }),
+        ...energy,
+        currentEnergy: energy.energy,
+        burstCharge: 0,
+        burstMax: 100,
         playerAbilityUses: 1
       },
-      cards: window.CardSystem.createCombatDeckState(4),
+      cards: window.CardSystem.createCombatDeckState(5),
       cooldowns: {},
       enemyIntent: null,
       enemyBehavior: null,
       progression: clone(state.progression || {}),
       break: breakState,
-      burstWindowEndedAt: null
+      burstWindowEndedAt: null,
+      inputLog: []
     };
 
-    window.CardSystem.drawCards(state.combat.cards, 4);
+    window.EnergySystem.sync(state.combat.resources);
+    window.CardSystem.drawCards(state.combat.cards, 5);
+
     state.combat.enemyBehavior = window.EnemyBehaviorSystem.createState(state.combat);
     state.combat.enemyIntent = window.EnemyBehaviorSystem.previewIntent(state.combat);
     state.combat.enemy.intent = state.combat.enemyIntent;
