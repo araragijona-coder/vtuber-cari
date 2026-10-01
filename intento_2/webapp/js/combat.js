@@ -143,6 +143,9 @@
       if (action.broke) {
         window.RocketBunnyTelemetry?.breakStarted(combat, action);
       }
+      if (action.actionType === "BREAK_END") {
+        window.RocketBunnyTelemetry?.breakEnded(combat);
+      }
     }
 
     const intentKey = combat?.enemyIntent
