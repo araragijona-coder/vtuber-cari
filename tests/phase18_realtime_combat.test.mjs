@@ -224,6 +224,6 @@ test("phase 18 telemetry exposes explicit combat lifecycle helpers", async () =>
     "break_ended",
     "burst_used"
   ]) {
-    assert.match(source, new RegExp("['\\"]" + eventName + "['\\"]"));
+    assert.ok(source.includes('"event_name": "' + eventName + '"') || source.includes('"' + eventName + '"'), eventName);
   }
 });
