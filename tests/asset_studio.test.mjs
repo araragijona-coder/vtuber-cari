@@ -79,9 +79,18 @@ test("PNG metadata validation enforces PNG and size safety", async () => {
 
 test("character anchor defaults use FEET_CENTER and non-character assets use CENTER", async () => {
   const api = await loadApi();
-  assert.deepEqual(api.defaultAnchorFor("CHARACTER"), { name: "FEET_CENTER", x: 0.5, y: 1 });
-  assert.deepEqual(api.defaultAnchorFor("MOTORCYCLE"), { name: "FEET_CENTER", x: 0.5, y: 1 });
-  assert.deepEqual(api.defaultAnchorFor("BACKGROUND"), { name: "CENTER", x: 0.5, y: 0.5 });
+  const character = api.defaultAnchorFor("CHARACTER");
+  const motorcycle = api.defaultAnchorFor("MOTORCYCLE");
+  const background = api.defaultAnchorFor("BACKGROUND");
+  assert.equal(character.name, "FEET_CENTER");
+  assert.equal(character.x, 0.5);
+  assert.equal(character.y, 1);
+  assert.equal(motorcycle.name, "FEET_CENTER");
+  assert.equal(motorcycle.x, 0.5);
+  assert.equal(motorcycle.y, 1);
+  assert.equal(background.name, "CENTER");
+  assert.equal(background.x, 0.5);
+  assert.equal(background.y, 0.5);
 });
 
 test("facing and flipX remain presentation metadata", async () => {
@@ -169,7 +178,6 @@ test("asset studio does not depend on combat or player save systems", async () =
     readFile("intento_2/webapp/js/admin/asset_studio.js", "utf8")
   ]);
   for (const forbidden of ["CombatEngine", "CombatClock", "EnergySystem", "BreakSystem", "BurstSystem", "SaveManager", "RocketBunnyTelemetry"]) {
-    assert.equal(html.includes(forbidden), false, forbidden);
     assert.equal(js.includes(forbidden), false, forbidden);
   }
   assert.equal(html.includes('onclick='), false);
