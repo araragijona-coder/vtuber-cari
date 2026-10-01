@@ -115,10 +115,11 @@
 
   function createCombatDeckState(handLimit = 4) {
     return {
-      handLimit: Math.max(1, Number(handLimit) || 4),
+      handLimit: Math.max(1, Number(handLimit) || 5),
       drawPile: INITIAL_DECK.map(createPhysicalCard),
       hand: [],
-      discardPile: []
+      discardPile: [],
+      recycleCount: 0
     };
   }
 
@@ -126,6 +127,7 @@
     if (!state || state.hand.length >= state.handLimit) return null;
     if (state.drawPile.length === 0 && state.discardPile.length > 0) {
       state.drawPile = state.discardPile.splice(0);
+      state.recycleCount = Math.max(0, Number(state.recycleCount) || 0) + 1;
     }
     const card = state.drawPile.shift() || null;
     if (card) state.hand.push(card);
