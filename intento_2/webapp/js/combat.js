@@ -93,6 +93,11 @@
       : "battle-phase19-" + Date.now() + "-" + battleSequence;
     const enemy = window.EnemyCatalog.createEnemy(id);
     currentEnemyId = enemy.id;
+    const search = String(window.location?.search || "");
+    const requestedCharacterId = /(?:^|[?&])phase21=support(?:&|$)/.test(search)
+      ? "test_support"
+      : "yuri";
+    const character = window.CharacterKitSystem?.definitionFor?.(requestedCharacterId) || null;
     const saved = typeof window.SaveManager?.load === "function"
       ? window.SaveManager.load().save
       : null;
@@ -106,6 +111,9 @@
         stats: { atk: 20, def: 5, skillDamage: 40 }
       },
       enemy,
+      characterId: character?.characterId || null,
+      character,
+      cardIds: character?.cardIds ? [...character.cardIds] : null,
       progression: saved?.progression || {}
     };
   }
@@ -335,13 +343,15 @@
   }
 
   function statusText(combatant) {
-    return window.StatusSystem.entries(combatant)
+    const statuses = window.StatusSystem.entries(combatant)
       .map((status) => {
         if (status.remainingMs > 0) return status.label + " " + (status.remainingMs / 1000).toFixed(1) + "s";
         if (status.durationTicks > 0) return status.label + " " + (status.durationTicks / 10).toFixed(1) + "s";
         return status.label + " " + status.turns;
-      })
-      .join(" · ") || "—";
+      });
+    const modifiers = window.ModifierSystem?.entries?.(combatant)
+      .map((modifier) => modifier.label + " " + (modifier.remainingMs / 1000).toFixed(1) + "s") || [];
+    return [...statuses, ...modifiers].join(" · ") || "—";
   }
 
   function formatIntent(combat) {
@@ -368,6 +378,11 @@
     if (effects.draw) parts.push("DRAW " + effects.draw);
     if (effects.energyGain) parts.push("+" + effects.energyGain + " EN");
     if (effects.applyStatus) parts.push(effects.applyStatus);
+    if (effects.heal) parts.push("HEAL " + effects.heal);
+    if (effects.buff) parts.push("BUFF +" + Math.round(Number(effects.buff.amount || 0) * 100) + "% DMG");
+    if (effects.cleanse) parts.push("CLEANSE " + effects.cleanse.join("/"));
+    if (effects.damageReduction) parts.push("DMG -" + Math.round(Number(effects.damageReduction.amount || 0) * 100) + "%");
+    if (effects.multiHit) parts.push("HITS " + effects.multiHit.hits + "×" + effects.multiHit.damagePerHit);
     if (effects.conditional) parts.push("COND");
     return parts.join(" · ") || "UTILITY";
   }
@@ -428,7 +443,12 @@
       button.dataset.cardInstanceId = cardInstanceId;
       button.dataset.ready = String(!disabled);
       button.disabled = disabled;
-      button.setAttribute("aria-label", definition.name + " · " + visual.role + " · " + definition.cost + " Energy");
+      button.setAttribute(
+        "aria-label",
+        definition.name + " · " + visual.role +
+        (definition.subrole ? " · " + definition.subrole : "") +
+        " · " + definition.cost + " Energy"
+      );
       button.setAttribute("aria-keyshortcuts", "Enter Space");
 
       if (button.dataset.renderSignature !== signature) {
@@ -464,7 +484,7 @@
     setText(playerBlockEl, combat ? String(Math.ceil(combat.player.block || 0)) : "—");
     setText(playerStatusesEl, combat ? statusText(combat.player) : "—");
     setText(playerAutoEl, combat ? formatAuto(combat.player) : "—");
-    setText(playerNameEl, combat ? "BŌSŌZOKU" : "BŌSŌZOKU");
+    setText(playerNameEl, combat?.player?.identity?.displayName || "BŌSŌZOKU");
 
     setText(enemyNameEl, combat?.enemy?.name || "—");
     setText(enemyHpEl, combat ? Math.ceil(combat.enemy.hp) + " / " + combat.enemy.maxHp : "—");
