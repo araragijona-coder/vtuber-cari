@@ -79,7 +79,11 @@
   }
 
   function chooseEnemyAction(enemyState, combatState) {
-    if (!combatState || combatState.activeActor !== "enemy") return null;
+    if (
+      !combatState ||
+      combatState.outcome !== window.GameState.OUTCOME.IN_PROGRESS ||
+      combatState.activeActor !== "enemy"
+    ) return null;
     const intent = combatState.enemyIntent?.turn === combatState.turn
       ? combatState.enemyIntent
       : previewIntent(combatState);

@@ -74,6 +74,10 @@ test("defense consumes the next-hit protection", async () => {
   const shield = state.combat.cards.hand[0];
   const defend = w.GameActions.createPlayerCardAction(state, shield.instanceId);
   w.CombatEngine.resolveAction(state, defend);
+  w.CombatEngine.resolveAction(
+    state,
+    w.GameActions.createPlayerEndTurnAction(state)
+  );
   const enemyAction = w.EnemyAI.decide(state);
   const resolution = w.CombatEngine.resolveAction(state, enemyAction);
   assert.equal(state.combat.player.defending, false);

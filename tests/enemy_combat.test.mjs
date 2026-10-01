@@ -50,6 +50,7 @@ test("enemy defend flows through the same resolution path", async () => {
   const w = await loadCombat();
   const state = battle(w, "iron_guard");
   state.combat.enemy.hp = 40;
+  state.combat.enemyIntent = w.EnemyAI.previewIntent(state.combat);
   const action = w.EnemyAI.decide(state);
   assert.equal(action.type, "DEFEND");
   const resolution = w.CombatEngine.resolveAction(state, action);
