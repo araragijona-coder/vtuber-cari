@@ -119,7 +119,8 @@
       drawPile: INITIAL_DECK.map(createPhysicalCard),
       hand: [],
       discardPile: [],
-      recycleCount: 0
+      recycleCount: 0,
+      events: []
     };
   }
 
@@ -128,6 +129,12 @@
     if (state.drawPile.length === 0 && state.discardPile.length > 0) {
       state.drawPile = state.discardPile.splice(0);
       state.recycleCount = Math.max(0, Number(state.recycleCount) || 0) + 1;
+      if (Array.isArray(state.events)) {
+        state.events.push({
+          type: "deck_recycled",
+          recycleCount: state.recycleCount
+        });
+      }
     }
     const card = state.drawPile.shift() || null;
     if (card) state.hand.push(card);
