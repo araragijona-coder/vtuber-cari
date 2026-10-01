@@ -202,7 +202,7 @@
         burstCharge: 0,
         burstMax: 100,
         playerAbilityUses: 1
-      },
+      }),
       cards: window.CardSystem.createCombatDeckState(5),
       cooldowns: {},
       enemyIntent: null,
