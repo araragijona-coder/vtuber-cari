@@ -4,9 +4,17 @@ import { test } from "node:test";
 import vm from "node:vm";
 
 async function loadCore() {
-  const window = {};
-  const context = vm.createContext({ window, console, JSON, Math, Number, String, Object, Array, Set });
+  const context = vm.createContext({
+    window: {}, console, JSON, Math, Number, String, Object, Array, Set, Error, TypeError, Infinity, NaN
+  });
   for (const path of [
+    "intento_2/webapp/js/game/balance.js",
+    "intento_2/webapp/js/game/rng.js",
+    "intento_2/webapp/js/game/cards.js",
+    "intento_2/webapp/js/game/enemies.js",
+    "intento_2/webapp/js/game/energy.js",
+    "intento_2/webapp/js/game/status.js",
+    "intento_2/webapp/js/game/abilities.js",
     "intento_2/webapp/js/game/state.js",
     "intento_2/webapp/js/game/actions.js",
     "intento_2/webapp/js/game/rules.js",
@@ -27,12 +35,15 @@ test("creates a portable GameState without browser objects", async () => {
   assert.equal("localStorage" in state, false);
 });
 
-test("starts a battle in player turn 1", async () => {
+test("starts a tactical battle in player turn 1 with visible enemy intent", async () => {
   const core = await loadCore();
   const state = core.GameState.createGameState();
-  core.GameState.startBattle(state);
+  core.GameState.startBattle(state, { seed: 42 });
   assert.equal(state.combat.turn, 1);
   assert.equal(state.combat.phase, "PLAYER_TURN");
   assert.equal(state.combat.activeActor, "player");
   assert.equal(state.combat.outcome, "IN_PROGRESS");
+  assert.equal(state.combat.resources.energy, 3);
+  assert.ok(state.combat.enemyIntent);
+  assert.ok(state.combat.enemyIntent.type);
 });

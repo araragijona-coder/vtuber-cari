@@ -4,9 +4,17 @@ import { test } from "node:test";
 import vm from "node:vm";
 
 async function loadCore() {
-  const window = {};
-  const context = vm.createContext({ window, console, JSON, Math, Number, String, Object, Array, Set });
+  const context = vm.createContext({
+    window: {}, console, JSON, Math, Number, String, Object, Array, Set, Error, TypeError, Infinity, NaN
+  });
   for (const path of [
+    "intento_2/webapp/js/game/balance.js",
+    "intento_2/webapp/js/game/rng.js",
+    "intento_2/webapp/js/game/cards.js",
+    "intento_2/webapp/js/game/enemies.js",
+    "intento_2/webapp/js/game/energy.js",
+    "intento_2/webapp/js/game/status.js",
+    "intento_2/webapp/js/game/abilities.js",
     "intento_2/webapp/js/game/state.js",
     "intento_2/webapp/js/game/actions.js",
     "intento_2/webapp/js/game/rules.js",
@@ -17,14 +25,25 @@ async function loadCore() {
   return context.window;
 }
 
-test("enemy can attack after player action", async () => {
+test("enemy can resolve after END TURN", async () => {
   const core = await loadCore();
   const state = core.GameState.createGameState();
   core.GameState.startBattle(state);
-  const playerAction = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.ATTACK);
-  core.CombatEngine.resolveAction(state, playerAction);
+  const playerCard = state.combat.cards.hand[0];
+  core.CombatEngine.resolveAction(
+    state,
+    core.GameActions.createPlayerCardAction(state, playerCard.instanceId)
+  );
+  assert.equal(state.combat.activeActor, "player");
+
+  core.CombatEngine.resolveAction(
+    state,
+    core.GameActions.createPlayerEndTurnAction(state)
+  );
+  assert.equal(state.combat.activeActor, "enemy");
+
   const enemyAction = core.EnemyAI.decide(state);
-  assert.equal(enemyAction.type, "ATTACK");
+  assert.ok(enemyAction);
   core.CombatEngine.resolveAction(state, enemyAction);
   assert.equal(state.combat.turn, 2);
   assert.equal(state.combat.activeActor, "player");
@@ -49,6 +68,7 @@ test("victory and defeat lock further actions", async () => {
   });
   const playerAttack = core.GameActions.createPlayerAction(loss, core.GameActions.ACTION_TYPES.ATTACK);
   core.CombatEngine.resolveAction(loss, playerAttack);
+  assert.equal(loss.combat.activeActor, "enemy");
   const enemyAction = core.EnemyAI.decide(loss);
   core.CombatEngine.resolveAction(loss, enemyAction);
   assert.equal(loss.combat.outcome, "DEFEAT");

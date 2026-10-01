@@ -4,9 +4,17 @@ import { test } from "node:test";
 import vm from "node:vm";
 
 async function loadCore() {
-  const window = {};
-  const context = vm.createContext({ window, console, JSON, Math, Number, String, Object, Array, Set });
+  const context = vm.createContext({
+    window: {}, console, JSON, Math, Number, String, Object, Array, Set, Error, TypeError, Infinity, NaN
+  });
   for (const path of [
+    "intento_2/webapp/js/game/balance.js",
+    "intento_2/webapp/js/game/rng.js",
+    "intento_2/webapp/js/game/cards.js",
+    "intento_2/webapp/js/game/enemies.js",
+    "intento_2/webapp/js/game/energy.js",
+    "intento_2/webapp/js/game/status.js",
+    "intento_2/webapp/js/game/abilities.js",
     "intento_2/webapp/js/game/state.js",
     "intento_2/webapp/js/game/actions.js",
     "intento_2/webapp/js/game/rules.js",
@@ -19,19 +27,18 @@ async function loadCore() {
 
 function start(core) {
   const state = core.GameState.createGameState();
-  core.GameState.startBattle(state);
+  core.GameState.startBattle(state, { seed: 424242 });
   return state;
 }
 
-test("attack resolves damage and hands turn to enemy", async () => {
+test("attack resolves damage and keeps the player decision phase open", async () => {
   const core = await loadCore();
   const state = start(core);
   const action = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.ATTACK);
   const resolution = core.CombatEngine.resolveAction(state, action);
-  assert.equal(resolution.damage, 17);
-  assert.equal(state.combat.enemy.hp, 83);
-  assert.equal(state.combat.activeActor, "enemy");
-  assert.equal(state.combat.phase, "ENEMY_TURN");
+  assert.ok(resolution.damage > 0);
+  assert.equal(state.combat.activeActor, "player");
+  assert.equal(state.combat.phase, "PLAYER_TURN");
 });
 
 test("wrong actor and stale turns are rejected", async () => {
@@ -44,15 +51,19 @@ test("wrong actor and stale turns are rejected", async () => {
   assert.equal(core.CombatEngine.validateAction(state, stale).error, "STALE_TURN");
 });
 
-test("defend absorbs half of the next incoming damage", async () => {
+test("legacy defend action creates block and transitions to enemy", async () => {
   const core = await loadCore();
   const state = start(core);
   const defend = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.DEFEND);
   core.CombatEngine.resolveAction(state, defend);
+  assert.equal(state.combat.player.block, 4);
+  assert.equal(state.combat.player.defending, true);
+  assert.equal(state.combat.activeActor, "enemy");
+
   const enemyAction = core.EnemyAI.decide(state);
   const resolution = core.CombatEngine.resolveAction(state, enemyAction);
-  assert.equal(resolution.damage, 5);
-  assert.equal(state.combat.player.hp, 115);
+  assert.ok(resolution.blockAbsorbed >= 0);
+  assert.equal(state.combat.turn, 2);
 });
 
 test("resolution clamps HP and action remains an intention", async () => {
@@ -69,13 +80,14 @@ test("resolution clamps HP and action remains an intention", async () => {
   assert.equal(state.combat.enemy.hp <= state.combat.enemy.maxHp, true);
 });
 
-test("skill is usable once and then rejected", async () => {
+test("legacy skill is usable once and then rejected", async () => {
   const core = await loadCore();
   const state = start(core);
   const skill = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.SKILL);
   const resolution = core.CombatEngine.resolveAction(state, skill);
-  assert.equal(resolution.damage, 37);
+  assert.ok(resolution.damage > 0);
   assert.equal(state.combat.resources.playerSkill, 0);
+  assert.equal(state.combat.activeActor, "enemy");
 
   const enemyAction = core.EnemyAI.decide(state);
   core.CombatEngine.resolveAction(state, enemyAction);

@@ -3,41 +3,114 @@
 
   const CARD_TYPES = Object.freeze({
     ATTACK: "ATTACK",
-    DEFEND: "DEFEND",
+    DEFENSE: "DEFENSE",
+    DEFEND: "DEFENSE",
     SKILL: "SKILL"
   });
 
   const CARD_DEFINITIONS = Object.freeze({
     disparo_neon: Object.freeze({
       id: "disparo_neon",
+      cardId: "disparo_neon",
       name: "DISPARO NEÓN",
       type: CARD_TYPES.ATTACK,
       cost: window.CombatBalance.card("disparo_neon").cost,
       damage: window.CombatBalance.card("disparo_neon").damage,
-      description: "Ataque fiable: daño moderado con variación y crítico controlados."
+      description: "Ataque estable: daño moderado con variación y crítico.",
+      effects: Object.freeze({ damage: 18 })
     }),
     embestida_nitro: Object.freeze({
       id: "embestida_nitro",
+      cardId: "embestida_nitro",
       name: "EMBESTIDA NITRO",
       type: CARD_TYPES.ATTACK,
       cost: window.CombatBalance.card("embestida_nitro").cost,
       damage: window.CombatBalance.card("embestida_nitro").damage,
-      description: "Golpe pesado: mayor riesgo de variación, pero más daño y crítico."
+      description: "Golpe pesado: más daño, mayor coste y variación.",
+      effects: Object.freeze({ damage: 38 })
+    }),
+    derrape_expuesto: Object.freeze({
+      id: "derrape_expuesto",
+      cardId: "derrape_expuesto",
+      name: "DERRAPE EXPUESTO",
+      type: CARD_TYPES.ATTACK,
+      cost: window.CombatBalance.card("derrape_expuesto").cost,
+      damage: window.CombatBalance.card("derrape_expuesto").damage,
+      description: "Si el enemigo está EXPOSED, añade +9 daño.",
+      effects: Object.freeze({ damage: 13, conditional: "TARGET_EXPOSED", bonus: 9 })
     }),
     escudo_dark: Object.freeze({
       id: "escudo_dark",
+      cardId: "escudo_dark",
       name: "ESCUDO DARK",
-      type: CARD_TYPES.DEFEND,
+      type: CARD_TYPES.DEFENSE,
       cost: window.CombatBalance.card("escudo_dark").cost,
-      damage: window.CombatBalance.card("escudo_dark").damage,
-      description: "Reduce a la mitad el próximo daño recibido. Consume una acción."
+      damage: 0,
+      description: "Genera 8 BLOCK para absorber daño futuro.",
+      effects: Object.freeze({ block: 8 })
+    }),
+    barricada_neon: Object.freeze({
+      id: "barricada_neon",
+      cardId: "barricada_neon",
+      name: "BARRICADA NEÓN",
+      type: CARD_TYPES.DEFENSE,
+      cost: window.CombatBalance.card("barricada_neon").cost,
+      damage: 0,
+      description: "Genera 11 BLOCK y recupera 1 Energy.",
+      effects: Object.freeze({ block: 11, energyGain: 1 })
+    }),
+    espejo_urbano: Object.freeze({
+      id: "espejo_urbano",
+      cardId: "espejo_urbano",
+      name: "ESPEJO URBANO",
+      type: CARD_TYPES.DEFENSE,
+      cost: window.CombatBalance.card("espejo_urbano").cost,
+      damage: 0,
+      description: "Genera 6 BLOCK y deja EXPOSED al enemigo 1 turno.",
+      effects: Object.freeze({ block: 6, applyStatus: "EXPOSED", statusTurns: 1 })
+    }),
+    lectura_tactica: Object.freeze({
+      id: "lectura_tactica",
+      cardId: "lectura_tactica",
+      name: "LECTURA TÁCTICA",
+      type: CARD_TYPES.SKILL,
+      cost: window.CombatBalance.card("lectura_tactica").cost,
+      damage: 0,
+      description: "Roba 2 cartas sin infligir daño.",
+      effects: Object.freeze({ draw: 2 })
+    }),
+    sobrecarga: Object.freeze({
+      id: "sobrecarga",
+      cardId: "sobrecarga",
+      name: "SOBRECARGA",
+      type: CARD_TYPES.SKILL,
+      cost: window.CombatBalance.card("sobrecarga").cost,
+      damage: 0,
+      description: "Recupera 2 Energy hasta el máximo.",
+      effects: Object.freeze({ energyGain: 2 })
+    }),
+    pulso_debilitante: Object.freeze({
+      id: "pulso_debilitante",
+      cardId: "pulso_debilitante",
+      name: "PULSO DEBILITANTE",
+      type: CARD_TYPES.SKILL,
+      cost: window.CombatBalance.card("pulso_debilitante").cost,
+      damage: 0,
+      description: "Aplica WEAK al enemigo durante 2 turnos.",
+      effects: Object.freeze({ applyStatus: "WEAK", statusTurns: 2 })
     })
   });
 
   const INITIAL_DECK = Object.freeze([
-    "disparo_neon", "disparo_neon", "disparo_neon",
-    "embestida_nitro", "embestida_nitro",
-    "escudo_dark", "escudo_dark"
+    "disparo_neon",
+    "embestida_nitro",
+    "derrape_expuesto",
+    "escudo_dark",
+    "barricada_neon",
+    "espejo_urbano",
+    "lectura_tactica",
+    "sobrecarga",
+    "pulso_debilitante"
   ]);
 
   function clone(value) {

@@ -7,8 +7,7 @@
       varianceMax: 1.10,
       criticalChance: 0.12,
       criticalMultiplier: 1.50,
-      minimumDamage: 1,
-      defendingMultiplier: 0.50
+      minimumDamage: 1
     }),
     cards: Object.freeze({
       disparo_neon: Object.freeze({
@@ -21,10 +20,35 @@
         varianceMin: 0.85, varianceMax: 1.15,
         criticalChance: 0.18, criticalMultiplier: 1.50
       }),
+      derrape_expuesto: Object.freeze({
+        cost: 1, damage: 13, type: "ATTACK",
+        varianceMin: 0.90, varianceMax: 1.10,
+        criticalChance: 0.10, criticalMultiplier: 1.50,
+        conditionalBonus: 9
+      }),
       escudo_dark: Object.freeze({
-        cost: 1, damage: 0, type: "DEFEND",
-        defenseMultiplier: 0.50,
-        duration: 1
+        cost: 1, damage: 0, type: "DEFENSE",
+        block: 8, duration: 1, defenseMultiplier: 0.50
+      }),
+      barricada_neon: Object.freeze({
+        cost: 2, damage: 0, type: "DEFENSE",
+        block: 11, energyGain: 1
+      }),
+      espejo_urbano: Object.freeze({
+        cost: 1, damage: 0, type: "DEFENSE",
+        block: 6, applyStatus: "EXPOSED", statusTurns: 1
+      }),
+      lectura_tactica: Object.freeze({
+        cost: 1, damage: 0, type: "SKILL",
+        draw: 2
+      }),
+      sobrecarga: Object.freeze({
+        cost: 0, damage: 0, type: "SKILL",
+        energyGain: 2
+      }),
+      pulso_debilitante: Object.freeze({
+        cost: 1, damage: 0, type: "SKILL",
+        applyStatus: "WEAK", statusTurns: 2
       })
     }),
     enemies: Object.freeze({

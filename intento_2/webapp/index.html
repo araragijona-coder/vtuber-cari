@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#111318">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Rocket Bunny Petty · MVP</title>
+  <title>Rocket Bunny Petty · Combat Vertical Slice</title>
   <link rel="stylesheet" href="./css/style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -18,19 +18,45 @@
 
       <div class="combat-controls" aria-label="Combate">
         <button id="start-battle" type="button">START BATTLE</button>
+        <button id="end-turn" type="button" hidden>END TURN</button>
+        <button id="character-ability" type="button" hidden>ABILITY</button>
         <div id="combat-hand" class="combat-hand" aria-label="Mano de cartas"></div>
         <button id="restart-battle" type="button" hidden>RESTART</button>
       </div>
 
       <div class="combat-hud" aria-label="Estado del combate">
         <div class="hud-card">
-          <span>PLAYER</span>
+          <span>PLAYER HP</span>
           <strong id="combat-player-hp">—</strong>
         </div>
         <div class="hud-card">
-          <span>ENEMY</span>
+          <span>PLAYER BLOCK</span>
+          <strong id="combat-player-block">—</strong>
+        </div>
+        <div class="hud-card hud-wide">
+          <span>PLAYER STATUS</span>
+          <strong id="combat-player-statuses">—</strong>
+        </div>
+        <div class="hud-card">
+          <span>ENERGY</span>
+          <strong id="combat-energy">—</strong>
+        </div>
+        <div class="hud-card">
+          <span>ENEMY HP</span>
           <strong id="combat-enemy-name">—</strong>
           <strong id="combat-enemy-hp">—</strong>
+        </div>
+        <div class="hud-card">
+          <span>ENEMY BLOCK</span>
+          <strong id="combat-enemy-block">—</strong>
+        </div>
+        <div class="hud-card hud-wide">
+          <span>ENEMY STATUS</span>
+          <strong id="combat-enemy-statuses">—</strong>
+        </div>
+        <div class="hud-card hud-wide intent-card">
+          <span>ENEMY INTENT</span>
+          <strong id="combat-enemy-intent">—</strong>
         </div>
         <div class="hud-card">
           <span>ENEMY ARCHETYPE</span>
@@ -45,12 +71,12 @@
           <strong id="combat-actor">—</strong>
         </div>
         <div class="hud-card">
+          <span>ABILITY</span>
+          <strong id="combat-ability-status">—</strong>
+        </div>
+        <div class="hud-card hud-wide">
           <span>LAST ACTION</span>
           <strong id="combat-last-action">—</strong>
-        </div>
-        <div class="hud-card">
-          <span>ENERGY</span>
-          <strong id="combat-energy">—</strong>
         </div>
         <div class="hud-card">
           <span>STATUS</span>
@@ -87,6 +113,8 @@
   <script src="./js/game/cards.js"></script>
   <script src="./js/game/enemies.js"></script>
   <script src="./js/game/energy.js"></script>
+  <script src="./js/game/status.js"></script>
+  <script src="./js/game/abilities.js"></script>
   <script src="./js/game/state.js"></script>
   <script src="./js/game/actions.js"></script>
   <script src="./js/game/rules.js"></script>

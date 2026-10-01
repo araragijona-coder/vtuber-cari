@@ -215,3 +215,85 @@ canvas {
 .reward-panel button {
   margin-left: auto;
 }
+
+
+.combat-controls {
+  align-items: stretch;
+}
+
+.combat-controls > button {
+  flex: 0 0 auto;
+}
+
+.combat-hand {
+  flex-basis: 100%;
+}
+
+.card-button {
+  position: relative;
+}
+
+.card-button .card-type {
+  grid-column: 1 / -1;
+  color: var(--tg-text-color);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.card-button.card-attack {
+  border-color: rgba(255,99,128,.35);
+}
+
+.card-button.card-defense {
+  border-color: rgba(99,190,255,.35);
+}
+
+.card-button.card-skill {
+  border-color: rgba(255,209,92,.35);
+}
+
+.combat-hud {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.hud-wide {
+  grid-column: span 2;
+}
+
+.intent-card {
+  border-color: rgba(255,211,106,.45);
+}
+
+#combat-enemy-intent {
+  color: #ffd36a;
+}
+
+#end-turn,
+#character-ability {
+  font-weight: 900;
+}
+
+#end-turn:not(:disabled) {
+  border-color: rgba(255,211,106,.5);
+}
+
+#character-ability:not(:disabled) {
+  border-color: rgba(174,125,255,.55);
+}
+
+@media (max-width: 900px) {
+  .combat-hud {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .combat-hud {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hud-wide {
+    grid-column: span 2;
+  }
+}

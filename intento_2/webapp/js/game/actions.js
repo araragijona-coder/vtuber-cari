@@ -5,15 +5,18 @@
     ATTACK: "ATTACK",
     DEFEND: "DEFEND",
     SKILL: "SKILL",
-    CARD: "CARD"
+    CARD: "CARD",
+    END_TURN: "END_TURN",
+    ABILITY: "ABILITY",
+    DEBUFF: "DEBUFF"
   });
 
-  function createAction({ id, type, actorId, targetId, turn, cardId = "", cardInstanceId = "" }) {
+  function createAction({ id, type, actorId, targetId = "", turn, cardId = "", cardInstanceId = "" }) {
     return Object.freeze({
       id: String(id),
       type: String(type),
       actorId: String(actorId),
-      targetId: String(targetId),
+      targetId: String(targetId ?? ""),
       turn: Number(turn),
       cardId: String(cardId || ""),
       cardInstanceId: String(cardInstanceId || "")
@@ -52,10 +55,20 @@
     });
   }
 
+  function createPlayerEndTurnAction(state) {
+    return createPlayerAction(state, ACTION_TYPES.END_TURN);
+  }
+
+  function createPlayerAbilityAction(state) {
+    return createPlayerAction(state, ACTION_TYPES.ABILITY);
+  }
+
   window.GameActions = Object.freeze({
     ACTION_TYPES,
     createAction,
     createPlayerAction,
-    createPlayerCardAction
+    createPlayerCardAction,
+    createPlayerEndTurnAction,
+    createPlayerAbilityAction
   });
 })();

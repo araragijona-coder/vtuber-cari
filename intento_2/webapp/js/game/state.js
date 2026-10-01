@@ -39,7 +39,9 @@
       availableActions: Array.isArray(availableActions) ? [...availableActions] : [],
       aiProfile: String(aiProfile || ""),
       identity: identity ? clone(identity) : null,
-      defending: false
+      defending: false,
+      block: 0,
+      statuses: window.StatusSystem?.createStatuses?.() || {}
     };
   }
 
@@ -66,8 +68,8 @@
       stats: enemyConfig?.stats || { atk: 15, def: 3, skillDamage: 30 },
       name: enemyConfig?.name || "ENEMY",
       archetype: enemyConfig?.archetype || "DEMO",
-      actions: enemyConfig?.actions || ["ATTACK"],
-      availableActions: enemyConfig?.availableActions || ["ATTACK"],
+      actions: enemyConfig?.actions || ["ATTACK", "DEFEND"],
+      availableActions: enemyConfig?.availableActions || ["ATTACK", "DEFEND"],
       aiProfile: enemyConfig?.aiProfile || "AGGRESSIVE_ATTACK"
     });
   }
@@ -110,12 +112,24 @@
       activeActor: "player",
       lastAction: null,
       outcome: OUTCOME.IN_PROGRESS,
-      resources: { playerSkill: 1, ...window.EnergySystem.createEnergy(3) },
-      cards: window.CardSystem.createCombatDeckState(4)
+      resources: {
+        playerSkill: 1,
+        playerAbilityUses: 1,
+        ...window.EnergySystem.createEnergy(3)
+      },
+      cards: window.CardSystem.createCombatDeckState(4),
+      enemyIntent: null,
+      progression: state.progression || {}
     };
     window.CardSystem.drawCards(state.combat.cards, 4);
     window.EnergySystem.refill(state.combat.resources);
-    state.session.lastMessage = "Batalla iniciada · turno 1 · turno del jugador.";
+    state.combat.enemyIntent = window.EnemyAI?.previewIntent?.(state.combat) || {
+      type: "ATTACK",
+      value: 1,
+      label: "ATTACK 1"
+    };
+    state.combat.enemy.intent = state.combat.enemyIntent;
+    state.session.lastMessage = "PLAYER TURN · elegí jugadas y terminá el turno.";
     return state;
   }
 
@@ -131,5 +145,13 @@
     return clone(state);
   }
 
-  window.GameState = Object.freeze({ OUTCOME, PHASE, createCombatant, createGameState, startBattle, setMain, snapshot });
+  window.GameState = Object.freeze({
+    OUTCOME,
+    PHASE,
+    createCombatant,
+    createGameState,
+    startBattle,
+    setMain,
+    snapshot
+  });
 })();
