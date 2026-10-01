@@ -24,6 +24,17 @@
     return combat;
   }
 
+  function sync(combat) {
+    if (!combat?.resources) return null;
+    const max = maxChargeOf(combat);
+    combat.resources.burstMax = max;
+    combat.resources.burstCharge = Math.min(
+      max,
+      Math.max(0, Number(combat.resources.burstCharge) || 0)
+    );
+    return combat.resources;
+  }
+
   function gain(combat, amount) {
     if (!combat?.resources) return 0;
     sync(combat);
@@ -32,6 +43,7 @@
       max,
       chargeOf(combat) + Math.max(0, Number(amount) || 0)
     );
+    sync(combat);
     sync(combat);
     return combat.resources.burstCharge;
   }
@@ -84,6 +96,7 @@
     BREAK_ENERGY_REGEN_MULTIPLIER,
     chargeOf,
     maxChargeOf,
+    sync,
     gain,
     canUse,
     activate,
