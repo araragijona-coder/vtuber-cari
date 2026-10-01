@@ -298,6 +298,18 @@
       context.restore();
     }
 
+    function assetSlotForFighter(team, mode) {
+      const candidates = [
+        team + "." + mode,
+        team + ".sprite",
+        team + ".portrait"
+      ];
+      for (const slot of candidates) {
+        if (ASSET_SLOTS.includes(slot) && assetFor(slot)) return slot;
+      }
+      return null;
+    }
+
     function drawFighter(team, combat, width, height, now) {
       const stateForFighter = fighterState(team, combat, now);
       const fighter = stateForFighter.fighter;
@@ -312,8 +324,8 @@
             ? "attack"
             : "idle";
 
-      const spriteSlot = team + ".sprite";
-      const image = imageFor(spriteSlot);
+      const spriteSlot = assetSlotForFighter(team, mode);
+      const image = spriteSlot ? imageFor(spriteSlot) : null;
       context.save();
       context.translate(stateForFighter.lunge, 0);
       if (image) {
@@ -577,7 +589,6 @@
           addEffect("shield", { targetTeam: "player", amount: Number(action.blockGained || definition?.effects?.block || 0) }, 400);
           emitAudio("shield", action);
         } else {
-          addEffect("energy", { amount: Number(action.energyGain || 0) }, 420);
           emitAudio("skill", action);
         }
       }
@@ -611,9 +622,19 @@
       }
 
       if (actionType === "ABILITY") {
-        addEffect("energy", { amount: Number(action.energyGain || 0) }, 500);
         addEffect("shield", { targetTeam: "player", amount: Number(action.blockGained || 0) }, 500);
         emitAudio("skill", action);
+      }
+
+      if (
+        ["SKILL", "CARD", "ABILITY"].includes(actionType) &&
+        Number.isFinite(Number(action.energyBefore)) &&
+        Number.isFinite(Number(action.energyAfter))
+      ) {
+        const energyDelta = Number(action.energyAfter) - Number(action.energyBefore);
+        if (energyDelta !== 0) {
+          addEffect("energy", { amount: energyDelta }, 420);
+        }
       }
 
       if (action.broke) {
@@ -624,6 +645,9 @@
       if (actionType === "BREAK_END") {
         emitAudio("breakEnd", action);
       }
+
+      if (action.outcome === "VICTORY") emitAudio("victory", action);
+      if (action.outcome === "DEFEAT") emitAudio("defeat", action);
 
       if (actionType === "ENEMY_BEHAVIOR" && action.intent?.type === "DEFEND") {
         addEffect("shield", { targetTeam: "enemy", amount: Number(action.intent.value || 0) }, 500);

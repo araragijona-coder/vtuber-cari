@@ -46,6 +46,63 @@ function makeCanvas() {
   };
 }
 
+
+
+async function loadPresentationWithImageTracking(source) {
+  const fake = makeCanvas();
+  const imageSources = [];
+  const window = {
+    BreakSystem: { isBroken: (state) => state?.state === "BROKEN" && Number(state?.remainingMs) > 0 },
+    StatusSystem: {
+      entries: (fighter) => Object.entries(fighter?.statuses || {}).map(([type, value]) => ({
+        type,
+        label: type,
+        remainingMs: Number(value?.remainingMs || 0)
+      }))
+    },
+    CombatEngine: {
+      cardDefinitionFor: (_combat, cardId) => ({
+        cardId,
+        name: "TEST SKILL",
+        type: "ATTACK",
+        effects: {}
+      })
+    },
+    CardSystem: { definitionFor: () => null }
+  };
+  class FakeImage {
+    constructor() {
+      this.complete = true;
+      this.naturalWidth = 128;
+      this.src = "";
+      imageSources.push(this.src);
+    }
+    set src(value) {
+      this._src = String(value);
+      imageSources[imageSources.length - 1] = this._src;
+    }
+    get src() {
+      return this._src;
+    }
+  }
+  const context = vm.createContext({
+    window,
+    performance: { now: () => 1000 },
+    Image: FakeImage,
+    console,
+    Math,
+    Number,
+    String,
+    Object,
+    Array,
+    Set,
+    Map,
+    JSON
+  });
+  vm.runInContext(source, context, { filename: "combat_presentation.js" });
+  return { api: context.window.CombatPresentation, fake, imageSources };
+}
+
 async function loadPresentation() {
   const source = await readFile("intento_2/webapp/js/combat_presentation.js", "utf8");
   const fake = makeCanvas();
@@ -206,4 +263,60 @@ test("visual asset and audio hooks exist without introducing gameplay dependenci
   assert.match(presentation, /setAsset/);
   assert.match(presentation, /setAudioHooks/);
   assert.doesNotMatch(presentation, /Math\.random\(/);
+});
+
+
+test("state-specific fighter assets override the generic sprite slot", async () => {
+  const source = await readFile("intento_2/webapp/js/combat_presentation.js", "utf8");
+  const loaded = await loadPresentationWithImageTracking(source);
+  const presentation = loaded.api.create(loaded.fake.canvas, loaded.fake.context);
+  presentation.setAsset("player.sprite", "player-idle.png");
+  presentation.setAsset("player.attack", "player-attack.png");
+  const combat = combatFixture();
+  presentation.onCombatStart(combat);
+  presentation.onAction(combat, {
+    actionId: "attack-asset-1",
+    actionType: "AUTO_ATTACK",
+    source: "PLAYER_AUTO_ATTACK",
+    actorId: "player",
+    targetId: "enemy",
+    damage: 7
+  });
+  presentation.render(combat, 1000);
+  assert.ok(loaded.imageSources.includes("player-attack.png"));
+  assert.equal(loaded.imageSources.includes("player-idle.png"), false);
+});
+
+test("skill energy delta produces player-facing energy feedback", async () => {
+  const loaded = await loadPresentation();
+  const presentation = loaded.api.create(loaded.fake.canvas, loaded.fake.context);
+  const combat = combatFixture();
+  presentation.onCombatStart(combat);
+  presentation.onAction(combat, {
+    actionId: "energy-spend-1",
+    actionType: "SKILL",
+    cardId: "escudo_dark",
+    targetId: "enemy",
+    damage: 0,
+    energyBefore: 42,
+    energyAfter: 24,
+    blockGained: 18
+  });
+  presentation.render(combat, 1000);
+  assert.ok(loaded.fake.context.calls.includes("-18 ENERGY"));
+});
+
+test("victory and defeat expose presentation audio hooks", async () => {
+  const loaded = await loadPresentation();
+  const presentation = loaded.api.create(loaded.fake.canvas, loaded.fake.context);
+  const events = [];
+  presentation.setAudioHooks({
+    victory: () => events.push("victory"),
+    defeat: () => events.push("defeat")
+  });
+  const combat = combatFixture();
+  presentation.onCombatStart(combat);
+  presentation.onAction(combat, { actionId: "victory-1", actionType: "BURST", outcome: "VICTORY" });
+  presentation.onAction(combat, { actionId: "defeat-1", actionType: "BURST", outcome: "DEFEAT" });
+  assert.deepEqual(events, ["victory", "defeat"]);
 });
