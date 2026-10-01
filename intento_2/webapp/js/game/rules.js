@@ -75,7 +75,11 @@
     if (window.StatusSystem.has(actor, STATUS_TYPES.WEAK)) {
       baseDamage *= 0.75;
     }
-    if (window.BurstSystem.isActive(combat) && target === combat.enemy) {
+    if (
+      window.BurstSystem.isActive(combat) &&
+      target === combat.enemy &&
+      !overrides.ignoreBreakMultiplier
+    ) {
       baseDamage *= window.BurstSystem.multiplier(combat);
     }
 
@@ -123,11 +127,32 @@
 
   function applyBreak(combat, target, amount) {
     if (target !== combat.enemy) return { applied: 0, broke: false };
-    return window.BreakSystem.applyImpact(
+    const result = window.BreakSystem.applyImpact(
       target.breakState,
       amount,
       combat.simulationTick
     );
+    combat.enemy.breakCurrent = target.breakState.current;
+    combat.enemy.breakMax = target.breakState.max;
+    if (result.broke) {
+      window.BurstSystem.gain(
+        combat,
+        Number(window.CombatBalance.BALANCE.burst.breakCharge || 0)
+      );
+    }
+    return result;
+  }
+
+  function logPlayerInput(combat, action) {
+    if (!Array.isArray(combat.inputLog)) combat.inputLog = [];
+    combat.inputLog.push({
+      tick: combat.simulationTick,
+      elapsedMs: combat.elapsedMs,
+      actionType: action.type,
+      cardId: action.cardId || "",
+      cardInstanceId: action.cardInstanceId || "",
+      source: action.source || "PLAYER"
+    });
   }
 
   function finishIfNeeded(state) {
@@ -209,6 +234,19 @@
       rngStateBefore,
       rngStateAfter: result.rng.state
     });
+
+    if (action.source === "PLAYER_AUTO_ATTACK") {
+      window.BurstSystem.gain(
+        combat,
+        Number(window.CombatBalance.BALANCE.burst.playerAutoCharge || 0)
+      );
+    }
+    if (target === combat.player && result.damage > 0) {
+      window.BurstSystem.gain(
+        combat,
+        Number(window.CombatBalance.BALANCE.burst.incomingDamageCharge || 0)
+      );
+    }
 
     combat.lastAction = Object.freeze({ ...resolution });
     return resolution;
@@ -317,6 +355,11 @@
     window.CardSystem.refillHand(combat.cards);
     combat.cooldowns[action.cardId] = Number(definition.cooldownMs || 0);
 
+    window.BurstSystem.gain(
+      combat,
+      Number(window.CombatBalance.BALANCE.burst.skillCharge || 0)
+    );
+    logPlayerInput(combat, action);
     finishIfNeeded(state);
 
     const resolution = makeResolution(combat, action, {
@@ -345,11 +388,80 @@
     return resolution;
   }
 
+  function resolveBurst(state, action) {
+    const combat = state?.combat;
+    if (!combat) throw new Error("NO_COMBAT");
+    if (!window.BurstSystem.canUse(combat)) throw new Error("BURST_UNAVAILABLE");
+
+    const target = combat.enemy;
+    const chargeBefore = window.BurstSystem.chargeOf(combat);
+    const wasBroken = window.BurstSystem.isActive(combat);
+    window.BurstSystem.activate(combat);
+
+    const rngStateBefore = combat.rng.state;
+    const baseDamage = Number(window.CombatBalance.BALANCE.burst.damage || 32) *
+      (wasBroken ? Number(window.CombatBalance.BALANCE.burst.brokenMultiplier || 1.35) : 1);
+    const result = rollDamage(
+      combat,
+      combat.player,
+      target,
+      {
+        damage: baseDamage,
+        breakDamage: Number(window.CombatBalance.BALANCE.burst.breakDamage || 24),
+        varianceMin: 1,
+        varianceMax: 1,
+        criticalChance: 0,
+        criticalMultiplier: 1,
+        ignoreBreakMultiplier: true
+      }
+    );
+
+    combat.rng = Object.freeze({
+      seed: combat.seed >>> 0,
+      state: result.rng.state >>> 0
+    });
+
+    const hp = applyDamage(target, result);
+    const breakResult = applyBreak(
+      combat,
+      target,
+      Number(window.CombatBalance.BALANCE.burst.breakDamage || 24)
+    );
+
+    finishIfNeeded(state);
+
+    const resolution = makeResolution(combat, action, {
+      cost: 0,
+      chargeBefore,
+      chargeAfter: window.BurstSystem.chargeOf(combat),
+      damage: result.damage,
+      rawDamage: result.rawDamage,
+      blockAbsorbed: result.blockAbsorbed,
+      hpBefore: hp.hpBefore,
+      hpAfter: hp.hpAfter,
+      targetHpAfter: hp.hpAfter,
+      critical: result.critical,
+      variance: result.variance,
+      defense: result.defense,
+      breakDamage: breakResult.applied,
+      broke: breakResult.broke,
+      burst: true,
+      brokenPayoff: wasBroken,
+      rngStateBefore,
+      rngStateAfter: result.rng.state
+    });
+
+    logPlayerInput(combat, action);
+    combat.lastAction = Object.freeze({ ...resolution });
+    return resolution;
+  }
+
   function resolveAbility(state, action) {
     const combat = state.combat;
     if (!window.CharacterAbilitySystem.canUse(combat)) throw new Error("ABILITY_UNAVAILABLE");
     const energyBefore = currentEnergy(combat);
     const result = window.CharacterAbilitySystem.apply(combat);
+    logPlayerInput(combat, action);
     const resolution = makeResolution(combat, action, {
       cost: 0,
       energyBefore,
@@ -371,6 +483,7 @@
     if (action?.type === ACTION_TYPES.END_TURN) throw new Error("LEGACY_TURN_FLOW_DISABLED");
     if ([ACTION_TYPES.SKILL, ACTION_TYPES.CARD].includes(action?.type)) return resolveSkill(state, action);
     if (action?.type === ACTION_TYPES.ABILITY) return resolveAbility(state, action);
+    if (action?.type === ACTION_TYPES.BURST) return resolveBurst(state, action);
     if (action?.type === ACTION_TYPES.AUTO_ATTACK) {
       return resolveAutoAttack(
         state.combat,
@@ -392,6 +505,11 @@
       return window.CharacterAbilitySystem.canUse(state.combat)
         ? { valid: true, actor: state.combat.player, target: state.combat.enemy }
         : { valid: false, error: "ABILITY_UNAVAILABLE" };
+    }
+    if (action?.type === ACTION_TYPES.BURST) {
+      return window.BurstSystem.canUse(state.combat)
+        ? { valid: true, actor: state.combat.player, target: state.combat.enemy }
+        : { valid: false, error: "BURST_UNAVAILABLE" };
     }
     return { valid: false, error: "INVALID_ACTION" };
   }
@@ -424,7 +542,27 @@
     }
 
     const breakEnded = window.BreakSystem.advance(combat.enemy.breakState, stepMs);
-    if (breakEnded) combat.burstWindowEndedAt = combat.elapsedMs;
+    if (breakEnded) {
+      combat.burstWindowEndedAt = combat.elapsedMs;
+      combat.lastAction = Object.freeze({
+        actionId: "break-end-" + combat.simulationTick,
+        actionType: "BREAK_END",
+        actorId: combat.enemy.id,
+        targetId: combat.enemy.id,
+        simulationTick: combat.simulationTick,
+        elapsedMs: combat.elapsedMs,
+        damage: 0,
+        breakDamage: 0,
+        outcome: combat.outcome
+      });
+    }
+    combat.enemy.breakCurrent = combat.enemy.breakState.current;
+    combat.enemy.breakMax = combat.enemy.breakState.max;
+
+    window.BurstSystem.gain(
+      combat,
+      Number(window.CombatBalance.BALANCE.burst.passiveChargePerTick || 0)
+    );
 
     const baseRegen = Number(window.CombatBalance.BALANCE.energy.regenPerSecond);
     combat.resources.energyRegen = baseRegen * window.BurstSystem.energyRegenMultiplier(combat);
@@ -467,8 +605,8 @@
         outcome: combat.outcome
       });
       if (combat.outcome === OUTCOME.IN_PROGRESS) {
-        combat.enemyIntent = window.EnemyBehaviorSystem.previewIntent(combat);
-        combat.enemy.intent = combat.enemyIntent;
+        combat.enemyIntent = null;
+        combat.enemy.intent = null;
       }
       return;
     }
