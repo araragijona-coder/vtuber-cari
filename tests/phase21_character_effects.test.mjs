@@ -223,7 +223,7 @@ test("damage reduction modifies incoming HP damage and expires", async () => {
 
   assert.ok(reduced.damage < normal.damage);
   assert.ok(reduced.damageReductionApplied > 0);
-  w.CombatEngine.advanceTime(1800);
+  w.CombatEngine.advanceTime(guarded, 1800);
   assert.equal(w.ModifierSystem.damageReductionFraction(guarded.combat.player), 0);
 });
 
