@@ -491,6 +491,7 @@ test("realtime card hand reuses stable DOM nodes across renders", async () => {
   assert.equal(hand.children.find((button) => button.dataset.cardInstanceId === firstCard.instanceId), firstButton);
 
   combat.resources.currentEnergy = 0;
+  combat.resources.playerAbilityUses = 0;
   context.window.CariCombat.useAbility();
   assert.equal(hand.children.find((button) => button.dataset.cardInstanceId === firstCard.instanceId), firstButton);
   assert.equal(firstButton.disabled, true);
