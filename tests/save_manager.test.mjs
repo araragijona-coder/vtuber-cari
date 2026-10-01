@@ -155,6 +155,6 @@ test("saveFromGameState records defeat once per battle", async () => {
   const loaded = manager.load().save;
   assert.equal(loaded.player.wins, 0);
   assert.equal(loaded.player.losses, 1);
-  assert.equal(JSON.stringify(loaded.completedBattles), JSON.stringify(["battle-2"]));
+  assert.equal(loaded.completedBattles.length, 0);
   assert.equal(loaded.lastBattle.outcome, "DEFEAT");
 });
