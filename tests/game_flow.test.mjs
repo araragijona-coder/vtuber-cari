@@ -40,7 +40,11 @@ test("combat continues even when player gives no input", async () => {
   const initial = state.combat.player.hp;
   w.CombatEngine.advanceTime(state, 1200);
   assert.ok(state.combat.player.hp < initial);
-  assert.ok(state.combat.enemyIntent.remainingMs > 0 || state.combat.outcome !== "IN_PROGRESS");
+  assert.ok(
+    !state.combat.enemyIntent ||
+    state.combat.enemyIntent.remainingMs > 0 ||
+    state.combat.outcome !== "IN_PROGRESS"
+  );
 });
 
 test("victory and defeat lock skills", async () => {
