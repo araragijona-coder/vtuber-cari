@@ -135,13 +135,13 @@ test("WEAK modifies outgoing damage and EXPOSED modifies incoming damage", async
   const w = await loadCore();
   const normal = start(w);
   const weak = start(w);
-  w.StatusSystem.apply(weak.combat.player, "WEAK", 2000);
+  w.StatusSystem.applyTimedMs(weak.combat.player, "WEAK", 2000);
   const normalDamage = w.CombatEngine.resolveAction(normal, cardAction(w, normal, "disparo_neon")).damage;
   const weakDamage = w.CombatEngine.resolveAction(weak, cardAction(w, weak, "disparo_neon")).damage;
   assert.ok(weakDamage < normalDamage);
 
   const exposed = start(w);
-  w.StatusSystem.apply(exposed.combat.enemy, "EXPOSED", 2000);
+  w.StatusSystem.applyTimedMs(exposed.combat.enemy, "EXPOSED", 2000);
   const exposedDamage = w.CombatEngine.resolveAction(exposed, cardAction(w, exposed, "disparo_neon")).damage;
   const baseline = start(w);
   const baselineDamage = w.CombatEngine.resolveAction(baseline, cardAction(w, baseline, "disparo_neon")).damage;
@@ -151,7 +151,7 @@ test("WEAK modifies outgoing damage and EXPOSED modifies incoming damage", async
 test("status durations expire from fixed simulation time", async () => {
   const w = await loadCore();
   const state = start(w);
-  w.StatusSystem.apply(state.combat.enemy, "EXPOSED", 500);
+  w.StatusSystem.applyTimedMs(state.combat.enemy, "EXPOSED", 500);
   assert.equal(w.StatusSystem.has(state.combat.enemy, "EXPOSED"), true);
   w.CombatEngine.advanceTime(state, 500);
   assert.equal(w.StatusSystem.has(state.combat.enemy, "EXPOSED"), false);
