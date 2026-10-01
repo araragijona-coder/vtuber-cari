@@ -545,67 +545,6 @@
     return resolution;
   }
 
-  function resolveBurst(state, action) {
-    const combat = state?.combat;
-    if (!combat) throw new Error("NO_COMBAT");
-    if (!window.BurstSystem.canUse(combat)) throw new Error("BURST_UNAVAILABLE");
-
-    const burstBalance = window.CombatBalance.BALANCE.burst;
-    const wasBroken = window.BreakSystem.isBroken(combat.enemy.breakState);
-    const energyBefore = combat.resources.energy;
-    const burstState = window.BurstSystem.activate(combat);
-    const baseDamage = Number(burstBalance.damage || 35);
-    const result = rollDamage(combat, combat.player, combat.enemy, {
-      damage: baseDamage,
-      breakDamage: Number(burstBalance.breakDamage || 24),
-      varianceMin: 0.95,
-      varianceMax: 1.05,
-      criticalChance: 0.12,
-      criticalMultiplier: 1.5
-    });
-    combat.rng = Object.freeze({
-      seed: combat.seed >>> 0,
-      state: result.rng.state >>> 0
-    });
-    const hp = applyDamage(combat.enemy, result);
-    const breakResult = applyBreak(
-      combat,
-      combat.enemy,
-      Number(burstBalance.breakDamage || 24)
-    );
-
-    combat.inputLog.push(Object.freeze({
-      type: "BURST",
-      tick: combat.simulationTick,
-      elapsedMs: combat.elapsedMs
-    }));
-    emitCombatEvent(combat, "burst_used", {
-      damage: result.damage,
-      duringBreak: wasBroken,
-      chargeBefore: burstState.chargeBefore
-    });
-    finishIfNeeded(state);
-
-    const resolution = makeResolution(combat, action, {
-      cost: 0,
-      energyBefore,
-      energyAfter: energyBefore,
-      damage: result.damage,
-      rawDamage: result.rawDamage,
-      blockAbsorbed: result.blockAbsorbed,
-      critical: result.critical,
-      variance: result.variance,
-      breakDamage: breakResult.applied,
-      broke: breakResult.broke,
-      burst: true,
-      duringBreak: wasBroken,
-      targetHpAfter: hp.hpAfter,
-      rngStateAfter: combat.rng.state
-    });
-    combat.lastAction = Object.freeze({ ...resolution });
-    return resolution;
-  }
-
   function resolveAction(state, action) {
     if (!state?.combat) throw new Error("NO_COMBAT");
     if (action?.type === ACTION_TYPES.END_TURN) throw new Error("LEGACY_TURN_FLOW_DISABLED");
