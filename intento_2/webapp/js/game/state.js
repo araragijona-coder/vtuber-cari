@@ -9,10 +9,7 @@
 
   const PHASE = Object.freeze({
     BATTLE_INIT: "BATTLE_INIT",
-    PLAYER_TURN: "PLAYER_TURN",
-    RESOLVE_PLAYER_ACTION: "RESOLVE_PLAYER_ACTION",
-    ENEMY_TURN: "ENEMY_TURN",
-    RESOLVE_ENEMY_ACTION: "RESOLVE_ENEMY_ACTION",
+    REAL_TIME: "REAL_TIME",
     VICTORY: "VICTORY",
     DEFEAT: "DEFEAT"
   });
@@ -21,7 +18,11 @@
     return JSON.parse(JSON.stringify(value));
   }
 
-  function createCombatant({ id, hp, maxHp = hp, stats = {}, name = "", archetype = "", actions = [], availableActions = actions, aiProfile = "", identity = null }) {
+  function createCombatant({
+    id, hp, maxHp = hp, stats = {}, name = "", archetype = "",
+    actions = [], availableActions = actions, aiProfile = "", identity = null,
+    autoAttack = null
+  }) {
     const safeMaxHp = Math.max(1, Number(maxHp) || 1);
     const safeHp = Math.min(safeMaxHp, Math.max(0, Number(hp) || 0));
     return {
@@ -41,36 +42,45 @@
       identity: identity ? clone(identity) : null,
       defending: false,
       block: 0,
-      statuses: window.StatusSystem?.createStatuses?.() || {}
+      blockRemainingMs: 0,
+      statuses: window.StatusSystem.createStatuses(),
+      autoAttack: autoAttack ? clone(autoAttack) : null,
+      intent: null
     };
   }
 
-  function createEnemyCombatant(enemyConfig) {
-    if (enemyConfig?.id && window.EnemyCatalog?.definitionFor(enemyConfig.id)) {
-      const catalogEnemy = window.EnemyCatalog.createEnemy(enemyConfig.id);
-      return createCombatant({
-        ...catalogEnemy,
-        hp: enemyConfig.hp ?? catalogEnemy.hp,
-        maxHp: enemyConfig.maxHp ?? catalogEnemy.maxHp,
-        stats: enemyConfig.stats || catalogEnemy.stats,
-        name: enemyConfig.name ?? catalogEnemy.name,
-        archetype: enemyConfig.archetype ?? catalogEnemy.archetype,
-        actions: enemyConfig.actions || catalogEnemy.actions,
-        availableActions: enemyConfig.availableActions || catalogEnemy.availableActions,
-        aiProfile: enemyConfig.aiProfile ?? catalogEnemy.aiProfile,
-        identity: enemyConfig.identity || catalogEnemy.identity
-      });
-    }
+  function createEnemyCombatant(enemyConfig = {}) {
+    const known = enemyConfig?.id && window.EnemyCatalog?.definitionFor(enemyConfig.id);
+    const catalog = known
+      ? window.EnemyCatalog.createEnemy(enemyConfig.id)
+      : {
+          id: enemyConfig?.id || "enemy-mvp",
+          name: enemyConfig?.name || "ENEMY",
+          archetype: enemyConfig?.archetype || "DEMO",
+          maxHp: enemyConfig?.maxHp ?? enemyConfig?.hp ?? 100,
+          hp: enemyConfig?.hp ?? 100,
+          stats: enemyConfig?.stats || { atk: 12, def: 3, skillDamage: 12 },
+          actions: enemyConfig?.actions || ["ATTACK", "DEFEND", "DEBUFF"],
+          availableActions: enemyConfig?.availableActions || ["ATTACK", "DEFEND", "DEBUFF"],
+          aiProfile: enemyConfig?.aiProfile || "AGGRESSIVE_ATTACK",
+          identity: enemyConfig?.identity || null,
+          autoAttack: enemyConfig?.autoAttack || { intervalMs: 1400, damage: 8, breakDamage: 6 }
+        };
+
     return createCombatant({
-      id: enemyConfig?.id || "enemy-mvp",
-      hp: enemyConfig?.hp ?? 100,
-      maxHp: enemyConfig?.maxHp ?? enemyConfig?.hp ?? 100,
-      stats: enemyConfig?.stats || { atk: 15, def: 3, skillDamage: 30 },
-      name: enemyConfig?.name || "ENEMY",
-      archetype: enemyConfig?.archetype || "DEMO",
-      actions: enemyConfig?.actions || ["ATTACK", "DEFEND"],
-      availableActions: enemyConfig?.availableActions || ["ATTACK", "DEFEND"],
-      aiProfile: enemyConfig?.aiProfile || "AGGRESSIVE_ATTACK"
+      ...catalog,
+      hp: enemyConfig.hp ?? catalog.hp,
+      maxHp: enemyConfig.maxHp ?? catalog.maxHp,
+      stats: enemyConfig.stats || catalog.stats,
+      name: enemyConfig.name ?? catalog.name,
+      archetype: enemyConfig.archetype ?? catalog.archetype,
+      actions: enemyConfig.actions || catalog.actions,
+      availableActions: enemyConfig.availableActions || catalog.availableActions,
+      aiProfile: enemyConfig.aiProfile ?? catalog.aiProfile,
+      identity: enemyConfig.identity || catalog.identity,
+      autoAttack: window.AutoAttackSystem.create(
+        enemyConfig.autoAttack || catalog.autoAttack || { intervalMs: 1400, damage: 8, breakDamage: 6 }
+      )
     });
   }
 
@@ -78,10 +88,17 @@
     const playerId = String(options.playerId || "local-player");
     return {
       screen: "MAIN",
-      player: { id: playerId, xp: 0, level: 1, currency: 0, wins: 0, losses: 0, currentBattleId: null },
+      player: {
+        id: playerId, xp: 0, level: 1, currency: 0,
+        wins: 0, losses: 0, currentBattleId: null
+      },
       combat: null,
       progression: {},
-      session: { lastMessage: "Esperando una batalla.", actionCounter: 0, battleSequence: 0 }
+      session: {
+        lastMessage: "Esperando una batalla.",
+        actionCounter: 0,
+        battleSequence: 0
+      }
     };
   }
 
@@ -92,44 +109,64 @@
     const battleId = String(config.battleId || "battle-mvp-1");
     const seed = window.CombatRNG.normalizeSeed(config.seed ?? battleId);
     const enemy = createEnemyCombatant(enemyConfig);
-    state.session.battleSequence += 1;
+    const playerAutoBalance = window.CombatBalance.BALANCE.playerAutoAttack;
+    const player = createCombatant({
+      id: playerConfig.id || "player",
+      hp: playerConfig.hp ?? 120,
+      maxHp: playerConfig.maxHp ?? playerConfig.hp ?? 120,
+      stats: playerConfig.stats || { atk: 20, def: 5, skillDamage: 40 },
+      autoAttack: window.AutoAttackSystem.create(
+        playerConfig.autoAttack || playerAutoBalance
+      )
+    });
 
+    const breakState = window.BreakSystem.create(
+      window.CombatBalance.BALANCE.break.max,
+      window.CombatBalance.BALANCE.break.windowMs
+    );
+    enemy.breakState = breakState;
+
+    state.session.battleSequence += 1;
     state.screen = "BATTLE";
     state.player.currentBattleId = battleId;
     state.combat = {
       battleId,
       seed,
+      rulesVersion: "phase18-semi-real-time-v1",
+      deckVersion: "phase17-opening-diversity-v1",
       rng: window.CombatRNG.create(seed),
-      phase: PHASE.PLAYER_TURN,
+      clock: window.CombatClock.create(window.CombatBalance.BALANCE.timing.fixedStepMs),
+      phase: PHASE.REAL_TIME,
       turn: 1,
-      player: createCombatant({
-        id: playerConfig.id || "player",
-        hp: playerConfig.hp ?? 120,
-        maxHp: playerConfig.maxHp ?? playerConfig.hp ?? 120,
-        stats: playerConfig.stats || { atk: 20, def: 5, skillDamage: 40 }
-      }),
+      simulationTick: 0,
+      elapsedMs: 0,
+      player,
       enemy,
-      activeActor: "player",
+      activeActor: "combat",
       lastAction: null,
       outcome: OUTCOME.IN_PROGRESS,
       resources: {
-        playerSkill: 1,
-        playerAbilityUses: 1,
-        ...window.EnergySystem.createEnergy(3)
+        ...window.EnergySystem.createEnergy({
+          maxEnergy: window.CombatBalance.BALANCE.energy.maxEnergy,
+          energyRegen: window.CombatBalance.BALANCE.energy.regenPerSecond
+        }),
+        playerAbilityUses: 1
       },
       cards: window.CardSystem.createCombatDeckState(4),
+      cooldowns: {},
       enemyIntent: null,
-      progression: state.progression || {}
+      enemyBehavior: null,
+      progression: clone(state.progression || {}),
+      break: breakState,
+      burstWindowEndedAt: null
     };
+
     window.CardSystem.drawCards(state.combat.cards, 4);
-    window.EnergySystem.refill(state.combat.resources);
-    state.combat.enemyIntent = window.EnemyAI?.previewIntent?.(state.combat) || {
-      type: "ATTACK",
-      value: 1,
-      label: "ATTACK 1"
-    };
+    state.combat.enemyBehavior = window.EnemyBehaviorSystem.createState(state.combat);
+    state.combat.enemyIntent = window.EnemyBehaviorSystem.previewIntent(state.combat);
     state.combat.enemy.intent = state.combat.enemyIntent;
-    state.session.lastMessage = "PLAYER TURN · elegí jugadas y terminá el turno.";
+
+    state.session.lastMessage = "COMBAT LIVE · la pelea continúa sola. Intervení con skills.";
     return state;
   }
 

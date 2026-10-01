@@ -15,78 +15,75 @@ async function loadCore() {
     "intento_2/webapp/js/game/energy.js",
     "intento_2/webapp/js/game/status.js",
     "intento_2/webapp/js/game/abilities.js",
+    "intento_2/webapp/js/game/combat_clock.js",
+    "intento_2/webapp/js/game/auto_attack.js",
+    "intento_2/webapp/js/game/break.js",
+    "intento_2/webapp/js/game/burst.js",
     "intento_2/webapp/js/game/state.js",
     "intento_2/webapp/js/game/actions.js",
-    "intento_2/webapp/js/game/rules.js",
-    "intento_2/webapp/js/game/enemy.js"
-  ]) {
-    vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
-  }
+    "intento_2/webapp/js/game/skill_resolver.js",
+    "intento_2/webapp/js/game/enemy_behavior.js",
+    "intento_2/webapp/js/game/rules.js"
+  ]) vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
   return context.window;
 }
 
-test("enemy can resolve after END TURN", async () => {
-  const core = await loadCore();
-  const state = core.GameState.createGameState();
-  core.GameState.startBattle(state);
-  const playerCard = state.combat.cards.hand[0];
-  core.CombatEngine.resolveAction(
-    state,
-    core.GameActions.createPlayerCardAction(state, playerCard.instanceId)
-  );
-  assert.equal(state.combat.activeActor, "player");
+function start(w, overrides = {}) {
+  const state = w.GameState.createGameState();
+  w.GameState.startBattle(state, { seed: 99, ...overrides });
+  return state;
+}
 
-  core.CombatEngine.resolveAction(
-    state,
-    core.GameActions.createPlayerEndTurnAction(state)
-  );
-  assert.equal(state.combat.activeActor, "enemy");
-
-  const enemyAction = core.EnemyAI.decide(state);
-  assert.ok(enemyAction);
-  core.CombatEngine.resolveAction(state, enemyAction);
-  assert.equal(state.combat.turn, 2);
-  assert.equal(state.combat.activeActor, "player");
+test("combat continues even when player gives no input", async () => {
+  const w = await loadCore();
+  const state = start(w);
+  const initial = state.combat.player.hp;
+  w.CombatEngine.advanceTime(state, 1200);
+  assert.ok(state.combat.player.hp < initial);
+  assert.ok(state.combat.enemyIntent.remainingMs > 0 || state.combat.outcome !== "IN_PROGRESS");
 });
 
-test("victory and defeat lock further actions", async () => {
-  const core = await loadCore();
+test("victory and defeat lock skills", async () => {
+  const w = await loadCore();
 
-  const win = core.GameState.createGameState();
-  core.GameState.startBattle(win, {
-    enemy: { hp: 1, maxHp: 1, stats: { atk: 1, def: 0, skillDamage: 1 } }
-  });
-  const attack = core.GameActions.createPlayerAction(win, core.GameActions.ACTION_TYPES.ATTACK);
-  const winResolution = core.CombatEngine.resolveAction(win, attack);
-  assert.equal(winResolution.outcome, "VICTORY");
-  assert.equal(win.combat.phase, "VICTORY");
-  assert.equal(core.CombatEngine.validateAction(win, attack).error, "COMBAT_FINISHED");
+  const win = start(w, { enemy: { id: "street_punk", hp: 1, maxHp: 1 } });
+  win.combat.enemy.hp = 1;
+  w.CombatEngine.resolveAction(
+    win,
+    w.GameActions.createAction({
+      id: "finish",
+      type: "AUTO_ATTACK",
+      actorId: win.combat.player.id,
+      targetId: win.combat.enemy.id,
+      simulationTick: 0
+    })
+  );
+  assert.equal(win.combat.outcome, "VICTORY");
+  assert.equal(w.CombatEngine.validateAction(
+    win,
+    w.GameActions.createPlayerEndTurnAction(win)
+  ).error, "COMBAT_FINISHED");
 
-  const loss = core.GameState.createGameState();
-  core.GameState.startBattle(loss, {
-    player: { hp: 1, maxHp: 1, stats: { atk: 1, def: 0, skillDamage: 1 } }
-  });
-  const playerAttack = core.GameActions.createPlayerAction(loss, core.GameActions.ACTION_TYPES.ATTACK);
-  core.CombatEngine.resolveAction(loss, playerAttack);
-  assert.equal(loss.combat.activeActor, "enemy");
-  const enemyAction = core.EnemyAI.decide(loss);
-  core.CombatEngine.resolveAction(loss, enemyAction);
+  const loss = start(w, { player: { hp: 1, maxHp: 1 } });
+  loss.combat.player.hp = 1;
+  w.CombatEngine.advanceTime(loss, 1500);
   assert.equal(loss.combat.outcome, "DEFEAT");
-  assert.equal(loss.combat.phase, "DEFEAT");
-  assert.equal(core.CombatEngine.validateAction(loss, playerAttack).error, "COMBAT_FINISHED");
 });
 
-test("simultaneous knockout resolves deterministically as defeat", async () => {
-  const core = await loadCore();
-  const state = core.GameState.createGameState();
-  core.GameState.startBattle(state, {
-    player: { hp: 1, maxHp: 1, stats: { atk: 1, def: 0, skillDamage: 1 } },
-    enemy: { hp: 1, maxHp: 1, stats: { atk: 1, def: 0, skillDamage: 1 } }
-  });
-  const combat = state.combat;
-  assert.equal(core.CombatEngine.checkOutcome({
-    ...combat,
-    player: { ...combat.player, hp: 0 },
-    enemy: { ...combat.enemy, hp: 0 }
-  }), "DEFEAT");
+test("no frame-rate dependent results with a fixed-step clock", async () => {
+  const w = await loadCore();
+  const run = (frameDelta, frames) => {
+    const state = start(w, { enemy: { id: "street_punk" } });
+    const card = state.combat.cards.hand.find(entry => entry.cardId === "disparo_neon");
+    for (let index = 0; index < frames; index += 1) {
+      w.CombatEngine.advanceTime(state, frameDelta);
+    }
+    w.CombatEngine.resolveAction(state, w.GameActions.createPlayerSkillAction(state, card.instanceId));
+    return w.GameState.snapshot(state);
+  };
+  const a = run(1000 / 30, 30);
+  const b = run(1000 / 60, 60);
+  const c = run(1000 / 120, 120);
+  assert.equal(JSON.stringify(a), JSON.stringify(b));
+  assert.equal(JSON.stringify(b), JSON.stringify(c));
 });

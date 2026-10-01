@@ -15,82 +15,46 @@ async function loadCore() {
     "intento_2/webapp/js/game/energy.js",
     "intento_2/webapp/js/game/status.js",
     "intento_2/webapp/js/game/abilities.js",
+    "intento_2/webapp/js/game/combat_clock.js",
+    "intento_2/webapp/js/game/auto_attack.js",
+    "intento_2/webapp/js/game/break.js",
+    "intento_2/webapp/js/game/burst.js",
     "intento_2/webapp/js/game/state.js",
     "intento_2/webapp/js/game/actions.js",
-    "intento_2/webapp/js/game/rules.js",
-    "intento_2/webapp/js/game/enemy.js"
-  ]) {
-    vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
-  }
+    "intento_2/webapp/js/game/skill_resolver.js",
+    "intento_2/webapp/js/game/enemy_behavior.js",
+    "intento_2/webapp/js/game/rules.js"
+  ]) vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
   return context.window;
 }
 
-function start(core) {
-  const state = core.GameState.createGameState();
-  core.GameState.startBattle(state, { seed: 424242 });
-  return state;
-}
-
-test("legacy attack action resolves and hands control to enemy", async () => {
-  const core = await loadCore();
-  const state = start(core);
-  const action = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.ATTACK);
-  const resolution = core.CombatEngine.resolveAction(state, action);
-  assert.ok(resolution.damage > 0);
-  assert.equal(state.combat.activeActor, "enemy");
-  assert.equal(state.combat.phase, "ENEMY_TURN");
+test("GameState starts a real-time battle with a fixed-step clock", async () => {
+  const w = await loadCore();
+  const state = w.GameState.createGameState();
+  w.GameState.startBattle(state, { seed: 42 });
+  assert.equal(state.combat.phase, "REAL_TIME");
+  assert.equal(state.combat.activeActor, "combat");
+  assert.equal(state.combat.clock.stepMs, 100);
+  assert.equal(state.combat.simulationTick, 0);
 });
 
-test("wrong actor and stale turns are rejected", async () => {
-  const core = await loadCore();
-  const state = start(core);
-  const action = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.ATTACK);
-  const wrong = { ...action, actorId: state.combat.enemy.id };
-  assert.equal(core.CombatEngine.validateAction(state, wrong).error, "WRONG_ACTOR");
-  const stale = { ...action, turn: 99 };
-  assert.equal(core.CombatEngine.validateAction(state, stale).error, "STALE_TURN");
+test("auto attacks advance combat without player input", async () => {
+  const w = await loadCore();
+  const state = w.GameState.createGameState();
+  w.GameState.startBattle(state, { seed: 42 });
+  const playerHp = state.combat.player.hp;
+  const enemyHp = state.combat.enemy.hp;
+  w.CombatEngine.advanceTime(state, 1500);
+  assert.ok(state.combat.player.hp < playerHp);
+  assert.ok(state.combat.enemy.hp < enemyHp);
+  assert.equal(state.combat.simulationTick, 15);
+  assert.equal(state.combat.clock.elapsedMs, 1500);
 });
 
-test("legacy defend action creates block and transitions to enemy", async () => {
-  const core = await loadCore();
-  const state = start(core);
-  const defend = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.DEFEND);
-  core.CombatEngine.resolveAction(state, defend);
-  assert.equal(state.combat.player.block, 4);
-  assert.equal(state.combat.player.defending, true);
-  assert.equal(state.combat.activeActor, "enemy");
-
-  const enemyAction = core.EnemyAI.decide(state);
-  const resolution = core.CombatEngine.resolveAction(state, enemyAction);
-  assert.ok(resolution.blockAbsorbed >= 0);
-  assert.equal(state.combat.turn, 2);
-});
-
-test("resolution clamps HP and action remains an intention", async () => {
-  const core = await loadCore();
-  const state = start(core);
-  const action = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.ATTACK);
-  assert.equal("damage" in action, false);
-  assert.equal("targetHpAfter" in action, false);
-  state.combat.enemy.hp = 1;
-  const resolution = core.CombatEngine.resolveAction(state, action);
-  assert.equal(resolution.targetHpAfter, 0);
-  assert.equal(state.combat.enemy.hp, 0);
-  assert.equal(state.combat.enemy.hp >= 0, true);
-  assert.equal(state.combat.enemy.hp <= state.combat.enemy.maxHp, true);
-});
-
-test("legacy skill is usable once and then rejected", async () => {
-  const core = await loadCore();
-  const state = start(core);
-  const skill = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.SKILL);
-  const resolution = core.CombatEngine.resolveAction(state, skill);
-  assert.ok(resolution.damage > 0);
-  assert.equal(state.combat.resources.playerSkill, 0);
-  assert.equal(state.combat.activeActor, "enemy");
-
-  const enemyAction = core.EnemyAI.decide(state);
-  core.CombatEngine.resolveAction(state, enemyAction);
-  const second = core.GameActions.createPlayerAction(state, core.GameActions.ACTION_TYPES.SKILL);
-  assert.equal(core.CombatEngine.validateAction(state, second).error, "SKILL_UNAVAILABLE");
+test("legacy turn actions are rejected by the new model", async () => {
+  const w = await loadCore();
+  const state = w.GameState.createGameState();
+  w.GameState.startBattle(state);
+  const legacy = w.GameActions.createPlayerEndTurnAction(state);
+  assert.equal(w.CombatEngine.validateAction(state, legacy).error, "LEGACY_TURN_FLOW_DISABLED");
 });

@@ -38,6 +38,7 @@
       defense: balance.defense,
       actions: meta.actions,
       aiProfile: balance.aiProfile,
+      autoAttack: balance.autoAttack,
       identity: IDENTITY[id]
     });
   }
@@ -57,6 +58,7 @@
       actions: [...definition.actions],
       availableActions: [...definition.actions],
       aiProfile: definition.aiProfile,
+      autoAttack: { ...definition.autoAttack },
       identity: { ...definition.identity },
       defending: false
     };

@@ -1,28 +1,79 @@
 (() => {
   "use strict";
 
-  function createEnergy(maxEnergy = 3) {
-    const safeMax = Math.max(0, Number(maxEnergy) || 0);
-    return { energy: safeMax, maxEnergy: safeMax };
+  const DEFAULT_MAX_ENERGY = 100;
+  const DEFAULT_REGEN_PER_SECOND = 12;
+
+  function createEnergy(options = {}) {
+    if (typeof options === "number") {
+      const legacyMax = Math.max(0, Number(options) || 0);
+      return {
+        energy: legacyMax,
+        maxEnergy: legacyMax,
+        energyRegen: 0
+      };
+    }
+    const maxEnergy = Math.max(
+      0,
+      Number(options.maxEnergy ?? DEFAULT_MAX_ENERGY) || DEFAULT_MAX_ENERGY
+    );
+    const energyRegen = Math.max(
+      0,
+      Number(options.energyRegen ?? DEFAULT_REGEN_PER_SECOND) || 0
+    );
+    return { energy: maxEnergy, maxEnergy, energyRegen };
   }
 
-  function refill(resources) {
-    resources.energy = Math.max(0, Number(resources.maxEnergy) || 0);
+  function regenerate(resources, deltaMs) {
+    if (!resources) return 0;
+    const delta = Math.max(0, Number(deltaMs) || 0);
+    resources.energy = Math.min(
+      resources.maxEnergy,
+      Math.max(0, Number(resources.energy) + Number(resources.energyRegen || 0) * delta / 1000)
+    );
+    return resources.energy;
+  }
+
+  function gain(resources, amount) {
+    if (!resources) return 0;
+    resources.energy = Math.min(
+      resources.maxEnergy,
+      Math.max(0, Number(resources.energy) + Math.max(0, Number(amount) || 0))
+    );
     return resources.energy;
   }
 
   function canSpend(resources, cost) {
     const safeCost = Number(cost);
-    return Number.isFinite(safeCost) && safeCost >= 0 && safeCost <= resources.energy;
+    return Boolean(
+      resources &&
+      Number.isFinite(safeCost) &&
+      safeCost >= 0 &&
+      safeCost <= Number(resources.energy) + 1e-9
+    );
   }
 
   function spend(resources, cost) {
     const safeCost = Number(cost);
     if (!canSpend(resources, safeCost)) return false;
-    resources.energy -= safeCost;
-    resources.energy = Math.max(0, resources.energy);
+    resources.energy = Math.max(0, Number(resources.energy) - safeCost);
     return true;
   }
 
-  window.EnergySystem = Object.freeze({ createEnergy, refill, canSpend, spend });
+  function refill(resources) {
+    if (!resources) return 0;
+    resources.energy = Math.max(0, Number(resources.maxEnergy) || 0);
+    return resources.energy;
+  }
+
+  window.EnergySystem = Object.freeze({
+    DEFAULT_MAX_ENERGY,
+    DEFAULT_REGEN_PER_SECOND,
+    createEnergy,
+    regenerate,
+    gain,
+    canSpend,
+    spend,
+    refill
+  });
 })();

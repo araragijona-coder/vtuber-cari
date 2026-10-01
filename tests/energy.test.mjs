@@ -9,23 +9,24 @@ async function loadEnergy() {
   return context.window.EnergySystem;
 }
 
-test("energy starts at 3/3 and refills to max", async () => {
+test("energy uses a regenerative 0-100 resource", async () => {
   const energy = await loadEnergy();
-  const resources = energy.createEnergy(3);
-  assert.equal(JSON.stringify(resources), JSON.stringify({ energy: 3, maxEnergy: 3 }));
-  resources.energy = 1;
-  energy.refill(resources);
-  assert.equal(resources.energy, 3);
+  const resources = energy.createEnergy({ maxEnergy: 100, energyRegen: 12 });
+  assert.equal(JSON.stringify(resources), JSON.stringify({
+    energy: 100, maxEnergy: 100, energyRegen: 12
+  }));
+  resources.energy = 25;
+  energy.regenerate(resources, 1000);
+  assert.equal(resources.energy, 37);
 });
 
-test("energy consumes exactly once and never goes negative", async () => {
+test("energy never exceeds max and cannot be overspent", async () => {
   const energy = await loadEnergy();
-  const resources = energy.createEnergy(3);
-  assert.equal(energy.spend(resources, 2), true);
-  assert.equal(resources.energy, 1);
-  assert.equal(energy.spend(resources, 2), false);
-  assert.equal(resources.energy, 1);
-  assert.equal(energy.canSpend(resources, 1), true);
-  assert.equal(energy.spend(resources, 1), true);
-  assert.equal(resources.energy, 0);
+  const resources = energy.createEnergy({ maxEnergy: 100, energyRegen: 12 });
+  assert.equal(energy.spend(resources, 40), true);
+  assert.equal(resources.energy, 60);
+  assert.equal(energy.spend(resources, 70), false);
+  assert.equal(resources.energy, 60);
+  energy.gain(resources, 1000);
+  assert.equal(resources.energy, 100);
 });

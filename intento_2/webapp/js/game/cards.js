@@ -10,98 +10,85 @@
 
   const CARD_DEFINITIONS = Object.freeze({
     disparo_neon: Object.freeze({
-      id: "disparo_neon",
-      cardId: "disparo_neon",
-      name: "DISPARO NEÓN",
-      type: CARD_TYPES.ATTACK,
-      cost: window.CombatBalance.card("disparo_neon").cost,
+      id: "disparo_neon", cardId: "disparo_neon", name: "DISPARO NEÓN",
+      type: CARD_TYPES.ATTACK, cost: window.CombatBalance.card("disparo_neon").cost,
       damage: window.CombatBalance.card("disparo_neon").damage,
-      description: "Ataque estable: daño moderado con variación y crítico.",
-      effects: Object.freeze({ damage: 18 })
+      breakDamage: window.CombatBalance.card("disparo_neon").breakDamage,
+      cooldownMs: window.CombatBalance.card("disparo_neon").cooldownMs,
+      targeting: "single_enemy",
+      description: "Skill ofensiva rápida: daño y presión de BREAK.",
+      effects: Object.freeze({ damage: 16, breakDamage: 10 })
     }),
     embestida_nitro: Object.freeze({
-      id: "embestida_nitro",
-      cardId: "embestida_nitro",
-      name: "EMBESTIDA NITRO",
-      type: CARD_TYPES.ATTACK,
-      cost: window.CombatBalance.card("embestida_nitro").cost,
+      id: "embestida_nitro", cardId: "embestida_nitro", name: "EMBESTIDA NITRO",
+      type: CARD_TYPES.ATTACK, cost: window.CombatBalance.card("embestida_nitro").cost,
       damage: window.CombatBalance.card("embestida_nitro").damage,
-      description: "Golpe pesado: más daño, mayor coste y variación.",
-      effects: Object.freeze({ damage: 38 })
+      breakDamage: window.CombatBalance.card("embestida_nitro").breakDamage,
+      cooldownMs: window.CombatBalance.card("embestida_nitro").cooldownMs,
+      targeting: "single_enemy",
+      description: "Skill pesada: gran daño, gran presión de BREAK.",
+      effects: Object.freeze({ damage: 28, breakDamage: 18 })
     }),
     derrape_expuesto: Object.freeze({
-      id: "derrape_expuesto",
-      cardId: "derrape_expuesto",
-      name: "DERRAPE EXPUESTO",
-      type: CARD_TYPES.ATTACK,
-      cost: window.CombatBalance.card("derrape_expuesto").cost,
+      id: "derrape_expuesto", cardId: "derrape_expuesto", name: "DERRAPE EXPUESTO",
+      type: CARD_TYPES.ATTACK, cost: window.CombatBalance.card("derrape_expuesto").cost,
       damage: window.CombatBalance.card("derrape_expuesto").damage,
-      description: "Si el enemigo está EXPOSED, añade +9 daño.",
-      effects: Object.freeze({ damage: 13, conditional: "TARGET_EXPOSED", bonus: 9 })
+      breakDamage: window.CombatBalance.card("derrape_expuesto").breakDamage,
+      cooldownMs: window.CombatBalance.card("derrape_expuesto").cooldownMs,
+      targeting: "single_enemy",
+      description: "Si el enemigo está EXPOSED, añade daño y prepara el BREAK.",
+      effects: Object.freeze({ damage: 12, breakDamage: 22, conditional: "TARGET_EXPOSED", bonus: 10 })
     }),
     escudo_dark: Object.freeze({
-      id: "escudo_dark",
-      cardId: "escudo_dark",
-      name: "ESCUDO DARK",
-      type: CARD_TYPES.DEFENSE,
-      cost: window.CombatBalance.card("escudo_dark").cost,
-      damage: 0,
-      description: "Genera 8 BLOCK para absorber daño futuro.",
-      effects: Object.freeze({ block: 8 })
+      id: "escudo_dark", cardId: "escudo_dark", name: "ESCUDO DARK",
+      type: CARD_TYPES.DEFENSE, cost: window.CombatBalance.card("escudo_dark").cost,
+      damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("escudo_dark").cooldownMs,
+      targeting: "self",
+      description: "Shield temporal que absorbe daño durante 1.4 s.",
+      effects: Object.freeze({ block: 18, durationMs: 1400 })
     }),
     barricada_neon: Object.freeze({
-      id: "barricada_neon",
-      cardId: "barricada_neon",
-      name: "BARRICADA NEÓN",
-      type: CARD_TYPES.DEFENSE,
-      cost: window.CombatBalance.card("barricada_neon").cost,
-      damage: 0,
-      description: "Genera 11 BLOCK y recupera 1 Energy.",
-      effects: Object.freeze({ block: 11, energyGain: 1 })
+      id: "barricada_neon", cardId: "barricada_neon", name: "BARRICADA NEÓN",
+      type: CARD_TYPES.DEFENSE, cost: window.CombatBalance.card("barricada_neon").cost,
+      damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("barricada_neon").cooldownMs,
+      targeting: "self",
+      description: "Shield fuerte + recupera 10 Energy.",
+      effects: Object.freeze({ block: 28, durationMs: 1800, energyGain: 10 })
     }),
     espejo_urbano: Object.freeze({
-      id: "espejo_urbano",
-      cardId: "espejo_urbano",
-      name: "ESPEJO URBANO",
-      type: CARD_TYPES.DEFENSE,
-      cost: window.CombatBalance.card("espejo_urbano").cost,
-      damage: 0,
-      description: "Genera 6 BLOCK y deja EXPOSED al enemigo 1 turno.",
-      effects: Object.freeze({ block: 6, applyStatus: "EXPOSED", statusTurns: 1 })
+      id: "espejo_urbano", cardId: "espejo_urbano", name: "ESPEJO URBANO",
+      type: CARD_TYPES.DEFENSE, cost: window.CombatBalance.card("espejo_urbano").cost,
+      damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("espejo_urbano").cooldownMs,
+      targeting: "self",
+      description: "Shield corto; deja al enemigo EXPOSED.",
+      effects: Object.freeze({ block: 12, durationMs: 1200, applyStatus: "EXPOSED", statusDurationMs: 1500 })
     }),
     lectura_tactica: Object.freeze({
-      id: "lectura_tactica",
-      cardId: "lectura_tactica",
-      name: "LECTURA TÁCTICA",
-      type: CARD_TYPES.SKILL,
-      cost: window.CombatBalance.card("lectura_tactica").cost,
-      damage: 0,
-      description: "Roba 2 cartas sin infligir daño.",
+      id: "lectura_tactica", cardId: "lectura_tactica", name: "LECTURA TÁCTICA",
+      type: CARD_TYPES.SKILL, cost: window.CombatBalance.card("lectura_tactica").cost,
+      damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("lectura_tactica").cooldownMs,
+      targeting: "self",
+      description: "Roba 2 skills sin detener la pelea.",
       effects: Object.freeze({ draw: 2 })
     }),
     sobrecarga: Object.freeze({
-      id: "sobrecarga",
-      cardId: "sobrecarga",
-      name: "SOBRECARGA",
-      type: CARD_TYPES.SKILL,
-      cost: window.CombatBalance.card("sobrecarga").cost,
-      damage: 0,
-      description: "Recupera 2 Energy hasta el máximo.",
-      effects: Object.freeze({ energyGain: 2 })
+      id: "sobrecarga", cardId: "sobrecarga", name: "SOBRECARGA",
+      type: CARD_TYPES.SKILL, cost: window.CombatBalance.card("sobrecarga").cost,
+      damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("sobrecarga").cooldownMs,
+      targeting: "self",
+      description: "Convierte un hueco de tiempo en +26 Energy.",
+      effects: Object.freeze({ energyGain: 26 })
     }),
     pulso_debilitante: Object.freeze({
-      id: "pulso_debilitante",
-      cardId: "pulso_debilitante",
-      name: "PULSO DEBILITANTE",
-      type: CARD_TYPES.SKILL,
-      cost: window.CombatBalance.card("pulso_debilitante").cost,
-      damage: 0,
-      description: "Aplica WEAK al enemigo durante 2 turnos.",
-      effects: Object.freeze({ applyStatus: "WEAK", statusTurns: 2 })
+      id: "pulso_debilitante", cardId: "pulso_debilitante", name: "PULSO DEBILITANTE",
+      type: CARD_TYPES.SKILL, cost: window.CombatBalance.card("pulso_debilitante").cost,
+      damage: 0, breakDamage: 12, cooldownMs: window.CombatBalance.card("pulso_debilitante").cooldownMs,
+      targeting: "single_enemy",
+      description: "Skill de setup: WEAK + presión de BREAK.",
+      effects: Object.freeze({ applyStatus: "WEAK", statusDurationMs: 2200, breakDamage: 12 })
     })
   });
 
-  // The opening hand intentionally exposes all three tactical roles.
   const INITIAL_DECK = Object.freeze([
     "disparo_neon",
     "escudo_dark",
@@ -114,9 +101,7 @@
     "sobrecarga"
   ]);
 
-  function clone(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
+  function clone(value) { return JSON.parse(JSON.stringify(value)); }
 
   function definitionFor(cardId) {
     return CARD_DEFINITIONS[String(cardId)] || null;
@@ -169,21 +154,23 @@
     return card;
   }
 
+  function refillHand(state) {
+    while (state?.hand?.length < state?.handLimit) {
+      const before = state.drawPile.length + state.discardPile.length;
+      if (!drawCard(state)) break;
+      if (state.drawPile.length + state.discardPile.length >= before && !state.drawPile.length && !state.discardPile.length) break;
+    }
+    return state?.hand || [];
+  }
+
   function hydrateCard(card) {
     const definition = definitionFor(card?.cardId);
     return definition ? { ...clone(definition), instanceId: card.instanceId } : null;
   }
 
   window.CardSystem = Object.freeze({
-    CARD_TYPES,
-    CARD_DEFINITIONS,
-    INITIAL_DECK,
-    definitionFor,
-    createCombatDeckState,
-    drawCard,
-    drawCards,
-    cardInHand,
-    playCard,
-    hydrateCard
+    CARD_TYPES, CARD_DEFINITIONS, INITIAL_DECK,
+    definitionFor, createCombatDeckState, drawCard, drawCards,
+    cardInHand, playCard, refillHand, hydrateCard
   });
 })();

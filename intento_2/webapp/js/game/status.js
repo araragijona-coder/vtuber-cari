@@ -24,23 +24,23 @@
   }
 
   function has(combatant, type) {
-    return Number(combatant?.statuses?.[type]?.turns || 0) > 0;
+    return Number(combatant?.statuses?.[type]?.remainingMs || 0) > 0;
   }
 
   function get(combatant, type) {
     return combatant?.statuses?.[type] || null;
   }
 
-  function apply(combatant, type, turns = 1) {
-    const definition = DEFINITIONS[type];
-    const safeTurns = Math.max(1, Math.floor(Number(turns) || 0));
-    if (!definition || !combatant) return false;
+  function apply(combatant, type, durationMs = 1000) {
+    if (!DEFINITIONS[type] || !combatant) return false;
+    const duration = Math.max(1, Math.floor(Number(durationMs) || 0));
     if (!combatant.statuses || typeof combatant.statuses !== "object") {
       combatant.statuses = createStatuses();
     }
-    const current = combatant.statuses[type]?.turns || 0;
+    const current = Number(combatant.statuses[type]?.remainingMs || 0);
     combatant.statuses[type] = {
-      turns: Math.max(current, safeTurns)
+      remainingMs: Math.max(current, duration),
+      durationMs: Math.max(current, duration)
     };
     return true;
   }
@@ -52,21 +52,23 @@
     return existed;
   }
 
-  function tick(combatant) {
+  function advance(combatant, deltaMs) {
     if (!combatant?.statuses || typeof combatant.statuses !== "object") return;
+    const delta = Math.max(0, Number(deltaMs) || 0);
     for (const type of Object.keys(combatant.statuses)) {
-      const turns = Math.max(0, Number(combatant.statuses[type]?.turns || 0) - 1);
-      if (turns <= 0) delete combatant.statuses[type];
-      else combatant.statuses[type].turns = turns;
+      const status = combatant.statuses[type];
+      status.remainingMs = Math.max(0, Number(status.remainingMs || 0) - delta);
+      if (status.remainingMs <= 0) delete combatant.statuses[type];
     }
   }
 
   function entries(combatant) {
     return Object.entries(combatant?.statuses || {})
-      .filter(([, value]) => Number(value?.turns || 0) > 0)
+      .filter(([, value]) => Number(value?.remainingMs || 0) > 0)
       .map(([type, value]) => ({
         type,
-        turns: Number(value.turns),
+        turns: Math.ceil(Number(value.remainingMs) / 1000),
+        remainingMs: Number(value.remainingMs),
         label: DEFINITIONS[type]?.label || type,
         description: DEFINITIONS[type]?.description || ""
       }));
@@ -80,7 +82,8 @@
     get,
     apply,
     remove,
-    tick,
+    advance,
+    tick: advance,
     entries
   });
 })();

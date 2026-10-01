@@ -5,407 +5,499 @@
   const { ACTION_TYPES } = window.GameActions;
   const { STATUS_TYPES } = window.StatusSystem;
 
-  function combatantsFor(combat, actorId, targetId) {
-    const actor = combat.player.id === actorId ? combat.player : combat.enemy.id === actorId ? combat.enemy : null;
-    const target = combat.player.id === targetId ? combat.player : combat.enemy.id === targetId ? combat.enemy : null;
-    return { actor, target };
-  }
-
   function cardDefinitionFor(combat, cardId) {
-    const baseDefinition = window.CardSystem.definitionFor(cardId);
+    const base = window.CardSystem.definitionFor(cardId);
+    if (!base) return null;
     const bonus = window.ProgressionSystem?.bonusForCard?.(combat.progression, cardId) || 0;
-    if (!baseDefinition) return null;
-    if (bonus <= 0 || baseDefinition.type !== window.CardSystem.CARD_TYPES.ATTACK) return baseDefinition;
-    return { ...baseDefinition, damage: baseDefinition.damage + bonus };
+    if (bonus <= 0 || base.type !== window.CardSystem.CARD_TYPES.ATTACK) return base;
+    return { ...base, damage: Number(base.damage) + Number(bonus) };
   }
 
-  function validateAction(state, action) {
-    if (!state?.combat) return { valid: false, error: "NO_COMBAT" };
-    const combat = state.combat;
+  function resolveTarget(combat, actor, definition, targetId) {
+    const targeting = definition?.targeting || "single_enemy";
+    const requested = String(targetId || "");
+    if (targeting === "self" || targeting === "single_ally") {
+      return actor.id === combat.player.id ? combat.player : null;
+    }
+    if (targeting === "single_enemy" || targeting === "enemy_group") {
+      return requested === combat.enemy.id ? combat.enemy : null;
+    }
+    return null;
+  }
+
+  function validateSkillAction(state, action) {
+    const combat = state?.combat;
+    if (!combat) return { valid: false, error: "NO_COMBAT" };
     if (combat.outcome !== OUTCOME.IN_PROGRESS) return { valid: false, error: "COMBAT_FINISHED" };
     if (!action || typeof action !== "object") return { valid: false, error: "INVALID_ACTION" };
-    const validTypes = Object.values(ACTION_TYPES);
-    if (!validTypes.includes(action.type)) return { valid: false, error: "UNKNOWN_ACTION" };
-    if (action.turn !== combat.turn) return { valid: false, error: "STALE_TURN" };
+    if (![ACTION_TYPES.SKILL, ACTION_TYPES.CARD].includes(action.type)) return { valid: false, error: "NOT_A_SKILL" };
+    if (action.actorId !== combat.player.id) return { valid: false, error: "WRONG_ACTOR" };
 
-    const expectedActorId = combat.activeActor === "player" ? combat.player.id : combat.enemy.id;
-    if (action.actorId !== expectedActorId) return { valid: false, error: "WRONG_ACTOR" };
+    const card = window.CardSystem.cardInHand(combat.cards, action.cardInstanceId);
+    if (!card || card.cardId !== action.cardId) return { valid: false, error: "CARD_NOT_IN_HAND" };
 
-    if (action.type === ACTION_TYPES.END_TURN) {
-      if (combat.activeActor !== "player") return { valid: false, error: "END_TURN_PLAYER_ONLY" };
-      return { valid: true, actor: combat.player, target: combat.enemy };
+    const definition = cardDefinitionFor(combat, action.cardId);
+    if (!definition) return { valid: false, error: "UNKNOWN_CARD" };
+
+    const cooldown = Number(combat.cooldowns[action.cardId] || 0);
+    if (cooldown > 0) return { valid: false, error: "SKILL_COOLDOWN" };
+
+    if (!window.EnergySystem.canSpend(combat.resources, definition.cost)) {
+      return { valid: false, error: "INSUFFICIENT_ENERGY" };
     }
 
-    if (action.type === ACTION_TYPES.ABILITY) {
-      if (combat.activeActor !== "player") return { valid: false, error: "ABILITY_PLAYER_ONLY" };
-      if (!window.CharacterAbilitySystem?.canUse?.(combat)) return { valid: false, error: "ABILITY_UNAVAILABLE" };
-      return { valid: true, actor: combat.player, target: combat.enemy };
-    }
+    const target = resolveTarget(combat, combat.player, definition, action.targetId);
+    if (!target || target.hp <= 0) return { valid: false, error: "INVALID_TARGET" };
 
-    const { actor, target } = combatantsFor(combat, action.actorId, action.targetId);
-    if (!actor || !target) return { valid: false, error: "INVALID_COMBATANT" };
-    if (actor.hp <= 0) return { valid: false, error: "DEAD_ACTOR" };
-    if (target.hp <= 0) return { valid: false, error: "DEAD_TARGET" };
-
-    if (action.type === ACTION_TYPES.CARD) {
-      if (combat.activeActor !== "player") return { valid: false, error: "CARD_PLAYER_ONLY" };
-      if (!action.cardInstanceId || !action.cardId) return { valid: false, error: "INVALID_CARD" };
-      const card = window.CardSystem.cardInHand(combat.cards, action.cardInstanceId);
-      if (!card || card.cardId !== action.cardId) return { valid: false, error: "CARD_NOT_IN_HAND" };
-      const definition = cardDefinitionFor(combat, action.cardId);
-      if (!definition) return { valid: false, error: "UNKNOWN_CARD" };
-      if (!window.EnergySystem.canSpend(combat.resources, definition.cost)) {
-        return { valid: false, error: "INSUFFICIENT_ENERGY" };
-      }
-      return { valid: true, actor, target, card, definition };
-    }
-
-    if (action.type === ACTION_TYPES.DEBUFF && combat.activeActor !== "enemy") {
-      return { valid: false, error: "DEBUFF_ENEMY_ONLY" };
-    }
-
-    if (action.type === ACTION_TYPES.SKILL && combat.activeActor === "player" && combat.resources.playerSkill <= 0) {
-      return { valid: false, error: "SKILL_UNAVAILABLE" };
-    }
-
-    return { valid: true, actor, target };
+    return { valid: true, combat, actor: combat.player, target, card, definition };
   }
 
-  function balanceForAction(action, definition = null) {
-    if (action.type === ACTION_TYPES.CARD && definition) {
-      return Object.freeze({
-        ...window.CombatBalance.BALANCE.damage,
-        ...window.CombatBalance.card(definition.id)
-      });
-    }
-    return window.CombatBalance.BALANCE.damage;
-  }
+  function rollDamage(combat, actor, target, definition, overrides = {}) {
+    let rng = combat.rng;
+    const baseDefinition = definition || {};
+    const balance = {
+      varianceMin: Number(overrides.varianceMin ?? baseDefinition.varianceMin ?? 1),
+      varianceMax: Number(overrides.varianceMax ?? baseDefinition.varianceMax ?? 1),
+      criticalChance: Number(overrides.criticalChance ?? baseDefinition.criticalChance ?? 0),
+      criticalMultiplier: Number(overrides.criticalMultiplier ?? baseDefinition.criticalMultiplier ?? 1.5)
+    };
 
-  function baseDamageFor(combat, action, actor, target, definition = null) {
-    if (action.type === ACTION_TYPES.DEFEND || action.type === ACTION_TYPES.END_TURN ||
-        action.type === ACTION_TYPES.ABILITY || action.type === ACTION_TYPES.DEBUFF) return 0;
-
-    let baseDamage;
-    if (action.type === ACTION_TYPES.CARD) {
-      baseDamage = definition?.type === window.CardSystem.CARD_TYPES.ATTACK ? definition.damage : 0;
-      if (
-        baseDamage > 0 &&
-        definition?.effects?.conditional === "TARGET_EXPOSED" &&
-        window.StatusSystem.has(target, STATUS_TYPES.EXPOSED)
-      ) {
-        baseDamage += Number(definition.effects.bonus) || 0;
-      }
-    } else {
-      baseDamage = action.type === ACTION_TYPES.SKILL ? actor.stats.skillDamage : actor.stats.atk;
-    }
-
+    let baseDamage = Math.max(0, Number(overrides.damage ?? baseDefinition.damage ?? 0));
     if (window.StatusSystem.has(actor, STATUS_TYPES.WEAK)) {
       baseDamage *= 0.75;
     }
-
-    return Math.max(0, baseDamage);
-  }
-
-  function rollDamage(combat, action, actor, target, definition = null) {
-    const balance = balanceForAction(action, definition);
-    const baseDamage = baseDamageFor(combat, action, actor, target, definition);
-    if (baseDamage <= 0) {
-      return {
-        damage: 0,
-        rawDamage: 0,
-        blockAbsorbed: 0,
-        critical: false,
-        roll: null,
-        variance: 1,
-        defense: target.stats.def,
-        rng: combat.rng
-      };
+    if (window.BurstSystem.isActive(combat) && target === combat.enemy) {
+      baseDamage *= window.BurstSystem.multiplier(combat);
     }
 
-    let rng = combat.rng;
-    const varianceRoll = window.CombatRNG.float(
-      rng,
-      balance.varianceMin,
-      balance.varianceMax
-    );
-    rng = varianceRoll.rng;
-    const criticalRoll = window.CombatRNG.chance(
-      rng,
-      balance.criticalChance
-    );
+    const variance = window.CombatRNG.float(rng, balance.varianceMin, balance.varianceMax);
+    rng = variance.rng;
+    const criticalRoll = window.CombatRNG.chance(rng, balance.criticalChance);
     rng = criticalRoll.rng;
 
-    const defense = Math.max(0, Number(target.stats.def) || 0);
-    let rawDamage = Math.max(0, Math.floor(baseDamage * varianceRoll.value) - defense);
-    const critical = criticalRoll.value;
-    if (critical) rawDamage = Math.floor(rawDamage * balance.criticalMultiplier);
-
+    const defense = Math.max(0, Number(target.stats?.def) || 0);
+    let rawDamage = Math.max(0, Math.floor(baseDamage * variance.value) - defense);
+    if (criticalRoll.value) rawDamage = Math.floor(rawDamage * balance.criticalMultiplier);
     if (window.StatusSystem.has(target, STATUS_TYPES.EXPOSED)) {
       rawDamage = Math.floor(rawDamage * 1.25);
     }
+    rawDamage = rawDamage > 0 ? Math.max(1, rawDamage) : 0;
 
-    rawDamage = rawDamage > 0 ? Math.max(balance.minimumDamage, rawDamage) : 0;
-
-    const existingBlock = Math.max(0, Number(target.block) || 0);
-    const blockAbsorbed = Math.min(existingBlock, rawDamage);
+    const block = Math.max(0, Number(target.block || 0));
+    const blockAbsorbed = Math.min(block, rawDamage);
     const damage = Math.max(0, rawDamage - blockAbsorbed);
 
     return {
       damage,
       rawDamage,
       blockAbsorbed,
-      critical,
-      roll: criticalRoll.roll,
-      variance: varianceRoll.value,
+      critical: Boolean(criticalRoll.value),
+      variance: variance.value,
       defense,
       rng
     };
   }
 
-  function checkOutcome(combat) {
-    const playerDead = combat.player.hp <= 0;
-    const enemyDead = combat.enemy.hp <= 0;
-    if (playerDead) return OUTCOME.DEFEAT;
-    if (enemyDead) return OUTCOME.VICTORY;
-    return OUTCOME.IN_PROGRESS;
+  function applyDamage(target, result) {
+    const hpBefore = target.hp;
+    target.hp = Math.max(0, Math.min(target.maxHp, target.hp - result.damage));
+    if (result.blockAbsorbed > 0) {
+      target.block = Math.max(0, Number(target.block || 0) - result.blockAbsorbed);
+      if (target.block <= 0) {
+        target.block = 0;
+        target.defending = false;
+        target.blockRemainingMs = 0;
+      }
+    }
+    return { hpBefore, hpAfter: target.hp };
   }
 
-  function cardEffectSummary(definition) {
-    return definition?.effects || {};
-  }
-
-  function resolveAction(state, action) {
-    const validation = validateAction(state, action);
-    if (!validation.valid) throw new Error(validation.error);
-
-    const combat = state.combat;
-    const { actor, target, definition } = validation;
-    const targetHpBefore = target.hp;
-    const isCardDefense = action.type === ACTION_TYPES.CARD && definition.type === window.CardSystem.CARD_TYPES.DEFENSE;
-    const isNonDamage = isCardDefense ||
-      action.type === ACTION_TYPES.DEFEND ||
-      action.type === ACTION_TYPES.END_TURN ||
-      action.type === ACTION_TYPES.ABILITY ||
-      action.type === ACTION_TYPES.DEBUFF;
-
-    const damageResult = isNonDamage
-      ? {
-          damage: 0,
-          rawDamage: 0,
-          blockAbsorbed: 0,
-          critical: false,
-          roll: null,
-          variance: 1,
-          defense: target.stats.def,
-          rng: combat.rng
-        }
-      : rollDamage(combat, action, actor, target, definition);
-
-    const targetHpAfter = Math.max(
-      0,
-      Math.min(target.maxHp, target.hp - damageResult.damage)
+  function applyBreak(combat, target, amount) {
+    if (target !== combat.enemy) return { applied: 0, broke: false };
+    return window.BreakSystem.applyImpact(
+      target.breakState,
+      amount,
+      combat.simulationTick
     );
-    const projectedCombat = {
-      ...combat,
-      player: combat.player.id === target.id
-        ? { ...combat.player, hp: targetHpAfter }
-        : { ...combat.player },
-      enemy: combat.enemy.id === target.id
-        ? { ...combat.enemy, hp: targetHpAfter }
-        : { ...combat.enemy }
-    };
-    const outcome = checkOutcome(projectedCombat);
-    const effects = cardEffectSummary(definition);
+  }
 
-    const resolution = {
+  function finishIfNeeded(state) {
+    const combat = state.combat;
+    if (combat.player.hp <= 0) {
+      combat.outcome = OUTCOME.DEFEAT;
+      combat.phase = PHASE.DEFEAT;
+      state.screen = "BATTLE_RESULT";
+      state.session.lastMessage = "DEFEAT · la presión automática superó tus defensas.";
+      return true;
+    }
+    if (combat.enemy.hp <= 0) {
+      combat.outcome = OUTCOME.VICTORY;
+      combat.phase = PHASE.VICTORY;
+      state.screen = "BATTLE_RESULT";
+      state.session.lastMessage = "VICTORY · enemigo destruido.";
+      return true;
+    }
+    return false;
+  }
+
+  function makeResolution(combat, action, data) {
+    return {
       actionId: action.id,
-      turn: action.turn,
-      damage: damageResult.damage,
-      rawDamage: damageResult.rawDamage,
-      blockAbsorbed: damageResult.blockAbsorbed,
-      targetHpBefore,
-      targetHpAfter,
-      critical: damageResult.critical,
-      roll: damageResult.roll,
-      variance: damageResult.variance,
-      baseDamage: baseDamageFor(combat, action, actor, target, definition),
-      defense: damageResult.defense,
-      seed: combat.seed,
-      rngStateBefore: combat.rng.state,
-      rngStateAfter: damageResult.rng.state,
-      outcome,
       actionType: action.type,
-      actorId: actor.id,
-      targetId: target.id,
-      cardId: action.cardId,
-      cardInstanceId: action.cardInstanceId,
-      cardEffects: effects,
-      blockGained: action.type === ACTION_TYPES.CARD
-        ? Number(effects.block || 0)
-        : action.type === ACTION_TYPES.DEFEND ? 4 : 0,
-      energyGain: action.type === ACTION_TYPES.CARD
-        ? Number(effects.energyGain || 0)
-        : 0,
-      drawCount: action.type === ACTION_TYPES.CARD
-        ? Number(effects.draw || 0)
-        : 0,
-      statusType: action.type === ACTION_TYPES.CARD
-        ? String(effects.applyStatus || "")
-        : action.type === ACTION_TYPES.DEBUFF ? STATUS_TYPES.WEAK : "",
-      statusTurns: action.type === ACTION_TYPES.CARD
-        ? Number(effects.statusTurns || 0)
-        : action.type === ACTION_TYPES.DEBUFF ? 2 : 0,
-      defendingConsumed: Boolean((target.block || 0) > 0 && damageResult.blockAbsorbed > 0)
+      actorId: action.actorId,
+      targetId: action.targetId,
+      cardId: action.cardId || "",
+      cardInstanceId: action.cardInstanceId || "",
+      simulationTick: combat.simulationTick,
+      elapsedMs: combat.elapsedMs,
+      seed: combat.seed,
+      ...data,
+      outcome: combat.outcome
     };
+  }
 
-    applyResolution(state, resolution);
+  function resolveAttack(state, action, options = {}) {
+    const combat = state.combat;
+    const actor = action.actorId === combat.player.id ? combat.player : combat.enemy;
+    const target = action.targetId === combat.player.id ? combat.player : combat.enemy;
+    const definition = options.definition || {
+      damage: options.damage ?? actor.stats.atk,
+      breakDamage: options.breakDamage ?? 0,
+      varianceMin: options.varianceMin ?? 1,
+      varianceMax: options.varianceMax ?? 1,
+      criticalChance: options.criticalChance ?? 0,
+      criticalMultiplier: options.criticalMultiplier ?? 1.25
+    };
+    const rngStateBefore = combat.rng.state;
+    const result = rollDamage(combat, actor, target, definition, options);
+    combat.rng = Object.freeze({
+      seed: combat.seed >>> 0,
+      state: result.rng.state >>> 0
+    });
+
+    const hp = applyDamage(target, result);
+    const breakResult = applyBreak(
+      combat,
+      target,
+      Number(options.breakDamage ?? definition.breakDamage ?? 0)
+    );
+
+    finishIfNeeded(state);
+
+    const resolution = makeResolution(combat, action, {
+      damage: result.damage,
+      rawDamage: result.rawDamage,
+      blockAbsorbed: result.blockAbsorbed,
+      hpBefore: hp.hpBefore,
+      hpAfter: hp.hpAfter,
+      targetHpAfter: hp.hpAfter,
+      critical: result.critical,
+      variance: result.variance,
+      defense: result.defense,
+      breakDamage: breakResult.applied,
+      broke: breakResult.broke,
+      burst: window.BurstSystem.isActive(combat),
+      rngStateBefore,
+      rngStateAfter: result.rng.state
+    });
+
+    combat.lastAction = Object.freeze({ ...resolution });
     return resolution;
   }
 
-  function applyResolution(state, resolution) {
-    const combat = state?.combat;
-    if (!combat || !resolution) throw new Error("No se puede aplicar una Resolution sin combate.");
-
-    const target = combat.player.id === resolution.targetId
-      ? combat.player
-      : combat.enemy.id === resolution.targetId
-        ? combat.enemy
-        : null;
-    if (!target) throw new Error("Resolution apunta a un combatiente inexistente.");
-
-    target.hp = Math.max(
-      0,
-      Math.min(target.maxHp, resolution.targetHpAfter)
+  function resolveEnemyAttack(combat, action, damage) {
+    return resolveAttack(
+      { combat, screen: "BATTLE", session: {} },
+      action,
+      {
+        damage,
+        breakDamage: Math.max(0, Math.floor(Number(damage) * 0.5)),
+        varianceMin: 0.95,
+        varianceMax: 1.05,
+        criticalChance: 0.05,
+        criticalMultiplier: 1.25
+      }
     );
-
-    combat.rng = Object.freeze({
-      seed: resolution.seed >>> 0,
-      state: resolution.rngStateAfter >>> 0
-    });
-
-    if (resolution.defendingConsumed) {
-      target.block = Math.max(0, Number(target.block || 0) - resolution.blockAbsorbed);
-      target.defending = target.block > 0;
-    }
-
-    if (resolution.actionType === ACTION_TYPES.CARD) {
-      const card = window.CardSystem.cardInHand(combat.cards, resolution.cardInstanceId);
-      const definition = window.CardSystem.definitionFor(resolution.cardId);
-      if (!card || !definition) throw new Error("CARD_STATE_INVALID");
-      if (!window.EnergySystem.spend(combat.resources, definition.cost)) {
-        throw new Error("INSUFFICIENT_ENERGY");
-      }
-      if (!window.CardSystem.playCard(combat.cards, resolution.cardInstanceId)) {
-        throw new Error("CARD_MOVE_FAILED");
-      }
-
-      const cardTarget = definition.type === window.CardSystem.CARD_TYPES.DEFENSE
-        ? combat.player
-        : combat.enemy;
-
-      if (resolution.blockGained > 0) {
-        combat.player.block += resolution.blockGained;
-        combat.player.defending = combat.player.block > 0;
-      }
-      if (resolution.energyGain !== 0) {
-        combat.resources.energy = Math.min(
-          combat.resources.maxEnergy,
-          Math.max(0, combat.resources.energy + resolution.energyGain)
-        );
-      }
-      if (resolution.statusType && resolution.statusTurns > 0) {
-        window.StatusSystem.apply(cardTarget, resolution.statusType, resolution.statusTurns);
-      }
-      if (resolution.drawCount > 0) {
-        window.CardSystem.drawCards(combat.cards, resolution.drawCount);
-      }
-    }
-
-    if (resolution.actionType === ACTION_TYPES.DEFEND) {
-      actorBlock(combat, resolution.actorId, resolution.blockGained);
-    }
-
-    if (resolution.actionType === ACTION_TYPES.DEBUFF) {
-      window.StatusSystem.apply(
-        combat.player,
-        STATUS_TYPES.WEAK,
-        resolution.statusTurns || 2
-      );
-    }
-
-    if (resolution.actionType === ACTION_TYPES.ABILITY) {
-      window.CharacterAbilitySystem.apply(combat);
-    }
-
-    if (resolution.actionType === ACTION_TYPES.SKILL && combat.player.id === resolution.actorId) {
-      combat.resources.playerSkill = Math.max(0, combat.resources.playerSkill - 1);
-    }
-
-    combat.lastAction = Object.freeze({ ...resolution });
-
-    if (resolution.outcome !== OUTCOME.IN_PROGRESS) {
-      combat.outcome = resolution.outcome;
-      combat.phase = resolution.outcome === OUTCOME.VICTORY ? PHASE.VICTORY : PHASE.DEFEAT;
-      state.screen = "BATTLE_RESULT";
-      state.session.lastMessage = resolution.outcome === OUTCOME.VICTORY
-        ? "VICTORY · enemigo derrotado."
-        : "DEFEAT · jugador derrotado.";
-      if (resolution.outcome === OUTCOME.VICTORY) state.player.wins += 1;
-      else state.player.losses += 1;
-      return state;
-    }
-
-    if (resolution.actionType === ACTION_TYPES.END_TURN) {
-      combat.phase = PHASE.ENEMY_TURN;
-      combat.activeActor = "enemy";
-      state.session.lastMessage = "ENEMY TURN · resolviendo intención anunciada.";
-      return state;
-    }
-
-    const legacySingleAction =
-      combat.activeActor === "player" &&
-      [ACTION_TYPES.ATTACK, ACTION_TYPES.DEFEND, ACTION_TYPES.SKILL].includes(resolution.actionType);
-
-    if (legacySingleAction) {
-      combat.phase = PHASE.ENEMY_TURN;
-      combat.activeActor = "enemy";
-      state.session.lastMessage = "ENEMY TURN · resolución de compatibilidad.";
-      return state;
-    }
-
-    if (combat.activeActor === "enemy") {
-      window.StatusSystem.tick(combat.player);
-      window.StatusSystem.tick(combat.enemy);
-      combat.turn += 1;
-      combat.phase = PHASE.PLAYER_TURN;
-      combat.activeActor = "player";
-      window.CardSystem.drawCards(combat.cards, 1);
-      window.EnergySystem.refill(combat.resources);
-      combat.enemyIntent = window.EnemyAI?.previewIntent?.(combat) || null;
-      combat.enemy.intent = combat.enemyIntent;
-      state.session.lastMessage = "PLAYER TURN · turno " + combat.turn + ".";
-      return state;
-    }
-
-    combat.phase = PHASE.PLAYER_TURN;
-    combat.activeActor = "player";
-    state.session.lastMessage = "PLAYER TURN · podés seguir jugando cartas.";
-    return state;
   }
 
-  function actorBlock(combat, actorId, amount) {
-    const actor = combat.player.id === actorId ? combat.player : combat.enemy.id === actorId ? combat.enemy : null;
-    if (!actor) return;
-    actor.block = Math.max(0, Number(actor.block || 0) + Math.max(0, Number(amount) || 0));
-    actor.defending = actor.block > 0;
+  function resolveAutoAttack(combat, actor, target, config, source) {
+    const action = window.GameActions.createAction({
+      id: "auto-" + combat.simulationTick + "-" + actor.id + "-" + source,
+      type: ACTION_TYPES.AUTO_ATTACK,
+      actorId: actor.id,
+      targetId: target.id,
+      simulationTick: combat.simulationTick,
+      source
+    });
+    return resolveAttack(
+      { combat, screen: "BATTLE", session: {} },
+      action,
+      {
+        damage: config.damage,
+        breakDamage: config.breakDamage,
+        varianceMin: config.varianceMin ?? 1,
+        varianceMax: config.varianceMax ?? 1,
+        criticalChance: config.criticalChance ?? 0,
+        criticalMultiplier: config.criticalMultiplier ?? 1.25
+      }
+    );
+  }
+
+  function resolveSkill(state, action) {
+    const validation = validateSkillAction(state, action);
+    if (!validation.valid) throw new Error(validation.error);
+
+    const combat = state.combat;
+    const { actor, target, card, definition } = validation;
+    const energyBefore = combat.resources.energy;
+    const rngStateBefore = combat.rng.state;
+    const skillMeta = window.SkillResolver.resolve({ combat, actor, target, definition });
+
+    if (!window.EnergySystem.spend(combat.resources, definition.cost)) {
+      throw new Error("INSUFFICIENT_ENERGY");
+    }
+
+    let damage = 0;
+    let rawDamage = 0;
+    let blockAbsorbed = 0;
+    let critical = false;
+    let variance = 1;
+    let breakResult = { applied: 0, broke: false };
+
+    if (definition.type === window.CardSystem.CARD_TYPES.ATTACK) {
+      const rolled = rollDamage(combat, actor, target, {
+        ...definition,
+        damage: Number(definition.damage) + (
+          skillMeta.conditionalTriggered ? Number(definition.effects?.bonus || 0) : 0
+        )
+      });
+      combat.rng = Object.freeze({
+        seed: combat.seed >>> 0,
+        state: rolled.rng.state >>> 0
+      });
+      const hp = applyDamage(target, rolled);
+      damage = rolled.damage;
+      rawDamage = rolled.rawDamage;
+      blockAbsorbed = rolled.blockAbsorbed;
+      critical = rolled.critical;
+      variance = rolled.variance;
+      breakResult = applyBreak(combat, target, definition.breakDamage);
+      void hp;
+    } else {
+      if (skillMeta.blockGained > 0) {
+        actor.block += skillMeta.blockGained;
+        actor.blockRemainingMs = Math.max(actor.blockRemainingMs, skillMeta.blockDurationMs);
+        actor.defending = true;
+      }
+      if (skillMeta.energyGain > 0) {
+        window.EnergySystem.gain(combat.resources, skillMeta.energyGain);
+      }
+      if (skillMeta.statusApplied) {
+        const receiver = definition.targeting === "self" ? actor : target;
+        window.StatusSystem.apply(receiver, skillMeta.statusApplied, skillMeta.statusDurationMs);
+      }
+      if (skillMeta.drawCount > 0) {
+        window.CardSystem.drawCards(combat.cards, skillMeta.drawCount);
+      }
+      if (skillMeta.breakDamage > 0) {
+        breakResult = applyBreak(combat, target, skillMeta.breakDamage);
+      }
+    }
+
+    window.CardSystem.playCard(combat.cards, card.instanceId);
+    window.CardSystem.refillHand(combat.cards);
+    combat.cooldowns[action.cardId] = Number(definition.cooldownMs || 0);
+
+    finishIfNeeded(state);
+
+    const resolution = makeResolution(combat, action, {
+      cost: definition.cost,
+      energyBefore,
+      energyAfter: currentEnergy(combat),
+      damage,
+      rawDamage,
+      blockAbsorbed,
+      critical,
+      variance,
+      breakDamage: breakResult.applied,
+      broke: breakResult.broke,
+      burst: window.BurstSystem.isActive(combat),
+      targetHpAfter: target.hp,
+      targetBlock: target.block,
+      statusApplied: skillMeta.statusApplied,
+      statusDurationMs: skillMeta.statusDurationMs,
+      drawCount: skillMeta.drawCount,
+      conditionalTriggered: skillMeta.conditionalTriggered,
+      rngStateBefore,
+      rngStateAfter: combat.rng.state
+    });
+
+    combat.lastAction = Object.freeze({ ...resolution });
+    return resolution;
+  }
+
+  function resolveAbility(state, action) {
+    const combat = state.combat;
+    if (!window.CharacterAbilitySystem.canUse(combat)) throw new Error("ABILITY_UNAVAILABLE");
+    const energyBefore = combat.resources.energy;
+    const result = window.CharacterAbilitySystem.apply(combat);
+    const resolution = makeResolution(combat, action, {
+      cost: 0,
+      energyBefore,
+      energyAfter: currentEnergy(combat),
+      damage: 0,
+      breakDamage: 0,
+      statusApplied: result.statusApplied,
+      statusDurationMs: result.statusDurationMs,
+      drawCount: result.cardsDrawn,
+      rngStateBefore: combat.rng.state,
+      rngStateAfter: combat.rng.state
+    });
+    combat.lastAction = Object.freeze({ ...resolution });
+    return resolution;
+  }
+
+  function resolveAction(state, action) {
+    if (!state?.combat) throw new Error("NO_COMBAT");
+    if (action?.type === ACTION_TYPES.END_TURN) throw new Error("LEGACY_TURN_FLOW_DISABLED");
+    if ([ACTION_TYPES.SKILL, ACTION_TYPES.CARD].includes(action?.type)) return resolveSkill(state, action);
+    if (action?.type === ACTION_TYPES.ABILITY) return resolveAbility(state, action);
+    if (action?.type === ACTION_TYPES.AUTO_ATTACK) {
+      return resolveAutoAttack(
+        state.combat,
+        state.combat.player,
+        state.combat.enemy,
+        state.combat.player.autoAttack,
+        "PLAYER_AUTO_ATTACK"
+      );
+    }
+    throw new Error("UNKNOWN_ACTION");
+  }
+
+  function validateAction(state, action) {
+    if (!state?.combat) return { valid: false, error: "NO_COMBAT" };
+    if (state.combat.outcome !== OUTCOME.IN_PROGRESS) return { valid: false, error: "COMBAT_FINISHED" };
+    if (action?.type === ACTION_TYPES.END_TURN) return { valid: false, error: "LEGACY_TURN_FLOW_DISABLED" };
+    if ([ACTION_TYPES.SKILL, ACTION_TYPES.CARD].includes(action?.type)) return validateSkillAction(state, action);
+    if (action?.type === ACTION_TYPES.ABILITY) {
+      return window.CharacterAbilitySystem.canUse(state.combat)
+        ? { valid: true, actor: state.combat.player, target: state.combat.enemy }
+        : { valid: false, error: "ABILITY_UNAVAILABLE" };
+    }
+    return { valid: false, error: "INVALID_ACTION" };
+  }
+
+  function advanceCombat(state, stepInfo) {
+    const combat = state?.combat;
+    if (!combat || combat.outcome !== OUTCOME.IN_PROGRESS) return;
+
+    const stepMs = Number(stepInfo?.stepMs || window.CombatClock.DEFAULT_STEP_MS);
+    combat.simulationTick = Number(stepInfo?.tick ?? (combat.simulationTick + 1));
+    combat.elapsedMs = Number(stepInfo?.elapsedMs ?? (combat.elapsedMs + stepMs));
+    combat.turn = Math.floor(combat.elapsedMs / 1000) + 1;
+
+    window.StatusSystem.advance(combat.player, stepMs);
+    window.StatusSystem.advance(combat.enemy, stepMs);
+
+    for (const cardId of Object.keys(combat.cooldowns)) {
+      combat.cooldowns[cardId] = Math.max(0, Number(combat.cooldowns[cardId]) - stepMs);
+      if (combat.cooldowns[cardId] <= 0) delete combat.cooldowns[cardId];
+    }
+
+    for (const fighter of [combat.player, combat.enemy]) {
+      if (fighter.block > 0) {
+        fighter.blockRemainingMs = Math.max(0, Number(fighter.blockRemainingMs || 0) - stepMs);
+        if (fighter.blockRemainingMs <= 0) {
+          fighter.block = 0;
+          fighter.defending = false;
+        }
+      }
+    }
+
+    const breakEnded = window.BreakSystem.advance(combat.enemy.breakState, stepMs);
+    if (breakEnded) combat.burstWindowEndedAt = combat.elapsedMs;
+
+    const baseRegen = Number(window.CombatBalance.BALANCE.energy.regenPerSecond);
+    combat.resources.energyRegen = baseRegen * window.BurstSystem.energyRegenMultiplier(combat);
+    window.EnergySystem.regenerate(combat.resources, stepMs);
+    combat.resources.energyRegen = baseRegen;
+
+    if (!window.BreakSystem.isBroken(combat.enemy.breakState)) {
+      window.AutoAttackSystem.advance(combat.enemy.autoAttack, stepMs, () => {
+        resolveAutoAttack(
+          combat,
+          combat.enemy,
+          combat.player,
+          combat.enemy.autoAttack,
+          "ENEMY_AUTO_ATTACK"
+        );
+      });
+    }
+    if (combat.outcome !== OUTCOME.IN_PROGRESS) return;
+
+    window.AutoAttackSystem.advance(combat.player.autoAttack, stepMs, () => {
+      resolveAutoAttack(
+        combat,
+        combat.player,
+        combat.enemy,
+        combat.player.autoAttack,
+        "PLAYER_AUTO_ATTACK"
+      );
+    });
+    if (combat.outcome !== OUTCOME.IN_PROGRESS) return;
+
+    const intentExecuted = window.EnemyBehaviorSystem.update(combat, stepMs);
+    if (intentExecuted) {
+      const resolution = window.EnemyBehaviorSystem.resolveIntent(combat, intentExecuted);
+      combat.lastAction = Object.freeze({
+        ...(resolution || {}),
+        actionType: ACTION_TYPES.ENEMY_BEHAVIOR,
+        simulationTick: combat.simulationTick,
+        elapsedMs: combat.elapsedMs,
+        outcome: combat.outcome
+      });
+      if (combat.outcome === OUTCOME.IN_PROGRESS) {
+        combat.enemyIntent = window.EnemyBehaviorSystem.previewIntent(combat);
+        combat.enemy.intent = combat.enemyIntent;
+      }
+      return;
+    }
+
+    if (combat.cards.hand.length < combat.cards.handLimit && combat.elapsedMs % 700 === 0) {
+      window.CardSystem.drawCard(combat.cards);
+    }
+  }
+
+  function advanceTime(state, deltaMs) {
+    const combat = state?.combat;
+    if (!combat || combat.outcome !== OUTCOME.IN_PROGRESS) return 0;
+    return window.CombatClock.advance(
+      combat.clock,
+      deltaMs,
+      (stepInfo) => advanceCombat(state, stepInfo)
+    );
+  }
+
+  function step(state) {
+    return advanceTime(state, window.CombatClock.DEFAULT_STEP_MS);
   }
 
   window.CombatEngine = Object.freeze({
+    cardDefinitionFor,
+    resolveTarget,
     validateAction,
     resolveAction,
-    applyResolution,
-    checkOutcome,
+    resolveSkill,
+    resolveEnemyAttack,
+    resolveAutoAttack,
     rollDamage,
-    baseDamageFor
+    checkOutcome: (combat) => {
+      if (combat.player.hp <= 0) return OUTCOME.DEFEAT;
+      if (combat.enemy.hp <= 0) return OUTCOME.VICTORY;
+      return OUTCOME.IN_PROGRESS;
+    },
+    advanceCombat,
+    advanceTime,
+    step
   });
 })();

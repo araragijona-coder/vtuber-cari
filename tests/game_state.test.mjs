@@ -15,17 +15,20 @@ async function loadCore() {
     "intento_2/webapp/js/game/energy.js",
     "intento_2/webapp/js/game/status.js",
     "intento_2/webapp/js/game/abilities.js",
+    "intento_2/webapp/js/game/combat_clock.js",
+    "intento_2/webapp/js/game/auto_attack.js",
+    "intento_2/webapp/js/game/break.js",
+    "intento_2/webapp/js/game/burst.js",
     "intento_2/webapp/js/game/state.js",
     "intento_2/webapp/js/game/actions.js",
-    "intento_2/webapp/js/game/rules.js",
-    "intento_2/webapp/js/game/enemy.js"
-  ]) {
-    vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
-  }
+    "intento_2/webapp/js/game/skill_resolver.js",
+    "intento_2/webapp/js/game/enemy_behavior.js",
+    "intento_2/webapp/js/game/rules.js"
+  ]) vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
   return context.window;
 }
 
-test("creates a portable GameState without browser objects", async () => {
+test("portable GameState remains browser-independent", async () => {
   const core = await loadCore();
   const state = core.GameState.createGameState({ playerId: "p1" });
   assert.equal(state.screen, "MAIN");
@@ -35,15 +38,15 @@ test("creates a portable GameState without browser objects", async () => {
   assert.equal("localStorage" in state, false);
 });
 
-test("starts a tactical battle in player turn 1 with visible enemy intent", async () => {
+test("battle exposes energy, autos and break state", async () => {
   const core = await loadCore();
   const state = core.GameState.createGameState();
   core.GameState.startBattle(state, { seed: 42 });
-  assert.equal(state.combat.turn, 1);
-  assert.equal(state.combat.phase, "PLAYER_TURN");
-  assert.equal(state.combat.activeActor, "player");
-  assert.equal(state.combat.outcome, "IN_PROGRESS");
-  assert.equal(state.combat.resources.energy, 3);
+  assert.equal(state.combat.resources.energy, 100);
+  assert.equal(state.combat.resources.maxEnergy, 100);
+  assert.ok(state.combat.player.autoAttack);
+  assert.ok(state.combat.enemy.autoAttack);
+  assert.equal(state.combat.enemy.breakState.current, 100);
+  assert.equal(state.combat.enemy.breakState.max, 100);
   assert.ok(state.combat.enemyIntent);
-  assert.ok(state.combat.enemyIntent.type);
 });

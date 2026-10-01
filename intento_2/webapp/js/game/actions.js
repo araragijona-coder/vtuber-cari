@@ -2,73 +2,85 @@
   "use strict";
 
   const ACTION_TYPES = Object.freeze({
-    ATTACK: "ATTACK",
-    DEFEND: "DEFEND",
     SKILL: "SKILL",
     CARD: "CARD",
-    END_TURN: "END_TURN",
     ABILITY: "ABILITY",
-    DEBUFF: "DEBUFF"
+    AUTO_ATTACK: "AUTO_ATTACK",
+    ENEMY_BEHAVIOR: "ENEMY_BEHAVIOR",
+    END_TURN: "END_TURN"
   });
 
-  function createAction({ id, type, actorId, targetId = "", turn, cardId = "", cardInstanceId = "" }) {
+  function createAction({
+    id, type, actorId, targetId = "", simulationTick = 0,
+    cardId = "", cardInstanceId = "", source = "PLAYER"
+  }) {
     return Object.freeze({
       id: String(id),
       type: String(type),
       actorId: String(actorId),
       targetId: String(targetId ?? ""),
-      turn: Number(turn),
+      simulationTick: Number(simulationTick) || 0,
       cardId: String(cardId || ""),
-      cardInstanceId: String(cardInstanceId || "")
+      cardInstanceId: String(cardInstanceId || ""),
+      source: String(source)
     });
   }
 
   function nextActionId(state, actorId) {
     state.session.actionCounter += 1;
-    return "action-" + state.combat.turn + "-" + actorId + "-" + state.session.actionCounter;
+    return "action-" + state.combat.simulationTick + "-" + actorId + "-" + state.session.actionCounter;
   }
 
-  function createPlayerAction(state, type) {
+  function createPlayerSkillAction(state, cardInstanceId, targetId = null) {
     const combat = state?.combat;
-    if (!combat) throw new Error("No hay combate activo.");
-    return createAction({
-      id: nextActionId(state, combat.player.id),
-      type,
-      actorId: combat.player.id,
-      targetId: combat.enemy.id,
-      turn: combat.turn
-    });
-  }
-
-  function createPlayerCardAction(state, cardInstanceId) {
-    const combat = state?.combat;
-    if (!combat) throw new Error("No hay combate activo.");
+    if (!combat) throw new Error("NO_COMBAT");
     const card = window.CardSystem.cardInHand(combat.cards, cardInstanceId);
     return createAction({
       id: nextActionId(state, combat.player.id),
-      type: ACTION_TYPES.CARD,
+      type: ACTION_TYPES.SKILL,
+      actorId: combat.player.id,
+      targetId: targetId || combat.enemy.id,
+      simulationTick: combat.simulationTick,
+      cardId: card?.cardId || "",
+      cardInstanceId: String(cardInstanceId),
+      source: "PLAYER_SKILL"
+    });
+  }
+
+  function createPlayerCardAction(state, cardInstanceId, targetId = null) {
+    const action = createPlayerSkillAction(state, cardInstanceId, targetId);
+    return Object.freeze({ ...action, type: ACTION_TYPES.CARD });
+  }
+
+  function createPlayerAbilityAction(state) {
+    const combat = state?.combat;
+    if (!combat) throw new Error("NO_COMBAT");
+    return createAction({
+      id: nextActionId(state, combat.player.id),
+      type: ACTION_TYPES.ABILITY,
       actorId: combat.player.id,
       targetId: combat.enemy.id,
-      turn: combat.turn,
-      cardId: card?.cardId || "",
-      cardInstanceId: String(cardInstanceId)
+      simulationTick: combat.simulationTick,
+      source: "PLAYER_ABILITY"
     });
   }
 
   function createPlayerEndTurnAction(state) {
-    return createPlayerAction(state, ACTION_TYPES.END_TURN);
-  }
-
-  function createPlayerAbilityAction(state) {
-    return createPlayerAction(state, ACTION_TYPES.ABILITY);
+    return createAction({
+      id: nextActionId(state, state?.combat?.player?.id || "player"),
+      type: ACTION_TYPES.END_TURN,
+      actorId: state?.combat?.player?.id || "player",
+      simulationTick: state?.combat?.simulationTick || 0,
+      source: "LEGACY"
+    });
   }
 
   window.GameActions = Object.freeze({
     ACTION_TYPES,
     createAction,
-    createPlayerAction,
+    createPlayerSkillAction,
     createPlayerCardAction,
-    createPlayerEndTurnAction,
-    createPlayerAbilityAction
+    createPlayerAbilityAction,
+    createPlayerEndTurnAction
   });
 })();
