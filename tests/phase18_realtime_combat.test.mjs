@@ -230,3 +230,90 @@ test("phase 18 telemetry exposes explicit combat lifecycle helpers", async () =>
     assert.ok(source.includes('"event_name": "' + eventName + '"') || source.includes('"' + eventName + '"'), eventName);
   }
 });
+
+test("realtime telemetry hooks execute without interrupting fixed-step combat", async () => {
+  const w = await loadCore();
+  const telemetryContext = vm.createContext({
+    window: {},
+    document: {
+      documentElement: { dataset: { gameVersion: "test" } },
+      visibilityState: "visible",
+      addEventListener() {}
+    },
+    sessionStorage: { setItem() {} },
+    console,
+    JSON,
+    Math,
+    Number,
+    String,
+    Object,
+    Array,
+    Date,
+    Set,
+    Error,
+    TypeError,
+    crypto: { randomUUID: () => "test-session" }
+  });
+
+  vm.runInContext(
+    await readFile("intento_2/webapp/js/telemetry.js", "utf8"),
+    telemetryContext,
+    { filename: "intento_2/webapp/js/telemetry.js" }
+  );
+  w.RocketBunnyTelemetry = telemetryContext.window.RocketBunnyTelemetry;
+
+  for (const hook of [
+    "enemyTelegraph",
+    "enemyAttackResolved",
+    "breakStarted",
+    "breakEnded",
+    "burstUsed"
+  ]) {
+    assert.equal(typeof w.RocketBunnyTelemetry[hook], "function", hook + " must be public");
+  }
+
+  const state = start(w);
+  const combat = state.combat;
+  const initialEnergy = combat.resources.currentEnergy;
+  const initialPlayerAuto = combat.player.autoAttack.cooldownMs;
+  const initialEnemyAuto = combat.enemy.autoAttack.cooldownMs;
+
+  assert.doesNotThrow(() => {
+    w.CombatEngine.advanceTime(state, 100);
+    w.RocketBunnyTelemetry.enemyTelegraph(combat, combat.enemyIntent);
+  });
+
+  assert.equal(combat.simulationTick, 1);
+  assert.equal(combat.elapsedMs, 100);
+  assert.ok(combat.resources.currentEnergy > initialEnergy);
+  assert.ok(combat.player.autoAttack.cooldownMs < initialPlayerAuto);
+  assert.ok(combat.enemy.autoAttack.cooldownMs < initialEnemyAuto);
+
+  w.CombatEngine.advanceTime(state, 1200);
+
+  const enemyAttackEvent = combat.events.find(
+    (event) => event.type === "enemy_attack_resolved"
+  );
+  assert.ok(enemyAttackEvent, "enemy attack must resolve during fixed-step progression");
+
+  assert.doesNotThrow(() => {
+    w.RocketBunnyTelemetry.enemyAttackResolved(combat, enemyAttackEvent);
+    w.RocketBunnyTelemetry.breakStarted(combat, {
+      breakDamage: 1,
+      simulationTick: combat.simulationTick
+    });
+    w.RocketBunnyTelemetry.breakEnded(combat);
+    w.RocketBunnyTelemetry.burstUsed(combat, {
+      damage: 1,
+      brokenPayoff: false,
+      simulationTick: combat.simulationTick
+    });
+  });
+
+  const events = w.RocketBunnyTelemetry.peek().map((event) => event.event_name);
+  assert.ok(events.includes("enemy_telegraph"));
+  assert.ok(events.includes("enemy_attack_resolved"));
+  assert.ok(events.includes("break_started"));
+  assert.ok(events.includes("break_ended"));
+  assert.ok(events.includes("burst_used"));
+});
