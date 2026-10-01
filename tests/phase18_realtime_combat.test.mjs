@@ -153,3 +153,77 @@ test("same logical combat is render-rate independent", async () => {
   assert.deepEqual(simulate(1000 / 30, 30), simulate(1000 / 60, 60));
   assert.deepEqual(simulate(1000 / 60, 60), simulate(1000 / 120, 120));
 });
+
+
+test("phase 18 exposes synchronized Energy and Burst resources", async () => {
+  const w = await loadCore();
+  const state = start(w);
+  const combat = state.combat;
+
+  assert.equal(combat.mode, "SEMI_REALTIME");
+  assert.equal(combat.resources.currentEnergy, 35);
+  assert.equal(combat.resources.energy, 35);
+  assert.equal(combat.resources.maxEnergy, 100);
+  assert.equal(combat.resources.energyRegen, 12);
+  assert.equal(combat.resources.burstCharge, 0);
+  assert.equal(combat.resources.burst, 0);
+  assert.equal(combat.resources.burstMax, 100);
+});
+
+test("burst is a real chargeable action with BREAK payoff", async () => {
+  const w = await loadCore();
+  const state = start(w);
+  const combat = state.combat;
+
+  combat.resources.burstCharge = 100;
+  combat.resources.burst = 100;
+  combat.enemy.breakState.current = 0;
+  combat.enemy.breakState.remainingMs = combat.enemy.breakState.windowMs;
+  combat.enemy.breakState.state = "BROKEN";
+
+  const beforeHp = combat.enemy.hp;
+  const result = w.CombatEngine.activateBurst(state);
+
+  assert.equal(result.actionType, "BURST");
+  assert.ok(result.damage > 0);
+  assert.ok(combat.enemy.hp < beforeHp);
+  assert.equal(combat.resources.burstCharge, 0);
+  assert.equal(combat.resources.burst, 0);
+});
+
+test("card cycling records recycle state without END TURN", async () => {
+  const w = await loadCore();
+  const state = start(w);
+  const combat = state.combat;
+  combat.resources.energy = 100;
+  combat.resources.currentEnergy = 100;
+
+  for (let index = 0; index < 9; index += 1) {
+    const card = combat.cards.hand[0];
+    if (!card) break;
+    w.CombatEngine.resolveAction(
+      state,
+      w.GameActions.createPlayerSkillAction(state, card.instanceId)
+    );
+    combat.resources.energy = 100;
+    combat.resources.currentEnergy = 100;
+  }
+
+  assert.ok(combat.cards.recycleCount >= 1);
+  assert.ok(combat.events.some((event) => event.type === "deck_recycled"));
+});
+
+test("phase 18 telemetry exposes explicit combat lifecycle helpers", async () => {
+  const source = await readFile("intento_2/webapp/js/telemetry.js", "utf8");
+  for (const eventName of [
+    "skill_used",
+    "energy_spent",
+    "enemy_telegraph",
+    "enemy_attack_resolved",
+    "break_started",
+    "break_ended",
+    "burst_used"
+  ]) {
+    assert.match(source, new RegExp("['\\"]" + eventName + "['\\"]"));
+  }
+});
