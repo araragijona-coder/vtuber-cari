@@ -206,6 +206,7 @@
       simulationTick: combat.simulationTick,
       elapsedMs: combat.elapsedMs,
       seed: combat.seed,
+      source: action.source || "",
       ...data,
       outcome: combat.outcome
     };
