@@ -480,7 +480,10 @@ test("realtime card hand reuses stable DOM nodes across renders", async () => {
   context.window.CariCombat.startBattle();
   const combat = context.window.CariCombat.getGameState().combat;
   const hand = elements["combat-hand"];
-  const firstCard = combat.cards.hand[0];
+  const firstCard = combat.cards.hand.find(
+    (card) => context.window.CardSystem.definitionFor(card.cardId).cost > 0
+  );
+  assert.ok(firstCard);
   const firstButton = hand.children.find((button) => button.dataset.cardInstanceId === firstCard.instanceId);
   assert.ok(firstButton);
 
