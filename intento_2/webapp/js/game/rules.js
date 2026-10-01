@@ -5,6 +5,15 @@
   const { ACTION_TYPES } = window.GameActions;
   const { STATUS_TYPES } = window.StatusSystem;
 
+  function currentEnergy(combat) {
+    return Number(combat?.resources?.currentEnergy ?? combat?.resources?.energy ?? 0);
+  }
+
+  function syncEnergy(combat) {
+    if (combat?.resources) window.EnergySystem.sync(combat.resources);
+    return currentEnergy(combat);
+  }
+
   function cardDefinitionFor(combat, cardId) {
     const base = window.CardSystem.definitionFor(cardId);
     if (!base) return null;
@@ -249,7 +258,7 @@
 
     const combat = state.combat;
     const { actor, target, card, definition } = validation;
-    const energyBefore = combat.resources.energy;
+    const energyBefore = currentEnergy(combat);
     const rngStateBefore = combat.rng.state;
     const skillMeta = window.SkillResolver.resolve({ combat, actor, target, definition });
 
@@ -294,7 +303,7 @@
       }
       if (skillMeta.statusApplied) {
         const receiver = definition.targeting === "self" ? actor : target;
-        window.StatusSystem.apply(receiver, skillMeta.statusApplied, skillMeta.statusDurationMs);
+        window.StatusSystem.applyTimedMs(receiver, skillMeta.statusApplied, skillMeta.statusDurationMs);
       }
       if (skillMeta.drawCount > 0) {
         window.CardSystem.drawCards(combat.cards, skillMeta.drawCount);
@@ -313,7 +322,7 @@
     const resolution = makeResolution(combat, action, {
       cost: definition.cost,
       energyBefore,
-      energyAfter: currentEnergy(combat),
+      energyAfter: syncEnergy(combat),
       damage,
       rawDamage,
       blockAbsorbed,
@@ -339,12 +348,12 @@
   function resolveAbility(state, action) {
     const combat = state.combat;
     if (!window.CharacterAbilitySystem.canUse(combat)) throw new Error("ABILITY_UNAVAILABLE");
-    const energyBefore = combat.resources.energy;
+    const energyBefore = currentEnergy(combat);
     const result = window.CharacterAbilitySystem.apply(combat);
     const resolution = makeResolution(combat, action, {
       cost: 0,
       energyBefore,
-      energyAfter: currentEnergy(combat),
+      energyAfter: syncEnergy(combat),
       damage: 0,
       breakDamage: 0,
       statusApplied: result.statusApplied,
@@ -421,6 +430,7 @@
     combat.resources.energyRegen = baseRegen * window.BurstSystem.energyRegenMultiplier(combat);
     window.EnergySystem.regenerate(combat.resources, stepMs);
     combat.resources.energyRegen = baseRegen;
+    syncEnergy(combat);
 
     if (!window.BreakSystem.isBroken(combat.enemy.breakState)) {
       window.AutoAttackSystem.advance(combat.enemy.autoAttack, stepMs, () => {
