@@ -182,6 +182,28 @@ test("break opens a burst window with separate damage amplification", async () =
   assert.equal(w.BurstSystem.multiplier(broken.combat), 1.75);
 });
 
+test("burst charges and can be activated independently from BREAK", async () => {
+  const w = await loadCore();
+  const state = start(w);
+  const combat = state.combat;
+
+  assert.equal(w.BurstSystem.canUse(combat), false);
+  w.BurstSystem.gain(combat, 100);
+  assert.equal(w.BurstSystem.canUse(combat), true);
+
+  const beforeHp = combat.enemy.hp;
+  const resolution = w.CombatEngine.resolveAction(
+    state,
+    w.GameActions.createPlayerBurstAction(state)
+  );
+
+  assert.equal(resolution.actionType, "BURST");
+  assert.equal(combat.resources.burstCharge, 0);
+  assert.ok(resolution.damage > 0);
+  assert.ok(combat.enemy.hp < beforeHp);
+  assert.equal(combat.inputLog.at(-1).actionType, "BURST");
+});
+
 test("break window expires and restores the break meter", async () => {
   const w = await loadCore();
   const state = start(w);
