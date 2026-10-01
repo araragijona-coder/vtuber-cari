@@ -23,15 +23,18 @@
   const energyEl = document.getElementById("combat-energy");
   const energyRegenEl = document.getElementById("combat-energy-regen");
   const abilityEl = document.getElementById("combat-ability-status");
+  const burstEl = document.getElementById("combat-burst");
   const handEl = document.getElementById("combat-hand");
   const startButton = document.getElementById("start-battle");
+  const burstButton = document.getElementById("burst-action");
   const abilityButton = document.getElementById("character-ability");
   const restartButton = document.getElementById("restart-battle");
 
   let battleSequence = 0;
   let enemySequence = -1;
   let currentEnemyId = null;
-  let simulationTimer = null;
+  let simulationFrame = null;
+  let lastSimulationTime = null;
   const view = { gameState: null, lastWidth: 0, lastHeight: 0, impact: null, lastTelemetryActionId: null };
   const combatTelemetry = new Map();
 
@@ -66,28 +69,45 @@
   }
 
   function stopSimulation() {
-    if (simulationTimer !== null) {
-      window.clearInterval(simulationTimer);
-      simulationTimer = null;
+    if (simulationFrame !== null) {
+      window.cancelAnimationFrame(simulationFrame);
+      simulationFrame = null;
     }
+    lastSimulationTime = null;
   }
 
   function startSimulation() {
     stopSimulation();
-    simulationTimer = window.setInterval(() => {
+    lastSimulationTime = performance.now();
+
+    function frame(now) {
       const combat = view.gameState?.combat;
       if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
         stopSimulation();
         return;
       }
-      window.CombatEngine.advanceTime(view.gameState, window.CombatClock.DEFAULT_STEP_MS);
+
+      const deltaMs = Math.min(
+        500,
+        Math.max(0, Number(now) - Number(lastSimulationTime))
+      );
+      lastSimulationTime = now;
+
+      window.CombatEngine.advanceTime(view.gameState, deltaMs);
       captureLatestAction(combat);
+
       if (combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
         stopSimulation();
         completeBattleTelemetry(combat);
+        renderUi();
+        return;
       }
+
       renderUi();
-    }, window.CombatClock.DEFAULT_STEP_MS);
+      simulationFrame = window.requestAnimationFrame(frame);
+    }
+
+    simulationFrame = window.requestAnimationFrame(frame);
   }
 
   function captureLatestAction(combat) {
@@ -192,6 +212,27 @@
     }
   }
 
+  function useBurst() {
+    const combat = view.gameState?.combat;
+    if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
+    try {
+      const action = window.GameActions.createPlayerBurstAction(view.gameState);
+      const resolution = window.CombatEngine.resolveAction(view.gameState, action);
+      view.lastTelemetryActionId = resolution.actionId;
+      window.RocketBunnyTelemetry?.recordCombatAction(combat, {
+        ...resolution,
+        type: resolution.actionType
+      });
+      view.gameState.session.lastMessage = "BURST · " + resolution.damage + " DAMAGE" +
+        (resolution.brokenPayoff ? " · BREAK PAYOFF" : "");
+      showResult(resolution);
+      renderUi();
+    } catch (error) {
+      view.gameState.session.lastMessage = "Burst rechazada · " + error.message;
+      renderUi();
+    }
+  }
+
   function useAbility() {
     const combat = view.gameState?.combat;
     if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
@@ -216,6 +257,7 @@
     if (!action) return "—";
     if (action.cardId) return window.CardSystem.definitionFor(action.cardId)?.name || action.cardId;
     if (action.actionType === "ABILITY") return "ABILITY · PULSO BŌSŌZOKU";
+    if (action.actionType === "BURST") return "BURST · " + (action.damage || 0) + " DMG";
     if (action.actionType === "AUTO_ATTACK") return action.source === "ENEMY_AUTO_ATTACK" ? "ENEMY AUTO ATTACK" : "PLAYER AUTO ATTACK";
     if (action.actionType === "ENEMY_BEHAVIOR") return "ENEMY · " + (action.intent?.label || "BEHAVIOR");
     return action.actionType || "ACTION";
@@ -223,13 +265,26 @@
 
   function statusText(combatant) {
     return window.StatusSystem.entries(combatant)
-      .map((status) => status.label + " " + status.turns)
+      .map((status) => {
+        if (status.remainingMs > 0) {
+          return status.label + " " + (status.remainingMs / 1000).toFixed(1) + "s";
+        }
+        if (status.durationTicks > 0) {
+          return status.label + " " + (status.durationTicks / 10).toFixed(1) + "s";
+        }
+        return status.label + " " + status.turns;
+      })
       .join(" · ") || "—";
   }
 
   function formatIntent(combat) {
     const intent = combat?.enemyIntent;
-    if (!intent) return "—";
+    if (!intent) {
+      const cooldown = Number(combat?.enemyBehavior?.cooldownMs || 0);
+      return cooldown > 0
+        ? "ENEMY RECOVERING · " + (cooldown / 1000).toFixed(1) + "s"
+        : "—";
+    }
     const seconds = Math.max(0, Number(intent.remainingMs || 0)) / 1000;
     return intent.label + " · " + seconds.toFixed(1) + "s";
   }
@@ -311,9 +366,21 @@
     if (enemyIntentEl) enemyIntentEl.textContent = combat ? formatIntent(combat) : "—";
 
     if (combatTimeEl) combatTimeEl.textContent = combat ? (combat.elapsedMs / 1000).toFixed(1) + " s" : "—";
-    if (combatPhaseEl) combatPhaseEl.textContent = combat ? (window.BurstSystem.isActive(combat) ? "BURST WINDOW" : combat.phase) : "READY";
+    if (combatPhaseEl) combatPhaseEl.textContent = combat
+      ? (window.BurstSystem.isActive(combat) ? "BREAK WINDOW" : combat.phase)
+      : "READY";
     if (energyEl) energyEl.textContent = combat ? Math.floor(combat.resources.energy) + " / " + combat.resources.maxEnergy : "—";
     if (energyRegenEl) energyRegenEl.textContent = combat ? combat.resources.energyRegen.toFixed(1) + " /s" : "—";
+    if (burstEl) {
+      burstEl.textContent = combat
+        ? Math.floor(window.BurstSystem.chargeOf(combat)) + " / " + window.BurstSystem.maxChargeOf(combat)
+        : "—";
+    }
+    if (burstButton) {
+      burstButton.disabled = !combat || !window.BurstSystem.canUse(combat);
+      burstButton.hidden = !combat || outcome !== window.GameState.OUTCOME.IN_PROGRESS;
+      burstButton.textContent = combat && window.BurstSystem.isActive(combat) ? "BURST · BREAK" : "BURST";
+    }
     if (abilityEl) {
       abilityEl.textContent = combat
         ? ability.name + " · " + combat.resources.playerAbilityUses + "/1"
@@ -341,7 +408,7 @@
       if (!combat) resultEl.textContent = "";
       else if (outcome === window.GameState.OUTCOME.VICTORY) resultEl.textContent = "VICTORY";
       else if (outcome === window.GameState.OUTCOME.DEFEAT) resultEl.textContent = "DEFEAT";
-      else if (window.BurstSystem.isActive(combat)) resultEl.textContent = "BURST WINDOW · DAMAGE x" + window.BurstSystem.multiplier(combat).toFixed(2);
+      else if (window.BurstSystem.isActive(combat)) resultEl.textContent = "BREAK WINDOW · DAMAGE x" + window.BurstSystem.multiplier(combat).toFixed(2);
       else if (combat.lastAction?.damage > 0) {
         resultEl.textContent =
           (combat.lastAction.critical ? "CRÍTICO · " : "") +
@@ -447,10 +514,12 @@
     nextBattle,
     actionButton: playCard,
     useAbility,
+    useBurst,
     getGameState: () => view.gameState
   });
 
   startButton?.addEventListener("click", () => startBattle());
+  burstButton?.addEventListener("click", useBurst);
   abilityButton?.addEventListener("click", useAbility);
   restartButton?.addEventListener("click", restartBattle);
   window.addEventListener("resize", resizeCanvas, { passive: true });
