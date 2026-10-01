@@ -73,11 +73,14 @@
     }
 
     function addEffect(type, payload = {}, duration = 420) {
+      const delayMs = Math.max(0, Number(payload.delayMs) || 0);
+      const { delayMs: ignoredDelay, ...effectPayload } = payload;
+      void ignoredDelay;
       state.effects.push({
         type,
-        start: performance.now(),
+        start: performance.now() + delayMs,
         duration: Math.max(80, Number(duration) || 80),
-        ...payload
+        ...effectPayload
       });
       while (state.effects.length > MAX_EFFECTS) state.effects.shift();
     }
@@ -430,6 +433,9 @@
       if (effect.breakDamage > 0) {
         drawText("BRK -" + effect.breakDamage, point.x, point.y - 78, 10, "900", "center", "#ffb24d", alpha);
       }
+      if (effect.damageReductionApplied > 0) {
+        drawText("DR -" + effect.damageReductionApplied, point.x, point.y - 62, 10, "900", "center", "#8df1e1", alpha);
+      }
       const radius = 24 + p * 30;
       context.strokeStyle = "rgba(255,255,255," + (.42 * alpha) + ")";
       context.lineWidth = Math.max(1, 4 * alpha);
@@ -471,6 +477,56 @@
       context.arc(point.x, point.y - 50, radius, 0, Math.PI * 2);
       context.stroke();
       if (effect.amount) drawText((effect.amount > 0 ? "+" : "") + effect.amount + " ENERGY", point.x, point.y - 150 - p * 26, 12, "950", "center", "#6ee8d3", 1 - p);
+    }
+
+    function drawHeal(effect, combat, width, height, now) {
+      const p = progress(now, effect.start, effect.duration);
+      const alpha = 1 - smoothstep(p);
+      const point = positionFor(effect.targetTeam || "player", width, height);
+      context.strokeStyle = "rgba(110,232,154," + (.75 * alpha) + ")";
+      context.lineWidth = 6 * alpha;
+      context.beginPath();
+      context.arc(point.x, point.y - 54, 34 + p * 54, 0, Math.PI * 2);
+      context.stroke();
+      drawText("+" + effect.amount + " HP", point.x, point.y - 138 - p * 18, 15, "1000", "center", "#8ff0b0", alpha);
+    }
+
+    function drawBuff(effect, combat, width, height, now) {
+      const p = progress(now, effect.start, effect.duration);
+      const alpha = 1 - smoothstep(p);
+      const point = positionFor(effect.targetTeam || "player", width, height);
+      context.strokeStyle = "rgba(199,156,255," + (.8 * alpha) + ")";
+      context.lineWidth = 5 * alpha;
+      context.beginPath();
+      context.arc(point.x, point.y - 52, 52 + p * 30, 0, Math.PI * 2);
+      context.stroke();
+      drawText("POWER +" + Math.round(effect.amount * 100) + "%", point.x, point.y - 132 - p * 18, 12, "1000", "center", "#d6bcff", alpha);
+    }
+
+    function drawCleanse(effect, combat, width, height, now) {
+      const p = progress(now, effect.start, effect.duration);
+      const alpha = 1 - smoothstep(p);
+      const point = positionFor(effect.targetTeam || "player", width, height);
+      context.strokeStyle = "rgba(255,255,255," + (.82 * alpha) + ")";
+      context.lineWidth = 4 * alpha;
+      context.beginPath();
+      context.arc(point.x, point.y - 54, 42 + p * 40, 0, Math.PI * 2);
+      context.stroke();
+      drawText("CLEANSE ×" + effect.count, point.x, point.y - 132 - p * 18, 12, "1000", "center", "#ffffff", alpha);
+    }
+
+    function drawDamageReduction(effect, combat, width, height, now) {
+      const p = progress(now, effect.start, effect.duration);
+      const alpha = 1 - smoothstep(p);
+      const point = positionFor(effect.targetTeam || "player", width, height);
+      context.strokeStyle = "rgba(110,232,211," + (.78 * alpha) + ")";
+      context.lineWidth = 7 * alpha;
+      context.setLineDash([10, 7]);
+      context.beginPath();
+      context.arc(point.x, point.y - 52, 78 - p * 16, 0, Math.PI * 2);
+      context.stroke();
+      context.setLineDash([]);
+      drawText("DMG -" + Math.round(effect.amount * 100) + "%", point.x, point.y - 132 - p * 18, 12, "1000", "center", "#8df1e1", alpha);
     }
 
     function drawBreak(effect, width, height, now) {
@@ -536,6 +592,10 @@
         if (effect.type === "attack") drawAttack(effect, combat, width, height, now);
         if (effect.type === "impact") drawImpact(effect, combat, width, height, now);
         if (effect.type === "energy") drawEnergyPulse(effect, width, height, now);
+        if (effect.type === "heal") drawHeal(effect, combat, width, height, now);
+        if (effect.type === "buff") drawBuff(effect, combat, width, height, now);
+        if (effect.type === "cleanse") drawCleanse(effect, combat, width, height, now);
+        if (effect.type === "damageReduction") drawDamageReduction(effect, combat, width, height, now);
         if (effect.type === "shield") drawShield(effect, combat, width, height, now);
         if (effect.type === "status") drawStatus(effect, combat, width, height, now);
         if (effect.type === "break") drawBreak(effect, width, height, now);
@@ -573,34 +633,53 @@
         emitAudio(attacker === "enemy" ? "enemyAttack" : "autoAttack", action);
       }
 
+      const isMultiHit = Array.isArray(action.hits) && action.hits.length > 0;
       if (actionType === "SKILL" || actionType === "CARD") {
         const definition = window.CombatEngine?.cardDefinitionFor?.(combat, action.cardId) ||
           window.CardSystem?.definitionFor?.(action.cardId);
         const skillType = String(definition?.type || "SKILL").toLowerCase();
-        if (action.damage > 0) {
+        if (isMultiHit) {
+          action.hits.forEach((hit, index) => {
+            addEffect("attack", {
+              attacker: "player", targetTeam: "enemy",
+              intensity: .72, kind: "skill", delayMs: index * 90
+            }, 320);
+            addEffect("impact", {
+              targetTeam: "enemy", targetId: action.targetId,
+              damage: Number(hit.damage || 0),
+              blockAbsorbed: Number(hit.blockAbsorbed || 0),
+              breakDamage: Number(hit.breakDamage || 0),
+              critical: Boolean(hit.critical),
+              delayMs: index * 90 + 110
+            }, 440);
+          });
+          emitAudio("skill", action);
+        } else if (action.damage > 0) {
           addEffect("attack", {
-            attacker: "player",
-            targetTeam: "enemy",
-            intensity: .8,
-            kind: "skill"
+            attacker: "player", targetTeam: "enemy",
+            intensity: .8, kind: "skill"
           }, 360);
           emitAudio("skill", action);
         } else if (skillType === "defense") {
-          addEffect("shield", { targetTeam: "player", amount: Number(action.blockGained || definition?.effects?.block || 0) }, 400);
+          addEffect("shield", {
+            targetTeam: "player",
+            amount: Number(action.blockGained || definition?.effects?.block || 0)
+          }, 400);
           emitAudio("shield", action);
         } else {
           emitAudio("skill", action);
         }
       }
 
-      if (action.damage > 0 || action.blockAbsorbed > 0 || action.breakDamage > 0) {
+      if (!isMultiHit && (action.damage > 0 || action.blockAbsorbed > 0 || action.breakDamage > 0)) {
         addEffect("impact", {
           targetTeam,
           targetId: action.targetId,
           damage: Number(action.damage || 0),
           blockAbsorbed: Number(action.blockAbsorbed || 0),
           breakDamage: Number(action.breakDamage || 0),
-          critical: Boolean(action.critical)
+          critical: Boolean(action.critical),
+          damageReductionApplied: Number(action.damageReductionApplied || 0)
         }, 560);
         emitAudio(targetTeam === "player" ? "enemyHit" : "impact", action);
       }
@@ -614,6 +693,29 @@
           targetTeam: action.targetId ? targetTeam : "enemy",
           status: String(action.statusApplied)
         }, 650);
+      }
+
+      if (Number(action.healAmount || 0) > 0) {
+        addEffect("heal", { targetTeam: "player", amount: Number(action.healAmount) }, 650);
+        emitAudio("heal", action);
+      }
+
+      if (action.buffApplied) {
+        addEffect("buff", { targetTeam: "player", amount: Number(action.buffApplied.amount || 0) }, 780);
+        emitAudio("buff", action);
+      }
+
+      if (Array.isArray(action.cleanseRemoved) && action.cleanseRemoved.length > 0) {
+        addEffect("cleanse", { targetTeam: "player", count: action.cleanseRemoved.length }, 620);
+        emitAudio("cleanse", action);
+      }
+
+      if (action.damageReductionApplied) {
+        addEffect("damageReduction", {
+          targetTeam: "player",
+          amount: Number(action.damageReductionApplied.amount || 0)
+        }, 820);
+        emitAudio("damageReduction", action);
       }
 
       if (actionType === "BURST") {
@@ -644,6 +746,14 @@
 
       if (actionType === "BREAK_END") {
         emitAudio("breakEnd", action);
+      }
+
+      if (actionType === "MODIFIER_EXPIRED") {
+        addEffect("status", {
+          targetTeam: teamForId(combat, action.targetId) || "player",
+          status: "EFFECT EXPIRED"
+        }, 560);
+        emitAudio("modifierExpired", action);
       }
 
       if (action.outcome === "VICTORY") emitAudio("victory", action);
