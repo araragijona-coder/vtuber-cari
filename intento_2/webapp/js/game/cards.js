@@ -11,7 +11,8 @@
   const CARD_DEFINITIONS = Object.freeze({
     disparo_neon: Object.freeze({
       id: "disparo_neon", cardId: "disparo_neon", name: "DISPARO NEÓN",
-      type: CARD_TYPES.ATTACK, characterId: null, class: "STRIKER", subrole: "PRESSURE", cost: window.CombatBalance.card("disparo_neon").cost,
+      type: CARD_TYPES.ATTACK, characterId: null, class: "STRIKER", subrole: "PRESSURE",
+      cost: window.CombatBalance.card("disparo_neon").cost,
       damage: window.CombatBalance.card("disparo_neon").damage,
       breakDamage: window.CombatBalance.card("disparo_neon").breakDamage,
       cooldownMs: window.CombatBalance.card("disparo_neon").cooldownMs,
@@ -21,7 +22,8 @@
     }),
     embestida_nitro: Object.freeze({
       id: "embestida_nitro", cardId: "embestida_nitro", name: "EMBESTIDA NITRO",
-      type: CARD_TYPES.ATTACK, characterId: null, class: "STRIKER", subrole: "IMPACT", cost: window.CombatBalance.card("embestida_nitro").cost,
+      type: CARD_TYPES.ATTACK, characterId: null, class: "STRIKER", subrole: "IMPACT",
+      cost: window.CombatBalance.card("embestida_nitro").cost,
       damage: window.CombatBalance.card("embestida_nitro").damage,
       breakDamage: window.CombatBalance.card("embestida_nitro").breakDamage,
       cooldownMs: window.CombatBalance.card("embestida_nitro").cooldownMs,
@@ -31,7 +33,8 @@
     }),
     derrape_expuesto: Object.freeze({
       id: "derrape_expuesto", cardId: "derrape_expuesto", name: "DERRAPE EXPUESTO",
-      type: CARD_TYPES.ATTACK, characterId: null, class: "STRIKER", subrole: "SETUP", cost: window.CombatBalance.card("derrape_expuesto").cost,
+      type: CARD_TYPES.ATTACK, characterId: null, class: "STRIKER", subrole: "SETUP",
+      cost: window.CombatBalance.card("derrape_expuesto").cost,
       damage: window.CombatBalance.card("derrape_expuesto").damage,
       breakDamage: window.CombatBalance.card("derrape_expuesto").breakDamage,
       cooldownMs: window.CombatBalance.card("derrape_expuesto").cooldownMs,
@@ -41,7 +44,8 @@
     }),
     escudo_dark: Object.freeze({
       id: "escudo_dark", cardId: "escudo_dark", name: "ESCUDO DARK",
-      type: CARD_TYPES.DEFENSE, characterId: null, class: "DEFENDER", subrole: "STABILITY", cost: window.CombatBalance.card("escudo_dark").cost,
+      type: CARD_TYPES.DEFENSE, characterId: null, class: "DEFENDER", subrole: "STABILITY",
+      cost: window.CombatBalance.card("escudo_dark").cost,
       damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("escudo_dark").cooldownMs,
       targeting: "self",
       description: "Shield temporal que absorbe daño durante 1.4 s.",
@@ -49,7 +53,8 @@
     }),
     barricada_neon: Object.freeze({
       id: "barricada_neon", cardId: "barricada_neon", name: "BARRICADA NEÓN",
-      type: CARD_TYPES.DEFENSE, characterId: null, class: "DEFENDER / SUPPORT", subrole: "SUSTAIN", cost: window.CombatBalance.card("barricada_neon").cost,
+      type: CARD_TYPES.DEFENSE, characterId: null, class: "DEFENDER / SUPPORT", subrole: "SUSTAIN",
+      cost: window.CombatBalance.card("barricada_neon").cost,
       damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("barricada_neon").cooldownMs,
       targeting: "self",
       description: "Shield fuerte + recupera 10 Energy.",
@@ -57,7 +62,8 @@
     }),
     espejo_urbano: Object.freeze({
       id: "espejo_urbano", cardId: "espejo_urbano", name: "ESPEJO URBANO",
-      type: CARD_TYPES.DEFENSE, characterId: null, class: "DEFENDER / DEBUFFER", subrole: "SETUP", cost: window.CombatBalance.card("espejo_urbano").cost,
+      type: CARD_TYPES.DEFENSE, characterId: null, class: "DEFENDER / DEBUFFER", subrole: "SETUP",
+      cost: window.CombatBalance.card("espejo_urbano").cost,
       damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("espejo_urbano").cooldownMs,
       targeting: "self",
       description: "Shield corto; deja al enemigo EXPOSED.",
@@ -65,7 +71,8 @@
     }),
     lectura_tactica: Object.freeze({
       id: "lectura_tactica", cardId: "lectura_tactica", name: "LECTURA TÁCTICA",
-      type: CARD_TYPES.SKILL, characterId: null, class: "SUPPORT", subrole: "TEMPO", cost: window.CombatBalance.card("lectura_tactica").cost,
+      type: CARD_TYPES.SKILL, characterId: null, class: "SUPPORT", subrole: "TEMPO",
+      cost: window.CombatBalance.card("lectura_tactica").cost,
       damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("lectura_tactica").cooldownMs,
       targeting: "self",
       description: "Roba 2 skills sin detener la pelea.",
@@ -73,7 +80,8 @@
     }),
     sobrecarga: Object.freeze({
       id: "sobrecarga", cardId: "sobrecarga", name: "SOBRECARGA",
-      type: CARD_TYPES.SKILL, characterId: null, class: "SUPPORT", subrole: "ENERGY SUPPORT", cost: window.CombatBalance.card("sobrecarga").cost,
+      type: CARD_TYPES.SKILL, characterId: null, class: "SUPPORT", subrole: "ENERGY SUPPORT",
+      cost: window.CombatBalance.card("sobrecarga").cost,
       damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("sobrecarga").cooldownMs,
       targeting: "self",
       description: "Convierte un hueco de tiempo en +26 Energy.",
@@ -81,14 +89,13 @@
     }),
     pulso_debilitante: Object.freeze({
       id: "pulso_debilitante", cardId: "pulso_debilitante", name: "PULSO DEBILITANTE",
-      type: CARD_TYPES.SKILL, characterId: null, class: "DEBUFFER", subrole: "SETUP", cost: window.CombatBalance.card("pulso_debilitante").cost,
+      type: CARD_TYPES.SKILL, characterId: null, class: "DEBUFFER", subrole: "SETUP",
+      cost: window.CombatBalance.card("pulso_debilitante").cost,
       damage: 0, breakDamage: 12, cooldownMs: window.CombatBalance.card("pulso_debilitante").cooldownMs,
       targeting: "single_enemy",
       description: "Skill de setup: WEAK + presión de BREAK.",
       effects: Object.freeze({ applyStatus: "WEAK", statusDurationMs: 2200, breakDamage: 12 })
-    })
-  });
-
+    }),
     yuri_racha_neon: Object.freeze({
       id: "yuri_racha_neon", cardId: "yuri_racha_neon", name: "RACHA NEÓN",
       type: CARD_TYPES.ATTACK, characterId: "yuri", class: "STRIKER", subrole: "SPEED",
@@ -152,7 +159,9 @@
       targeting: "self",
       description: "Reduce el daño de HP recibido durante 1.8 s. No es Shield.",
       effects: Object.freeze({ damageReduction: { amount: 0.4, durationMs: 1800, stacking: "replace" } })
-    }),
+    })
+  });
+
   const INITIAL_DECK = Object.freeze([
     "disparo_neon",
     "escudo_dark",
