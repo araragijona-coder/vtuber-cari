@@ -686,7 +686,7 @@
       for (const modifier of expired) {
         emitEffectEvent(combat, "modifier_expired", {
           targetId: fighter.id,
-          type: modifier.type,
+          modifierType: modifier.type,
           sourceId: modifier.sourceId,
           amount: modifier.amount
         });
