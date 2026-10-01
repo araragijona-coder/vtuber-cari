@@ -129,6 +129,14 @@
       if (action.actionType === "AUTO_ATTACK" && action.source === "ENEMY_AUTO_ATTACK") {
         window.RocketBunnyTelemetry?.enemyAttackResolved(combat, action);
       }
+      if (action.actionType === "AUTO_ATTACK") {
+        view.impact = {
+          targetId: action.targetId || null,
+          damage: Number(action.damage || 0),
+          critical: Boolean(action.critical),
+          startedAt: performance.now()
+        };
+      }
       if (action.actionType === "ENEMY_BEHAVIOR" && action.intent?.type === "ATTACK") {
         window.RocketBunnyTelemetry?.enemyAttackResolved(combat, action);
       }
@@ -394,7 +402,11 @@
     if (enemyAutoEl) enemyAutoEl.textContent = combat ? formatAuto(combat.enemy) : "—";
     if (enemyIntentEl) enemyIntentEl.textContent = combat ? formatIntent(combat) : "—";
 
-    if (combatTimeEl) combatTimeEl.textContent = combat ? (combat.elapsedMs / 1000).toFixed(1) + " s" : "—";
+    if (combatTimeEl) {
+      combatTimeEl.textContent = combat
+        ? (combat.elapsedMs / 1000).toFixed(1) + " s · T" + combat.simulationTick
+        : "—";
+    }
     if (combatPhaseEl) combatPhaseEl.textContent = combat
       ? (window.BurstSystem.isActive(combat) ? "BREAK WINDOW" : combat.phase)
       : "READY";
@@ -524,14 +536,24 @@
       drawText("ROCKET BUNNY PETTY", width / 2, height * .34, 24, "800", "center");
       drawText("Iniciá un combate semi-real-time.", width / 2, height * .34 + 38, 14, "500", "center", "rgba(255,255,255,.65)");
     } else {
-      drawText("TIME " + (combat.elapsedMs / 1000).toFixed(1) + "s", width / 2, 12, 14, "800", "center", "rgba(255,255,255,.82)");
-      drawText(formatIntent(combat), width / 2, 34, 12, "800", "center", "#ffd36a");
+      drawText(
+        "TIME " + (combat.elapsedMs / 1000).toFixed(1) + "s · TICK " + combat.simulationTick,
+        width / 2, 12, 14, "800", "center", "rgba(255,255,255,.82)"
+      );
+      drawText(
+        "AUTO FIGHT · " + (combat.activeActor || "combat").toUpperCase(),
+        width / 2, 34, 11, "800", "center", "rgba(255,255,255,.58)"
+      );
+      drawText(formatIntent(combat), width / 2, 52, 12, "800", "center", "#ffd36a");
       if (window.BurstSystem.isActive(combat)) {
-        drawText("BURST WINDOW · x" + window.BurstSystem.multiplier(combat).toFixed(2), width / 2, 54, 12, "900", "center", "#ff8fbd");
+        drawText(
+          "BREAK WINDOW · x" + window.BurstSystem.multiplier(combat).toFixed(2),
+          width / 2, 72, 12, "900", "center", "#ff8fbd"
+        );
       }
 
-      drawFighter(combat.player, 14, 76, width / 2 - 28, height - 116, "player");
-      drawFighter(combat.enemy, width / 2 + 14, 76, width / 2 - 28, height - 116, "enemy");
+      drawFighter(combat.player, 14, 92, width / 2 - 28, height - 132, "player");
+      drawFighter(combat.enemy, width / 2 + 14, 92, width / 2 - 28, height - 132, "enemy");
     }
 
     window.requestAnimationFrame(drawFrame);
