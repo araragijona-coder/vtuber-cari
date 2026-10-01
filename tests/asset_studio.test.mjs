@@ -12,7 +12,8 @@ class MemoryStorage {
 async function loadApi() {
   const source = await readFile("intento_2/webapp/js/admin/asset_studio.js", "utf8");
   const context = vm.createContext({
-    window: undefined,
+    window: {},
+    document: { getElementById: () => null },
     console,
     Date,
     JSON,
@@ -25,7 +26,7 @@ async function loadApi() {
     Map
   });
   vm.runInContext(source, context, { filename: "asset_studio.js" });
-  return context.MachGirlsAssetStudio;
+  return context.window.MachGirlsAssetStudio;
 }
 
 test("asset metadata validation requires formal Yuri character identity", async () => {
