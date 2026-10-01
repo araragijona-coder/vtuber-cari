@@ -2,7 +2,7 @@
   "use strict";
 
   const DEFAULT_STEP_MS = 100;
-  const MAX_STEPS_PER_ADVANCE = 20;
+  const MAX_STEPS_PER_ADVANCE = 1000;
   const EPSILON_MS = 1e-7;
   const SNAP_EPSILON_MS = 1e-6;
 
