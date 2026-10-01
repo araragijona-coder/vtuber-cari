@@ -216,6 +216,15 @@
       Number(options.breakDamage ?? definition.breakDamage ?? 0)
     );
 
+    if (actor === combat.player) {
+      window.BurstSystem.gain(
+        combat,
+        Math.max(0, breakResult.applied * 1.5 + result.damage * 0.25)
+      );
+    } else if (target === combat.player && result.damage > 0) {
+      window.BurstSystem.gain(combat, result.damage * 0.5);
+    }
+    syncBurst(combat);
     finishIfNeeded(state);
 
     const resolution = makeResolution(combat, action, {
@@ -253,7 +262,7 @@
   }
 
   function resolveEnemyAttack(combat, action, damage) {
-    return resolveAttack(
+    const resolution = resolveAttack(
       { combat, screen: "BATTLE", session: {} },
       action,
       {
@@ -265,6 +274,11 @@
         criticalMultiplier: 1.25
       }
     );
+    emitCombatEvent(combat, "enemy_attack_resolved", {
+      damage: resolution.damage,
+      blockAbsorbed: resolution.blockAbsorbed || 0
+    });
+    return resolution;
   }
 
   function resolveAutoAttack(combat, actor, target, config, source) {
@@ -303,6 +317,20 @@
     if (!window.EnergySystem.spend(combat.resources, definition.cost)) {
       throw new Error("INSUFFICIENT_ENERGY");
     }
+
+    combat.inputLog.push(Object.freeze({
+      type: "SKILL",
+      cardId: definition.cardId,
+      tick: combat.simulationTick,
+      elapsedMs: combat.elapsedMs
+    }));
+    emitCombatEvent(combat, "energy_spent", {
+      source: "skill",
+      cardId: definition.cardId,
+      amount: definition.cost,
+      remaining: combat.resources.energy
+    });
+    window.BurstSystem.gain(combat, Math.max(3, definition.cost * 0.18));
 
     let damage = 0;
     let rawDamage = 0;
@@ -474,6 +502,71 @@
       rngStateBefore: combat.rng.state,
       rngStateAfter: combat.rng.state
     });
+    emitCombatEvent(combat, "ability_used", {
+      abilityId: result.abilityId,
+      energyRemaining: combat.resources.energy
+    });
+    combat.lastAction = Object.freeze({ ...resolution });
+    return resolution;
+  }
+
+  function resolveBurst(state, action) {
+    const combat = state?.combat;
+    if (!combat) throw new Error("NO_COMBAT");
+    if (!window.BurstSystem.canUse(combat)) throw new Error("BURST_UNAVAILABLE");
+
+    const burstBalance = window.CombatBalance.BALANCE.burst;
+    const wasBroken = window.BreakSystem.isBroken(combat.enemy.breakState);
+    const energyBefore = combat.resources.energy;
+    const burstState = window.BurstSystem.activate(combat);
+    const baseDamage = Number(burstBalance.damage || 35);
+    const result = rollDamage(combat, combat.player, combat.enemy, {
+      damage: baseDamage,
+      breakDamage: Number(burstBalance.breakDamage || 24),
+      varianceMin: 0.95,
+      varianceMax: 1.05,
+      criticalChance: 0.12,
+      criticalMultiplier: 1.5
+    });
+    combat.rng = Object.freeze({
+      seed: combat.seed >>> 0,
+      state: result.rng.state >>> 0
+    });
+    const hp = applyDamage(combat.enemy, result);
+    const breakResult = applyBreak(
+      combat,
+      combat.enemy,
+      Number(burstBalance.breakDamage || 24)
+    );
+
+    combat.inputLog.push(Object.freeze({
+      type: "BURST",
+      tick: combat.simulationTick,
+      elapsedMs: combat.elapsedMs
+    }));
+    emitCombatEvent(combat, "burst_used", {
+      damage: result.damage,
+      duringBreak: wasBroken,
+      chargeBefore: burstState.chargeBefore
+    });
+    finishIfNeeded(state);
+
+    const resolution = makeResolution(combat, action, {
+      cost: 0,
+      energyBefore,
+      energyAfter: energyBefore,
+      damage: result.damage,
+      rawDamage: result.rawDamage,
+      blockAbsorbed: result.blockAbsorbed,
+      critical: result.critical,
+      variance: result.variance,
+      breakDamage: breakResult.applied,
+      broke: breakResult.broke,
+      burst: true,
+      duringBreak: wasBroken,
+      targetHpAfter: hp.hpAfter,
+      rngStateAfter: combat.rng.state
+    });
     combat.lastAction = Object.freeze({ ...resolution });
     return resolution;
   }
@@ -613,6 +706,15 @@
 
     if (combat.cards.hand.length < combat.cards.handLimit && combat.elapsedMs % 700 === 0) {
       window.CardSystem.drawCard(combat.cards);
+    }
+
+    if (combat.enemyIntent) {
+      emitCombatEvent(combat, "enemy_telegraph", {
+        intent: combat.enemyIntent.type,
+        value: combat.enemyIntent.value,
+        remainingMs: combat.enemyIntent.remainingMs,
+        remainingTicks: combat.enemyIntent.remainingTicks
+      });
     }
   }
 
