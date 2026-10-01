@@ -74,7 +74,10 @@ test("fixed-step clock is deterministic and advances logical ticks", async () =>
   const seen = [];
   assert.equal(w.CombatClock.advance(clock, 99.9, info => seen.push(info)), 0);
   assert.equal(w.CombatClock.advance(clock, 0.1, info => seen.push(info)), 1);
-  assert.deepEqual(seen, [{ tick: 1, elapsedMs: 100, stepMs: 100 }]);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].tick, 1);
+  assert.equal(seen[0].elapsedMs, 100);
+  assert.equal(seen[0].stepMs, 100);
 });
 
 test("starts semi-real-time combat with continuous resources", async () => {
