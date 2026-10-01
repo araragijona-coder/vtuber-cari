@@ -1,45 +1,89 @@
 (() => {
   "use strict";
 
-  const DEFAULT_MAX_ENERGY = 100;
-  const DEFAULT_REGEN_PER_SECOND = 12;
-
-  function createEnergy(options = {}) {
-    if (typeof options === "number") {
-      const legacyMax = Math.max(0, Number(options) || 0);
-      return {
-        energy: legacyMax,
-        maxEnergy: legacyMax,
-        energyRegen: 0
-      };
+  function normalizeConfig(input) {
+    if (typeof input === "number") {
+      const maxEnergy = Math.max(0, Number(input) || 0);
+      return { maxEnergy, energy: maxEnergy, energyRegen: 0 };
     }
-    const maxEnergy = Math.max(
-      0,
-      Number(options.maxEnergy ?? DEFAULT_MAX_ENERGY) || DEFAULT_MAX_ENERGY
+
+    const options = input && typeof input === "object" ? input : {};
+    const maxEnergy = Math.max(0, Number(options.maxEnergy ?? 100) || 0);
+    const energy = Math.min(
+      maxEnergy,
+      Math.max(0, Number(options.currentEnergy ?? options.energy ?? maxEnergy) || 0)
     );
-    const energyRegen = Math.max(
-      0,
-      Number(options.energyRegen ?? DEFAULT_REGEN_PER_SECOND) || 0
+    const energyRegen = Math.max(0, Number(options.energyRegen ?? 12) || 0);
+
+    return { maxEnergy, energy, energyRegen };
+  }
+
+  function sync(resources) {
+    if (!resources || typeof resources !== "object") return resources;
+    resources.maxEnergy = Math.max(0, Number(resources.maxEnergy) || 0);
+    resources.energy = Math.min(
+      resources.maxEnergy,
+      Math.max(0, Number(resources.energy) || 0)
     );
-    return { energy: maxEnergy, maxEnergy, energyRegen };
+    if ("currentEnergy" in resources) {
+      resources.currentEnergy = resources.energy;
+    }
+    return resources;
+  }
+
+  function createEnergy(input = 3) {
+    const normalized = normalizeConfig(input);
+    return {
+      energy: normalized.energy,
+      maxEnergy: normalized.maxEnergy,
+      energyRegen: normalized.energyRegen
+    };
+  }
+
+  function createRealtimeEnergy(options = {}) {
+    const normalized = normalizeConfig({
+      maxEnergy: 100,
+      currentEnergy: 35,
+      energyRegen: 12,
+      ...options
+    });
+    return {
+      energy: normalized.energy,
+      maxEnergy: normalized.maxEnergy,
+      energyRegen: normalized.energyRegen
+    };
   }
 
   function regenerate(resources, deltaMs) {
-    if (!resources) return 0;
-    const delta = Math.max(0, Number(deltaMs) || 0);
+    if (!resources || !Number.isFinite(Number(deltaMs))) return 0;
+
+    const delta = Math.max(0, Number(deltaMs));
+    const before = Number(resources.energy) || 0;
+    const maxEnergy = Math.max(0, Number(resources.maxEnergy) || 0);
+    const regenPerSecond = Math.max(0, Number(resources.energyRegen) || 0);
+
     resources.energy = Math.min(
-      resources.maxEnergy,
-      Math.max(0, Number(resources.energy) + Number(resources.energyRegen || 0) * delta / 1000)
+      maxEnergy,
+      Math.max(0, before + (regenPerSecond * delta) / 1000)
     );
-    return resources.energy;
+    sync(resources);
+    return resources.energy - before;
   }
 
   function gain(resources, amount) {
     if (!resources) return 0;
+    const safeAmount = Math.max(0, Number(amount) || 0);
     resources.energy = Math.min(
-      resources.maxEnergy,
-      Math.max(0, Number(resources.energy) + Math.max(0, Number(amount) || 0))
+      Math.max(0, Number(resources.maxEnergy) || 0),
+      Math.max(0, (Number(resources.energy) || 0) + safeAmount)
     );
+    sync(resources);
+    return resources.energy;
+  }
+
+  function refill(resources) {
+    resources.energy = Math.max(0, Number(resources.maxEnergy) || 0);
+    sync(resources);
     return resources.energy;
   }
 
@@ -49,7 +93,7 @@
       resources &&
       Number.isFinite(safeCost) &&
       safeCost >= 0 &&
-      safeCost <= Number(resources.energy) + 1e-9
+      safeCost <= Number(resources.energy)
     );
   }
 
@@ -57,23 +101,18 @@
     const safeCost = Number(cost);
     if (!canSpend(resources, safeCost)) return false;
     resources.energy = Math.max(0, Number(resources.energy) - safeCost);
+    sync(resources);
     return true;
   }
 
-  function refill(resources) {
-    if (!resources) return 0;
-    resources.energy = Math.max(0, Number(resources.maxEnergy) || 0);
-    return resources.energy;
-  }
-
   window.EnergySystem = Object.freeze({
-    DEFAULT_MAX_ENERGY,
-    DEFAULT_REGEN_PER_SECOND,
     createEnergy,
+    createRealtimeEnergy,
     regenerate,
     gain,
+    refill,
+    sync,
     canSpend,
-    spend,
-    refill
+    spend
   });
 })();
