@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f18">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Mach-Girls · Asset Studio</title>
+  <link rel="stylesheet" href="./css/asset_studio.css">
+</head>
+<body>
+  <main class="studio-shell" aria-label="Mach-Girls Asset Studio">
+    <header class="studio-header">
+      <div>
+        <p class="eyebrow">MACH-GIRLS · INTERNAL AUTHORING</p>
+        <h1>ASSET STUDIO</h1>
+        <p class="subtitle">Validá, clasificá y previsualizá arte sin modificar el motor de combate.</p>
+      </div>
+      <div class="header-badges">
+        <span class="badge">STATIC / LOCAL-FIRST</span>
+        <span class="badge">HUMAN APPROVAL</span>
+      </div>
+    </header>
+
+    <section class="notice-grid" aria-label="Reglas de autoría">
+      <article class="notice notice-warning">
+        <strong>FINAL CHARACTER ART REQUIRES HUMAN APPROVAL</strong>
+        <span>Los placeholders son técnicos. No equivalen a Yuri, Maki Mach ni a ninguna otra personaje.</span>
+      </article>
+      <article class="notice">
+        <strong>YURI / MAKI SAFETY</strong>
+        <span>El Studio conoce <code>yuri</code>. No crea ni registra <code>maki_mach</code> como characterId.</span>
+      </article>
+    </section>
+
+    <section class="studio-grid">
+      <aside class="panel inspector-panel" aria-label="Asset inspector">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">01 · SOURCE</p>
+            <h2>ASSET INPUT</h2>
+          </div>
+          <span id="mode-label" class="status-chip">TECHNICAL_PLACEHOLDER</span>
+        </div>
+
+        <label class="field">
+          <span>Upload PNG</span>
+          <input id="asset-file" type="file" accept=".png,image/png">
+          <small>Canonical shipping format for character art: transparent PNG.</small>
+        </label>
+
+        <div class="source-actions">
+          <button id="asset-placeholder" type="button">LOAD TECHNICAL PLACEHOLDER</button>
+        </div>
+
+        <label class="field">
+          <span>Static project path</span>
+          <input id="asset-static-path" type="text" placeholder="assets/characters/yuri/attack.png" spellcheck="false">
+          <small>Para producción estática: la ruta referencia un PNG ya incorporado al proyecto.</small>
+        </label>
+        <button id="asset-static-load" type="button">LOAD STATIC PATH</button>
+
+        <div class="source-meta">
+          <span>Source</span><strong id="asset-source-label">TECHNICAL PLACEHOLDER</strong>
+          <span>Width</span><strong id="asset-width">720</strong>
+          <span>Height</span><strong id="asset-height">900</strong>
+          <span>Size</span><strong id="asset-size">—</strong>
+        </div>
+
+        <hr>
+
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">02 · IDENTITY</p>
+            <h2>CLASSIFY</h2>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Asset ID</span>
+          <input id="asset-id" type="text" autocomplete="off" spellcheck="false" aria-describedby="asset-guide">
+        </label>
+
+        <label class="field">
+          <span>Asset type</span>
+          <select id="asset-type">
+            <option>CHARACTER</option>
+            <option>PORTRAIT</option>
+            <option>MOTORCYCLE</option>
+            <option>CARD_ART</option>
+            <option>BACKGROUND</option>
+            <option>VFX_REFERENCE</option>
+            <option>STATUS_ICON</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Entity / characterId</span>
+          <input id="asset-entity" list="formal-characters" value="yuri" autocomplete="off" spellcheck="false">
+          <datalist id="formal-characters">
+            <option value="yuri">
+          </datalist>
+          <small>Solo se aceptan IDs de personajes formalmente definidos.</small>
+        </label>
+
+        <label class="field">
+          <span>State / action</span>
+          <select id="asset-state">
+            <option>IDLE</option>
+            <option selected>ATTACK</option>
+            <option>HURT</option>
+            <option>BREAK</option>
+            <option>BURST</option>
+            <option>VICTORY</option>
+            <option>DEFEAT</option>
+            <option>SKILL</option>
+          </select>
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Angle</span>
+            <select id="asset-angle">
+              <option>FRONT</option>
+              <option selected>THREE_QUARTER</option>
+              <option>SIDE</option>
+              <option>BACK</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Facing</span>
+            <select id="asset-facing">
+              <option>LEFT</option>
+              <option selected>RIGHT</option>
+              <option>FRONT</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="check-row">
+          <input id="asset-flip" type="checkbox">
+          <span>Flip X at presentation time (does not modify PNG)</span>
+        </label>
+
+        <div class="panel-heading compact">
+          <div>
+            <p class="eyebrow">03 · PLACEMENT</p>
+            <h2>ANCHOR & SCALE</h2>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Scale <output for="asset-scale" id="asset-scale-output">1.00</output></span>
+          <input id="asset-scale" type="range" min="0.1" max="4" step="0.05" value="1">
+        </label>
+
+        <label class="field">
+          <span>Anchor</span>
+          <select id="asset-anchor">
+            <option selected>FEET_CENTER</option>
+            <option>CENTER</option>
+            <option>HEAD</option>
+            <option>CUSTOM</option>
+          </select>
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Anchor X %</span>
+            <input id="asset-anchor-x" type="range" min="0" max="100" value="50">
+          </label>
+          <label class="field">
+            <span>Anchor Y %</span>
+            <input id="asset-anchor-y" type="range" min="0" max="100" value="100">
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Offset X</span>
+            <input id="asset-offset-x" type="number" min="-500" max="500" step="1" value="0">
+          </label>
+          <label class="field">
+            <span>Offset Y</span>
+            <input id="asset-offset-y" type="number" min="-500" max="500" step="1" value="0">
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Layer</span>
+          <select id="asset-layer">
+            <option>BACKGROUND</option>
+            <option>ENVIRONMENT</option>
+            <option selected>CHARACTER</option>
+            <option>VEHICLE</option>
+            <option>FX</option>
+            <option>UI</option>
+          </select>
+        </label>
+
+        <p id="asset-guide" class="guide-box">YURI · ATTACK · THREE_QUARTER · FACING RIGHT · FULL BODY · TRANSPARENT PNG</p>
+        <div id="asset-validation" class="validation-box" role="status" aria-live="polite">READY</div>
+
+        <div class="action-row">
+          <button id="save-draft" class="secondary-action" type="button">SAVE DRAFT</button>
+          <button id="approve-art" class="primary-action" type="button">APPROVE AS ART</button>
+        </div>
+        <button id="clear-current" type="button">RESET TO TECHNICAL PLACEHOLDER</button>
+      </aside>
+
+      <section class="preview-column" aria-label="Asset preview">
+        <section class="panel preview-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">04 · PREVIEW</p>
+              <h2>COMBAT STAGE</h2>
+            </div>
+            <label class="check-row compact-check">
+              <input id="preview-animate" type="checkbox" checked>
+              <span>TEST ANIMATION</span>
+            </label>
+          </div>
+
+          <div class="preview-toolbar">
+            <label class="field inline-field">
+              <span>Background</span>
+              <select id="preview-background">
+                <option>DARK</option>
+                <option>WHITE</option>
+                <option selected>CHECKERBOARD</option>
+                <option>COMBAT ARENA</option>
+              </select>
+            </label>
+            <label class="field inline-field">
+              <span>Camera preset</span>
+              <select id="camera-preset">
+                <option selected>DEFAULT</option>
+                <option>ATTACK IMPACT</option>
+                <option>BREAK</option>
+                <option>BURST</option>
+                <option>VICTORY</option>
+                <option>DEFEAT</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="preview-stage">
+            <canvas id="asset-canvas" aria-label="Preview de asset con anchor y safe area"></canvas>
+          </div>
+
+          <div class="vfx-row" aria-label="VFX preview">
+            <p class="eyebrow">VFX PREVIEW</p>
+            <button type="button" data-vfx="FLASH" aria-pressed="false">FLASH</button>
+            <button type="button" data-vfx="GLOW" aria-pressed="false">GLOW</button>
+            <button type="button" data-vfx="MOTION_TRAIL" aria-pressed="false">MOTION TRAIL</button>
+            <button type="button" data-vfx="IMPACT" aria-pressed="false">IMPACT</button>
+            <button type="button" data-vfx="SCREEN_SHAKE" aria-pressed="false">SHAKE</button>
+            <button type="button" data-vfx="DAMAGE_NUMBER" aria-pressed="false">DAMAGE</button>
+            <button type="button" data-vfx="BREAK FX" aria-pressed="false">BREAK FX</button>
+            <button type="button" data-vfx="BURST FX" aria-pressed="false">BURST FX</button>
+            <button type="button" data-vfx="TELEGRAPH PULSE" aria-pressed="false">TELEGRAPH</button>
+          </div>
+        </section>
+
+        <section class="panel prompt-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">05 · PROMPT ASSISTANT</p>
+              <h2>EXTERNAL ART GUIDANCE</h2>
+            </div>
+          </div>
+          <textarea id="asset-prompt" rows="9" aria-label="Prompt técnico"></textarea>
+          <div class="action-row">
+            <button id="generate-prompt" type="button">GENERATE PROMPT TEMPLATE</button>
+            <button id="copy-prompt" type="button">COPY PROMPT</button>
+          </div>
+        </section>
+
+        <section class="panel registry-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">06 · REGISTRY</p>
+              <h2>ASSET CATALOG <span id="registry-count">0</span></h2>
+            </div>
+            <span class="muted">localStorage · {mach_girls_asset_catalog_v1}</span>
+          </div>
+          <div id="asset-registry" class="registry-list" aria-live="polite"></div>
+        </section>
+      </section>
+    </section>
+
+    <p class="studio-footer">
+      <strong>SHIPPING RULE:</strong> browser storage is an authoring/catalog layer. Final PNG shipping remains a static project asset.
+      <strong>COMBAT SAFE:</strong> this page never imports CombatEngine, CombatClock, Energy, Break, Burst, Telemetry or SaveManager.
+    </p>
+
+    <div id="asset-toast" class="toast" hidden role="status" aria-live="polite"></div>
+  </main>
+
+  <script src="./js/admin/asset_studio.js"></script>
+  <script>
+    const scaleInput = document.getElementById("asset-scale");
+    const scaleOutput = document.getElementById("asset-scale-output");
+    const updateScale = () => { scaleOutput.value = Number(scaleInput.value).toFixed(2); };
+    scaleInput.addEventListener("input", updateScale);
+    updateScale();
+  </script>
+</body>
+</html>
