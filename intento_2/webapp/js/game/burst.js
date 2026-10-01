@@ -11,27 +11,30 @@
   function maxChargeOf(combat) {
     return Math.max(
       1,
-      Number(combat?.resources?.burstMax || window.CombatBalance.BALANCE.burst.maxCharge)
+      Number(
+        combat?.resources?.burstMax ||
+        window.CombatBalance.BALANCE.burst.maxCharge
+      )
     );
-  }
-
-  function sync(combat) {
-    if (!combat?.resources) return combat;
-    const max = maxChargeOf(combat);
-    const charge = Math.min(max, Math.max(0, Number(combat.resources.burstCharge ?? combat.resources.burst) || 0));
-    combat.resources.burstCharge = charge;
-    combat.resources.burst = charge;
-    return combat;
   }
 
   function sync(combat) {
     if (!combat?.resources) return null;
     const max = maxChargeOf(combat);
-    combat.resources.burstMax = max;
-    combat.resources.burstCharge = Math.min(
+    const charge = Math.min(
       max,
-      Math.max(0, Number(combat.resources.burstCharge) || 0)
+      Math.max(
+        0,
+        Number(
+          combat.resources.burstCharge ??
+          combat.resources.burst ??
+          0
+        ) || 0
+      )
     );
+    combat.resources.burstMax = max;
+    combat.resources.burstCharge = charge;
+    combat.resources.burst = charge;
     return combat.resources;
   }
 
@@ -44,14 +47,13 @@
       chargeOf(combat) + Math.max(0, Number(amount) || 0)
     );
     sync(combat);
-    sync(combat);
     return combat.resources.burstCharge;
   }
 
   function canUse(combat) {
+    if (!combat) return false;
     sync(combat);
     return Boolean(
-      combat &&
       combat.outcome === window.GameState.OUTCOME.IN_PROGRESS &&
       chargeOf(combat) >= maxChargeOf(combat)
     );
@@ -77,7 +79,10 @@
 
   function multiplier(combat) {
     return isActive(combat)
-      ? Number(window.CombatBalance.BALANCE.break.vulnerabilityMultiplier || BREAK_DAMAGE_MULTIPLIER)
+      ? Number(
+          window.CombatBalance.BALANCE.break.vulnerabilityMultiplier ||
+          BREAK_DAMAGE_MULTIPLIER
+        )
       : 1;
   }
 
@@ -88,7 +93,9 @@
   function label(combat) {
     if (!combat) return "—";
     if (isActive(combat)) return "BURST WINDOW";
-    return canUse(combat) ? "BURST READY" : "CHARGING " + chargeOf(combat) + " / " + maxChargeOf(combat);
+    return canUse(combat)
+      ? "BURST READY"
+      : "CHARGING " + chargeOf(combat) + " / " + maxChargeOf(combat);
   }
 
   window.BurstSystem = Object.freeze({
