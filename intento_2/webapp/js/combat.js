@@ -44,6 +44,7 @@
     lastEnemyIntentKey: null
   };
   const combatTelemetry = new Map();
+  const handButtonCache = new Map();
 
   function nextEnemyId() {
     enemySequence += 1;
@@ -350,23 +351,43 @@
 
   function renderHand(combat) {
     if (!handEl) return;
-    handEl.replaceChildren();
-    if (!combat) return;
 
-    for (const card of combat.cards.hand) {
+    if (!combat) {
+      for (const button of handButtonCache.values()) button.remove();
+      handButtonCache.clear();
+      handEl.replaceChildren();
+      return;
+    }
+
+    const visibleIds = new Set();
+    combat.cards.hand.forEach((card, index) => {
       const definition = window.CombatEngine.cardDefinitionFor(combat, card.cardId);
-      if (!definition) continue;
+      if (!definition) return;
+
+      const cardInstanceId = String(card.instanceId);
+      visibleIds.add(cardInstanceId);
+
+      let button = handButtonCache.get(cardInstanceId);
+      if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.addEventListener("click", () => {
+          const currentCardInstanceId = button.dataset.cardInstanceId;
+          if (currentCardInstanceId) playCard(currentCardInstanceId);
+        });
+        handButtonCache.set(cardInstanceId, button);
+      }
+
+      button.className = "card-button card-" + definition.type.toLowerCase();
+      button.dataset.cardInstanceId = cardInstanceId;
+
       const cooldown = Number(combat.cooldowns[card.cardId] || 0);
       const disabled =
         combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS ||
         !window.EnergySystem.canSpend(combat.resources, definition.cost) ||
         cooldown > 0;
-
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "card-button card-" + definition.type.toLowerCase();
-      button.dataset.cardInstanceId = card.instanceId;
       button.disabled = disabled;
+
       const cooldownText = cooldown > 0
         ? "CD " + (cooldown / 1000).toFixed(1) + "s"
         : "READY";
@@ -375,8 +396,17 @@
         "<span class=\"card-cost\">⚡ " + definition.cost + "</span>" +
         "<small class=\"card-type\">" + definition.type + " SKILL · " + cooldownText + "</small>" +
         "<small>" + cardEffectText(definition) + " · " + definition.description + "</small>";
-      button.addEventListener("click", () => playCard(card.instanceId));
-      handEl.appendChild(button);
+
+      const currentChild = handEl.children[index] || null;
+      if (currentChild !== button) {
+        handEl.insertBefore(button, currentChild);
+      }
+    });
+
+    for (const [cardInstanceId, button] of handButtonCache) {
+      if (visibleIds.has(cardInstanceId)) continue;
+      button.remove();
+      handButtonCache.delete(cardInstanceId);
     }
   }
 

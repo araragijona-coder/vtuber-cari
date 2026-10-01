@@ -317,3 +317,219 @@ test("realtime telemetry hooks execute without interrupting fixed-step combat", 
   assert.ok(events.includes("break_ended"));
   assert.ok(events.includes("burst_used"));
 });
+
+test("realtime card hand reuses stable DOM nodes across renders", async () => {
+  class FakeElement {
+    constructor(tagName = "div") {
+      this.tagName = String(tagName).toUpperCase();
+      this.children = [];
+      this.dataset = {};
+      this.listeners = new Map();
+      this.className = "";
+      this.type = "";
+      this.disabled = false;
+      this.hidden = false;
+      this.innerHTML = "";
+      this.textContent = "";
+      this.attributes = {};
+      this.parentNode = null;
+    }
+
+    addEventListener(type, handler) {
+      if (!this.listeners.has(type)) this.listeners.set(type, []);
+      this.listeners.get(type).push(handler);
+    }
+
+    setAttribute(name, value) {
+      this.attributes[name] = String(value);
+    }
+
+    appendChild(child) {
+      if (child.parentNode) child.parentNode.removeChild(child);
+      child.parentNode = this;
+      this.children.push(child);
+      return child;
+    }
+
+    insertBefore(child, reference) {
+      if (child.parentNode) child.parentNode.removeChild(child);
+      child.parentNode = this;
+      if (reference === null || reference === undefined) {
+        this.children.push(child);
+      } else {
+        const index = this.children.indexOf(reference);
+        if (index < 0) this.children.push(child);
+        else this.children.splice(index, 0, child);
+      }
+      return child;
+    }
+
+    removeChild(child) {
+      const index = this.children.indexOf(child);
+      if (index >= 0) this.children.splice(index, 1);
+      child.parentNode = null;
+      return child;
+    }
+
+    remove() {
+      if (this.parentNode) this.parentNode.removeChild(this);
+    }
+
+    replaceChildren(...children) {
+      for (const child of [...this.children]) child.parentNode = null;
+      this.children = [];
+      for (const child of children) this.appendChild(child);
+    }
+
+    getBoundingClientRect() {
+      return { width: 320, height: 180 };
+    }
+
+    getContext() {
+      const noop = () => {};
+      return new Proxy({}, { get: () => noop });
+    }
+
+    click() {
+      for (const handler of this.listeners.get("click") || []) {
+        handler({ currentTarget: this, target: this });
+      }
+    }
+  }
+
+  const ids = [
+    "combat-canvas", "combat-status", "combat-result", "combat-player-hp",
+    "combat-player-block", "combat-player-statuses", "combat-player-auto",
+    "combat-enemy-name", "combat-enemy-hp", "combat-enemy-block",
+    "combat-enemy-break", "combat-enemy-statuses", "combat-enemy-intent",
+    "combat-enemy-auto", "combat-time", "combat-phase", "combat-last-action",
+    "combat-status-value", "combat-energy", "combat-energy-regen",
+    "combat-ability-status", "combat-burst", "combat-hand",
+    "start-battle", "burst-action", "character-ability", "restart-battle"
+  ];
+  const elements = Object.fromEntries(
+    ids.map((id) => [id, new FakeElement(id === "combat-canvas" ? "canvas" : "div")])
+  );
+
+  const context = vm.createContext({
+    window: {
+      SaveManager: { load: () => ({ save: { progression: {} } }) },
+      ProgressionSystem: { normalizeProgression: (value) => value || {} },
+      RocketBunnyTelemetry: {
+        beginCombat() {},
+        recordCombatAction() {},
+        completeCombat() {},
+        enemyAttackResolved() {},
+        breakStarted() {},
+        breakEnded() {},
+        enemyTelegraph() {},
+        burstUsed() {}
+      },
+      generateUUID: () => "test-battle-id",
+      cancelAnimationFrame() {},
+      requestAnimationFrame: () => 1,
+      addEventListener() {}
+    },
+    document: {
+      visibilityState: "visible",
+      activeElement: null,
+      getElementById: (id) => elements[id] || null,
+      createElement: (tagName) => new FakeElement(tagName),
+      addEventListener() {}
+    },
+    performance: { now: () => 0 },
+    console,
+    JSON,
+    Math,
+    Number,
+    String,
+    Object,
+    Array,
+    Set,
+    Error,
+    TypeError,
+    Infinity,
+    NaN
+  });
+
+  for (const path of [
+    "intento_2/webapp/js/game/balance.js",
+    "intento_2/webapp/js/game/rng.js",
+    "intento_2/webapp/js/game/cards.js",
+    "intento_2/webapp/js/game/enemies.js",
+    "intento_2/webapp/js/game/energy.js",
+    "intento_2/webapp/js/game/status.js",
+    "intento_2/webapp/js/game/abilities.js",
+    "intento_2/webapp/js/game/combat_clock.js",
+    "intento_2/webapp/js/game/auto_attack.js",
+    "intento_2/webapp/js/game/break.js",
+    "intento_2/webapp/js/game/burst.js",
+    "intento_2/webapp/js/game/state.js",
+    "intento_2/webapp/js/game/actions.js",
+    "intento_2/webapp/js/game/skill_resolver.js",
+    "intento_2/webapp/js/game/enemy_behavior.js",
+    "intento_2/webapp/js/game/rules.js",
+    "intento_2/webapp/js/game/enemy.js"
+  ]) {
+    vm.runInContext(await readFile(path, "utf8"), context, { filename: path });
+  }
+  vm.runInContext(await readFile("intento_2/webapp/js/combat.js", "utf8"), context, {
+    filename: "intento_2/webapp/js/combat.js"
+  });
+
+  context.window.CariCombat.startBattle();
+  const combat = context.window.CariCombat.getGameState().combat;
+  const hand = elements["combat-hand"];
+  const firstCard = combat.cards.hand[0];
+  const firstButton = hand.children.find((button) => button.dataset.cardInstanceId === firstCard.instanceId);
+  assert.ok(firstButton);
+
+  context.window.CariCombat.useAbility();
+  assert.equal(hand.children.find((button) => button.dataset.cardInstanceId === firstCard.instanceId), firstButton);
+
+  combat.resources.currentEnergy = 0;
+  context.window.CariCombat.useAbility();
+  assert.equal(hand.children.find((button) => button.dataset.cardInstanceId === firstCard.instanceId), firstButton);
+  assert.equal(firstButton.disabled, true);
+
+  combat.resources.currentEnergy = 100;
+  context.window.CariCombat.useAbility();
+  assert.equal(hand.children.find((button) => button.dataset.cardInstanceId === firstCard.instanceId), firstButton);
+  assert.equal(firstButton.disabled, false);
+
+  combat.cooldowns[firstCard.cardId] = 500;
+  context.window.CariCombat.useAbility();
+  assert.equal(hand.children.find((button) => button.dataset.cardInstanceId === firstCard.instanceId), firstButton);
+  assert.equal(firstButton.disabled, true);
+  assert.match(firstButton.innerHTML, /CD 0\.5s/);
+
+  delete combat.cooldowns[firstCard.cardId];
+  context.window.CariCombat.useAbility();
+  assert.equal(hand.children.find((button) => button.dataset.cardInstanceId === firstCard.instanceId), firstButton);
+  assert.equal(firstButton.disabled, false);
+  assert.match(firstButton.innerHTML, /READY/);
+
+  const originalIds = combat.cards.hand.map((card) => card.instanceId);
+  const replacement = { ...firstCard, instanceId: "replacement-card-instance" };
+  combat.cards.hand[0] = replacement;
+  context.window.CariCombat.useAbility();
+  const replacementButton = hand.children.find((button) => button.dataset.cardInstanceId === replacement.instanceId);
+  assert.ok(replacementButton);
+  assert.notEqual(replacementButton, firstButton);
+  assert.equal(hand.children.some((button) => button.dataset.cardInstanceId === firstCard.instanceId), false);
+  assert.deepEqual(combat.cards.hand.slice(1).map((card) => card.instanceId), originalIds.slice(1));
+
+  combat.cards.hand.shift();
+  context.window.CariCombat.useAbility();
+  assert.equal(hand.children.some((button) => button.dataset.cardInstanceId === replacement.instanceId), false);
+
+  combat.resources.currentEnergy = 100;
+  context.window.CariCombat.useAbility();
+  const clickableCard = combat.cards.hand[0];
+  const clickableButton = hand.children.find((button) => button.dataset.cardInstanceId === clickableCard.instanceId);
+  assert.ok(clickableButton);
+  assert.equal(clickableButton.listeners.get("click").length, 1);
+  clickableButton.click();
+  assert.equal(combat.lastAction?.actionType, "SKILL");
+  assert.equal(combat.lastAction?.cardId, clickableCard.cardId);
+});
