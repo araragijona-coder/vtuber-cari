@@ -1,0 +1,91 @@
+name: Phase 17A Combat Vertical Slice Validation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "intento_2/webapp/**"
+      - "tests/**"
+      - ".github/workflows/phase17a-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Phase 17A real checkout and full test suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify checkout identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          ACTUAL_HEAD="$(git rev-parse HEAD)"
+          echo "git rev-parse HEAD=$ACTUAL_HEAD"
+          test "$GITHUB_SHA" = "$ACTUAL_HEAD"
+
+      - name: Verify Phase 17A runtime contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f intento_2/webapp/index.html
+          test -f intento_2/webapp/js/game/status.js
+          test -f intento_2/webapp/js/game/abilities.js
+          node <<'NODE'
+          const fs = require("node:fs");
+          const index = fs.readFileSync("intento_2/webapp/index.html", "utf8");
+          const combat = fs.readFileSync("intento_2/webapp/js/combat.js", "utf8");
+          const rules = fs.readFileSync("intento_2/webapp/js/game/rules.js", "utf8");
+          const cards = fs.readFileSync("intento_2/webapp/js/game/cards.js", "utf8");
+          const requiredIds = [
+            "combat-player-hp",
+            "combat-player-block",
+            "combat-player-statuses",
+            "combat-energy",
+            "combat-enemy-hp",
+            "combat-enemy-block",
+            "combat-enemy-statuses",
+            "combat-enemy-intent",
+            "combat-turn",
+            "combat-hand",
+            "character-ability",
+            "end-turn"
+          ];
+          for (const id of requiredIds) {
+            if (!index.includes('id="' + id + '"')) throw new Error("Missing UI id: " + id);
+          }
+          for (const script of [
+            "./js/game/status.js",
+            "./js/game/abilities.js",
+            "./js/game/rules.js",
+            "./js/combat.js"
+          ]) {
+            if (!index.includes('<script src="' + script + '"></script>')) {
+              throw new Error("Missing script: " + script);
+            }
+          }
+          if (rules.includes("Math.random")) throw new Error("Combat rules contain Math.random");
+          if (cards.includes('type: "DEFEND"')) throw new Error("Card definitions still use DEFEND as a primary type");
+          if (combat.includes("setTimeout(runEnemyTurn, 260)")) {
+            throw new Error("Combat still auto-resolves enemy turn after each card");
+          }
+          console.log("Phase 17A runtime contract: PASS");
+          NODE
+
+      - name: Run all Node tests
+        shell: bash
+        run: node --test tests/*.test.mjs
