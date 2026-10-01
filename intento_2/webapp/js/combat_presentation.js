@@ -259,7 +259,12 @@
 
       context.fillStyle = shadow;
       context.beginPath();
-      context.roundRect(-w / 3, -4 * scale, w * .66, h * .55, 18 * scale);
+      context.moveTo(-w / 3 + 18 * scale, -4 * scale);
+      context.arcTo(w * .66 - w / 3, -4 * scale, w * .66 - w / 3, h * .55 - 4 * scale, 18 * scale);
+      context.arcTo(w * .66 - w / 3, h * .55 - 4 * scale, -w / 3, h * .55 - 4 * scale, 18 * scale);
+      context.arcTo(-w / 3, h * .55 - 4 * scale, -w / 3, -4 * scale, 18 * scale);
+      context.arcTo(-w / 3, -4 * scale, w * .66 - w / 3, -4 * scale, 18 * scale);
+      context.closePath();
       context.fill();
 
       context.fillStyle = main;
@@ -307,7 +312,7 @@
             ? "attack"
             : "idle";
 
-      const spriteSlot = " + """ + team + ".sprite"" + ";
+      const spriteSlot = team + ".sprite";
       const image = imageFor(spriteSlot);
       context.save();
       context.translate(stateForFighter.lunge, 0);
