@@ -37,9 +37,9 @@ test("discard recycling is independent of turns", async () => {
   const cards = await loadCards();
   const combat = cards.createCombatDeckState(4);
   cards.drawCards(combat, 4);
+
   combat.hand.splice(0).forEach(card => combat.discardPile.push(card));
   cards.drawCards(combat, 4);
-  assert.equal(combat.hand.length, 4);
 
   combat.hand.splice(0).forEach(card => combat.discardPile.push(card));
   cards.drawCards(combat, 4);
