@@ -42,7 +42,8 @@ test("battle exposes energy, autos and break state", async () => {
   const core = await loadCore();
   const state = core.GameState.createGameState();
   core.GameState.startBattle(state, { seed: 42 });
-  assert.equal(state.combat.resources.energy, 100);
+  assert.equal(state.combat.resources.energy, 35);
+  assert.equal(state.combat.resources.currentEnergy, 35);
   assert.equal(state.combat.resources.maxEnergy, 100);
   assert.ok(state.combat.player.autoAttack);
   assert.ok(state.combat.enemy.autoAttack);
