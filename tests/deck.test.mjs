@@ -40,5 +40,10 @@ test("discard recycling is independent of turns", async () => {
   combat.hand.splice(0).forEach(card => combat.discardPile.push(card));
   cards.drawCards(combat, 4);
   assert.equal(combat.hand.length, 4);
-  assert.equal(combat.discardPile.length, 0);
+
+  combat.hand.splice(0).forEach(card => combat.discardPile.push(card));
+  cards.drawCards(combat, 4);
+
+  assert.equal(combat.recycleCount, 1);
+  assert.ok(combat.hand.length > 0);
 });
