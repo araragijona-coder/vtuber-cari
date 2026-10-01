@@ -102,6 +102,47 @@
     };
   }
 
+  function attachEnergyAlias(resources) {
+    Object.defineProperty(resources, "currentEnergy", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        return Number(this.energy) || 0;
+      },
+      set(value) {
+        this.energy = Math.min(
+          Math.max(0, Number(this.maxEnergy) || 0),
+          Math.max(0, Number(value) || 0)
+        );
+      }
+    });
+    return resources;
+  }
+
+  function attachBreakAliases(enemy) {
+    Object.defineProperty(enemy, "breakCurrent", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        return Number(this.breakState?.current) || 0;
+      },
+      set(value) {
+        if (this.breakState) this.breakState.current = Math.max(0, Number(value) || 0);
+      }
+    });
+    Object.defineProperty(enemy, "breakMax", {
+      enumerable: true,
+      configurable: true,
+      get() {
+        return Number(this.breakState?.max) || 0;
+      },
+      set(value) {
+        if (this.breakState) this.breakState.max = Math.max(1, Number(value) || 1);
+      }
+    });
+    return enemy;
+  }
+
   function startBattle(state, config = {}) {
     if (!state || typeof state !== "object") throw new TypeError("GameState inválido.");
 
@@ -128,6 +169,7 @@
     );
 
     enemy.breakState = breakState;
+    attachBreakAliases(enemy);
 
     const energy = window.EnergySystem.createRealtimeEnergy({
       maxEnergy: window.CombatBalance.BALANCE.energy.maxEnergy,
@@ -155,9 +197,8 @@
       activeActor: "combat",
       lastAction: null,
       outcome: OUTCOME.IN_PROGRESS,
-      resources: {
+      resources: attachEnergyAlias({
         ...energy,
-        currentEnergy: energy.energy,
         burstCharge: 0,
         burstMax: 100,
         playerAbilityUses: 1
