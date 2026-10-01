@@ -107,6 +107,7 @@ test("cooldown prevents duplicate skill use until its logical timer expires", as
   const duplicateAction = w.GameActions.createPlayerSkillAction(state, duplicate.instanceId);
   assert.equal(w.CombatEngine.validateAction(state, duplicateAction).error, "SKILL_COOLDOWN");
   w.CombatEngine.advanceTime(state, 500);
+  state.combat.resources.currentEnergy = 100;
   const second = w.GameActions.createPlayerSkillAction(state, duplicate.instanceId);
   assert.equal(w.CombatEngine.validateAction(state, second).valid, true);
 });
@@ -125,7 +126,7 @@ test("defense creates temporal shield and absorbs real damage", async () => {
     simulationTick: state.combat.simulationTick
   });
   state.combat.enemyIntent = { type: "ATTACK", value: 40, label: "ATTACK 40", remainingMs: 0 };
-  const resolution = w.CombatEngine.resolveAction(state, action);
+  const resolution = w.CombatEngine.resolveEnemyAttack(state.combat, action, 40);
   assert.ok(resolution.blockAbsorbed > 0);
   assert.ok(state.combat.player.hp < before);
   assert.equal(state.combat.player.block, 0);
