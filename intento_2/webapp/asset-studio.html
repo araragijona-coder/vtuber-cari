@@ -244,6 +244,24 @@
             </label>
           </div>
 
+          <div class="preview-position-grid" aria-label="Combat stage positions">
+            <label class="field inline-field">
+              <span>Preview side</span>
+              <select id="preview-side">
+                <option selected>PLAYER</option>
+                <option>ENEMY</option>
+              </select>
+            </label>
+            <label class="field inline-field">
+              <span>Player X % <output id="preview-player-x-output">31</output></span>
+              <input id="preview-player-x" type="range" min="15" max="45" value="31">
+            </label>
+            <label class="field inline-field">
+              <span>Enemy X % <output id="preview-enemy-x-output">69</output></span>
+              <input id="preview-enemy-x" type="range" min="55" max="85" value="69">
+            </label>
+          </div>
+
           <div class="preview-stage">
             <canvas id="asset-canvas" aria-label="Preview de asset con anchor y safe area"></canvas>
           </div>

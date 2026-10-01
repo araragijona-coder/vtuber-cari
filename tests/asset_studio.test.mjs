@@ -185,4 +185,9 @@ test("asset studio does not depend on combat or player save systems", async () =
   assert.equal(html.includes('oninput='), false);
   assert.equal(js.includes("innerHTML"), false);
   assert.match(html, /<input id="asset-file" type="file"/);
+  assert.match(html, /id="preview-side"/);
+  assert.match(html, /id="preview-player-x"/);
+  assert.match(html, /id="preview-enemy-x"/);
+  assert.match(js, /preview\.playerX/);
+  assert.match(js, /preview\.enemyX/);
 });

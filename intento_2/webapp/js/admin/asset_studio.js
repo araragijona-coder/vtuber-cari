@@ -355,6 +355,11 @@
     assetId: document.getElementById("asset-id"),
     previewBackground: document.getElementById("preview-background"),
     cameraPreset: document.getElementById("camera-preset"),
+    previewSide: document.getElementById("preview-side"),
+    previewPlayerX: document.getElementById("preview-player-x"),
+    previewEnemyX: document.getElementById("preview-enemy-x"),
+    previewPlayerXOutput: document.getElementById("preview-player-x-output"),
+    previewEnemyXOutput: document.getElementById("preview-enemy-x-output"),
     animate: document.getElementById("preview-animate"),
     guide: document.getElementById("asset-guide"),
     validation: document.getElementById("asset-validation"),
@@ -742,6 +747,10 @@
 
   function drawAsset(width, height, t) {
     const camera = state.camera;
+    const focusedTeam = dom.previewSide.value === "ENEMY" ? "enemy" : "player";
+    const focusedX = width * (focusedTeam === "player" ? state.preview.playerX : state.preview.enemyX);
+    const opponentTeam = focusedTeam === "player" ? "enemy" : "player";
+    const opponentX = width * (opponentTeam === "player" ? state.preview.playerX : state.preview.enemyX);
     const pulse = .5 + .5 * Math.sin(t / 160);
     const animOffset = state.playing
       ? (dom.state.value === "IDLE" ? Math.sin(t / 330) * 5
@@ -755,7 +764,7 @@
 
     context.save();
     context.translate(
-      width / 2 + camera.offsetX + shake,
+      focusedX + camera.offsetX + (focusedTeam === "enemy" ? -shake : shake),
       height * .68 + camera.offsetY + (state.playing ? animOffset * .15 : 0)
     );
     context.scale(camera.zoom * state.current.scale, camera.zoom * state.current.scale);
@@ -801,6 +810,14 @@
     context.fill();
 
     context.restore();
+
+    drawPlaceholder(opponentTeam, opponentX, height * .68, 0.72, "idle");
+    context.fillStyle = focusedTeam === "player" ? "#6fb7ff" : "#ff648e";
+    context.font = "900 10px system-ui";
+    context.textAlign = "center";
+    context.fillText(focusedTeam.toUpperCase(), focusedX, height * .68 + 92);
+    context.fillStyle = opponentTeam === "player" ? "#6fb7ff" : "#ff648e";
+    context.fillText(opponentTeam.toUpperCase() + " · TECHNICAL PLACEHOLDER", opponentX, height * .68 + 92);
 
     if (dom.previewBackground.value === "COMBAT ARENA") {
       context.fillStyle = "rgba(255,255,255,.55)";
@@ -1132,6 +1149,19 @@
     });
 
     dom.type.addEventListener("change", applyAnchorPreset);
+
+    function syncPreviewPositionControls() {
+      state.preview.side = dom.previewSide.value === "ENEMY" ? "ENEMY" : "PLAYER";
+      state.preview.playerX = Number(dom.previewPlayerX.value) / 100;
+      state.preview.enemyX = Number(dom.previewEnemyX.value) / 100;
+      dom.previewPlayerXOutput.value = dom.previewPlayerX.value;
+      dom.previewEnemyXOutput.value = dom.previewEnemyX.value;
+      render();
+    }
+
+    dom.previewSide.addEventListener("change", syncPreviewPositionControls);
+    dom.previewPlayerX.addEventListener("input", syncPreviewPositionControls);
+    dom.previewEnemyX.addEventListener("input", syncPreviewPositionControls);
     dom.cameraPreset.addEventListener("change", () => applyCameraPreset(dom.cameraPreset.value));
     dom.animate.addEventListener("change", () => {
       state.playing = dom.animate.checked;
