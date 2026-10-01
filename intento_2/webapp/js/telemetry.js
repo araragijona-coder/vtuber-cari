@@ -90,6 +90,71 @@
     });
   }
 
+  function combatEvent(combat, eventName, payload = {}) {
+    if (!combat) return null;
+    return track(eventName, payload, {
+      combat_id: combat.battleId ?? null,
+      seed: combat.seed ?? combat.rngSeed ?? null,
+      rules_version: combat.rulesVersion ?? null,
+      deck_version: combat.deckVersion ?? null
+    });
+  }
+
+  function skillUsed(combat, action) {
+    return combatEvent(combat, "skill_used", {
+      card_id: action?.cardId ?? null,
+      energy_spent: action?.cost ?? null,
+      simulation_tick: action?.simulationTick ?? combat?.simulationTick ?? null
+    });
+  }
+
+  function energySpent(combat, amount, source = "SKILL") {
+    return combatEvent(combat, "energy_spent", {
+      amount: Number(amount) || 0,
+      source,
+      simulation_tick: combat?.simulationTick ?? null
+    });
+  }
+
+  function enemyTelegraph(combat, intent) {
+    return combatEvent(combat, "enemy_telegraph", {
+      type: intent?.type ?? null,
+      value: intent?.value ?? null,
+      started_tick: intent?.startedTick ?? combat?.simulationTick ?? null,
+      resolve_tick: intent?.resolveTick ?? null,
+      remaining_ticks: intent?.remainingTicks ?? null
+    });
+  }
+
+  function enemyAttackResolved(combat, resolution) {
+    return combatEvent(combat, "enemy_attack_resolved", {
+      damage: resolution?.damage ?? 0,
+      block_absorbed: resolution?.blockAbsorbed ?? 0,
+      simulation_tick: resolution?.simulationTick ?? combat?.simulationTick ?? null
+    });
+  }
+
+  function breakStarted(combat, resolution) {
+    return combatEvent(combat, "break_started", {
+      break_damage: resolution?.breakDamage ?? 0,
+      simulation_tick: resolution?.simulationTick ?? combat?.simulationTick ?? null
+    });
+  }
+
+  function breakEnded(combat) {
+    return combatEvent(combat, "break_ended", {
+      simulation_tick: combat?.simulationTick ?? null
+    });
+  }
+
+  function burstUsed(combat, resolution) {
+    return combatEvent(combat, "burst_used", {
+      damage: resolution?.damage ?? 0,
+      broken_payoff: Boolean(resolution?.brokenPayoff),
+      simulation_tick: resolution?.simulationTick ?? combat?.simulationTick ?? null
+    });
+  }
+
   function recordCombatAction(combat, action) {
     if (!combat || !action) return;
     track("battle_action", {
