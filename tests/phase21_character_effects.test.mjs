@@ -95,6 +95,15 @@ function start(w, characterId = "legacy") {
   return state;
 }
 
+function stabilizeTemporalTest(state) {
+  state.combat.player.hp = 999999;
+  state.combat.player.maxHp = 999999;
+  state.combat.enemy.hp = 999999;
+  state.combat.enemy.maxHp = 999999;
+  state.combat.player.autoAttack.cooldownMs = 999999;
+  state.combat.enemy.autoAttack.cooldownMs = 999999;
+}
+
 function useCard(w, state, cardId) {
   const card = state.combat.cards.hand.find((entry) => entry.cardId === cardId);
   assert.ok(card, "card must be in hand: " + cardId);
@@ -124,6 +133,7 @@ test("heal clamps at max HP and records an effect event", async () => {
 test("temporary buff applies with replace stacking and expires", async () => {
   const w = await loadCore();
   const state = start(w, "test_support");
+  stabilizeTemporalTest(state);
   const result = useCard(w, state, "support_sync");
   assert.equal(result.buffApplied.amount, 0.15);
   assert.equal(w.ModifierSystem.damageOutMultiplier(state.combat.player), 1.15);
@@ -187,6 +197,8 @@ test("damage reduction modifies incoming HP damage and expires", async () => {
   const w = await loadCore();
   const guarded = start(w, "test_support");
   const baseline = start(w, "test_support");
+  stabilizeTemporalTest(guarded);
+  stabilizeTemporalTest(baseline);
   useCard(w, guarded, "support_safety_field");
 
   const actionA = w.GameActions.createAction({
