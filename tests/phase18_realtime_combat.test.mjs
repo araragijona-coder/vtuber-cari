@@ -234,7 +234,7 @@ test("phase 18 telemetry exposes explicit combat lifecycle helpers", async () =>
 test("realtime telemetry hooks execute without interrupting fixed-step combat", async () => {
   const w = await loadCore();
   const telemetryContext = vm.createContext({
-    window: {},
+    window: { addEventListener() {} },
     document: {
       documentElement: { dataset: { gameVersion: "test" } },
       visibilityState: "visible",
