@@ -15,17 +15,29 @@
     );
   }
 
+  function sync(combat) {
+    if (!combat?.resources) return combat;
+    const max = maxChargeOf(combat);
+    const charge = Math.min(max, Math.max(0, Number(combat.resources.burstCharge ?? combat.resources.burst) || 0));
+    combat.resources.burstCharge = charge;
+    combat.resources.burst = charge;
+    return combat;
+  }
+
   function gain(combat, amount) {
     if (!combat?.resources) return 0;
+    sync(combat);
     const max = maxChargeOf(combat);
     combat.resources.burstCharge = Math.min(
       max,
       chargeOf(combat) + Math.max(0, Number(amount) || 0)
     );
+    sync(combat);
     return combat.resources.burstCharge;
   }
 
   function canUse(combat) {
+    sync(combat);
     return Boolean(
       combat &&
       combat.outcome === window.GameState.OUTCOME.IN_PROGRESS &&
@@ -35,9 +47,11 @@
 
   function activate(combat) {
     if (!canUse(combat)) throw new Error("BURST_UNAVAILABLE");
+    const chargeBefore = chargeOf(combat);
     combat.resources.burstCharge = 0;
+    sync(combat);
     return {
-      chargeBefore: maxChargeOf(combat),
+      chargeBefore,
       chargeAfter: 0
     };
   }
