@@ -61,7 +61,7 @@
       damage: 0, breakDamage: 0, cooldownMs: window.CombatBalance.card("espejo_urbano").cooldownMs,
       targeting: "self",
       description: "Shield corto; deja al enemigo EXPOSED.",
-      effects: Object.freeze({ block: 12, durationMs: 1200, applyStatus: "EXPOSED", statusDurationMs: 1500 })
+      effects: Object.freeze({ block: 12, durationMs: 1200, applyStatus: "EXPOSED", statusDurationMs: 1500, statusTarget: "enemy" })
     }),
     lectura_tactica: Object.freeze({
       id: "lectura_tactica", cardId: "lectura_tactica", name: "LECTURA TÁCTICA",

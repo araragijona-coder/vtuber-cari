@@ -389,7 +389,11 @@
         window.EnergySystem.gain(combat.resources, skillMeta.energyGain);
       }
       if (skillMeta.statusApplied) {
-        const receiver = definition.targeting === "self" ? actor : target;
+        const receiver = definition.effects?.statusTarget === "enemy"
+          ? combat.enemy
+          : definition.targeting === "self"
+            ? actor
+            : target;
         window.StatusSystem.applyTimedMs(receiver, skillMeta.statusApplied, skillMeta.statusDurationMs);
       }
       if (skillMeta.drawCount > 0) {
