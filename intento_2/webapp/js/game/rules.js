@@ -14,6 +14,23 @@
     return currentEnergy(combat);
   }
 
+  function emitCombatEvent(combat, type, payload = {}) {
+    if (!Array.isArray(combat.events)) combat.events = [];
+    const event = Object.freeze({
+      type: String(type),
+      tick: Number(combat.simulationTick || 0),
+      elapsedMs: Number(combat.elapsedMs || 0),
+      ...payload
+    });
+    combat.events.push(event);
+    return event;
+  }
+
+  function syncBurst(combat) {
+    if (window.BurstSystem?.sync) window.BurstSystem.sync(combat);
+    return combat?.resources?.burstCharge ?? 0;
+  }
+
   function cardDefinitionFor(combat, cardId) {
     const base = window.CardSystem.definitionFor(cardId);
     if (!base) return null;
