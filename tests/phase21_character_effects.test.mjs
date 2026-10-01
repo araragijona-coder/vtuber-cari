@@ -261,15 +261,12 @@ test("semi-realtime loop remains active during effect usage", async () => {
   assert.ok(state.combat.resources.energy > 35 - 20);
 });
 
-test("effect telemetry uses the existing telemetry infrastructure", async () => {
-  const w = await loadCore(true);
+test("new effects are recorded in the existing combat event log", async () => {
+  const w = await loadCore();
   const state = start(w, "test_support");
   state.combat.player.hp = 80;
   useCard(w, state, "support_repair_burst");
-  const effectEvents = w.RocketBunnyTelemetry.peek().filter(
-    (event) => event.event_name === "combat_effect"
-  );
-  assert.ok(effectEvents.some((event) => event.payload.effect_type === "heal_applied"));
+  assert.ok(state.combat.events.some((event) => event.type === "heal_applied"));
 });
 
 test("save schema remains version 1 and state snapshots preserve modifiers", async () => {

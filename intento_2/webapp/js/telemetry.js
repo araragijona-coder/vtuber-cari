@@ -155,14 +155,6 @@
     });
   }
 
-  function combatEffect(combat, effectType, payload = {}) {
-    return combatEvent(combat, "combat_effect", {
-      effect_type: String(effectType),
-      ...safePayload(payload),
-      simulation_tick: combat?.simulationTick ?? null
-    });
-  }
-
   function recordCombatAction(combat, action) {
     if (!combat || !action) return;
     track("battle_action", {
@@ -226,7 +218,6 @@
     breakStarted,
     breakEnded,
     burstUsed,
-    combatEffect,
     completeCombat,
     rewardReceived,
     progressionViewed,
