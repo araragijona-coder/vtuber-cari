@@ -757,6 +757,10 @@
     resolveSkill,
     resolveEnemyAttack,
     resolveAutoAttack,
+    activateBurst: (state) => resolveBurst(
+      state,
+      window.GameActions.createPlayerBurstAction(state)
+    ),
     rollDamage,
     checkOutcome: (combat) => {
       if (combat.player.hp <= 0) return OUTCOME.DEFEAT;
