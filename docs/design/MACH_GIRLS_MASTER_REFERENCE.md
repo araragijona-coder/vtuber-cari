@@ -1,5 +1,11 @@
 # Mach-Girls — Master Reference
 
+> **MASTER CURRENT DESIGN REFERENCE**
+>
+> Last synchronized against repository HEAD: `2824d599ccd6be5b1130304ccba81eb0c9d5b0c2` (`fix: expose player and enemy preview positions`).
+>
+> This synchronization records repository state only. The Asset Studio preview-position tooling in that commit does not change combat rules, character canon, Mach-Girls naming status, or Phase 14–16 evidence.
+
 ## 1. Status and purpose
 
 **Status:** MASTER CURRENT DESIGN REFERENCE
