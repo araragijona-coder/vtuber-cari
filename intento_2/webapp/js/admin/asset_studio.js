@@ -31,6 +31,37 @@
   const ANCHORS = Object.freeze(["FEET_CENTER", "CENTER", "HEAD", "CUSTOM"]);
   const STATUSES = Object.freeze(["DRAFT", "TECHNICAL_PLACEHOLDER", "APPROVED"]);
   const LAYERS = Object.freeze(["BACKGROUND", "ENVIRONMENT", "CHARACTER", "VEHICLE", "FX", "UI"]);
+  const SHOT_NAMES = Object.freeze([
+    "ESTABLISHING",
+    "PLAYER_FOCUS",
+    "COMPANION_LEFT_FOCUS",
+    "COMPANION_RIGHT_FOCUS",
+    "ENEMY_FOCUS",
+    "ATTACK_APPROACH",
+    "IMPACT",
+    "BREAK",
+    "BURST",
+    "VICTORY",
+    "DEFEAT"
+  ]);
+  const SCENE_ROLES = Object.freeze([
+    "",
+    "PLAYER",
+    "PLAYER_FOCUS",
+    "COMPANION_LEFT",
+    "COMPANION_RIGHT",
+    "ENEMY_PRIMARY",
+    "ENEMY_SECONDARY",
+    "ENEMY_FAR",
+    "FOREGROUND_LEFT",
+    "FOREGROUND_RIGHT"
+  ]);
+
+  function normalizeAllowedShots(value) {
+    const raw = Array.isArray(value) ? value : String(value || "").split(",");
+    const valid = raw.map((item) => String(item).trim().toUpperCase()).filter((item) => SHOT_NAMES.includes(item));
+    return [...new Set(valid.length ? valid : SHOT_NAMES)];
+  }
 
   const CAMERA_PRESETS = Object.freeze({
     DEFAULT: Object.freeze({ zoom: 1, offsetX: 0, offsetY: 0, durationMs: 0, shake: 0 }),
@@ -135,6 +166,17 @@
       layer: LAYERS.includes(String(input.layer || "").toUpperCase())
         ? String(input.layer).toUpperCase()
         : (type === "BACKGROUND" ? "BACKGROUND" : "CHARACTER"),
+      sceneRole: SCENE_ROLES.includes(String(input.sceneRole || "").toUpperCase())
+        ? String(input.sceneRole || "").toUpperCase()
+        : "",
+      depth: clamp(input.depth ?? ((type === "BACKGROUND" || type === "BACKGROUND_PLATE") ? 0.25 : 0.7), 0, 1),
+      baselineScale: clamp(input.baselineScale ?? input.scale ?? 1, 0.1, 4),
+      focusScale: clamp(input.focusScale ?? Math.max(0.1, Number(input.scale ?? 1) * 1.08), 0.1, 4),
+      focusOffsetX: clamp(input.focusOffsetX ?? 0, -500, 500),
+      focusOffsetY: clamp(input.focusOffsetY ?? 0, -500, 500),
+      allowedShots: normalizeAllowedShots(input.allowedShots),
+      foregroundPriority: clamp(input.foregroundPriority ?? 0, 0, 100),
+      backgroundPriority: clamp(input.backgroundPriority ?? 0, 0, 100),
       width: Math.max(0, Math.floor(finite(input.width))),
       height: Math.max(0, Math.floor(finite(input.height))),
       sizeBytes: Math.max(0, Math.floor(finite(input.sizeBytes))),
@@ -315,6 +357,8 @@
     ANCHORS,
     STATUSES,
     LAYERS,
+    SHOT_NAMES,
+    SCENE_ROLES,
     CAMERA_PRESETS,
     VFX,
     FORMAL_CHARACTER_IDS,
@@ -352,6 +396,15 @@
     offsetX: document.getElementById("asset-offset-x"),
     offsetY: document.getElementById("asset-offset-y"),
     layer: document.getElementById("asset-layer"),
+    sceneRole: document.getElementById("asset-scene-role"),
+    depth: document.getElementById("asset-depth"),
+    baselineScale: document.getElementById("asset-baseline-scale"),
+    focusScale: document.getElementById("asset-focus-scale"),
+    focusOffsetX: document.getElementById("asset-focus-offset-x"),
+    focusOffsetY: document.getElementById("asset-focus-offset-y"),
+    allowedShots: document.getElementById("asset-allowed-shots"),
+    foregroundPriority: document.getElementById("asset-foreground-priority"),
+    backgroundPriority: document.getElementById("asset-background-priority"),
     assetId: document.getElementById("asset-id"),
     previewBackground: document.getElementById("preview-background"),
     cameraPreset: document.getElementById("camera-preset"),
@@ -448,6 +501,15 @@
       offsetX: Number(dom.offsetX.value),
       offsetY: Number(dom.offsetY.value),
       layer: dom.layer.value,
+      sceneRole: dom.sceneRole?.value || "",
+      depth: Number(dom.depth?.value ?? state.current.depth),
+      baselineScale: Number(dom.baselineScale?.value ?? state.current.baselineScale),
+      focusScale: Number(dom.focusScale?.value ?? state.current.focusScale),
+      focusOffsetX: Number(dom.focusOffsetX?.value ?? state.current.focusOffsetX),
+      focusOffsetY: Number(dom.focusOffsetY?.value ?? state.current.focusOffsetY),
+      allowedShots: dom.allowedShots?.value || state.current.allowedShots,
+      foregroundPriority: Number(dom.foregroundPriority?.value ?? state.current.foregroundPriority),
+      backgroundPriority: Number(dom.backgroundPriority?.value ?? state.current.backgroundPriority),
       status: state.current.status,
       sourceType: state.source.kind,
       source: state.source.value,
@@ -472,6 +534,15 @@
     dom.offsetX.value = String(state.current.offsetX);
     dom.offsetY.value = String(state.current.offsetY);
     dom.layer.value = state.current.layer;
+    if (dom.sceneRole) dom.sceneRole.value = state.current.sceneRole;
+    if (dom.depth) dom.depth.value = String(Math.round(state.current.depth * 100));
+    if (dom.baselineScale) dom.baselineScale.value = String(state.current.baselineScale);
+    if (dom.focusScale) dom.focusScale.value = String(state.current.focusScale);
+    if (dom.focusOffsetX) dom.focusOffsetX.value = String(state.current.focusOffsetX);
+    if (dom.focusOffsetY) dom.focusOffsetY.value = String(state.current.focusOffsetY);
+    if (dom.allowedShots) dom.allowedShots.value = state.current.allowedShots.join(", ");
+    if (dom.foregroundPriority) dom.foregroundPriority.value = String(state.current.foregroundPriority);
+    if (dom.backgroundPriority) dom.backgroundPriority.value = String(state.current.backgroundPriority);
     dom.status.textContent = state.current.status;
     dom.sourceLabel.textContent = state.source.kind === "PLACEHOLDER"
       ? "TECHNICAL PLACEHOLDER"
@@ -1136,8 +1207,10 @@
 
     [
       dom.type, dom.entityId, dom.state, dom.angle, dom.facing, dom.flipX,
-      dom.scale, dom.anchor, dom.anchorX, dom.anchorY, dom.offsetX, dom.offsetY, dom.layer
-    ].forEach((element) => {
+      dom.scale, dom.anchor, dom.anchorX, dom.anchorY, dom.offsetX, dom.offsetY, dom.layer,
+      dom.sceneRole, dom.depth, dom.baselineScale, dom.focusScale, dom.focusOffsetX,
+      dom.focusOffsetY, dom.allowedShots, dom.foregroundPriority, dom.backgroundPriority
+    ].filter(Boolean).forEach((element) => {
       element.addEventListener("input", () => {
         updateGuide();
         render();
