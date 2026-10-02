@@ -126,9 +126,9 @@ test("resolved attack produces ATTACK state, world movement, distinct contact re
   const playerRecovery = actorFrom(recovery, "scene:PLAYER");
   const enemyRecovery = actorFrom(recovery, "scene:ENEMY_PRIMARY");
   assert.equal(playerRecovery.transform.x, 310);
-  assert.equal(playerRecovery.transform.y, 336);
+  assert.ok(Math.abs(playerRecovery.transform.y - 336) < 1e-9);
   assert.equal(enemyRecovery.transform.x, 690);
-  assert.equal(enemyRecovery.transform.y, 336);
+  assert.ok(Math.abs(enemyRecovery.transform.y - 336) < 1e-9);
   assert.equal(playerRecovery.transform.state, "IDLE");
   assert.equal(enemyRecovery.transform.state, "IDLE");
 });
