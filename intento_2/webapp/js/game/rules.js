@@ -31,6 +31,69 @@
     return combat?.resources?.burstCharge ?? 0;
   }
 
+  function presentationRoles(combat, action) {
+    const sourceRole = String(action?.actorId || "") === String(combat?.enemy?.id || "")
+      ? "ENEMY_PRIMARY"
+      : "PLAYER";
+    const targetRole = String(action?.targetId || "") === String(combat?.player?.id || "")
+      ? "PLAYER"
+      : "ENEMY_PRIMARY";
+    return { sourceRole, targetRole };
+  }
+
+  function emitAttackStart(combat, action, extra = {}) {
+    const roles = presentationRoles(combat, action);
+    return emitCombatEvent(combat, "ATTACK_START", {
+      actionId: String(action?.id || ""),
+      actionType: String(action?.type || ""),
+      sourceRole: roles.sourceRole,
+      targetRole: roles.targetRole,
+      simulationTick: Number(combat.simulationTick || 0),
+      elapsedMs: Number(combat.elapsedMs || 0),
+      characterId: String(combat?.player?.identity?.characterId || combat?.characterId || ""),
+      ...(action?.cardId ? { cardId: String(action.cardId) } : {}),
+      ...(extra.hitCount !== undefined ? { hitCount: Number(extra.hitCount) } : {})
+    });
+  }
+
+  function emitDamageApplied(combat, action, result = {}) {
+    const roles = presentationRoles(combat, action);
+    return emitCombatEvent(combat, "DAMAGE_APPLIED", {
+      actionId: String(action?.id || ""),
+      actionType: String(action?.type || ""),
+      sourceRole: roles.sourceRole,
+      targetRole: roles.targetRole,
+      simulationTick: Number(combat.simulationTick || 0),
+      elapsedMs: Number(combat.elapsedMs || 0),
+      ...(combat?.player?.identity?.characterId || combat?.characterId
+        ? { characterId: String(combat?.player?.identity?.characterId || combat?.characterId) }
+        : {}),
+      ...(action?.cardId ? { cardId: String(action.cardId) } : {}),
+      damage: Number(result.damage || 0),
+      breakDamage: Number(result.breakDamage || 0),
+      ...(result.hitIndex !== undefined ? { hitIndex: Number(result.hitIndex) } : {}),
+      ...(result.hitCount !== undefined ? { hitCount: Number(result.hitCount) } : {})
+    });
+  }
+
+  function emitBreakTrigger(combat, action, result = {}) {
+    const roles = presentationRoles(combat, action);
+    return emitCombatEvent(combat, "BREAK_TRIGGER", {
+      actionId: String(action?.id || ""),
+      actionType: String(action?.type || ""),
+      sourceRole: roles.sourceRole,
+      targetRole: roles.targetRole,
+      simulationTick: Number(combat.simulationTick || 0),
+      elapsedMs: Number(combat.elapsedMs || 0),
+      ...(combat?.player?.identity?.characterId || combat?.characterId
+        ? { characterId: String(combat?.player?.identity?.characterId || combat?.characterId) }
+        : {}),
+      ...(action?.cardId ? { cardId: String(action.cardId) } : {}),
+      damage: Number(result.damage || 0),
+      breakDamage: Number(result.breakDamage || 0)
+    });
+  }
+
   function emitEffectEvent(combat, type, payload = {}) {
     const event = emitCombatEvent(combat, type, payload);
     try {
@@ -241,6 +304,7 @@
       criticalChance: options.criticalChance ?? 0,
       criticalMultiplier: options.criticalMultiplier ?? 1.25
     };
+    emitAttackStart(combat, action);
     const rngStateBefore = combat.rng.state;
     const result = rollDamage(combat, actor, target, definition, options);
     combat.rng = Object.freeze({
@@ -254,6 +318,17 @@
       target,
       Number(options.breakDamage ?? definition.breakDamage ?? 0)
     );
+
+    emitDamageApplied(combat, action, {
+      damage: result.damage,
+      breakDamage: breakResult.applied
+    });
+    if (breakResult.broke) {
+      emitBreakTrigger(combat, action, {
+        damage: result.damage,
+        breakDamage: breakResult.applied
+      });
+    }
 
     if (actor === combat.player) {
       window.BurstSystem.gain(
@@ -383,6 +458,7 @@
     if (definition.type === window.CardSystem.CARD_TYPES.ATTACK) {
       const multiHit = skillMeta.multiHit;
       const hitCount = Math.max(1, Math.floor(Number(multiHit?.hits || 1)));
+      emitAttackStart(combat, action, { hitCount });
 
       for (let hitIndex = 0; hitIndex < hitCount; hitIndex += 1) {
         const hitDamage = Number(multiHit?.damagePerHit ?? definition.damage ?? 0);
@@ -391,6 +467,19 @@
         combat.rng = Object.freeze({ seed: combat.seed >>> 0, state: rolled.rng.state >>> 0 });
         const hp = applyDamage(target, rolled);
         const appliedBreak = applyBreak(combat, target, hitBreak);
+
+        emitDamageApplied(combat, action, {
+          damage: rolled.damage,
+          breakDamage: appliedBreak.applied,
+          hitIndex: hitIndex + 1,
+          hitCount
+        });
+        if (appliedBreak.broke) {
+          emitBreakTrigger(combat, action, {
+            damage: rolled.damage,
+            breakDamage: appliedBreak.applied
+          });
+        }
 
         damage += rolled.damage;
         rawDamage += rolled.rawDamage;
@@ -439,7 +528,15 @@
         window.StatusSystem.applyTimedMs(receiver, skillMeta.statusApplied, skillMeta.statusDurationMs);
       }
       if (skillMeta.drawCount > 0) window.CardSystem.drawCards(combat.cards, skillMeta.drawCount);
-      if (skillMeta.breakDamage > 0) breakResult = applyBreak(combat, target, skillMeta.breakDamage);
+      if (skillMeta.breakDamage > 0) {
+        breakResult = applyBreak(combat, target, skillMeta.breakDamage);
+        if (breakResult.broke) {
+          emitBreakTrigger(combat, action, {
+            damage: 0,
+            breakDamage: breakResult.applied
+          });
+        }
+      }
 
       if (skillMeta.healAmount > 0) {
         const healTarget = window.CombatEngine?.resolveTarget?.(combat, actor, definition, action.targetId) || actor;
@@ -546,6 +643,15 @@
     const target = combat.enemy;
     const chargeBefore = window.BurstSystem.chargeOf(combat);
     const wasBroken = window.BurstSystem.isActive(combat);
+    emitCombatEvent(combat, "BURST_START", {
+      actionId: String(action?.id || ""),
+      actionType: "BURST",
+      sourceRole: "PLAYER",
+      targetRole: "ENEMY_PRIMARY",
+      simulationTick: Number(combat.simulationTick || 0),
+      elapsedMs: Number(combat.elapsedMs || 0),
+      characterId: String(combat?.player?.identity?.characterId || combat?.characterId || "")
+    });
     window.BurstSystem.activate(combat);
 
     const rngStateBefore = combat.rng.state;
@@ -577,6 +683,17 @@
       target,
       Number(window.CombatBalance.BALANCE.burst.breakDamage || 24)
     );
+
+    emitDamageApplied(combat, action, {
+      damage: result.damage,
+      breakDamage: breakResult.applied
+    });
+    if (breakResult.broke) {
+      emitBreakTrigger(combat, action, {
+        damage: result.damage,
+        breakDamage: breakResult.applied
+      });
+    }
 
     finishIfNeeded(state);
 

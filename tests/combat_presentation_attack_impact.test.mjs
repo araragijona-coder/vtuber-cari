@@ -47,7 +47,25 @@ async function loadPresentation() {
   const canvas = { getBoundingClientRect: () => ({ width: 1000, height: 600 }) };
 
   const window = {
-    MachGirlsPresentationEvents: { create: () => ({ fromAction: () => null }) },
+    MachGirlsPresentationEvents: {
+      create: () => ({
+        fromAction: () => null,
+        fromCombatEvent: (event) => ({
+          type: { ATTACK_START: "ATTACK", DAMAGE_APPLIED: "IMPACT", BREAK_TRIGGER: "BREAK", BURST_START: "BURST" }[event.type] || null,
+          action: {
+            actionId: event.actionId,
+            actionType: event.actionType,
+            actorId: event.sourceRole,
+            targetId: event.targetRole,
+            source: event.sourceRole,
+            cardId: event.cardId || "",
+            damage: event.damage || 0,
+            breakDamage: event.breakDamage || 0,
+            hitCount: event.hitCount
+          }
+        })
+      })
+    },
     BreakSystem: { isBroken: () => false },
     BurstSystem: { canUse: () => false, chargeOf: () => 0, maxChargeOf: () => 100 }
   };
@@ -276,7 +294,25 @@ function createCombatEntrypointHarness(search = "?phase29=impulso") {
     location: { search },
     document,
     devicePixelRatio: 1,
-    MachGirlsPresentationEvents: { create: () => ({ fromAction: () => null }) },
+    MachGirlsPresentationEvents: {
+      create: () => ({
+        fromAction: () => null,
+        fromCombatEvent: (event) => ({
+          type: { ATTACK_START: "ATTACK", DAMAGE_APPLIED: "IMPACT", BREAK_TRIGGER: "BREAK", BURST_START: "BURST" }[event.type] || null,
+          action: {
+            actionId: event.actionId,
+            actionType: event.actionType,
+            actorId: event.sourceRole,
+            targetId: event.targetRole,
+            source: event.sourceRole,
+            cardId: event.cardId || "",
+            damage: event.damage || 0,
+            breakDamage: event.breakDamage || 0,
+            hitCount: event.hitCount
+          }
+        })
+      })
+    },
     requestAnimationFrame: () => 1,
     addEventListener() {},
     setTimeout() {}
@@ -741,4 +777,78 @@ test("phase29=impulso auto-starts real Yuri combat with Impulso Mach ready in th
   const enemy = actorFrom(foundation, "scene:ENEMY_PRIMARY");
   assert.equal(enemy.transform.state, "IDLE");
   assert.equal(enemy.transform.x, 690);
+});
+
+
+test("Phase 29-W emits ATTACK_START, DAMAGE_APPLIED and BREAK_TRIGGER only for real offensive results", async () => {
+  const { window } = await loadRealCombatPresentation();
+  const state = window.GameState.createGameState({ playerId: "phase29w-player" });
+  const character = window.CharacterKitSystem.definitionFor("yuri");
+  const enemy = window.EnemyCatalog.createEnemy("iron_guard");
+  window.GameState.startBattle(state, {
+    battleId: "phase29w-events",
+    seed: 291007,
+    player: { id: "phase29w-player", hp: 120, maxHp: 120, stats: { atk: 20, def: 5, skillDamage: 40 } },
+    enemy, characterId: "yuri", character, cardIds: window.CharacterKitSystem.cardIdsFor("yuri")
+  });
+
+  const attackCard = state.combat.cards.hand.find((entry) =>
+    entry.cardId === "yuri_racha_neon" || entry.cardId === "yuri_break_drive"
+  );
+  assert.ok(attackCard);
+  const attackAction = window.GameActions.createPlayerSkillAction(state, attackCard.instanceId);
+  window.CombatEngine.resolveAction(state, attackAction);
+  const attackEvents = state.combat.events.filter((event) => event.actionId === attackAction.id);
+  assert.equal(attackEvents.some((event) => event.type === "ATTACK_START"), true);
+  assert.equal(attackEvents.some((event) => event.type === "DAMAGE_APPLIED"), true);
+
+  const before = state.combat.events.length;
+  const support = state.combat.cards.hand.find((entry) => entry.cardId === "yuri_impulso_mach");
+  if (support && window.EnergySystem.canSpend(state.combat.resources, 20)) {
+    const supportAction = window.GameActions.createPlayerSkillAction(state, support.instanceId);
+    window.CombatEngine.resolveAction(state, supportAction);
+    const supportEvents = state.combat.events.slice(before).filter((event) => event.actionId === supportAction.id);
+    assert.equal(supportEvents.some((event) => event.type === "ATTACK_START"), false);
+    assert.equal(supportEvents.some((event) => event.type === "DAMAGE_APPLIED"), false);
+    assert.equal(supportEvents.some((event) => event.type === "BREAK_TRIGGER"), false);
+  }
+});
+
+test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINISH on recovery", async () => {
+  const { presentation, setNow } = await loadPresentation();
+  const combat = {
+    battleId: "phase29w-break",
+    outcome: "IN_PROGRESS",
+    player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
+    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100 } },
+    events: [
+      { type: "ATTACK_START", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive" },
+      { type: "DAMAGE_APPLIED", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 },
+      { type: "BREAK_TRIGGER", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 }
+    ]
+  };
+  presentation.onCombatStart(combat);
+  setNow(1000);
+  presentation.consumeCombatEvents(combat);
+  assert.equal(presentation.getShotState(1000).name, "BREAK");
+  assert.equal(actorFrom(presentation.getSceneFoundation(), "scene:ENEMY_PRIMARY").transform.state, "BREAK");
+
+  const burst = {
+    battleId: "phase29w-burst",
+    outcome: "IN_PROGRESS",
+    player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
+    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100 } },
+    events: [
+      { type: "BURST_START", actionId: "burst-1", actionType: "BURST", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri" },
+      { type: "DAMAGE_APPLIED", actionId: "burst-1", actionType: "BURST", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", damage: 24, breakDamage: 0 }
+    ]
+  };
+  const second = await loadPresentation();
+  second.presentation.onCombatStart(burst);
+  second.presentation.consumeCombatEvents(burst);
+  assert.equal(second.presentation.getShotState(0).name, "BURST");
+  second.setNow(2200);
+  second.presentation.render(burst, 2200);
+  assert.equal(second.presentation.getLastPresentationEvent().type, "BURST_FINISH");
+  assert.equal(second.presentation.getShotState(2200).name, "PLAYER_FOCUS");
 });

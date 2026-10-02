@@ -154,7 +154,9 @@
       presentationRecovery: null,
       visualFreezeStartsAt: 0,
       visualFreezeUntil: 0,
-      visualFreezeNow: 0
+      visualFreezeNow: 0,
+      presentationEventCursor: 0,
+      lastPresentationEvent: null
     };
 
     function rememberAction(actionId) {
@@ -337,10 +339,16 @@
     ]);
 
     function markPresentationTransient(kind, actionId) {
-      state.presentationRecovery = Object.freeze({
-        kind: String(kind || "ACTION"),
-        actionId: String(actionId || "")
-      });
+      const priorities = { ATTACK: 1, IMPACT: 2, BREAK: 3, BURST: 4 };
+      const nextKind = String(kind || "ACTION").toUpperCase();
+      const nextActionId = String(actionId || "");
+      const current = state.presentationRecovery;
+      if (
+        current &&
+        current.actionId === nextActionId &&
+        (priorities[current.kind] || 0) > (priorities[nextKind] || 0)
+      ) return;
+      state.presentationRecovery = Object.freeze({ kind: nextKind, actionId: nextActionId });
       state.presentationStyle = null;
     }
 
@@ -379,6 +387,12 @@
           : setCameraPreset(stableShot, false, now);
       }
 
+      if (state.presentationRecovery?.kind === "BURST") {
+        state.lastPresentationEvent = Object.freeze({
+          type: "BURST_FINISH",
+          actionId: state.presentationRecovery.actionId
+        });
+      }
       state.attackStyle = null;
       state.presentationRecovery = null;
       return true;
@@ -1351,6 +1365,8 @@ if (composition.identityLayer) {
       state.presentationRecovery = null;
       state.visualFreezeUntil = 0;
       state.visualFreezeNow = 0;
+      state.presentationEventCursor = 0;
+      state.lastPresentationEvent = null;
       state.combatId = combat?.battleId ? String(combat.battleId) : null;
       state.shotFrame = null;
       state.scene?.removeActor?.("scene:PLAYER");
@@ -1365,6 +1381,104 @@ if (composition.identityLayer) {
         setShot("ESTABLISHING", true);
       } else setCameraPreset("IDLE", true);
       loadApprovedCatalog(combat);
+    }
+
+    function onCombatEvent(combat, gameplayEvent) {
+      const presentationEvent = state.presentationEvents?.fromCombatEvent?.(gameplayEvent) || null;
+      if (!presentationEvent) return false;
+      const eventNow = performance.now();
+      const action = presentationEvent.action || {};
+      const sourceRole = action.actorId === "ENEMY_PRIMARY" ? "ENEMY_PRIMARY" : "PLAYER";
+      const targetRole = action.targetId === "PLAYER" ? "PLAYER" : "ENEMY_PRIMARY";
+      const actionId = String(gameplayEvent.actionId || action.actionId || "");
+
+      if (presentationEvent.type === "ATTACK") {
+        markPresentationTransient("ATTACK", actionId);
+        state.scene?.getActor?.("scene:" + sourceRole)?.setState("ATTACK", eventNow);
+        const characterId = String(gameplayEvent.characterId || combat?.player?.identity?.characterId || combat?.characterId || "");
+        const cardId = String(gameplayEvent.cardId || "");
+        const style = ATTACK_STYLE_CONTRACTS[cardId]?.characterId === characterId ? ATTACK_STYLE_CONTRACTS[cardId] : null;
+        scheduleMotion(sourceRole, style?.motion || {
+          dx: sourceRole === "PLAYER" ? 112 : -86,
+          dy: -9,
+          dz: sourceRole === "PLAYER" ? 0.04 : -0.04,
+          duration: 520
+        }, eventNow);
+        state.attackStyle = style ? Object.freeze({
+          styleId: style.styleId, characterId: style.characterId, abilityId: style.abilityId,
+          actionId, attackState: style.attackState,
+          hitCount: Number(gameplayEvent.hitCount || 1),
+          contactCount: Number(gameplayEvent.hitCount || 1),
+          cameraShot: style.cameraShot
+        }) : null;
+        state.shotDirector ? setShot(style?.cameraShot || "ATTACK_APPROACH") : setCameraPreset("ATTACK");
+        addEffect("attack", {
+          attacker: sourceRole === "PLAYER" ? "player" : "enemy",
+          targetTeam: targetRole === "PLAYER" ? "player" : "enemy",
+          intensity: .8, kind: "skill"
+        }, style?.motion?.duration || 500);
+        return true;
+      }
+
+      if (presentationEvent.type === "IMPACT") {
+        markPresentationTransient("IMPACT", actionId);
+        const targetTeam = targetRole === "PLAYER" ? "player" : "enemy";
+        const contactAt = eventNow + 110;
+        state.scene?.getActor?.("scene:" + targetRole)?.setState("HIT", contactAt);
+        scheduleMotion(targetRole, {
+          dx: targetRole === "ENEMY_PRIMARY" ? 52 : -52,
+          dy: -8, dz: 0.07,
+          rotation: targetRole === "ENEMY_PRIMARY" ? 0.07 : -0.07,
+          duration: 320
+        }, contactAt);
+        state.visualFreezeStartsAt = Math.min(state.visualFreezeStartsAt || contactAt, contactAt);
+        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, contactAt + 110);
+        state.visualFreezeNow = contactAt;
+        state.shotDirector ? setShot(action.actionType === "BURST" ? "BURST" : "IMPACT") : setCameraPreset(action.actionType === "BURST" ? "BURST" : "IMPACT");
+        addEffect("impact", {
+          targetTeam, targetId: gameplayEvent.targetRole,
+          damage: Number(gameplayEvent.damage || 0),
+          breakDamage: Number(gameplayEvent.breakDamage || 0),
+          delayMs: 110
+        }, 720);
+        emitAudio(targetTeam === "player" ? "enemyHit" : "impact", gameplayEvent);
+        return true;
+      }
+
+      if (presentationEvent.type === "BREAK") {
+        markPresentationTransient("BREAK", actionId);
+        state.motionTracks.delete("ENEMY_PRIMARY");
+        state.scene?.getActor?.("scene:ENEMY_PRIMARY")?.setState("BREAK", eventNow);
+        scheduleMotion("ENEMY_PRIMARY", { dx: 64, dy: -14, dz: 0.09, rotation: 0.095, duration: 500 }, eventNow);
+        state.visualFreezeStartsAt = eventNow;
+        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 120);
+        state.visualFreezeNow = eventNow;
+        state.shotDirector ? setShot("BREAK") : setCameraPreset("BREAK");
+        addEffect("break", {}, 840);
+        emitAudio("break", gameplayEvent);
+        return true;
+      }
+
+      if (presentationEvent.type === "BURST") {
+        markPresentationTransient("BURST", actionId);
+        state.scene?.getActor?.("scene:PLAYER")?.setState("BURST", eventNow);
+        scheduleMotion("PLAYER", { dx: 150, dy: -28, dz: -0.14, rotation: 0.075, scale: 0.06, duration: 620 }, eventNow);
+        state.shotDirector ? setShot("BURST") : setCameraPreset("BURST");
+        addEffect("burst", { damage: Number(gameplayEvent.damage || 0) }, 760);
+        emitAudio("burst", gameplayEvent);
+        return true;
+      }
+      return false;
+    }
+
+    function consumeCombatEvents(combat) {
+      if (!combat || !Array.isArray(combat.events)) return 0;
+      let consumed = 0;
+      while (state.presentationEventCursor < combat.events.length) {
+        const event = combat.events[state.presentationEventCursor++];
+        if (onCombatEvent(combat, event)) consumed += 1;
+      }
+      return consumed;
     }
 
     function onAction(combat, action) {
@@ -1757,6 +1871,7 @@ if (composition.identityLayer) {
       const height = rect.height || 1;
       state.viewport = { width, height };
       if (state.scene?.camera?.setViewportCenter) state.scene.camera.setViewportCenter(width, height);
+      consumeCombatEvents(combat);
       updateCamera(now, combat, width, height);
       const visualNow =
         now >= state.visualFreezeStartsAt && now < state.visualFreezeUntil
@@ -1800,6 +1915,8 @@ if (composition.identityLayer) {
     return Object.freeze({
       onCombatStart,
       onAction,
+      onCombatEvent,
+      consumeCombatEvents,
       render,
       setAsset,
       setAudioHooks,
@@ -1817,6 +1934,7 @@ if (composition.identityLayer) {
       getShotState: (now) => state.shotDirector?.getShotState?.(now) || null,
       getAttackStyleState: () => state.attackStyle ? { ...state.attackStyle } : null,
       getPresentationStyleState: () => state.presentationStyle ? { ...state.presentationStyle } : null,
+      getLastPresentationEvent: () => state.lastPresentationEvent ? { ...state.lastPresentationEvent } : null,
       slotForCatalogRecord,
       getCameraState: () => state.scene?.camera?.getState?.() || null,
       getAsset: assetFor

@@ -335,7 +335,9 @@
         type: action.actionType
       });
 
-      presentation?.onAction(combat, action);
+      if (!hasCinematicPresentationEvent(combat, action.actionId)) {
+        presentation?.onAction(combat, action);
+      }
 
       if (action.actionType === "AUTO_ATTACK" && action.source === "ENEMY_AUTO_ATTACK") {
         window.RocketBunnyTelemetry?.enemyAttackResolved(combat, action);
@@ -420,8 +422,17 @@
     metrics.cards[cardId] = (metrics.cards[cardId] || 0) + 1;
   }
 
-  function showResult(resolution, combat) {
-    presentation?.onAction(combat, resolution);
+  function hasCinematicPresentationEvent(combat, actionId) {
+    if (!combat || !actionId || !Array.isArray(combat.events)) return false;
+    return combat.events.some((event) =>
+      String(event?.actionId || "") === String(actionId) &&
+      ["ATTACK_START", "DAMAGE_APPLIED", "BREAK_TRIGGER", "BURST_START"].includes(String(event?.type || "").toUpperCase())
+    );
+  }
+
+  function showResult(resolution, combat) {    if (resolution && !hasCinematicPresentationEvent(combat, resolution.actionId)) {
+      presentation?.onAction(combat, resolution);
+    }
     if (resultEl) {
       const parts = [];
       if (resolution?.critical) parts.push("CRÍTICO");

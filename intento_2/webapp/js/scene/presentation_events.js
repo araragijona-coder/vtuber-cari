@@ -28,9 +28,37 @@
     return { type: "STATE_CHANGE", action };
   }
 
+  function fromCombatEvent(event) {
+    if (!event) return null;
+    const type = String(event.type || "").toUpperCase();
+    const presentationType = {
+      ATTACK_START: "ATTACK",
+      DAMAGE_APPLIED: "IMPACT",
+      BREAK_TRIGGER: "BREAK",
+      BURST_START: "BURST"
+    }[type];
+    if (!presentationType) return null;
+
+    const action = Object.freeze({
+      actionId: String(event.actionId || ""),
+      actionType: String(event.actionType || ""),
+      actorId: String(event.sourceRole || ""),
+      targetId: String(event.targetRole || ""),
+      source: String(event.sourceRole || ""),
+      cardId: String(event.cardId || ""),
+      characterId: String(event.characterId || ""),
+      damage: Number(event.damage || 0),
+      breakDamage: Number(event.breakDamage || 0),
+      hitIndex: event.hitIndex === undefined ? undefined : Number(event.hitIndex),
+      hitCount: event.hitCount === undefined ? undefined : Number(event.hitCount)
+    });
+    return Object.freeze({ type: presentationType, phase: type, action, gameplayEvent: event });
+  }
+
   function create() {
     return Object.freeze({
       fromAction,
+      fromCombatEvent,
       isKnownType: (type) => TYPES.includes(String(type || "").toUpperCase())
     });
   }
