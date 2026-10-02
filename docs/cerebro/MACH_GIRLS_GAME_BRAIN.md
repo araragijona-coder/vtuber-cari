@@ -485,3 +485,48 @@ Mach-Girls combat remains a complete 2.5D battle stage, not a minimal two-sprite
 Phase 27 extends Asset Studio staging metadata so user-produced PNGs can later carry scene role, depth, baseline/focus scale, focus offsets and allowed shots while retaining the existing human approval gate.
 
 Phase 25 live visual runtime remains `NOT VERIFIED` until an evidence-producing browser gate completes; Phase 27 implementation status must not be used as runtime visual proof.
+
+
+## Master 2.5D migration strategy
+
+The current implementation strategy is:
+
+> **PRESERVE THE BRAIN, RETIRE THE CURRENT SKIN, BUILD A NEW 2.5D PRESENTATION LAYER.**
+
+Authoritative detail:
+[docs/cerebro/MACH_GIRLS_2_5D_MIGRATION_STRATEGY.md](MACH_GIRLS_2_5D_MIGRATION_STRATEGY.md)
+
+Preserve and reuse the existing gameplay brain, data, AI, balance, RNG, cards, Energy, cooldowns, BREAK, BURST and other established systems. Do not restart the project and do not create uncontrolled duplicate systems.
+
+The old presentation may be retired from the runtime path progressively once its responsibilities are replaced and verified. Old presentation code should not be deleted blindly.
+
+`combat.js` remains protected as a dependency map until its responsibilities can be safely separated. The new architecture should converge toward:
+
+```
+GAMEPLAY
+→ controller / state / actions / resolver
+
+PRESENTATION
+→ scene / renderer / world-space actors / camera / animation / VFX / Shot Director
+
+UI
+→ HUD / cards / menus
+```
+
+When implementation begins, a dedicated migration branch such as `mach-girls-2.5d` may be used to keep the existing `main` recoverable while the new presentation is validated. This is a migration branch, not a second uncontrolled project.
+
+The first required vertical slice remains intentionally small:
+
+```
+1 PLAYER
+1 MOTORCYCLE
+1 ENEMY
+1 BACKGROUND
+1 CAMERA
+1 ATTACK
+1 BREAK
+1 BURST
+```
+
+Do not expand content until this slice demonstrates the intended game-like scene behavior.
+
