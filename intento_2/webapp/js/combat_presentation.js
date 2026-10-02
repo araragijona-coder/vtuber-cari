@@ -448,8 +448,10 @@
       context.translate(x, y + bob);
       if (mode === "hurt") context.translate((enemy ? -1 : 1) * -5 * scale, 0);
       if (mode === "attack") context.translate((enemy ? -1 : 1) * 7 * scale, 0);
-      if (mode === "defeat") context.rotate(enemy ? -.04 : .04);
-      if (mode === "victory") context.rotate(enemy ? .03 : -.03);
+      if (typeof context.rotate === "function") {
+        if (mode === "defeat") context.rotate(enemy ? -.04 : .04);
+        if (mode === "victory") context.rotate(enemy ? .03 : -.03);
+      }
       context.globalAlpha = .22;
       context.fillStyle = "#000000";
       context.beginPath();
@@ -507,7 +509,7 @@
       const bob = Math.sin(now / 260) * 1.5 * scale;
       context.save();
       context.translate(x, y + bob);
-      context.rotate(lean);
+      if (typeof context.rotate === "function") context.rotate(lean);
       context.globalAlpha = .9;
       context.strokeStyle = "rgba(0,0,0,.7)";
       context.lineWidth = 5 * scale;
