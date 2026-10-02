@@ -199,8 +199,22 @@
     const warnings = [];
     const needsCharacter = ["CHARACTER", "PORTRAIT"].includes(meta.type);
 
-    if (!meta.entityId && needsCharacter) errors.push("CHARACTER/PORTRAIT requiere entityId.");
-    if (needsCharacter && meta.entityId && !FORMAL_CHARACTER_IDS.has(meta.entityId)) {
+    const sceneRole = String(meta.sceneRole || "").toUpperCase();
+    const sceneStagingRole = [
+      "COMPANION_LEFT",
+      "COMPANION_RIGHT",
+      "ENEMY_PRIMARY",
+      "ENEMY_SECONDARY",
+      "ENEMY_FAR",
+      "FOREGROUND_LEFT",
+      "FOREGROUND_RIGHT"
+    ].includes(sceneRole);
+    const formalCharacterScope = needsCharacter && (!sceneRole || sceneRole === "PLAYER" || sceneRole === "PLAYER_FOCUS");
+
+    if (!meta.entityId && needsCharacter && !sceneStagingRole) {
+      errors.push("CHARACTER/PORTRAIT requiere entityId o un sceneRole de staging.");
+    }
+    if (formalCharacterScope && meta.entityId && !FORMAL_CHARACTER_IDS.has(meta.entityId)) {
       errors.push("entityId no corresponde a un personaje formalmente registrado; Yuri es el único ID actual permitido.");
     }
 
