@@ -344,3 +344,19 @@ HISTORICAL CONTEXT
 EXTERNAL CONTEXT
 → WEB RESEARCH
 ```
+
+
+## Phase 25 verification snapshot — 2026-10-02
+
+The Phase 25 implementation was validated by the permanent `Rocket Bunny Runtime Tests` workflow at commit `9e84f8a9b0e8511f3f39f51a6e526030dcd0ae47`.
+
+```text
+149 tests
+149 pass
+0 fail
+CI = SUCCESS
+```
+
+The deployed GitHub Pages root exposes the promoted combat timer and scene-state HUD in the served page. The single authorized Browser/Fish combat QA pass did not complete the requested battle interaction, so visual runtime behavior and screenshots remain NOT VERIFIED by that gate.
+
+Final character and motorcycle art remain technical placeholders / approval-gated.
