@@ -114,7 +114,7 @@
       audioHooks: Object.create(null),
       combatId: null,
       composition: {
-        player: { characterScale: 1, motorcycleScale: .82, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true },
+        player: { characterScale: 1, motorcycleScale: .98, motorcycleOffsetX: 0, motorcycleOffsetY: 34, identityLayer: true },
         enemy: { characterScale: 1, motorcycleScale: .78, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true }
       },
       shotFrame: {
@@ -346,7 +346,7 @@
             id: "scene:PLAYER:MOTORCYCLE",
             role: "MOTORCYCLE",
             layer: "ACTORS",
-            transform: { x: 0, y: 18, z: 0, scale: .82, state: "IDLE", visible: true, anchor: "FEET_CENTER", assetRef: "player.motorcycle" }
+            transform: { x: 0, y: 34, z: 0, scale: .98, state: "IDLE", visible: true, anchor: "FEET_CENTER", assetRef: "player.motorcycle" }
           }));
           actor.attachChild(window.MachGirlsActor.create({
             id: "scene:PLAYER:SHADOW",
@@ -899,7 +899,6 @@
       };
       drawFoundationShadow(team, actorPoint, baseScale);
       context.translate(stateForFighter.lunge, 0);
-      drawMotorcycle(team, actorPoint, baseScale, mode, now);
       if (image) {
         const imageWidth = 190 * scale;
         const imageHeight = 224 * scale;
@@ -908,7 +907,8 @@
       } else {
         drawPlaceholderFighter(team, fighter, point.x, point.y, scale, mode, now);
       }
-      if (composition.identityLayer) {
+      drawMotorcycle(team, actorPoint, baseScale, mode, now);
+if (composition.identityLayer) {
         context.fillStyle = team === "enemy" ? "rgba(255,100,142,.16)" : "rgba(111,183,255,.16)";
         context.beginPath();
         context.arc(point.x, point.y - 68 * scale, 82 * scale, 0, Math.PI * 2);
@@ -1013,13 +1013,17 @@
       if (effect.blockAbsorbed > 0) drawText("BLOCK " + effect.blockAbsorbed, point.x, point.y - 92, 12, "900", "center", "#6ee8d3", alpha);
       if (effect.breakDamage > 0) drawText("BRK -" + effect.breakDamage, point.x, point.y - 78, 10, "900", "center", "#ffb24d", alpha);
       if (effect.damageReductionApplied > 0) drawText("DR -" + effect.damageReductionApplied, point.x, point.y - 62, 10, "900", "center", "#8df1e1", alpha);
-      const radius = 24 + p * 30;
-      context.strokeStyle = "rgba(255,255,255," + (.42 * alpha) + ")";
-      context.lineWidth = Math.max(1, 4 * alpha);
+      const radius = 28 + p * 42;
+      context.fillStyle = "rgba(255,255,255," + (.18 * alpha) + ")";
+      context.beginPath();
+      context.arc(point.x, point.y - 54, Math.max(18, radius * .58), 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = "rgba(255,255,255," + (.62 * alpha) + ")";
+      context.lineWidth = Math.max(2, 6 * alpha);
       context.beginPath();
       context.arc(point.x, point.y - 54, radius, 0, Math.PI * 2);
       context.stroke();
-      const sparks = effect.damage > 0 ? 8 : 4;
+      const sparks = effect.damage > 0 ? 12 : 6;
       for (let i = 0; i < sparks; i += 1) {
         const angle = (Math.PI * 2 * i) / sparks + .3;
         const inner = 18 + p * 8;
@@ -1236,7 +1240,7 @@
       state.scene?.removeActor?.("scene:PLAYER");
       state.scene?.removeActor?.("scene:ENEMY_PRIMARY");
       state.composition = {
-        player: { characterScale: 1, motorcycleScale: .82, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true },
+        player: { characterScale: 1, motorcycleScale: .98, motorcycleOffsetX: 0, motorcycleOffsetY: 34, identityLayer: true },
         enemy: { characterScale: 1, motorcycleScale: .78, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true }
       };
       if (state.shotDirector) {
@@ -1271,32 +1275,32 @@
       ) {
         scheduleMotion(
           sourceRole,
-          { dx: sourceRole === "PLAYER" ? 82 : -62, dy: -7, dz: sourceRole === "PLAYER" ? 0.03 : -0.03, duration: 300 },
+          { dx: sourceRole === "PLAYER" ? 112 : -86, dy: -9, dz: sourceRole === "PLAYER" ? 0.04 : -0.04, duration: 520 },
           eventNow
         );
       }
       if (presentationEvent?.type === "IMPACT") {
         scheduleMotion(
           targetRole,
-          { dx: targetRole === "ENEMY_PRIMARY" ? 42 : -42, dy: -6, dz: 0.06, rotation: targetRole === "ENEMY_PRIMARY" ? 0.055 : -0.055, duration: 220 },
+          { dx: targetRole === "ENEMY_PRIMARY" ? 52 : -52, dy: -8, dz: 0.07, rotation: targetRole === "ENEMY_PRIMARY" ? 0.07 : -0.07, duration: 320 },
           eventNow
         );
-        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 72);
+        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 110);
         state.visualFreezeNow = eventNow;
       }
       if (presentationEvent?.type === "BREAK") {
         scheduleMotion(
           "ENEMY_PRIMARY",
-          { dx: 54, dy: -12, dz: 0.08, rotation: 0.085, duration: 440 },
+          { dx: 64, dy: -14, dz: 0.09, rotation: 0.095, duration: 500 },
           eventNow
         );
-        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 92);
+        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 120);
         state.visualFreezeNow = eventNow;
       }
       if (presentationEvent?.type === "BURST") {
         scheduleMotion(
           "PLAYER",
-          { dx: 126, dy: -24, dz: -0.12, rotation: 0.065, scale: 0.05, duration: 480 },
+          { dx: 150, dy: -28, dz: -0.14, rotation: 0.075, scale: 0.06, duration: 620 },
           eventNow
         );
       }
@@ -1323,7 +1327,7 @@
           targetTeam,
           intensity: actionType === "AUTO_ATTACK" ? .35 : .55,
           kind: "auto"
-        }, 330);
+        }, 420);
         emitAudio(attacker === "enemy" ? "enemyAttack" : "autoAttack", action);
       }
 
@@ -1340,7 +1344,7 @@
             }, 320);
             addEffect("trail", {
               attacker: "player", targetTeam: "enemy", intensity: .72, delayMs: index * 90
-            }, 260);
+            }, 420);
             addEffect("impact", {
               targetTeam: "enemy", targetId: action.targetId,
               damage: Number(hit.damage || 0),
@@ -1348,14 +1352,14 @@
               breakDamage: Number(hit.breakDamage || 0),
               critical: Boolean(hit.critical),
               delayMs: index * 90 + 110
-            }, 440);
+            }, 600);
           });
           emitAudio("skill", action);
         } else if (action.damage > 0) {
           addEffect("attack", {
             attacker: "player", targetTeam: "enemy",
             intensity: .8, kind: "skill"
-          }, 360);
+          }, 500);
           emitAudio("skill", action);
         } else if (skillType === "defense") {
           addEffect("shield", {
@@ -1377,7 +1381,7 @@
           breakDamage: Number(action.breakDamage || 0),
           critical: Boolean(action.critical),
           damageReductionApplied: Number(action.damageReductionApplied || 0)
-        }, 560);
+        }, 720);
         emitAudio(targetTeam === "player" ? "enemyHit" : "impact", action);
       }
 
