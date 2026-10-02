@@ -40,6 +40,8 @@
   const burstBannerEl = document.getElementById("combat-burst-banner");
   const startButton = document.getElementById("start-battle");
   const restartButton = document.getElementById("restart-battle");
+  const combatTimerEl = document.getElementById("combat-timer");
+  const combatSceneStateEl = document.getElementById("combat-scene-state");
 
   const presentation = window.CombatPresentation?.create?.(canvas, context) || null;
   let battleSequence = 0;
@@ -71,6 +73,13 @@
 
   function setHidden(element, hidden) {
     if (element) element.hidden = Boolean(hidden);
+  }
+
+  function formatCombatTimer(elapsedMs) {
+    const totalSeconds = Math.max(0, Math.floor(Number(elapsedMs || 0) / 1000));
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+    const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+    return minutes + ":" + seconds;
   }
 
   function iconForIntent(type) {
@@ -429,10 +438,12 @@
         !window.EnergySystem.canSpend(combat.resources, definition.cost) ||
         cooldown > 0;
       const cooldownText = cooldown > 0 ? "CD " + (cooldown / 1000).toFixed(1) + "s" : "READY";
+      const ownerId = definition.characterId || "TEAM";
       const signature = [
         definition.name,
         definition.type,
         definition.cost,
+        ownerId,
         cardEffectText(definition),
         definition.description,
         cooldownText,
@@ -456,6 +467,7 @@
           "<span class='card-glyph' aria-hidden='true'>" + visual.glyph + "</span>" +
           "<span class='card-main'><strong>" + definition.name + "</strong><span class='card-role'>" + visual.role + "</span></span>" +
           "<span class='card-cost'>⚡ " + definition.cost + "</span>" +
+          "<span class='card-owner'>" + ownerId.toUpperCase() + "</span>" +
           "<span class='card-description'>" + definition.description + "</span>" +
           "<span class='card-effect'>" + cardEffectText(definition) + "</span>" +
           "<span class='card-cooldown'>" + cooldownText + "</span>";
@@ -478,6 +490,19 @@
     const combat = game?.combat;
     const outcome = combat?.outcome || null;
     const ability = window.CharacterAbilitySystem?.definition?.();
+
+    const sceneTimer = combat ? formatCombatTimer(combat.elapsedMs) : "00:00";
+    const sceneState = !combat
+      ? "READY"
+      : outcome === window.GameState.OUTCOME.VICTORY
+        ? "VICTORY"
+        : outcome === window.GameState.OUTCOME.DEFEAT
+          ? "DEFEAT"
+          : broken
+            ? "BREAK"
+            : "LIVE";
+    setText(combatTimerEl, sceneTimer);
+    setText(combatSceneStateEl, sceneState);
 
     setText(playerHpEl, combat ? Math.ceil(combat.player.hp) + " / " + combat.player.maxHp : "—");
     setBar(playerHpFillEl, combat?.player?.hp, combat?.player?.maxHp);
