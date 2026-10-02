@@ -1412,6 +1412,11 @@ if (composition.identityLayer) {
           (String(definition?.type || "").toUpperCase() === "ATTACK" || hasContactPayload)) ||
         (actionType === "ABILITY" && hasContactPayload);
       const isAttackPresentation = presentationEvent?.type === "ATTACK" && isAttackAction;
+      const isImpactPresentation =
+        presentationEvent?.type === "IMPACT" ||
+        Number(action.damage || 0) > 0 ||
+        Number(action.blockAbsorbed || 0) > 0 ||
+        Number(action.breakDamage || 0) > 0;
 
       if (isAttackPresentation) markPresentationTransient("ATTACK", action.actionId);
       if (isImpactPresentation) markPresentationTransient("IMPACT", action.actionId);
@@ -1421,11 +1426,6 @@ if (composition.identityLayer) {
       if (presentationEvent && (presentationEvent.type !== "ATTACK" || isAttackPresentation)) {
         applyPresentationEvent(combat, presentationEvent, eventNow);
       }
-      const isImpactPresentation =
-        presentationEvent?.type === "IMPACT" ||
-        Number(action.damage || 0) > 0 ||
-        Number(action.blockAbsorbed || 0) > 0 ||
-        Number(action.breakDamage || 0) > 0;
 
       if (isAttackPresentation) {
         state.scene.getActor("scene:" + sourceRole)?.setState(
