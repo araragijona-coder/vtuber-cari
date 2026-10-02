@@ -88,6 +88,11 @@
   }
 
   function create(canvas, context) {
+    const sceneCamera = window.MachGirlsSceneCamera?.create?.({ x: 600, y: 350 }) || null;
+    const scene = window.MachGirlsScene?.create?.({ camera: sceneCamera }) || null;
+    const sceneRenderer = window.MachGirlsSceneRenderer?.create?.({ context, camera: sceneCamera }) || null;
+    const presentationEvents = window.MachGirlsPresentationEvents?.create?.() || null;
+
     const state = {
       effects: [],
       seenActions: new Map(),
@@ -101,7 +106,10 @@
         telegraph: Object.create(null),
         scene: Object.create(null)
       },
-      shotDirector: window.MachGirlsShotDirector?.create?.({ stageSeed: "mach-girls-phase27" }) || null,
+      shotDirector: window.MachGirlsShotDirector?.create?.({ stageSeed: "mach-girls-phase28" }) || null,
+      scene,
+      sceneRenderer,
+      presentationEvents,
       imageCache: new Map(),
       audioHooks: Object.create(null),
       combatId: null,
@@ -109,12 +117,8 @@
         player: { characterScale: 1, motorcycleScale: .82, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true },
         enemy: { characterScale: 1, motorcycleScale: .78, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true }
       },
-      camera: {
-        active: "IDLE",
-        current: { ...CAMERA_PRESETS.IDLE },
-        target: { ...CAMERA_PRESETS.IDLE },
-        startedAt: performance.now(),
-        until: 0
+      shotFrame: {
+        current: { ...CAMERA_PRESETS.IDLE }
       }
     };
 
@@ -195,60 +199,92 @@
     function setCameraPreset(name, instant = false, now = performance.now()) {
       const key = Object.prototype.hasOwnProperty.call(CAMERA_PRESETS, name) ? name : "IDLE";
       const preset = CAMERA_PRESETS[key];
-      state.camera.active = key;
-      state.camera.startedAt = now;
-      state.camera.until = now + preset.duration;
-      state.camera.target = { ...preset };
-      if (instant) state.camera.current = { ...preset };
+      const width = state.viewport?.width || 1000;
+      const height = state.viewport?.height || 600;
+      if (state.scene?.camera) {
+        const target = {
+          x: width / 2,
+          y: height / 2,
+          zoom: preset.zoom,
+          offsetX: preset.offsetX,
+          offsetY: preset.offsetY,
+          durationMs: preset.duration,
+          name: key,
+          shake: preset.shake
+        };
+        if (instant) state.scene.camera.snap(target);
+        else state.scene.camera.setTarget(target, now);
+      }
+      state.shotFrame = {
+        current: { ...preset },
+        target: { ...preset },
+        active: key
+      };
       return { ...preset, name: key };
     }
 
     function setShot(name, instant = false, now = performance.now()) {
       if (!state.shotDirector) return setCameraPreset(name, instant, now);
       const shot = state.shotDirector.setShot(name, instant, now);
-      const frame = state.shotDirector.getCameraFrame(1000, 600, now);
-      state.camera.active = shot.cameraPreset;
-      state.camera.startedAt = now;
-      state.camera.until = now + Number(shot.profile.duration || 0);
-      state.camera.current = { ...frame.current };
-      state.camera.target = { ...frame.target };
-      return { ...shot, camera: frame.current };
+      const profile = shot.profile || CAMERA_PRESETS.IDLE;
+      const target = state.shotDirector.resolveTarget?.(profile.target) || { x: .5, y: .5 };
+      const width = state.viewport?.width || 1000;
+      const height = state.viewport?.height || 600;
+      const cameraTarget = {
+        x: target.x * width,
+        y: target.y * height,
+        zoom: Number(profile.zoom || 1),
+        offsetX: Number(profile.offsetX || 0),
+        offsetY: Number(profile.offsetY || 0),
+        durationMs: Number(profile.duration || 0),
+        name: shot.name,
+        shake: Number(profile.shake || 0)
+      };
+      if (state.scene?.camera) {
+        if (instant) state.scene.camera.snap(cameraTarget);
+        else state.scene.camera.setTarget(cameraTarget, now);
+      }
+      state.shotFrame = {
+        active: shot.name,
+        profile: { ...profile },
+        current: {
+          ...CAMERA_PRESETS[shot.cameraPreset || "IDLE"],
+          parallaxMultiplier: Number(profile.parallaxMultiplier || 1),
+          foregroundIntensity: Number(profile.foregroundIntensity || 1),
+          lightingIntensity: Number(profile.lightingIntensity || 1)
+        },
+        target: { ...cameraTarget }
+      };
+      return { ...shot, camera: state.scene?.camera?.getState?.() || cameraTarget };
     }
 
     function updateCamera(now, combat, width = 1000, height = 600) {
-      if (state.shotDirector) {
-        const frame = state.shotDirector.getCameraFrame(width, height, now);
-        state.shotFrame = frame;
-        state.camera.active = frame.cameraPreset;
-        state.camera.current = { ...frame.current };
-        state.camera.target = { ...frame.target };
-        return state.camera.current;
-      }
+      state.viewport = { width, height };
 
-      if (combat?.outcome === "VICTORY" && state.camera.active !== "VICTORY") setCameraPreset("VICTORY");
-      else if (combat?.outcome === "DEFEAT" && state.camera.active !== "DEFEAT") setCameraPreset("DEFEAT");
-      else if (window.BreakSystem?.isBroken?.(combat?.enemy?.breakState) && now >= state.camera.until && state.camera.active !== "BURST") setCameraPreset("BREAK");
-      else if (now >= state.camera.until && state.camera.active !== "IDLE" && !window.BreakSystem?.isBroken?.(combat?.enemy?.breakState)) setCameraPreset("IDLE");
+      if (combat?.outcome === "VICTORY" && state.shotDirector?.getShotState?.(now)?.name !== "VICTORY") setShot("VICTORY", false, now);
+      else if (combat?.outcome === "DEFEAT" && state.shotDirector?.getShotState?.(now)?.name !== "DEFEAT") setShot("DEFEAT", false, now);
 
-      const blend = .16;
-      state.camera.current.zoom += (state.camera.target.zoom - state.camera.current.zoom) * blend;
-      state.camera.current.offsetX += (state.camera.target.offsetX - state.camera.current.offsetX) * blend;
-      state.camera.current.offsetY += (state.camera.target.offsetY - state.camera.current.offsetY) * blend;
-      return state.camera.current;
+      const cameraState = state.scene?.camera?.update?.(now) || {
+        zoom: 1, offsetX: 0, offsetY: 0, x: width / 2, y: height / 2, shake: 0, active: "IDLE"
+      };
+      const profile = state.shotDirector?.getShotState?.(now)?.profile || CAMERA_PRESETS.IDLE;
+      state.shotFrame = {
+        ...(state.shotFrame || {}),
+        active: state.shotDirector?.getShotState?.(now)?.name || cameraState.active,
+        profile: { ...profile },
+        current: {
+          ...cameraState,
+          parallaxMultiplier: Number(profile.parallaxMultiplier || 1),
+          foregroundIntensity: Number(profile.foregroundIntensity || 1),
+          lightingIntensity: Number(profile.lightingIntensity || 1)
+        }
+      };
+      return cameraState;
     }
 
     function applyCamera(width, height, now) {
-      if (typeof context.translate !== "function" || typeof context.scale !== "function") return;
-      const camera = state.shotFrame?.current || state.camera.current;
-      const preset = CAMERA_PRESETS[state.camera.active] || CAMERA_PRESETS.IDLE;
-      const elapsed = Math.max(0, now - state.camera.startedAt);
-      const progressValue = clamp(elapsed / Math.max(1, preset.duration || 1), 0, 1);
-      const shake = Number(camera.shake || preset.shake || 0) * (1 - progressValue);
-      const shakeX = shake ? Math.sin(now * .085) * shake : 0;
-      const shakeY = shake ? Math.cos(now * .071) * shake * .55 : 0;
-      context.translate(width / 2 + camera.offsetX + shakeX, height / 2 + camera.offsetY + shakeY);
-      context.scale(camera.zoom, camera.zoom);
-      context.translate(-width / 2, -height / 2);
+      if (!state.sceneRenderer) return;
+      state.sceneRenderer.applyCamera({ width, height }, now);
     }
 
     function slotForCatalogRecord(record, combat) {
