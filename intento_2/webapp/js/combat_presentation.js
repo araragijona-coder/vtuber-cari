@@ -1260,6 +1260,8 @@
         action.source === "ENEMY_AUTO_ATTACK" ? "player" : "enemy"
       );
       const attacker = action.source === "ENEMY_AUTO_ATTACK" || action.actionType === "ENEMY_BEHAVIOR" ? "enemy" : "player";
+      const sourceRole = attacker === "enemy" ? "ENEMY_PRIMARY" : "PLAYER";
+      const targetRole = targetTeam === "player" ? "PLAYER" : "ENEMY_PRIMARY";
       const eventNow = performance.now();
       applyPresentationEvent(combat, presentationEvent, eventNow);
 
