@@ -15,7 +15,7 @@ jobs:
       - name: Checkout exact target SHA
         uses: actions/checkout@v4
         with:
-          ref: 2dc330d2ece0462bf6b09f31fdb92aa882c607df
+          ref: baba8fb78e9ca5f655951530439633f75c98d408
           fetch-depth: 1
 
       - name: Verify exact HEAD
@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
-          expected="2dc330d2ece0462bf6b09f31fdb92aa882c607df"
+          expected="baba8fb78e9ca5f655951530439633f75c98d408"
           echo "EXPECTED_SHA=$expected"
           echo "EXECUTED_HEAD=$actual"
           test "$actual" = "$expected"
@@ -32,6 +32,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Run mesh deformation regression test
+        run: node --test tests/scene_2_5d_mesh_deformation.test.mjs
 
       - name: Run 30-H attack integration test
         run: node --test tests/scene_2_5d_attack_integration.test.mjs
