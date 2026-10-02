@@ -490,6 +490,7 @@
     const combat = game?.combat;
     const outcome = combat?.outcome || null;
     const ability = window.CharacterAbilitySystem?.definition?.();
+    const broken = Boolean(combat && window.BreakSystem.isBroken(combat.enemy.breakState));
 
     const sceneTimer = combat ? formatCombatTimer(combat.elapsedMs) : "00:00";
     const sceneState = !combat
@@ -516,7 +517,6 @@
     setBar(enemyHpFillEl, combat?.enemy?.hp, combat?.enemy?.maxHp);
     setText(enemyBlockEl, combat ? String(Math.ceil(combat.enemy.block || 0)) : "—");
 
-    const broken = Boolean(combat && window.BreakSystem.isBroken(combat.enemy.breakState));
     if (enemyBreakEl) {
       setText(enemyBreakEl, combat
         ? (broken ? "VULNERABLE · " + (combat.enemy.breakState.remainingMs / 1000).toFixed(1) + "s" : Math.ceil(combat.enemy.breakState.current) + " / " + combat.enemy.breakState.max)
