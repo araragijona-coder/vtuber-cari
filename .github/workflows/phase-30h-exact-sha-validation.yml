@@ -15,7 +15,7 @@ jobs:
       - name: Checkout exact target SHA
         uses: actions/checkout@v4
         with:
-          ref: 36c42426253234a681224559ad08b262337c2c32
+          ref: a6b896c7891e205e34b61c0d1bd0ca1ee46a85a5
           fetch-depth: 1
 
       - name: Verify exact HEAD
@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
-          expected="36c42426253234a681224559ad08b262337c2c32"
+          expected="a6b896c7891e205e34b61c0d1bd0ca1ee46a85a5"
           echo "EXPECTED_SHA=$expected"
           echo "EXECUTED_HEAD=$actual"
           test "$actual" = "$expected"
@@ -38,6 +38,9 @@ jobs:
 
       - name: Run 30-H attack integration test
         run: node --test tests/scene_2_5d_attack_integration.test.mjs
+
+      - name: Run combat presentation test syntax check
+        run: node --check tests/combat_presentation_attack_impact.test.mjs
 
       - name: Run combat presentation attack impact test
         run: node --test tests/combat_presentation_attack_impact.test.mjs
