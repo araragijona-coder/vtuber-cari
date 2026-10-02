@@ -27,7 +27,7 @@ test("Phase 25 exposes reusable camera presets and layered scene vocabulary", as
     Object.keys(api.CAMERA_PRESETS),
     ["IDLE", "APPROACH", "ATTACK", "IMPACT", "BREAK", "BURST", "VICTORY", "DEFEAT"]
   );
-  assert.deepEqual(api.LAYER_ORDER, [
+  assert.deepEqual(Array.from(api.LAYER_ORDER), [
     "BACKGROUND",
     "FAR_PARALLAX",
     "MIDGROUND",
@@ -38,7 +38,7 @@ test("Phase 25 exposes reusable camera presets and layered scene vocabulary", as
     "HUD",
     "CARDS"
   ]);
-  assert.deepEqual(api.VISUAL_STATES, {
+  assert.deepEqual(JSON.parse(JSON.stringify(api.VISUAL_STATES)), {
     NORMAL: "NORMAL",
     ATTACKING: "ATTACKING",
     HURT: "HURT",
