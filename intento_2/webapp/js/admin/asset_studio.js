@@ -65,6 +65,13 @@
 
   const CAMERA_PRESETS = Object.freeze({
     DEFAULT: Object.freeze({ zoom: 1, offsetX: 0, offsetY: 0, durationMs: 0, shake: 0 }),
+    ESTABLISHING: Object.freeze({ zoom: .985, offsetX: 0, offsetY: 0, durationMs: 900, shake: 0 }),
+    PLAYER_FOCUS: Object.freeze({ zoom: 1.075, offsetX: 0, offsetY: -4, durationMs: 760, shake: 0 }),
+    COMPANION_LEFT_FOCUS: Object.freeze({ zoom: 1.06, offsetX: 0, offsetY: -3, durationMs: 760, shake: 0 }),
+    COMPANION_RIGHT_FOCUS: Object.freeze({ zoom: 1.06, offsetX: 0, offsetY: -3, durationMs: 760, shake: 0 }),
+    ENEMY_FOCUS: Object.freeze({ zoom: 1.09, offsetX: 0, offsetY: -7, durationMs: 700, shake: 0 }),
+    ATTACK_APPROACH: Object.freeze({ zoom: 1.055, offsetX: 18, offsetY: -6, durationMs: 300, shake: 2 }),
+    IMPACT: Object.freeze({ zoom: 1.085, offsetX: 0, offsetY: -8, durationMs: 360, shake: 7 }),
     "ATTACK IMPACT": Object.freeze({ zoom: 1.08, offsetX: 18, offsetY: 0, durationMs: 420, shake: 3 }),
     BREAK: Object.freeze({ zoom: 1.14, offsetX: 0, offsetY: -8, durationMs: 700, shake: 5 }),
     BURST: Object.freeze({ zoom: 1.2, offsetX: 0, offsetY: -12, durationMs: 760, shake: 8 }),
