@@ -281,11 +281,6 @@
       return cameraState;
     }
 
-    function applyCamera(width, height, now) {
-      if (!state.sceneRenderer) return;
-      state.sceneRenderer.applyCamera({ width, height }, now);
-    }
-
     function ensureFoundationActor(role, transform, stateName = "IDLE") {
       if (!state.scene || !window.MachGirlsActor) return null;
       const id = "scene:" + role;
