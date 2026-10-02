@@ -1307,8 +1307,8 @@ if (composition.identityLayer) {
           { dx: targetRole === "ENEMY_PRIMARY" ? 52 : -52, dy: -8, dz: 0.07, rotation: targetRole === "ENEMY_PRIMARY" ? 0.07 : -0.07, duration: 320 },
           contactAt
         );
-        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, contactAt + 110);
-        state.visualFreezeNow = contactAt;
+        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 110);
+        state.visualFreezeNow = eventNow;
       }
       if (presentationEvent?.type === "BREAK") {
         scheduleMotion(
