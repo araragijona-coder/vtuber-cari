@@ -46,16 +46,40 @@
       context.filter = lightingState.previousFilter || "none";
     }
 
+    function screenForEffect(item, scene, viewport) {
+      const effect = item?.effect;
+      if (!effect || !window.MachGirlsWorldSpace) return null;
+      if (effect.scope !== "ACTOR" || !item.actor) return null;
+      const transform = item.actor.transform;
+      const offset = effect.offset || {};
+      const effectTransform = window.MachGirlsWorldSpace.createTransform({
+        ...transform,
+        x: finite(transform.x) + finite(offset.x),
+        y: finite(transform.y) + finite(offset.y),
+        z: finite(transform.z)
+      });
+      return window.MachGirlsWorldSpace.worldToScreen(
+        effectTransform,
+        scene.camera?.getState?.() || {},
+        viewport,
+        {
+          layerZ: item.layerZ
+        }
+      );
+    }
+
     function render(scene, viewport, draw, now = 0) {
       if (!scene || typeof draw !== "function") return false;
-      const renderables = scene.renderables();
+      const renderables = scene.renderables(now);
       if (!context) return false;
       if (applyCamera(viewport, now)) {
         try {
           for (const item of renderables) {
             const transform = item.actor?.transform;
             const cameraState = scene.camera?.getState?.() || {};
-            const screen = transform && window.MachGirlsWorldSpace
+            const screen = item.type === "FX"
+              ? screenForEffect(item, scene, viewport)
+              : transform && window.MachGirlsWorldSpace
               ? window.MachGirlsWorldSpace.worldToScreen(
                 transform,
                 cameraState,

@@ -1,6 +1,18 @@
 (() => {
   "use strict";
 
+  const VFX_TYPES = Object.freeze([
+    "FLASH",
+    "GLOW",
+    "IMPACT",
+    "MOTION_TRAIL",
+    "SCREEN_FLASH",
+    "SCREEN_SHAKE",
+    "BREAK",
+    "BURST",
+    "TELEGRAPH"
+  ]);
+
   const LAYERS = Object.freeze([
     "BACKGROUND",
     "FAR",
@@ -52,9 +64,37 @@
       return actors.get(String(id)) || null;
     }
 
-    function addEffect(id, effect) {
-      if (!id) return false;
-      effects.set(String(id), { ...effect, id: String(id) });
+    function addEffect(id, effect = {}) {
+      if (!id || typeof effect !== "object") return false;
+      const type = String(effect.type || "FX").toUpperCase();
+      const scope = String(effect.scope || (effect.actorId ? "ACTOR" : "SCREEN")).toUpperCase();
+      const durationMs = Math.max(0, finite(effect.durationMs, 0));
+      const now = Number.isFinite(Number(effect.startTime))
+        ? Number(effect.startTime)
+        : (typeof performance !== "undefined" ? performance.now() : 0);
+      const actorId = effect.actorId ? String(effect.actorId) : null;
+      const layerId = effect.layerId ? String(effect.layerId) : null;
+      const offset = effect.offset || {};
+      effects.set(String(id), {
+        id: String(id),
+        type: VFX_TYPES.includes(type) ? type : "FX",
+        scope: scope === "ACTOR" ? "ACTOR" : "SCREEN",
+        actorId,
+        layerId,
+        anchor: String(effect.anchor || "CENTER"),
+        offset: {
+          x: finite(offset.x),
+          y: finite(offset.y)
+        },
+        scale: Math.max(0.01, finite(effect.scale, 1)),
+        opacity: Math.min(1, Math.max(0, finite(effect.opacity, 1))),
+        intensity: Math.min(1, Math.max(0, finite(effect.intensity, 1))),
+        depthMode: String(effect.depthMode || "INHERIT").toUpperCase(),
+        durationMs,
+        startTime: now,
+        visible: effect.visible !== false,
+        data: { ...(effect.data || {}) }
+      });
       return true;
     }
 
@@ -62,7 +102,30 @@
       return effects.delete(String(id));
     }
 
-    function renderables() {
+    function cleanupEffects(now = typeof performance !== "undefined" ? performance.now() : 0) {
+      const current = Number(now) || 0;
+      let removed = 0;
+      for (const [id, effect] of effects.entries()) {
+        if (effect.durationMs > 0 && current - effect.startTime >= effect.durationMs) {
+          effects.delete(id);
+          removed += 1;
+        }
+      }
+      return removed;
+    }
+
+    function effectState(effect, now = typeof performance !== "undefined" ? performance.now() : 0) {
+      if (!effect) return "inactive";
+      if (!effect.visible) return "inactive";
+      if (effect.durationMs <= 0) return "active";
+      const elapsed = (Number(now) || 0) - effect.startTime;
+      if (elapsed < 0) return "inactive";
+      if (elapsed >= effect.durationMs) return "finished";
+      return "active";
+    }
+
+    function renderables(now = typeof performance !== "undefined" ? performance.now() : 0) {
+      cleanupEffects(now);
       const list = [];
       for (const layerName of LAYERS) {
         for (const actor of layers.get(layerName) || []) {
@@ -96,8 +159,26 @@
         }
       }
       for (const effect of effects.values()) {
-        if (effect.visible === false) continue;
-        list.push({ type: "FX", layer: "FX", z: Number(effect.z) || 0, effect });
+        if (effect.visible === false || effectState(effect, now) !== "active") continue;
+        if (effect.scope === "ACTOR" && effect.actorId) {
+          const actor = actors.get(effect.actorId);
+          if (!actor) continue;
+          const actorLayer = actor.getRenderLayers?.().find((item) => item.id === effect.layerId) || null;
+          const actorZ = finite(actor.transform?.z);
+          const layerZ = effect.depthMode === "INHERIT" ? finite(actorLayer?.z, 0) : finite(effect.depth, 0);
+          list.push({
+            type: "FX",
+            layer: "FX",
+            z: actorZ,
+            actor,
+            actorZ,
+            layerZ,
+            actorLayer,
+            effect
+          });
+        } else {
+          list.push({ type: "FX", layer: "FX", z: 0, actor: null, actorZ: 0, layerZ: 0, actorLayer: null, effect });
+        }
       }
       return list.sort((a, b) => {
         const sceneLayerDelta = LAYERS.indexOf(a.layer) - LAYERS.indexOf(b.layer);
