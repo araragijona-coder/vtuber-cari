@@ -358,7 +358,56 @@ test("resolved attack produces ATTACK state, world movement, distinct contact re
   assert.ok(Math.abs(enemyRecovery.transform.y - 336) < 1e-9);
   assert.equal(playerRecovery.transform.state, "IDLE");
   assert.equal(enemyRecovery.transform.state, "IDLE");
+  assert.equal(presentation.getAttackStyleState(), null);
+  assert.equal(presentation.getShotState(2000).name, "PLAYER_FOCUS");
 });
+
+test("explicit presentation recovery returns BREAK and BURST to a stable player focus shot", async () => {
+  for (const action of [
+    {
+      actionId: "break-recovery-1",
+      actionType: "CARD",
+      source: "PLAYER",
+      targetId: "iron_guard",
+      broke: true,
+      damage: 0,
+      breakDamage: 0,
+      blockAbsorbed: 0
+    },
+    {
+      actionId: "burst-recovery-1",
+      actionType: "BURST",
+      source: "PLAYER",
+      targetId: "iron_guard",
+      damage: 20,
+      breakDamage: 0,
+      blockAbsorbed: 0
+    }
+  ]) {
+    const { presentation, setNow } = await loadPresentation();
+    const combat = {
+      battleId: action.actionId,
+      outcome: "IN_PROGRESS",
+      player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
+      enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100 } }
+    };
+
+    presentation.onCombatStart(combat);
+    setNow(1000);
+    presentation.onAction(combat, action);
+    assert.ok(["BREAK", "BURST"].includes(presentation.getShotState(1000).name));
+
+    setNow(2000);
+    presentation.render(combat, 2000);
+    assert.equal(presentation.getShotState(2000).name, "PLAYER_FOCUS");
+    assert.equal(presentation.getAttackStyleState(), null);
+
+    const foundation = presentation.getSceneFoundation();
+    assert.equal(actorFrom(foundation, "scene:PLAYER").transform.state, "IDLE");
+    assert.equal(actorFrom(foundation, "scene:ENEMY_PRIMARY").transform.state, "IDLE");
+  }
+});
+
 
 test("animation state names used by presentation map to the real animation machine", async () => {
   const { presentation, setNow } = await loadPresentation();
