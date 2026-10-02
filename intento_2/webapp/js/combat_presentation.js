@@ -397,7 +397,18 @@
         const team = combatActor || "player";
         let stateName = "IDLE";
         if (combatActor && combat) {
-          stateName = visualStateFor(team, combat, now, fighterState(team, combat, now)).replace("BURST READY", "IDLE").replace("BURST ACTIVE", "BURST");
+          const visualState = visualStateFor(team, combat, now, fighterState(team, combat, now));
+          const animationState = {
+            "NORMAL": "IDLE",
+            "ATTACKING": "ATTACK",
+            "HURT": "HIT",
+            "BREAK": "BREAK",
+            "BURST READY": "IDLE",
+            "BURST ACTIVE": "BURST",
+            "VICTORY": "VICTORY",
+            "DEFEAT": "DEFEAT"
+          };
+          stateName = animationState[visualState] || "IDLE";
         }
         const motion = motionFor(role, now);
         ensureFoundationActor(role, {
@@ -1271,24 +1282,33 @@ if (composition.identityLayer) {
       const eventNow = performance.now();
       applyPresentationEvent(combat, presentationEvent, eventNow);
 
-      if (
+      const isAttackPresentation =
         presentationEvent?.type === "ATTACK" ||
-        ["AUTO_ATTACK", "SKILL", "CARD", "ABILITY"].includes(action.actionType)
-      ) {
+        ["AUTO_ATTACK", "SKILL", "CARD", "ABILITY"].includes(action.actionType);
+      const isImpactPresentation =
+        presentationEvent?.type === "IMPACT" ||
+        Number(action.damage || 0) > 0 ||
+        Number(action.blockAbsorbed || 0) > 0 ||
+        Number(action.breakDamage || 0) > 0;
+
+      if (isAttackPresentation) {
+        state.scene.getActor("scene:" + sourceRole)?.setState("ATTACK", eventNow);
         scheduleMotion(
           sourceRole,
           { dx: sourceRole === "PLAYER" ? 112 : -86, dy: -9, dz: sourceRole === "PLAYER" ? 0.04 : -0.04, duration: 520 },
           eventNow
         );
       }
-      if (presentationEvent?.type === "IMPACT") {
+      if (isImpactPresentation) {
+        const contactAt = eventNow + 110;
+        state.scene.getActor("scene:" + targetRole)?.setState("HIT", contactAt);
         scheduleMotion(
           targetRole,
           { dx: targetRole === "ENEMY_PRIMARY" ? 52 : -52, dy: -8, dz: 0.07, rotation: targetRole === "ENEMY_PRIMARY" ? 0.07 : -0.07, duration: 320 },
-          eventNow
+          contactAt
         );
-        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 110);
-        state.visualFreezeNow = eventNow;
+        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, contactAt + 110);
+        state.visualFreezeNow = contactAt;
       }
       if (presentationEvent?.type === "BREAK") {
         scheduleMotion(
@@ -1382,7 +1402,8 @@ if (composition.identityLayer) {
           blockAbsorbed: Number(action.blockAbsorbed || 0),
           breakDamage: Number(action.breakDamage || 0),
           critical: Boolean(action.critical),
-          damageReductionApplied: Number(action.damageReductionApplied || 0)
+          damageReductionApplied: Number(action.damageReductionApplied || 0),
+          delayMs: 110
         }, 720);
         emitAudio(targetTeam === "player" ? "enemyHit" : "impact", action);
       }
