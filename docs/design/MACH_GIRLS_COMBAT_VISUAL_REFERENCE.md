@@ -729,3 +729,107 @@ final motorcycle art
 - [ASSET_STUDIO.md](ASSET_STUDIO.md)
 - [MACH_GIRLS_MASTER_REFERENCE.md](MACH_GIRLS_MASTER_REFERENCE.md)
 - [MACH_GIRLS_GAME_BRAIN.md](../cerebro/MACH_GIRLS_GAME_BRAIN.md)
+
+## Phase 27 — Cinematic combat shot model
+
+Phase 27 extends the Phase 25 scene into a camera-filmable composition without changing combat rules.
+
+The presentation model is now:
+
+```text
+STAGE
++
+ENTITIES
++
+SHOT DIRECTOR
++
+CAMERA
+```
+
+### Scene anchors
+
+Semantic anchors are:
+
+```text
+PLAYER
+PLAYER_FOCUS
+
+COMPANION_LEFT
+COMPANION_RIGHT
+
+ENEMY_PRIMARY
+ENEMY_SECONDARY
+ENEMY_FAR
+
+FOREGROUND_LEFT
+FOREGROUND_RIGHT
+```
+
+These are spatial presentation roles. They do not create gameplay entities or a new roster.
+
+### Cinematic shots
+
+Supported shot profiles:
+
+```text
+ESTABLISHING
+PLAYER_FOCUS
+COMPANION_LEFT_FOCUS
+COMPANION_RIGHT_FOCUS
+ENEMY_FOCUS
+ATTACK_APPROACH
+IMPACT
+BREAK
+BURST
+VICTORY
+DEFEAT
+```
+
+Each profile defines:
+
+```text
+target
+duration
+zoom
+offsetX
+offsetY
+easing
+shake
+parallaxMultiplier
+foregroundIntensity
+lightingIntensity
+```
+
+All camera interpolation is deterministic.
+
+### Spatial entity rule
+
+Character, motorcycle, shadow and identity effects remain the PLAYER visual unit.
+
+Enemies and optional companion/staging entities are independently positioned. A background plate must not contain the character, motorcycle, enemy or companions as a baked combat composition.
+
+Optional secondary/far enemies and companions default to disabled unless an approved staged asset or explicit presentation setup enables them. This prevents the cinematic system from becoming an implicit gameplay roster.
+
+### Asset staging
+
+Asset Studio records can now carry scene/camera metadata:
+
+```text
+sceneRole
+depth
+baselineScale
+focusScale
+focusOffsetX
+focusOffsetY
+allowedShots
+foregroundPriority
+backgroundPriority
+```
+
+The metadata is presentation-only. Existing `mach_girls_asset_catalog_v1` storage remains compatible.
+
+Approved staged assets can replace technical scene placeholders without rebuilding combat architecture.
+
+### Responsive composition
+
+The stage uses semantic positions and camera transforms rather than fixed-resolution coordinates. Decorative density should compress before tactical information on narrow screens.
