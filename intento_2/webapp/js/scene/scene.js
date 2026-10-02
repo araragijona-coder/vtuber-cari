@@ -11,6 +11,10 @@
     "FOREGROUND"
   ]);
 
+  function finite(value, fallback = 0) {
+    return Number.isFinite(Number(value)) ? Number(value) : fallback;
+  }
+
   function create(options = {}) {
     const camera = options.camera || window.MachGirlsSceneCamera?.create?.() || null;
     const layers = new Map(LAYERS.map((name) => [name, []]));
@@ -64,7 +68,31 @@
         for (const actor of layers.get(layerName) || []) {
           const transform = actor.transform;
           if (!transform.visible) continue;
-          list.push({ type: "ACTOR", layer: layerName, z: transform.z, actor });
+          const actorLayers = actor.getRenderLayers?.() || [];
+          if (actorLayers.length === 0) {
+            list.push({
+              type: "ACTOR",
+              layer: layerName,
+              z: transform.z,
+              actor,
+              actorZ: finite(transform.z),
+              layerZ: 0,
+              actorLayer: null
+            });
+            continue;
+          }
+          for (const actorLayer of actorLayers) {
+            if (actorLayer.visible === false) continue;
+            list.push({
+              type: "ACTOR_LAYER",
+              layer: layerName,
+              z: transform.z,
+              actor,
+              actorZ: finite(transform.z),
+              layerZ: finite(actorLayer.z),
+              actorLayer
+            });
+          }
         }
       }
       for (const effect of effects.values()) {
@@ -72,8 +100,11 @@
         list.push({ type: "FX", layer: "FX", z: Number(effect.z) || 0, effect });
       }
       return list.sort((a, b) => {
-        const layerDelta = LAYERS.indexOf(a.layer) - LAYERS.indexOf(b.layer);
-        return layerDelta || Number(a.z || 0) - Number(b.z || 0);
+        const sceneLayerDelta = LAYERS.indexOf(a.layer) - LAYERS.indexOf(b.layer);
+        if (sceneLayerDelta) return sceneLayerDelta;
+        const actorDepthDelta = finite(a.actorZ, finite(a.z)) - finite(b.actorZ, finite(b.z));
+        if (actorDepthDelta) return actorDepthDelta;
+        return finite(a.layerZ) - finite(b.layerZ);
       });
     }
 
