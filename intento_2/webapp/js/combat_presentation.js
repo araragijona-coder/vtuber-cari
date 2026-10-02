@@ -1425,26 +1425,27 @@
       const height = rect.height || 1;
       state.viewport = { width, height };
       if (state.scene?.camera?.setViewportCenter) state.scene.camera.setViewportCenter(width, height);
-      context.clearRect(0, 0, width, height);
-      context.globalAlpha = 1;
-      context.lineWidth = 1;
-
       updateCamera(now, combat, width, height);
-      context.save();
-      applyCamera(width, height, now);
-      drawBackground(width, height, combat, now);
-      drawParallax(width, height, now);
-      if (combat) {
-        drawSceneEntities(width, height, now);
-        drawIntent(combat, width, height, now);
-        renderEffects(combat, width, height, now);
-        drawBurstReady(combat, width, height, now);
-      }
-      drawForeground(width, height, now, combat);
-      drawLighting(width, height, combat);
-      context.restore();
-      context.globalAlpha = 1;
-      context.setLineDash([]);
+
+      state.sceneRenderer?.renderFrame?.(
+        state.scene,
+        { width, height },
+        () => {
+          context.globalAlpha = 1;
+          context.lineWidth = 1;
+          drawBackground(width, height, combat, now);
+          drawParallax(width, height, now);
+          if (combat) {
+            drawSceneEntities(width, height, now);
+            drawIntent(combat, width, height, now);
+            renderEffects(combat, width, height, now);
+            drawBurstReady(combat, width, height, now);
+          }
+          drawForeground(width, height, now, combat);
+          drawLighting(width, height, combat);
+        },
+        now
+      );
     }
 
     function setAudioHooks(hooks = {}) {
