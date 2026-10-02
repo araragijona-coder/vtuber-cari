@@ -568,7 +568,7 @@
       }
     }
 
-    function assetSlotForFighterassetSlotForFighter(team, mode) {
+    function assetSlotForFighter(team, mode) {
       const candidates = [
         team + "." + mode,
         team + ".sprite",
