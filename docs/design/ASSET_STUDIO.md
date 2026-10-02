@@ -308,3 +308,53 @@ Those are future work, not current implementation.
 **PROPOSED:** future expansion ideas and any visual style decisions not established by current assets.
 
 **OPEN DESIGN QUESTION:** final character art, final character roster, any new character IDs, and any choice to change the current static-storage architecture.
+## Phase 25 — Combat Presentation Integration
+
+The Asset Studio remains the authoring boundary for visual assets. Phase 25 adds a runtime consumption path without turning the studio into a cloud asset store.
+
+### Combat slot mapping
+
+Approved catalog records may map into combat presentation slots:
+
+```text
+CHARACTER / player entity / ATTACK
+→ player.attack
+
+CHARACTER / enemy entity / BREAK
+→ enemy.break
+
+PORTRAIT / player entity
+→ player.portrait
+
+MOTORCYCLE / player entity
+→ player.motorcycle
+
+MOTORCYCLE / enemy entity
+→ enemy.motorcycle
+```
+
+Only records with `status = APPROVED` are consumed.
+
+The catalog key remains:
+
+`mach_girls_asset_catalog_v1`
+
+### Placeholder gate
+
+The combat scene provides:
+
+`TECHNICAL CHARACTER PLACEHOLDER · NOT FINAL ART`
+
+and
+
+`TECHNICAL MOTORCYCLE PLACEHOLDER · NOT FINAL ART`
+
+These are technology fixtures for scale, camera, motion and VFX validation. They cannot be interpreted as final character art or human approval.
+
+### Replacement contract
+
+A future approved PNG can replace the placeholder through its Asset Studio slot without changing the combat scene architecture. Yuri remains the currently available formal character ID; no `maki_mach` runtime identity is introduced.
+
+### Scope boundary
+
+Phase 25 does not modify combat rules, save/replay semantics, Energy rules, BREAK/BURST mechanics, RNG, telemetry semantics or the Asset Studio approval process.
