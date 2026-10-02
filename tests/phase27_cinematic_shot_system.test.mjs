@@ -131,3 +131,12 @@ test("Phase 27 does not place combat systems in Asset Studio", async () => {
     assert.equal(studio.includes(forbidden), false, forbidden);
   }
 });
+
+test("Phase 27 allows identity-neutral enemy/companion staging without creating formal character IDs", async () => {
+  const studio = await readFile("intento_2/webapp/js/admin/asset_studio.js", "utf8");
+  assert.match(studio, /sceneStagingRole/);
+  assert.match(studio, /COMPANION_LEFT/);
+  assert.match(studio, /ENEMY_SECONDARY/);
+  assert.match(studio, /maki_mach/);
+  assert.match(studio, /formally registered/);
+});
