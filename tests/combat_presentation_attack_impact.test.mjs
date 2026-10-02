@@ -7,6 +7,7 @@ const FILES = [
   "intento_2/webapp/js/scene/world_space.js",
   "intento_2/webapp/js/scene/camera.js",
   "intento_2/webapp/js/scene/animation.js",
+  "intento_2/webapp/js/scene/presentation_events.js",
   "intento_2/webapp/js/scene/actor.js",
   "intento_2/webapp/js/scene/scene.js",
   "intento_2/webapp/js/scene/renderer.js",
@@ -47,25 +48,6 @@ async function loadPresentation() {
   const canvas = { getBoundingClientRect: () => ({ width: 1000, height: 600 }) };
 
   const window = {
-    MachGirlsPresentationEvents: {
-      create: () => ({
-        fromAction: () => null,
-        fromCombatEvent: (event) => ({
-          type: { ATTACK_START: "ATTACK", DAMAGE_APPLIED: "IMPACT", BREAK_TRIGGER: "BREAK", BURST_START: "BURST" }[event.type] || null,
-          action: {
-            actionId: event.actionId,
-            actionType: event.actionType,
-            actorId: event.sourceRole,
-            targetId: event.targetRole,
-            source: event.sourceRole,
-            cardId: event.cardId || "",
-            damage: event.damage || 0,
-            breakDamage: event.breakDamage || 0,
-            hitCount: event.hitCount
-          }
-        })
-      })
-    },
     BreakSystem: { isBroken: () => false },
     BurstSystem: { canUse: () => false, chargeOf: () => 0, maxChargeOf: () => 100 }
   };
