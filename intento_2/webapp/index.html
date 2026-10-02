@@ -23,6 +23,14 @@
       <div class="combat-stage" id="combat-arena">
         <canvas id="combat-canvas" aria-label="Arena de combate animada"></canvas>
 
+        <div class="combat-scene-readout" aria-label="Estado principal del combate">
+          <div class="combat-scene-clock">
+            <span class="eyebrow">COMBAT / LIVE</span>
+            <strong id="combat-timer">00:00</strong>
+          </div>
+          <span id="combat-scene-state" class="scene-state">READY</span>
+        </div>
+
         <div class="arena-hud enemy-hud" aria-label="Estado del enemigo">
           <div class="fighter-name">
             <span class="fighter-side enemy-side">ENEMY</span>
