@@ -292,6 +292,10 @@
           if (state.shotDirector && window.MachGirlsShotDirector?.SCENE_ROLES?.includes(role)) {
             state.shotDirector.setEntity(role, {
               enabled: true,
+              baselineScale: Number(record.baselineScale ?? record.scale ?? 1),
+              focusScale: Number(record.focusScale ?? Math.max(0.1, Number(record.scale ?? 1) * 1.08)),
+              focusOffsetX: Number(record.focusOffsetX ?? 0),
+              focusOffsetY: Number(record.focusOffsetY ?? 0),
               scale: Number(record.baselineScale ?? record.scale ?? 1),
               depth: Number(record.depth ?? 0.5),
               parallax: Number(record.parallax ?? 1)
@@ -1243,7 +1247,11 @@
     }
 
     function drawSceneEntities(width, height, now) {
-      if (!state.shotDirector) return;
+      if (!state.shotDirector) {
+        drawFighter("enemy", currentCombatForRender, width, height, now);
+        drawFighter("player", currentCombatForRender, width, height, now);
+        return;
+      }
       const order = ["COMPANION_LEFT", "ENEMY_FAR", "ENEMY_SECONDARY", "ENEMY_PRIMARY", "PLAYER", "COMPANION_RIGHT"]
         .map((role, index) => ({ role, index, frame: state.shotDirector.getEntityFrame(role, width, height) }))
         .filter((entry) => entry.frame?.enabled)
