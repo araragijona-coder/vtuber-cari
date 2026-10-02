@@ -415,7 +415,7 @@
       }
     }
 
-    function fighterStatefighterState(team, combat, now) {
+    function fighterState(team, combat, now) {
       const fighter = team === "player" ? combat?.player : combat?.enemy;
       let lunge = 0;
       let hit = 0;
