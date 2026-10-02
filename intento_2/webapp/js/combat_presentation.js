@@ -413,7 +413,7 @@
       }
     }
 
-    function fighterState    function fighterState(team, combat, now) {
+    function fighterStatefighterState(team, combat, now) {
       const fighter = team === "player" ? combat?.player : combat?.enemy;
       let lunge = 0;
       let hit = 0;
@@ -566,7 +566,7 @@
       }
     }
 
-    function assetSlotForFighter    function assetSlotForFighter(team, mode) {
+    function assetSlotForFighterassetSlotForFighter(team, mode) {
       const candidates = [
         team + "." + mode,
         team + ".sprite",
@@ -669,7 +669,7 @@
       });
     }
 
-    function drawIntent    function drawIntent(combat, width, height, now) {
+    function drawIntentdrawIntent(combat, width, height, now) {
       const intent = combat?.enemyIntent;
       if (!intent) return;
       const enemyPoint = positionFor("enemy", width, height);
@@ -720,7 +720,7 @@
       }
     }
 
-    function drawImpact    function drawImpact(effect, combat, width, height, now) {
+    function drawImpactdrawImpact(effect, combat, width, height, now) {
       const p = progress(now, effect.start, effect.duration);
       const alpha = 1 - smoothstep(p);
       const point = positionFor(effect.targetTeam || teamForId(combat, effect.targetId), width, height);
@@ -749,7 +749,7 @@
       }
     }
 
-    function drawAttack    function drawAttack(effect, combat, width, height, now) {
+    function drawAttackdrawAttack(effect, combat, width, height, now) {
       const p = progress(now, effect.start, effect.duration);
       const a = positionFor(effect.attacker, width, height);
       const b = positionFor(effect.targetTeam, width, height);
@@ -1151,7 +1151,7 @@
       context.setLineDash([]);
     }
 
-    function setAudioHooks    function setAudioHooks(hooks = {}) {
+    function setAudioHookssetAudioHooks(hooks = {}) {
       state.audioHooks = { ...hooks };
     }
 
