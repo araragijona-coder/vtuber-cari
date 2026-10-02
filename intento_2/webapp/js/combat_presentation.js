@@ -21,6 +21,34 @@
       cameraShot: "ATTACK_APPROACH"
     })
   });
+  const TWO_POINT_FIVE_D_ATTACK_CONFIGS = Object.freeze({
+    yuri_break_drive: Object.freeze({
+      characterId: "yuri",
+      layerId: "yuri-body",
+      layerZ: 0.22,
+      mesh: Object.freeze({
+        enabled: true,
+        width: 180,
+        height: 220,
+        subdivisions: Object.freeze({ x: 2, y: 2 })
+      }),
+      motion: Object.freeze({
+        enabled: true,
+        amplitude: 0.018,
+        frequency: 1.15,
+        phase: 0
+      }),
+      lighting: Object.freeze({
+        enabled: true,
+        ambient: 0.24,
+        intensity: 0.32,
+        direction: Object.freeze({ x: 0.35, y: -1 }),
+        tint: Object.freeze({ r: 1, g: 0.92, b: 0.78 })
+      }),
+      deformation: Object.freeze({ x: 0.055, y: 0.032 })
+    })
+  });
+
   const NON_ATTACK_STYLE_CONTRACTS = Object.freeze({
     yuri_impulso_mach: Object.freeze({
       styleId: "YURI_IMPULSO_MACH",
@@ -156,7 +184,12 @@
       visualFreezeUntil: 0,
       visualFreezeNow: 0,
       presentationEventCursor: 0,
-      lastPresentationEvent: null
+      lastPresentationEvent: null,
+      twoPointFiveDBaselines: new Map(),
+      twoPointFiveDAttackTracks: new Map(),
+      twoPointFiveDLightingModes: new Map(),
+      sceneVfxSequence: 0,
+      sceneVfxIds: new Set()
     };
 
     function rememberAction(actionId) {
@@ -173,13 +206,84 @@
       const delayMs = Math.max(0, Number(payload.delayMs) || 0);
       const { delayMs: ignoredDelay, ...effectPayload } = payload;
       void ignoredDelay;
-      state.effects.push({
+      const effectEntry = {
         type,
         start: performance.now() + delayMs,
         duration: Math.max(80, Number(duration) || 80),
         ...effectPayload
-      });
-      while (state.effects.length > MAX_EFFECTS) state.effects.shift();
+      };
+
+      const sceneVfxType = {
+        attack: "MOTION_TRAIL",
+        trail: "MOTION_TRAIL",
+        impact: "IMPACT",
+        break: "BREAK",
+        burst: "BURST"
+      }[String(type || "").toLowerCase()] || null;
+
+      if (sceneVfxType && state.scene?.addEffect) {
+        const actorTeam =
+          type === "impact" || type === "break"
+            ? effectPayload.targetTeam || "enemy"
+            : effectPayload.attacker || "player";
+        const actorRole = actorTeam === "player" ? "PLAYER" : "ENEMY_PRIMARY";
+        const sceneVfxId = "presentation-vfx:" + (++state.sceneVfxSequence);
+        const added = state.scene.addEffect(sceneVfxId, {
+          type: sceneVfxType,
+          scope: "ACTOR",
+          actorId: "scene:" + actorRole,
+          layerId: actorRole === "PLAYER" ? "yuri-body" : null,
+          anchor: "CENTER",
+          offset: { x: 0, y: 0 },
+          scale: 1,
+          opacity: 1,
+          intensity: clamp(effectPayload.intensity ?? 1, 0, 1),
+          durationMs: effectEntry.duration,
+          startTime: effectEntry.start,
+          data: { ...effectPayload, type }
+        });
+        if (added) {
+          effectEntry.sceneVfxId = sceneVfxId;
+          state.sceneVfxIds.add(sceneVfxId);
+        }
+      }
+
+      state.effects.push(effectEntry);
+      while (state.effects.length > MAX_EFFECTS) {
+        const removed = state.effects.shift();
+        if (removed?.sceneVfxId) {
+          state.scene?.removeEffect?.(removed.sceneVfxId);
+          state.sceneVfxIds.delete(removed.sceneVfxId);
+        }
+      }
+    }
+
+    function renderSceneVfx(combat, width, height, now) {
+      if (!state.scene?.renderables) return;
+      const localType = {
+        MOTION_TRAIL: "trail",
+        IMPACT: "impact",
+        BREAK: "break",
+        BURST: "burst",
+        FLASH: "impact",
+        GLOW: "attack"
+      };
+      for (const item of state.scene.renderables(now)) {
+        if (item.type !== "FX" || !item.effect?.visible || item.effect.scope !== "ACTOR") continue;
+        const mapped = localType[item.effect.type];
+        if (!mapped) continue;
+        const effect = {
+          type: mapped,
+          start: item.effect.startTime,
+          duration: item.effect.durationMs,
+          ...(item.effect.data || {})
+        };
+        if (mapped === "trail") drawMotionTrail(effect, combat, width, height, now);
+        if (mapped === "impact") drawImpact(effect, combat, width, height, now);
+        if (mapped === "break") drawBreak(effect, width, height, now);
+        if (mapped === "burst") drawBurst(effect, combat, width, height, now);
+        if (mapped === "attack") drawAttack(effect, combat, width, height, now);
+      }
     }
 
     function emitAudio(event, payload) {
@@ -395,6 +499,7 @@
       }
       state.attackStyle = null;
       state.presentationRecovery = null;
+      clear2_5DTransientPresentation();
       return true;
     }
 
@@ -424,7 +529,119 @@
       return cameraState;
     }
 
-    function ensureFoundationActor(role, transform, stateName = "IDLE") {
+    function active2_5DConfig(combat) {
+      const characterId = String(combat?.player?.identity?.characterId || combat?.characterId || "");
+      const abilityId = String(state.attackStyle?.abilityId || "");
+      const config = TWO_POINT_FIVE_D_ATTACK_CONFIGS[abilityId];
+      return config?.characterId === characterId ? config : null;
+    }
+
+    function configure2_5DActor(actor, role, combat) {
+      if (!actor || role !== "PLAYER") return false;
+      const config = active2_5DConfig(combat);
+      if (!config) return false;
+      const currentLayers = actor.getRenderLayers?.() || [];
+      if (currentLayers.length === 0) {
+        actor.setLayers([{
+          id: config.layerId,
+          assetId: "player.attack",
+          z: config.layerZ,
+          visible: true,
+          opacity: 1,
+          mesh: config.mesh,
+          motion: config.motion,
+          lighting: config.lighting
+        }]);
+      }
+      for (const layer of actor.getRenderLayers?.() || []) {
+        const key = actor.id + "::" + layer.id;
+        if (layer.lighting?.getSnapshot && !state.twoPointFiveDBaselines.has(key)) {
+          state.twoPointFiveDBaselines.set(key, layer.lighting.getSnapshot());
+        }
+      }
+      return true;
+    }
+
+    function meshAttackOffsets(layer, track, now) {
+      const mesh = layer?.mesh;
+      const base = mesh?.getBaseVertices?.() || [];
+      if (!track || base.length === 0) return base.map(() => ({ x: 0, y: 0 }));
+      const raw = progress(now, track.start, track.duration);
+      if (raw >= 1) return base.map(() => ({ x: 0, y: 0 }));
+      const wave = Math.sin(Math.PI * smoothstep(raw));
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const vertex of base) {
+        minX = Math.min(minX, Number(vertex.x) || 0);
+        maxX = Math.max(maxX, Number(vertex.x) || 0);
+        minY = Math.min(minY, Number(vertex.y) || 0);
+        maxY = Math.max(maxY, Number(vertex.y) || 0);
+      }
+      const spanX = Math.max(1, maxX - minX);
+      const spanY = Math.max(1, maxY - minY);
+      return base.map((vertex) => {
+        const xNorm = ((Number(vertex.x) || 0) - minX) / spanX;
+        const yNorm = ((Number(vertex.y) || 0) - minY) / spanY;
+        return {
+          x: track.x * wave * (0.35 + 0.65 * xNorm),
+          y: -track.y * wave * (0.2 + 0.8 * (1 - yNorm))
+        };
+      });
+    }
+
+    function apply2_5DPresentation(now) {
+      for (const role of ["PLAYER", "ENEMY_PRIMARY"]) {
+        const actor = state.scene?.getActor?.("scene:" + role);
+        if (!actor) continue;
+        const attackTrack = state.twoPointFiveDAttackTracks.get(role) || null;
+        for (const layer of actor.getRenderLayers?.() || []) {
+          if (!layer.mesh?.setDeformationOffsets) continue;
+          const base = layer.mesh.getBaseVertices?.() || [];
+          const procedural = attackTrack && layer.motion?.evaluate
+            ? layer.motion.evaluate(now, layer.mesh)
+            : base.map(() => ({ x: 0, y: 0 }));
+          const attack = meshAttackOffsets(layer, attackTrack, now);
+          const combined = base.map((_, index) => ({
+            x: (procedural[index]?.x || 0) + (attack[index]?.x || 0),
+            y: (procedural[index]?.y || 0) + (attack[index]?.y || 0)
+          }));
+          layer.mesh.setDeformationOffsets(combined);
+        }
+
+        const lightingMode = state.twoPointFiveDLightingModes.get(role) || null;
+        for (const layer of actor.getRenderLayers?.() || []) {
+          if (!layer.lighting?.setProfile) continue;
+          const baseline = state.twoPointFiveDBaselines.get(actor.id + "::" + layer.id);
+          if (!baseline) continue;
+          if (lightingMode) {
+            const extraAmbient = lightingMode === "IMPACT" ? 0.1 : lightingMode === "BREAK" ? 0.08 : 0.05;
+            const extraIntensity = lightingMode === "IMPACT" ? 0.3 : lightingMode === "BREAK" ? 0.22 : 0.14;
+            layer.lighting.setProfile({
+              ...baseline,
+              ambient: clamp(baseline.ambient + extraAmbient, 0, 1),
+              intensity: clamp(baseline.intensity + extraIntensity, 0, 1)
+            });
+          } else {
+            layer.lighting.setProfile(baseline);
+          }
+        }
+      }
+    }
+
+    function clear2_5DTransientPresentation() {
+      state.twoPointFiveDAttackTracks.clear();
+      state.twoPointFiveDLightingModes.clear();
+      for (const [key, baseline] of state.twoPointFiveDBaselines.entries()) {
+        const split = key.indexOf("::");
+        const actorId = key.slice(0, split);
+        const layerId = key.slice(split + 2);
+        const actor = state.scene?.getActor?.(actorId);
+        const layer = actor?.getRenderLayers?.().find((entry) => entry.id === layerId);
+        if (layer?.mesh?.resetDeformation) layer.mesh.resetDeformation();
+        if (layer?.lighting?.setProfile) layer.lighting.setProfile(baseline);
+      }
+    }
+
+    function ensureFoundationActor(role, transform, stateName = "IDLE", combat = null) {
       if (!state.scene || !window.MachGirlsActor) return null;
       const id = "scene:" + role;
       let actor = state.scene.getActor(id);
@@ -481,6 +698,7 @@
         });
       }
       actor.setState(stateName);
+      configure2_5DActor(actor, role, combat);
       return actor;
     }
 
@@ -523,7 +741,9 @@
           rotation: motion.rotation,
           visible: frame.enabled
         }, stateName);
+        configure2_5DActor(actor, role, combat);
       }
+      apply2_5DPresentation(now);
     }
 
     function applyPresentationEvent(combat, event, now) {
@@ -1338,6 +1558,10 @@ if (composition.identityLayer) {
     function renderEffects(combat, width, height, now) {
       const active = [];
       for (const effect of state.effects) {
+        if (effect.sceneVfxId) {
+          if (progress(now, effect.start, effect.duration) < 1) active.push(effect);
+          continue;
+        }
         if (progress(now, effect.start, effect.duration) >= 1) continue;
         active.push(effect);
         if (effect.type === "attack") drawAttack(effect, combat, width, height, now);
@@ -1365,8 +1589,13 @@ if (composition.identityLayer) {
       state.presentationRecovery = null;
       state.visualFreezeUntil = 0;
       state.visualFreezeNow = 0;
+      for (const sceneVfxId of state.sceneVfxIds) state.scene?.removeEffect?.(sceneVfxId);
+      state.sceneVfxIds.clear();
       state.presentationEventCursor = 0;
       state.lastPresentationEvent = null;
+      state.twoPointFiveDBaselines.clear();
+      state.twoPointFiveDAttackTracks.clear();
+      state.twoPointFiveDLightingModes.clear();
       state.combatId = combat?.battleId ? String(combat.battleId) : null;
       state.shotFrame = null;
       state.scene?.removeActor?.("scene:PLAYER");
@@ -1411,6 +1640,16 @@ if (composition.identityLayer) {
           contactCount: Number(gameplayEvent.hitCount || 1),
           cameraShot: style.cameraShot
         }) : null;
+        const attack2_5d = active2_5DConfig(combat);
+        if (attack2_5d) {
+          state.twoPointFiveDAttackTracks.set(sourceRole, {
+            start: eventNow,
+            duration: Math.max(1, Number(style?.motion?.duration || 520)),
+            x: attack2_5d.deformation.x,
+            y: attack2_5d.deformation.y
+          });
+          state.twoPointFiveDLightingModes.set(sourceRole, "ATTACK");
+        }
         state.shotDirector ? setShot(style?.cameraShot || "ATTACK_APPROACH") : setCameraPreset("ATTACK");
         addEffect("attack", {
           attacker: sourceRole === "PLAYER" ? "player" : "enemy",
@@ -1434,6 +1673,7 @@ if (composition.identityLayer) {
         state.visualFreezeStartsAt = Math.min(state.visualFreezeStartsAt || contactAt, contactAt);
         state.visualFreezeUntil = Math.max(state.visualFreezeUntil, contactAt + 110);
         state.visualFreezeNow = contactAt;
+        state.twoPointFiveDLightingModes.set(targetRole, "IMPACT");
         state.shotDirector ? setShot(action.actionType === "BURST" ? "BURST" : "IMPACT") : setCameraPreset(action.actionType === "BURST" ? "BURST" : "IMPACT");
         addEffect("impact", {
           targetTeam, targetId: gameplayEvent.targetRole,
@@ -1448,6 +1688,8 @@ if (composition.identityLayer) {
       if (presentationEvent.type === "BREAK") {
         markPresentationTransient("BREAK", actionId);
         state.motionTracks.delete("ENEMY_PRIMARY");
+        state.twoPointFiveDAttackTracks.delete("ENEMY_PRIMARY");
+        state.twoPointFiveDLightingModes.set("ENEMY_PRIMARY", "BREAK");
         state.scene?.getActor?.("scene:ENEMY_PRIMARY")?.setState("BREAK", eventNow);
         scheduleMotion("ENEMY_PRIMARY", { dx: 64, dy: -14, dz: 0.09, rotation: 0.095, duration: 500 }, eventNow);
         state.visualFreezeStartsAt = eventNow;
@@ -1570,8 +1812,19 @@ if (composition.identityLayer) {
         } else if (actionType === "AUTO_ATTACK" || actionType === "ENEMY_BEHAVIOR") {
           state.attackStyle = null;
         }
+        const attack2_5d = active2_5DConfig(combat);
+        if (attack2_5d) {
+          state.twoPointFiveDAttackTracks.set(sourceRole, {
+            start: eventNow,
+            duration: Math.max(1, Number(characterAttackStyle?.motion?.duration || 520)),
+            x: attack2_5d.deformation.x,
+            y: attack2_5d.deformation.y
+          });
+          state.twoPointFiveDLightingModes.set(sourceRole, "ATTACK");
+        }
       }
       if (isImpactPresentation) {
+        state.twoPointFiveDLightingModes.set(targetRole, "IMPACT");
         const contactAt = eventNow + 110;
         state.scene.getActor("scene:" + targetRole)?.setState("HIT", contactAt);
         scheduleMotion(
@@ -1587,6 +1840,8 @@ if (composition.identityLayer) {
         state.visualFreezeNow = contactAt;
       }
       if (presentationEvent?.type === "BREAK") {
+        state.twoPointFiveDAttackTracks.delete("ENEMY_PRIMARY");
+        state.twoPointFiveDLightingModes.set("ENEMY_PRIMARY", "BREAK");
         scheduleMotion(
           "ENEMY_PRIMARY",
           { dx: 64, dy: -14, dz: 0.09, rotation: 0.095, duration: 500 },
@@ -1894,6 +2149,7 @@ if (composition.identityLayer) {
           if (combat) {
             drawSceneEntities(width, height, visualNow);
             drawIntent(combat, width, height, visualNow);
+            renderSceneVfx(combat, width, height, visualNow);
             renderEffects(combat, width, height, visualNow);
             drawBurstReady(combat, width, height, visualNow);
           }
