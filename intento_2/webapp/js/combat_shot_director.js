@@ -50,14 +50,14 @@
   });
 
   const DEFAULT_ENTITIES = Object.freeze({
-    PLAYER: Object.freeze({ enabled: true, anchor: "PLAYER", scale: 1, parallax: .75, assetSlot: null }),
-    COMPANION_LEFT: Object.freeze({ enabled: false, anchor: "COMPANION_LEFT", scale: .82, parallax: .62, assetSlot: "scene.companion_left" }),
-    COMPANION_RIGHT: Object.freeze({ enabled: false, anchor: "COMPANION_RIGHT", scale: .82, parallax: .62, assetSlot: "scene.companion_right" }),
-    ENEMY_PRIMARY: Object.freeze({ enabled: true, anchor: "ENEMY_PRIMARY", scale: 1, parallax: .8, assetSlot: null }),
-    ENEMY_SECONDARY: Object.freeze({ enabled: false, anchor: "ENEMY_SECONDARY", scale: .76, parallax: .66, assetSlot: "scene.enemy_secondary" }),
-    ENEMY_FAR: Object.freeze({ enabled: false, anchor: "ENEMY_FAR", scale: .58, parallax: .42, assetSlot: "scene.enemy_far" }),
-    FOREGROUND_LEFT: Object.freeze({ enabled: true, anchor: "FOREGROUND_LEFT", scale: 1, parallax: 1.12, assetSlot: null }),
-    FOREGROUND_RIGHT: Object.freeze({ enabled: true, anchor: "FOREGROUND_RIGHT", scale: 1, parallax: 1.12, assetSlot: null })
+    PLAYER: Object.freeze({ enabled: true, anchor: "PLAYER", scale: 1, baselineScale: 1, focusScale: 1.08, focusOffsetX: 0, focusOffsetY: 0, parallax: 1, assetSlot: null }),
+    COMPANION_LEFT: Object.freeze({ enabled: false, anchor: "COMPANION_LEFT", scale: .82, baselineScale: .82, focusScale: .96, focusOffsetX: 0, focusOffsetY: 0, parallax: .62, assetSlot: "scene.companion_left" }),
+    COMPANION_RIGHT: Object.freeze({ enabled: false, anchor: "COMPANION_RIGHT", scale: .82, baselineScale: .82, focusScale: .96, focusOffsetX: 0, focusOffsetY: 0, parallax: .62, assetSlot: "scene.companion_right" }),
+    ENEMY_PRIMARY: Object.freeze({ enabled: true, anchor: "ENEMY_PRIMARY", scale: 1, baselineScale: 1, focusScale: 1.08, focusOffsetX: 0, focusOffsetY: 0, parallax: .95, assetSlot: null }),
+    ENEMY_SECONDARY: Object.freeze({ enabled: false, anchor: "ENEMY_SECONDARY", scale: .76, baselineScale: .76, focusScale: .9, focusOffsetX: 0, focusOffsetY: 0, parallax: .66, assetSlot: "scene.enemy_secondary" }),
+    ENEMY_FAR: Object.freeze({ enabled: false, anchor: "ENEMY_FAR", scale: .58, baselineScale: .58, focusScale: .7, focusOffsetX: 0, focusOffsetY: 0, parallax: .42, assetSlot: "scene.enemy_far" }),
+    FOREGROUND_LEFT: Object.freeze({ enabled: true, anchor: "FOREGROUND_LEFT", scale: 1, baselineScale: 1, focusScale: 1, focusOffsetX: 0, focusOffsetY: 0, parallax: 1.12, assetSlot: null }),
+    FOREGROUND_RIGHT: Object.freeze({ enabled: true, anchor: "FOREGROUND_RIGHT", scale: 1, baselineScale: 1, focusScale: 1, focusOffsetX: 0, focusOffsetY: 0, parallax: 1.12, assetSlot: null })
   });
 
   const SHOT_PROFILES = Object.freeze({
@@ -247,6 +247,10 @@
           ? String(spec.anchor || current.anchor).toUpperCase()
           : current.anchor,
         scale: clamp(spec.scale ?? current.scale ?? 1, .2, 3),
+        baselineScale: clamp(spec.baselineScale ?? current.baselineScale ?? spec.scale ?? current.scale ?? 1, .1, 4),
+        focusScale: clamp(spec.focusScale ?? current.focusScale ?? 1.08, .1, 4),
+        focusOffsetX: clamp(spec.focusOffsetX ?? current.focusOffsetX ?? 0, -500, 500),
+        focusOffsetY: clamp(spec.focusOffsetY ?? current.focusOffsetY ?? 0, -500, 500),
         parallax: clamp(spec.parallax ?? current.parallax ?? 1, .1, 2),
         depth: spec.depth === undefined ? current.depth : clamp(spec.depth, 0, 1),
         assetSlot: spec.assetSlot === undefined ? (current.assetSlot || null) : String(spec.assetSlot || "")
@@ -254,18 +258,35 @@
       return true;
     }
 
+    function focusedRoleFor(target) {
+      const map = {
+        PLAYER_FOCUS: "PLAYER",
+        COMPANION_LEFT: "COMPANION_LEFT",
+        COMPANION_RIGHT: "COMPANION_RIGHT",
+        ENEMY_PRIMARY: "ENEMY_PRIMARY"
+      };
+      return map[String(target || "").toUpperCase()] || null;
+    }
+
     function getEntityFrame(name, width = 1000, height = 600) {
       const role = normalizeRole(name);
       if (!role || !state.entities[role]) return null;
       const entity = state.entities[role];
       const anchor = resolveTarget(entity.anchor || role);
+      const profile = SHOT_PROFILES[state.activeShot] || SHOT_PROFILES.ESTABLISHING;
+      const focusedRole = focusedRoleFor(profile.target);
+      const focused = focusedRole === role;
+      const baseScale = clamp(entity.baselineScale ?? entity.scale ?? 1, .1, 4);
       return {
         role,
         enabled: Boolean(entity.enabled),
-        x: anchor.x * width,
-        y: anchor.y * height,
+        x: anchor.x * width + (focused ? finite(entity.focusOffsetX) : 0),
+        y: anchor.y * height + (focused ? finite(entity.focusOffsetY) : 0),
         depth: clamp(entity.depth === undefined ? anchor.depth : entity.depth, 0, 1),
-        scale: clamp(entity.scale ?? 1, .2, 3),
+        scale: clamp(focused ? (entity.focusScale ?? baseScale) : baseScale, .2, 4),
+        baselineScale: baseScale,
+        focusScale: clamp(entity.focusScale ?? baseScale, .2, 4),
+        focused,
         parallax: clamp(entity.parallax ?? 1, .1, 2),
         assetSlot: entity.assetSlot || null
       };
