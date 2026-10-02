@@ -229,3 +229,19 @@ test("Phase 29 real gameplay route reaches BREAK and BURST with existing systems
   assert.ok(Number(burst.damage) >= 0);
   assert.ok(lastResolution);
 });
+
+test("Phase 29 presentation routes action roles before motion and impact scheduling", async () => {
+  const combatPresentation = await source("intento_2/webapp/js/combat_presentation.js");
+  const start = combatPresentation.indexOf("function onAction(combat, action)");
+  const end = combatPresentation.indexOf("function sceneAssetSlots(", start);
+  assert.ok(start >= 0);
+  assert.ok(end > start);
+  const onAction = combatPresentation.slice(start, end);
+
+  assert.match(onAction, /const sourceRole = attacker === "enemy" \? "ENEMY_PRIMARY" : "PLAYER";/);
+  assert.match(onAction, /const targetRole = targetTeam === "player" \? "PLAYER" : "ENEMY_PRIMARY";/);
+  assert.match(onAction, /scheduleMotion\(\s*sourceRole,/);
+  assert.match(onAction, /scheduleMotion\(\s*targetRole,/);
+  assert.match(onAction, /setShot\("ATTACK_APPROACH"\)/);
+  assert.match(onAction, /setShot\("IMPACT"\)/);
+});
