@@ -549,3 +549,35 @@ The single Browser/Fish pass confirmed live combat start, timer, cards, enemy pr
 The live motorcycle rendering was UNKNOWN in that pass: the operator saw the placeholder label but did not receive evidence of the rendered motorcycle visual itself.
 
 The phase remains a presentation migration only. Do not interpret this browser result as gameplay validation.
+
+
+## Global execution protocol
+
+All Brain and Worker agents must follow:
+
+[docs/cerebro/MACH_GIRLS_GLOBAL_EXECUTION_PROTOCOL.md](MACH_GIRLS_GLOBAL_EXECUTION_PROTOCOL.md)
+
+Core operating rule:
+
+```
+ONE TASK
+→ ONE RESULT
+→ ONE CHECKPOINT
+→ NEXT TASK
+```
+
+The protocol is mandatory for preventing task accumulation, oversized responses, indefinite processing, repeated work after interruptions, and loss of recoverable state.
+
+It requires:
+
+- one active task per agent;
+- small decomposable tasks;
+- early test/commit/push checkpoints;
+- concise completion reports;
+- state inspection before recovery after interruption;
+- finite retries;
+- controlled parallelism;
+- GitHub as durable checkpoint memory;
+- no scope expansion merely because related work was discovered.
+
+This protocol governs execution mechanics. It does not weaken or replace the Master Game Development Directive; task quality and the 2.5D game objective remain mandatory.
