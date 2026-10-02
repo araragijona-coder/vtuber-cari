@@ -358,3 +358,58 @@ A future approved PNG can replace the placeholder through its Asset Studio slot 
 ### Scope boundary
 
 Phase 25 does not modify combat rules, save/replay semantics, Energy rules, BREAK/BURST mechanics, RNG, telemetry semantics or the Asset Studio approval process.
+
+
+## Phase 27 — Cinematic staging metadata
+
+The Asset Studio registry remains:
+
+`mach_girls_asset_catalog_v1`
+
+Phase 27 extends each normalized asset record with optional presentation metadata:
+
+```js
+{
+  sceneRole,
+  depth,
+  baselineScale,
+  focusScale,
+  focusOffsetX,
+  focusOffsetY,
+  allowedShots,
+  foregroundPriority,
+  backgroundPriority
+}
+```
+
+### Scene roles
+
+Supported scene roles are:
+
+```text
+PLAYER
+PLAYER_FOCUS
+COMPANION_LEFT
+COMPANION_RIGHT
+ENEMY_PRIMARY
+ENEMY_SECONDARY
+ENEMY_FAR
+FOREGROUND_LEFT
+FOREGROUND_RIGHT
+```
+
+These roles are presentation slots. They do not create new character IDs or gameplay entities.
+
+### Shot compatibility
+
+`allowedShots` is a comma-separated authoring hint normalized to known Phase 27 shot names. An empty authoring field means all currently known shots.
+
+### Focus behavior
+
+`baselineScale` and `focusScale` define staging scale; `focusOffsetX/Y` define optional camera-focus offsets. The runtime Shot Director consumes these fields for approved catalog records.
+
+### Human art boundary
+
+`DRAFT`, `TECHNICAL_PLACEHOLDER` and `APPROVED` remain the only asset statuses. Final character art is still human-approved and the Studio does not automatically approve art.
+
+Phase 27 does not change the static/local-first asset-storage model.
