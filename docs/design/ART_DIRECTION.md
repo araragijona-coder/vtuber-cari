@@ -147,3 +147,41 @@ Every effect must answer:
 5. can it be triggered deterministically?
 
 If not, classify it EXPLORATION rather than implementation-ready.
+
+## Phase 25 — 2.5D Combat Scene
+
+### CURRENT IMPLEMENTATION DIRECTION
+
+The combat presentation is now treated as a complete 2.5D visual stage rather than a minimal sprite/card surface.
+
+Scene layers are modeled as:
+
+`BACKGROUND → FAR_PARALLAX → MIDGROUND → ENEMY → COMBAT_FX → CHARACTER_MOTORCYCLE → FOREGROUND_FX → HUD → CARDS`
+
+Depth is simulated with scale, offsets, z-order, parallax, lighting hints and interpolated camera transforms. No 3D engine is introduced.
+
+### Character + motorcycle
+
+Character and motorcycle are rendered as one logical combat composition with a shared combat anchor, relative scale and offsets. The current motorcycle is a technical placeholder. Final character and motorcycle assets remain missing/APPROVAL-GATED.
+
+### Combat presentation states
+
+The presentation layer recognizes:
+
+`NORMAL / ATTACKING / HURT / BREAK / BURST READY / BURST ACTIVE / VICTORY / DEFEAT`
+
+These are visual states only and do not redefine gameplay rules.
+
+### Camera
+
+Reusable visual presets are available for:
+
+`IDLE / APPROACH / ATTACK / IMPACT / BREAK / BURST / VICTORY / DEFEAT`
+
+Camera motion is interpolated. Shake is limited to deliberate impact-style presentation.
+
+### Tactical readability
+
+Telegraphs now include a visible enemy warning ring and directional threat cue. Damage uses numbers, impact sparks and recoil response. BREAK and BURST receive dedicated presentation emphasis.
+
+The current UI keeps cards, Energy, BREAK, BURST, enemy HP/status and combat timing readable. Final aesthetic approval remains a human art gate.
