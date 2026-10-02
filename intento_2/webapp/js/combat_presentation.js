@@ -1151,7 +1151,7 @@
       context.setLineDash([]);
     }
 
-    function setAudioHookssetAudioHooks(hooks = {}) {
+    function setAudioHooks(hooks = {}) {
       state.audioHooks = { ...hooks };
     }
 
