@@ -245,3 +245,22 @@ test("Phase 29 presentation routes action roles before motion and impact schedul
   assert.match(onAction, /setShot\("ATTACK_APPROACH"\)/);
   assert.match(onAction, /setShot\("IMPACT"\)/);
 });
+
+test("Phase 29 observability pass keeps the visual cues legible", async () => {
+  const presentation = await source("intento_2/webapp/js/combat_presentation.js");
+  const shotDirector = await source("intento_2/webapp/js/combat_shot_director.js");
+  const combat = await source("intento_2/webapp/js/combat.js");
+
+  assert.match(presentation, /motorcycleScale: \.98/);
+  assert.match(presentation, /motorcycleOffsetY: 34/);
+  assert.match(presentation, /drawMotorcycle\(team, actorPoint, baseScale, mode, now\);[\s\S]*if \(composition\.identityLayer\)/);
+  assert.match(presentation, /duration: 520/);
+  assert.match(presentation, /duration: 320/);
+  assert.match(presentation, /eventNow \+ 110/);
+  assert.match(presentation, /const sparks = effect\.damage > 0 \? 12 : 6/);
+  assert.match(shotDirector, /PLAYER_FOCUS: Object\.freeze\(\{[\s\S]*duration: 1000/);
+  assert.match(shotDirector, /ENEMY_FOCUS: Object\.freeze\(\{[\s\S]*duration: 1000/);
+  assert.match(shotDirector, /ATTACK_APPROACH: Object\.freeze\(\{[\s\S]*duration: 520/);
+  assert.match(shotDirector, /IMPACT: Object\.freeze\(\{[\s\S]*duration: 650/);
+  assert.match(combat, /cinematicSleep\(260, token\)/);
+});
