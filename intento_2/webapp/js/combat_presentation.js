@@ -733,7 +733,7 @@
           stateName = animationState[visualState] || "IDLE";
         }
         const motion = motionFor(role, now);
-        ensureFoundationActor(role, {
+        const actor = ensureFoundationActor(role, {
           x: frame.x + motion.x,
           y: frame.y + motion.y,
           z: frame.depth + motion.z,
