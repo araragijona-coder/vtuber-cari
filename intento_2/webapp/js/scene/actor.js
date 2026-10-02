@@ -19,7 +19,8 @@
       assetRef: spec.assetRef ? String(spec.assetRef) : null,
       anchor: String(spec.anchor || spec.transform?.anchor || "CENTER"),
       children: new Map(),
-      metadata: { ...(spec.metadata || {}) }
+      metadata: { ...(spec.metadata || {}) },
+      animation: window.MachGirlsAnimationStateMachine?.create?.(spec.state || spec.transform?.state || "IDLE") || null
     };
 
     function setTransform(next = {}) {
@@ -65,8 +66,15 @@
       };
     }
 
-    function setState(stateName) {
-      actor.transform.state = String(stateName || "IDLE");
+    function setState(stateName, now = (typeof performance !== "undefined" ? performance.now() : 0)) {
+      const target = String(stateName || "IDLE").toUpperCase();
+      if (actor.animation?.setState) {
+        const result = actor.animation.setState(target, now);
+        if (!result.changed && result.reason === "TRANSITION_NOT_ALLOWED") {
+          actor.animation.forceState(target, now);
+        }
+      }
+      actor.transform.state = target;
       return actor.transform.state;
     }
 
@@ -78,6 +86,7 @@
       setTransform,
       setVisible,
       setState,
+      getAnimationState: () => actor.animation?.state || actor.transform.state,
       attachChild,
       detachChild,
       getSnapshot
