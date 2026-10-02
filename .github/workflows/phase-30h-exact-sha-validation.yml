@@ -15,7 +15,7 @@ jobs:
       - name: Checkout exact target SHA
         uses: actions/checkout@v4
         with:
-          ref: baba8fb78e9ca5f655951530439633f75c98d408
+          ref: 36c42426253234a681224559ad08b262337c2c32
           fetch-depth: 1
 
       - name: Verify exact HEAD
@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
-          expected="baba8fb78e9ca5f655951530439633f75c98d408"
+          expected="36c42426253234a681224559ad08b262337c2c32"
           echo "EXPECTED_SHA=$expected"
           echo "EXECUTED_HEAD=$actual"
           test "$actual" = "$expected"
