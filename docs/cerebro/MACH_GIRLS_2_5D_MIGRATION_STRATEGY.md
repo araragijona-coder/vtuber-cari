@@ -374,3 +374,66 @@ LEGACY != DELETE. The existing combat presentation has not been deleted. Respons
 
 Phase 28 limits:
 No complete vertical slice, final art, new gameplay, new roster, global Nitro/Redline or second engine.
+
+
+## PHASE 29 — FIRST CINEMATIC VERTICAL SLICE
+
+Phase 29 is the first integration checkpoint after the foundation. It does not add gameplay systems; it proves that the foundation can stage a small combat scene.
+
+Required scene:
+
+```text
+BACKGROUND
+   ↓
+ENEMY (deeper z plane)
+
+PLAYER + MOTORCYCLE + SHADOW
+   ↓
+foreground / midground
+```
+
+The live presentation path now has a controlled cinematic sequence:
+
+```text
+ESTABLISHING
+→ PLAYER_FOCUS
+→ ENEMY_FOCUS
+→ ATTACK_APPROACH
+→ IMPACT
+→ BREAK
+→ BURST
+→ IMPACT
+→ PLAYER_FOCUS
+```
+
+The sequence is orchestrated from the existing combat controller but delegates all game decisions to the existing gameplay stack. The demo uses the existing `yuri_break_drive` card and the existing `iron_guard` enemy; it does not add a demo-only skill, enemy, damage rule or Burst calculation.
+
+### Phase 29 presentation additions
+
+```text
+WORLD SPACE
+  ├── depth-correct projection
+  ├── controlled actor motion
+  └── PLAYER composition children
+        ├── MOTORCYCLE
+        └── SHADOW
+
+SCENE / CAMERA
+  ├── real camera x/y focus
+  ├── shot interpolation
+  ├── attack / impact / break / burst response
+  └── camera recovery
+
+UI
+  └── PLAY CINEMATIC SLICE trigger
+```
+
+The battle renderer remains singular. DOM remains limited to HUD/cards/menus/debug controls.
+
+### Gameplay proof boundary
+
+Executable smoke verification may prove that the existing card path can reach BREAK and make BURST available. It does not prove live visual quality. Browser/Fish evidence is therefore a separate gate.
+
+### Legacy rule
+
+Phase 29 does not delete the previous presentation implementation. The legacy path remains recoverable until each responsibility has a replacement plus verification.
