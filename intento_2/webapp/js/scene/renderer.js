@@ -31,6 +31,21 @@
       return true;
     }
 
+    function renderLighting(item, context) {
+      const lighting = item?.actorLayer?.lighting;
+      if (!lighting?.evaluate || !context || !("filter" in context)) return null;
+      const response = lighting.evaluate();
+      if (!response.enabled || response.filter === "none") return response;
+      const previousFilter = context.filter;
+      context.filter = response.filter;
+      return { ...response, previousFilter };
+    }
+
+    function restoreLighting(context, lightingState) {
+      if (!lightingState || !context || !("filter" in context)) return;
+      context.filter = lightingState.previousFilter || "none";
+    }
+
     function render(scene, viewport, draw, now = 0) {
       if (!scene || typeof draw !== "function") return false;
       const renderables = scene.renderables();
@@ -51,14 +66,26 @@
                 }
               )
               : null;
-            draw(item, screen, context, now);
+            const lightingState = renderLighting(item, context);
+            try {
+              draw(item, screen, context, now);
+            } finally {
+              restoreLighting(context, lightingState);
+            }
           }
         } finally {
           context.restore?.();
         }
         return true;
       }
-      for (const item of renderables) draw(item, null, context, now);
+      for (const item of renderables) {
+        const lightingState = renderLighting(item, context);
+        try {
+          draw(item, null, context, now);
+        } finally {
+          restoreLighting(context, lightingState);
+        }
+      }
       return true;
     }
 

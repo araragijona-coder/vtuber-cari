@@ -17,6 +17,14 @@
     return window.MachGirlsMeshDeformation.create(spec);
   }
 
+  function createLayerLighting(spec) {
+    if (!spec || typeof spec !== "object") return null;
+    if (!window.MachGirlsLighting?.create) {
+      throw new Error("MachGirlsLighting must load before lighting-enabled actors");
+    }
+    return window.MachGirlsLighting.create(spec);
+  }
+
   function createLayerMotion(spec) {
     if (!spec || typeof spec !== "object") return null;
     if (!window.MachGirlsProceduralMotion?.create) {
@@ -41,7 +49,8 @@
       },
       anchor: String(spec.anchor || "INHERIT"),
       mesh: createLayerMesh(spec.mesh),
-      motion: createLayerMotion(spec.motion)
+      motion: createLayerMotion(spec.motion),
+      lighting: createLayerLighting(spec.lighting)
     };
   }
 
@@ -60,7 +69,8 @@
       },
       anchor: String(layer.anchor || "INHERIT"),
       mesh: includeMeshRuntime ? layer.mesh : layer.mesh?.getSnapshot?.() || null,
-      motion: includeMeshRuntime ? layer.motion : layer.motion?.getSnapshot?.() || null
+      motion: includeMeshRuntime ? layer.motion : layer.motion?.getSnapshot?.() || null,
+      lighting: includeMeshRuntime ? layer.lighting : layer.lighting?.getSnapshot?.() || null
     };
   }
 
