@@ -227,7 +227,7 @@
       for (let strike = 0; strike < 5; strike += 1) {
         assertCinematic(token);
         presentation.setShot("ATTACK_APPROACH");
-        await cinematicSleep(120, token);
+        await cinematicSleep(260, token);
         const instanceId = await waitForCardReady("yuri_break_drive", token);
         const resolution = playCard(instanceId);
         if (!resolution) throw new Error("CINEMATIC_CARD_REJECTED");
