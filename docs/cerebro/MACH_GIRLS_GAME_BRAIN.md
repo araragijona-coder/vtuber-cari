@@ -575,3 +575,49 @@ Status:
 2.5D FOUNDATION = CURRENT / VERIFIED BY EXECUTABLE SMOKE TEST
 
 Live shot-by-shot Browser evidence remains separate and must not be inferred from static/runtime verification.
+
+
+## Phase 29 — First cinematic vertical slice
+
+Phase 29 advances the presentation migration from foundation to a single playable cinematic slice while preserving the existing gameplay brain.
+
+The slice is intentionally constrained to:
+
+```text
+1 PLAYER
+1 MOTORCYCLE
+1 SHADOW
+1 ENEMY
+1 BACKGROUND
+TECHNICAL COMPANION LEFT/RIGHT
+```
+
+Presentation flow:
+
+```text
+ESTABLISHING
+→ PLAYER_FOCUS
+→ ENEMY_FOCUS
+→ ATTACK_APPROACH
+→ IMPACT
+→ BREAK
+→ BURST
+→ IMPACT
+→ PLAYER_FOCUS RECOVERY
+```
+
+The attack is not a demo-only rule. The orchestrator uses the existing `yuri_break_drive` card through `GameActions` and `CombatEngine.resolveAction`, waits for the existing Energy/cooldown state, and lets the existing BREAK/BURST systems decide when those states become available.
+
+The new presentation work is limited to:
+- controlled actor motion tracks;
+- presentation-only hit stop / recoil timing;
+- real camera focus using world-space camera x/y;
+- depth semantics where lower z is farther and higher z is closer;
+- shared PLAYER → MOTORCYCLE + SHADOW composition;
+- an explicit cinematic-slice control in the existing UI.
+
+No new combat engine, card system, Energy system, AI, RNG, Save system, BREAK rule, BURST calculation or game loop was introduced.
+
+Executable gameplay smoke verification on the branch reached BREAK and then BURST with the existing `iron_guard` enemy using real `yuri_break_drive` actions; the smoke route observed enemy HP remaining above zero and player HP remaining positive.
+
+Live browser visual verification is tracked independently and must not be inferred from these executable checks.
