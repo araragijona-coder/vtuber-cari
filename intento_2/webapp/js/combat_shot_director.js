@@ -38,13 +38,14 @@
   ]);
 
   const SCENE_ANCHORS = Object.freeze({
+    // Lower depth values are farther from the camera; higher values render closer.
     PLAYER: Object.freeze({ x: .31, y: .56, depth: .72 }),
     PLAYER_FOCUS: Object.freeze({ x: .36, y: .50, depth: .72 }),
-    COMPANION_LEFT: Object.freeze({ x: .14, y: .55, depth: .56 }),
-    COMPANION_RIGHT: Object.freeze({ x: .86, y: .55, depth: .56 }),
-    ENEMY_PRIMARY: Object.freeze({ x: .69, y: .56, depth: .78 }),
-    ENEMY_SECONDARY: Object.freeze({ x: .82, y: .53, depth: .64 }),
-    ENEMY_FAR: Object.freeze({ x: .91, y: .48, depth: .43 }),
+    COMPANION_LEFT: Object.freeze({ x: .14, y: .55, depth: .54 }),
+    COMPANION_RIGHT: Object.freeze({ x: .86, y: .55, depth: .54 }),
+    ENEMY_PRIMARY: Object.freeze({ x: .69, y: .56, depth: .46 }),
+    ENEMY_SECONDARY: Object.freeze({ x: .82, y: .53, depth: .38 }),
+    ENEMY_FAR: Object.freeze({ x: .91, y: .48, depth: .24 }),
     FOREGROUND_LEFT: Object.freeze({ x: .02, y: .77, depth: .96 }),
     FOREGROUND_RIGHT: Object.freeze({ x: .98, y: .77, depth: .96 })
   });

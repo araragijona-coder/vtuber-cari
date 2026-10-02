@@ -119,7 +119,10 @@
       },
       shotFrame: {
         current: { ...CAMERA_PRESETS.IDLE }
-      }
+      },
+      motionTracks: new Map(),
+      visualFreezeUntil: 0,
+      visualFreezeNow: 0
     };
 
     function rememberAction(actionId) {
@@ -156,6 +159,40 @@
       if (String(combat.player?.id) === String(id)) return "player";
       if (String(combat.enemy?.id) === String(id)) return "enemy";
       return null;
+    }
+
+    function scheduleMotion(role, spec = {}, now = performance.now()) {
+      const key = String(role || "").toUpperCase();
+      if (!key) return;
+      state.motionTracks.set(key, {
+        start: Number(now) || 0,
+        duration: Math.max(1, Number(spec.duration) || 240),
+        dx: Number(spec.dx) || 0,
+        dy: Number(spec.dy) || 0,
+        dz: Number(spec.dz) || 0,
+        rotation: Number(spec.rotation) || 0,
+        scale: Number(spec.scale) || 0
+      });
+    }
+
+    function motionFor(role, now = performance.now()) {
+      const key = String(role || "").toUpperCase();
+      const track = state.motionTracks.get(key);
+      if (!track) return { x: 0, y: 0, z: 0, rotation: 0, scale: 1 };
+      const elapsed = Math.max(0, (Number(now) || 0) - track.start);
+      const raw = progress(elapsed + track.start, track.start, track.duration);
+      if (raw >= 1) {
+        state.motionTracks.delete(key);
+        return { x: 0, y: 0, z: 0, rotation: 0, scale: 1 };
+      }
+      const wave = Math.sin(Math.PI * smoothstep(raw));
+      return {
+        x: track.dx * wave,
+        y: track.dy * wave,
+        z: track.dz * wave,
+        rotation: track.rotation * wave,
+        scale: 1 + track.scale * wave
+      };
     }
 
     function positionFor(team, width, height) {
@@ -352,12 +389,13 @@
         if (combatActor && combat) {
           stateName = visualStateFor(team, combat, now, fighterState(team, combat, now)).replace("BURST READY", "IDLE").replace("BURST ACTIVE", "BURST");
         }
+        const motion = motionFor(role, now);
         ensureFoundationActor(role, {
-          x: frame.x,
-          y: frame.y,
-          z: frame.depth,
-          scale: frame.scale,
-          rotation: 0,
+          x: frame.x + motion.x,
+          y: frame.y + motion.y,
+          z: frame.depth + motion.z,
+          scale: frame.scale * motion.scale,
+          rotation: motion.rotation,
           visible: frame.enabled
         }, stateName);
       }
@@ -646,12 +684,6 @@
         if (mode === "defeat") context.rotate(enemy ? -.04 : .04);
         if (mode === "victory") context.rotate(enemy ? .03 : -.03);
       }
-      context.globalAlpha = .22;
-      context.fillStyle = "#000000";
-      context.beginPath();
-      context.ellipse(0, 74 * scale, 64 * scale, 13 * scale, 0, 0, Math.PI * 2);
-      context.fill();
-      context.globalAlpha = 1;
       context.fillStyle = shadow;
       context.beginPath();
       context.moveTo(-w / 3 + 18 * scale, -4 * scale);
@@ -748,12 +780,47 @@
       context.restore();
     }
 
+    function foundationChild(team, childRole) {
+      const role = team === "player" ? "PLAYER" : "ENEMY_PRIMARY";
+      const actor = state.scene?.getActor?.("scene:" + role);
+      const children = actor?.getSnapshot?.().children || [];
+      return children.find((child) => String(child.role || "").toUpperCase() === childRole) || null;
+    }
+
+    function drawFoundationShadow(team, point, baseScale) {
+      const shadow = foundationChild(team, "SHADOW");
+      const transform = shadow?.transform || { x: 0, y: 20, scale: 1 };
+      context.save();
+      context.globalAlpha = .22;
+      context.fillStyle = "#000000";
+      context.beginPath();
+      context.ellipse(
+        point.x + Number(transform.x || 0),
+        point.y + Number(transform.y || 20),
+        64 * baseScale * Number(transform.scale || 1),
+        13 * baseScale * Number(transform.scale || 1),
+        0,
+        0,
+        Math.PI * 2
+      );
+      context.fill();
+      context.restore();
+    }
+
     function drawMotorcycle(team, point, baseScale, mode, now) {
       const composition = compositionFor(team);
-      const scale = baseScale * composition.motorcycleScale;
+      const child = foundationChild(team, "MOTORCYCLE");
+      const transform = child?.transform || {
+        x: team === "enemy" ? -composition.motorcycleOffsetX : composition.motorcycleOffsetX,
+        y: composition.motorcycleOffsetY,
+        scale: composition.motorcycleScale
+      };
+      const childScale = Number(transform.scale || composition.motorcycleScale || 1);
+      const scale = baseScale * childScale;
       const image = imageFor(team + ".motorcycle");
-      const x = point.x + (team === "enemy" ? -composition.motorcycleOffsetX : composition.motorcycleOffsetX);
-      const y = point.y + composition.motorcycleOffsetY;
+      const sign = team === "enemy" ? -1 : 1;
+      const x = point.x + sign * Number(transform.x || 0);
+      const y = point.y + Number(transform.y || 0);
       if (image) {
         const width = 226 * scale;
         const height = 120 * scale;
@@ -817,8 +884,14 @@
       const spriteSlot = assetSlotForFighter(team, mode);
       const image = spriteSlot ? imageFor(spriteSlot) : null;
       context.save();
+      const actorPoint = {
+        x: point.x,
+        y: point.y,
+        z: foundationDepth
+      };
+      drawFoundationShadow(team, actorPoint, baseScale);
       context.translate(stateForFighter.lunge, 0);
-      drawMotorcycle(team, point, baseScale, mode, now);
+      drawMotorcycle(team, actorPoint, baseScale, mode, now);
       if (image) {
         const imageWidth = 190 * scale;
         const imageHeight = 224 * scale;
@@ -1173,7 +1246,41 @@
         action.source === "ENEMY_AUTO_ATTACK" ? "player" : "enemy"
       );
       const attacker = action.source === "ENEMY_AUTO_ATTACK" || action.actionType === "ENEMY_BEHAVIOR" ? "enemy" : "player";
-      applyPresentationEvent(combat, presentationEvent, performance.now());
+      const eventNow = performance.now();
+      applyPresentationEvent(combat, presentationEvent, eventNow);
+
+      if (presentationEvent?.type === "ATTACK") {
+        scheduleMotion(
+          sourceRole,
+          { dx: sourceRole === "PLAYER" ? 82 : -62, dy: -7, dz: -0.08, duration: 300 },
+          eventNow
+        );
+      }
+      if (presentationEvent?.type === "IMPACT") {
+        scheduleMotion(
+          targetRole,
+          { dx: targetRole === "ENEMY_PRIMARY" ? 42 : -42, dy: -6, dz: 0.06, rotation: targetRole === "ENEMY_PRIMARY" ? 0.055 : -0.055, duration: 220 },
+          eventNow
+        );
+        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 72);
+        state.visualFreezeNow = eventNow;
+      }
+      if (presentationEvent?.type === "BREAK") {
+        scheduleMotion(
+          "ENEMY_PRIMARY",
+          { dx: 54, dy: -12, dz: 0.08, rotation: 0.085, duration: 440 },
+          eventNow
+        );
+        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 92);
+        state.visualFreezeNow = eventNow;
+      }
+      if (presentationEvent?.type === "BURST") {
+        scheduleMotion(
+          "PLAYER",
+          { dx: 126, dy: -24, dz: -0.12, rotation: 0.065, scale: 0.05, duration: 480 },
+          eventNow
+        );
+      }
 
       if (action.outcome === "VICTORY") {
         state.shotDirector ? setShot("VICTORY") : setCameraPreset("VICTORY");
@@ -1421,6 +1528,7 @@
       state.viewport = { width, height };
       if (state.scene?.camera?.setViewportCenter) state.scene.camera.setViewportCenter(width, height);
       updateCamera(now, combat, width, height);
+      const visualNow = now < state.visualFreezeUntil ? state.visualFreezeNow : now;
 
       state.sceneRenderer?.renderFrame?.(
         state.scene,
@@ -1428,15 +1536,15 @@
         () => {
           context.globalAlpha = 1;
           context.lineWidth = 1;
-          drawBackground(width, height, combat, now);
-          drawParallax(width, height, now);
+          drawBackground(width, height, combat, visualNow);
+          drawParallax(width, height, visualNow);
           if (combat) {
-            drawSceneEntities(width, height, now);
-            drawIntent(combat, width, height, now);
-            renderEffects(combat, width, height, now);
-            drawBurstReady(combat, width, height, now);
+            drawSceneEntities(width, height, visualNow);
+            drawIntent(combat, width, height, visualNow);
+            renderEffects(combat, width, height, visualNow);
+            drawBurstReady(combat, width, height, visualNow);
           }
-          drawForeground(width, height, now, combat);
+          drawForeground(width, height, visualNow, combat);
           drawLighting(width, height, combat);
         },
         now

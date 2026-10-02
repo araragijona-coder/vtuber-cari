@@ -23,9 +23,11 @@
       const shake = finite(state.shake) * shakeFade;
       const shakeX = shake ? Math.sin(now * .085) * shake : 0;
       const shakeY = shake ? Math.cos(now * .071) * shake * .55 : 0;
+      const cameraX = finite(state.x, width / 2);
+      const cameraY = finite(state.y, height / 2);
       context.translate(width / 2 + finite(state.offsetX) + shakeX, height / 2 + finite(state.offsetY) + shakeY);
       context.scale(finite(state.zoom, 1), finite(state.zoom, 1));
-      context.translate(-width / 2, -height / 2);
+      context.translate(-cameraX, -cameraY);
       return true;
     }
 
