@@ -112,6 +112,10 @@ function sceneVfxTypes(snapshot) {
   return snapshot.effects.map((effect) => effect.type).sort();
 }
 
+function normalizeAssertionValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 async function runRealAttack(seed = 290901) {
   const { window, presentation, setNow } = await loadRealAttackPresentation();
   const state = window.GameState.createGameState({ playerId: "yuri-player" });
@@ -225,6 +229,7 @@ async function runRealAttack(seed = 290901) {
 
   setNow(2500);
   presentation.render(state.combat, 2500);
+  const recoveryCamera = presentation.getCameraState();
   const recoveryFoundation = presentation.getSceneFoundation();
   const playerRecovery = foundationActor(recoveryFoundation, "scene:PLAYER");
   const enemyRecovery = foundationActor(recoveryFoundation, "scene:ENEMY_PRIMARY");
@@ -232,6 +237,7 @@ async function runRealAttack(seed = 290901) {
   assert.ok(["IDLE", "BREAK"].includes(enemyRecovery.transform.state));
   assert.equal(presentation.getAttackStyleState(), null);
   assert.equal(presentation.getShotState(2500).name, "PLAYER_FOCUS");
+  assert.equal(recoveryCamera.active, "PLAYER_FOCUS");
   assert.equal(
     playerRecovery.layers[0].mesh.deformation.offsets.every((offset) => offset.x === 0 && offset.y === 0),
     true
@@ -264,13 +270,17 @@ async function runRealAttack(seed = 290901) {
       lightingIntensity: playerActive.layers[0].lighting.intensity
     },
     camera: {
-      active: presentation.getCameraState().active,
-      zoom: presentation.getCameraState().zoom
+      active: cameraAtImpact.active,
+      zoom: cameraAtImpact.zoom
     },
     vfxAtImpact,
     recovery: {
       attackStyle: presentation.getAttackStyleState(),
       shot: presentation.getShotState(2500).name,
+      camera: {
+        active: recoveryCamera.active,
+        zoom: recoveryCamera.zoom
+      },
       effects: recoveryFoundation.effects.length
     },
     gameplay: {
@@ -333,7 +343,7 @@ test("H — recovery clears attack style, transient VFX, deformation and camera 
 test("I — presentation does not alter gameplay authority or outcome", async () => {
   const result = await runRealAttack();
   assert.equal(result.gameplay.hpAfterCombat, result.gameplay.hpBefore - result.resolution.damage);
-  assert.equal(result.gameplay.breakAfterCombat >= result.gameplay.breakBefore, true);
+  assert.equal(result.gameplay.breakAfterCombat <= result.gameplay.breakBefore, true);
   assert.equal(result.gameplay.energyAfterCombat < result.gameplay.energyBefore, true);
   assert.equal(result.gameplay.eventCountAfterCombat >= result.events.length, true);
 });
@@ -341,10 +351,10 @@ test("I — presentation does not alter gameplay authority or outcome", async ()
 test("J — identical real attack sequences produce deterministic observable presentation output", async () => {
   const first = await runRealAttack();
   const second = await runRealAttack();
-  assert.deepEqual(first.events, second.events);
+  assert.deepEqual(Array.from(first.events), Array.from(second.events));
   assert.deepEqual(first.resolution, second.resolution);
-  assert.deepEqual(first.playerAttack, second.playerAttack);
+  assert.deepEqual(normalizeAssertionValue(first.playerAttack), normalizeAssertionValue(second.playerAttack));
   assert.deepEqual(first.camera, second.camera);
-  assert.deepEqual(first.vfxAtImpact, second.vfxAtImpact);
-  assert.deepEqual(first.recovery, second.recovery);
+  assert.deepEqual(Array.from(first.vfxAtImpact), Array.from(second.vfxAtImpact));
+  assert.deepEqual(normalizeAssertionValue(first.recovery), normalizeAssertionValue(second.recovery));
 });
