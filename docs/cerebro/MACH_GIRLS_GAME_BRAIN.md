@@ -6,6 +6,47 @@ MASTER CURRENT DESIGN / RECOVERY BRAIN
 
 This document exists so a future AI can reconstruct the intended Mach-Girls experience without relying on conversational memory or simplifying the project from the visible MVP code.
 
+## Master Game Development Directive — MANDATORY
+
+The project now has a mandatory authoritative development directive:
+
+[docs/cerebro/MACH_GIRLS_MASTER_GAME_DEVELOPMENT_DIRECTIVE.md](MACH_GIRLS_MASTER_GAME_DEVELOPMENT_DIRECTIVE.md)
+
+Its central rule is:
+
+```
+BUILD A GAME THAT USES THE WEB AS A PLATFORM
+NOT A WEB INTERFACE THAT DESCRIBES A GAME
+```
+
+The player must perceive, in priority order:
+
+```
+SCENE → CHARACTERS → MOVEMENT → CAMERA → ACTION → IMPACT
+→ HUD → CARDS → STATS → BUTTONS
+```
+
+The target presentation is **2.5D CINEMÁTICO**: design the experience as a simplified 3D game first, then choose efficient 2.5D representations. Important combat actors conceptually live in world space with transforms including `x/y/z/scale/rotation/state`, and the pipeline is:
+
+```
+WORLD POSITION → CAMERA → PROJECTION → SCREEN POSITION → RENDER
+```
+
+The HUD is a game layer, never the game itself.
+
+The directive also makes these architectural boundaries mandatory:
+
+- gameplay and presentation remain separate;
+- cinematic presentation flows through a Shot Director and presentation events;
+- one main game loop and one main renderer;
+- scene actors belong to the renderer, not DOM nodes;
+- existing systems must be reused before creating replacements;
+- no new gameplay systems, global Nitro, global Redline, or resolution of Yuri ↔ Maki Mach as part of visual work;
+- the first convincing vertical slice has priority over adding content;
+- a technically functional scene that still looks like a webpage is not an acceptable finish state.
+
+The directive supersedes any earlier tendency to interpret the combat scene as a static illustration, minimal card interface, or simple two-sprite arrangement.
+
 ## Recovery rule
 
 When the target experience is unclear, consult sources in this order:
