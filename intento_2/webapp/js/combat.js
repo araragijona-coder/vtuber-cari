@@ -47,7 +47,7 @@
   let battleSequence = 0;
   let enemySequence = -1;
   let currentEnemyId = null;
-  let simulationFrame = null;
+  let mainLoopFrame = null;
   let lastSimulationTime = null;
   const view = {
     gameState: null,
@@ -127,46 +127,40 @@
     };
   }
 
-  function stopSimulation() {
-    if (simulationFrame !== null) {
-      window.cancelAnimationFrame(simulationFrame);
-      simulationFrame = null;
-    }
+  function resetSimulationClock() {
     lastSimulationTime = null;
   }
 
-  function startSimulation() {
-    stopSimulation();
-    lastSimulationTime = performance.now();
+  function startMainLoop() {
+    if (mainLoopFrame !== null) return;
 
     function frame(now) {
+      mainLoopFrame = window.requestAnimationFrame(frame);
+
       const combat = view.gameState?.combat;
-      if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
-        stopSimulation();
-        return;
-      }
+      if (combat && combat.outcome === window.GameState.OUTCOME.IN_PROGRESS) {
+        const deltaMs = Math.min(
+          500,
+          Math.max(0, Number(now) - Number(lastSimulationTime ?? now))
+        );
+        lastSimulationTime = now;
 
-      const deltaMs = Math.min(
-        500,
-        Math.max(0, Number(now) - Number(lastSimulationTime))
-      );
-      lastSimulationTime = now;
+        window.CombatEngine.advanceTime(view.gameState, deltaMs);
+        captureLatestAction(combat);
 
-      window.CombatEngine.advanceTime(view.gameState, deltaMs);
-      captureLatestAction(combat);
-
-      if (combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
-        stopSimulation();
-        completeBattleTelemetry(combat);
-        renderUi();
-        return;
+        if (combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
+          completeBattleTelemetry(combat);
+          resetSimulationClock();
+        }
+      } else {
+        resetSimulationClock();
       }
 
       renderUi();
-      simulationFrame = window.requestAnimationFrame(frame);
+      presentation?.render(view.gameState?.combat || null, now);
     }
 
-    simulationFrame = window.requestAnimationFrame(frame);
+    mainLoopFrame = window.requestAnimationFrame(frame);
   }
 
   function captureLatestAction(combat) {
@@ -210,7 +204,7 @@
   }
 
   function startBattle(config = null) {
-    stopSimulation();
+    resetSimulationClock();
     const battleConfig = config || createBattleConfig();
     currentEnemyId = battleConfig.enemy?.id || currentEnemyId;
     if (battleConfig.progression && typeof window.ProgressionSystem?.normalizeProgression === "function") {
@@ -228,7 +222,7 @@
     presentation?.onCombatStart(combat);
     window.RocketBunnyTelemetry?.beginCombat(combat);
     renderUi();
-    startSimulation();
+    resetSimulationClock();
   }
 
   function restartBattle() {
@@ -288,7 +282,7 @@
       });
       showResult(resolution, combat);
       if (resolution.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
-        stopSimulation();
+        resetSimulationClock();
         completeBattleTelemetry(combat);
       }
       renderUi();
@@ -620,11 +614,6 @@
     view.lastHeight = rect.height;
   }
 
-  function drawFrame(now) {
-    presentation?.render(view.gameState?.combat || null, now);
-    window.requestAnimationFrame(drawFrame);
-  }
-
   window.CariCombat = Object.freeze({
     startBattle,
     restartBattle,
@@ -644,5 +633,5 @@
 
   initGameState();
   resizeCanvas();
-  window.requestAnimationFrame(drawFrame);
+  startMainLoop();
 })();
