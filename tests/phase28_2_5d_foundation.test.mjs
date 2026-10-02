@@ -98,6 +98,12 @@ test("Phase 28 renderer lifecycle applies one camera transform and restores cont
   let drawn = 0;
   assert.equal(renderer.render(scene, { width: 1200, height: 700 }, () => { drawn += 1; }, 0), true);
   assert.equal(drawn, 1);
+
+  let frameDrawn = false;
+  assert.equal(renderer.renderFrame(scene, { width: 1200, height: 700 }, () => { frameDrawn = true; }, 0), true);
+  assert.equal(frameDrawn, true);
+  assert.equal(calls.filter((item) => item === "save").length, 2);
+  assert.equal(calls.filter((item) => item === "restore").length, 2);
   assert.equal(calls[0], "save");
   assert.equal(calls.at(-1), "restore");
 });
@@ -134,4 +140,30 @@ test("Phase 28 does not create alternate combat, card, Energy, save or gameplay 
   assert.match(presentation, /MachGirlsSceneRenderer/);
   assert.match(presentation, /MachGirlsSceneCamera/);
   assert.match(presentation, /MachGirlsActor/);
+  assert.match(presentation, /renderFrame/);
+  assert.doesNotMatch(presentation, /function applyCamera\(/);
+});
+
+test("Phase 28 player foundation carries motorcycle and shadow as composition children", async () => {
+  const win = await loadFoundation();
+  const actor = win.MachGirlsActor.create({
+    id: "scene:PLAYER",
+    role: "PLAYER",
+    transform: { x: 600, y: 400, z: 0.7, scale: 1, state: "IDLE" }
+  });
+  actor.attachChild(win.MachGirlsActor.create({
+    id: "scene:PLAYER:MOTORCYCLE",
+    role: "MOTORCYCLE",
+    transform: { x: 0, y: 18, z: 0, scale: 0.82, state: "IDLE", assetRef: "player.motorcycle" }
+  }));
+  actor.attachChild(win.MachGirlsActor.create({
+    id: "scene:PLAYER:SHADOW",
+    role: "SHADOW",
+    transform: { x: 0, y: 20, z: 0, scale: 1, state: "IDLE" }
+  }));
+  const snapshot = actor.getSnapshot();
+  assert.deepEqual(snapshot.children.map((child) => child.id), [
+    "scene:PLAYER:MOTORCYCLE",
+    "scene:PLAYER:SHADOW"
+  ]);
 });
