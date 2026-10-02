@@ -157,7 +157,13 @@
     function positionFor(team, width, height) {
       const role = team === "player" ? "PLAYER" : "ENEMY_PRIMARY";
       const staged = state.shotDirector?.getEntityFrame?.(role, width, height);
-      if (staged) return { x: staged.x, y: staged.y };
+      if (staged) {
+        const camera = state.shotFrame?.current || {};
+        return {
+          x: staged.x + Number(camera.offsetX || 0) * (Number(staged.parallax || 1) - 1),
+          y: staged.y + Number(camera.offsetY || 0) * (Number(staged.parallax || 1) - 1)
+        };
+      }
 
       const compact = width < 560;
       return {
@@ -1189,6 +1195,64 @@
       if (actionType === "ENEMY_BEHAVIOR" && action.intent?.type === "DEBUFF") {
         addEffect("status", { targetTeam: "player", status: "WEAK" }, 650);
         emitAudio("telegraph", action);
+      }
+    }
+
+    function sceneAssetSlots(role) {
+      const map = {
+        COMPANION_LEFT: { character: "scene.companion_left_character", motorcycle: "scene.companion_left_motorcycle" },
+        COMPANION_RIGHT: { character: "scene.companion_right_character", motorcycle: "scene.companion_right_motorcycle" },
+        ENEMY_SECONDARY: { character: "scene.enemy_secondary_character", motorcycle: "scene.enemy_secondary_motorcycle" },
+        ENEMY_FAR: { character: "scene.enemy_far_character", motorcycle: "scene.enemy_far_motorcycle" }
+      };
+      return map[role] || null;
+    }
+
+    function drawStagedEntity(role, width, height, now) {
+      const frame = state.shotDirector?.getEntityFrame?.(role, width, height);
+      if (!frame?.enabled) return;
+      const slots = sceneAssetSlots(role);
+      const image = slots ? imageFor(slots.character) : null;
+      const team = role.startsWith("ENEMY") ? "enemy" : "player";
+      const camera = state.shotFrame?.current || {};
+      const x = frame.x + Number(camera.offsetX || 0) * (Number(frame.parallax || 1) - 1);
+      const y = frame.y + Number(camera.offsetY || 0) * (Number(frame.parallax || 1) - 1);
+      const scale = clamp(frame.scale * (.68 + .42 * frame.depth), .42, 1.45);
+      context.save();
+      context.translate(x, y);
+      if (image) {
+        const imageWidth = 150 * scale;
+        const imageHeight = 190 * scale;
+        context.globalAlpha = .9;
+        context.drawImage(image, -imageWidth / 2, -imageHeight + 60, imageWidth, imageHeight);
+      } else {
+        drawPlaceholderFighter(team, { hp: 1, maxHp: 1 }, 0, 0, scale, "idle", now);
+        drawText("STAGING PLACEHOLDER · NOT FINAL ART", 0, 118, 8, "850", "center", "rgba(255,255,255,.66)");
+      }
+      if (slots) {
+        const motorcycle = imageFor(slots.motorcycle);
+        if (motorcycle) {
+          const bikeWidth = 190 * scale;
+          const bikeHeight = 100 * scale;
+          context.drawImage(motorcycle, -bikeWidth / 2, 12, bikeWidth, bikeHeight);
+        } else {
+          drawPlaceholderMotorcycle(team, 0, 38, scale, "idle", now);
+        }
+      }
+      context.restore();
+    }
+
+    function drawSceneEntities(width, height, now) {
+      if (!state.shotDirector) return;
+      const order = ["COMPANION_LEFT", "ENEMY_FAR", "ENEMY_SECONDARY", "ENEMY_PRIMARY", "PLAYER", "COMPANION_RIGHT"]
+        .map((role, index) => ({ role, index, frame: state.shotDirector.getEntityFrame(role, width, height) }))
+        .filter((entry) => entry.frame?.enabled)
+        .sort((a, b) => a.frame.depth - b.frame.depth || a.index - b.index);
+
+      for (const entry of order) {
+        if (entry.role === "PLAYER") drawFighter("player", currentCombatForRender, width, height, now);
+        else if (entry.role === "ENEMY_PRIMARY") drawFighter("enemy", currentCombatForRender, width, height, now);
+        else drawStagedEntity(entry.role, width, height, now);
       }
     }
 
