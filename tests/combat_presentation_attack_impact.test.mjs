@@ -37,8 +37,8 @@ async function loadPresentation() {
     ellipse() {},
     arcTo() {},
     drawImage() {},
-    fillText() {},
-    strokeText() {},
+    fillText(text) { drawnTexts.push(String(text)); },
+    strokeText(text) { drawnTexts.push(String(text)); },
     setLineDash() {},
     createLinearGradient() { return gradient; },
     createRadialGradient() { return gradient; },
@@ -99,6 +99,7 @@ const REAL_GAME_FILES = [
 
 async function loadRealCombatPresentation() {
   let now = 0;
+  const drawnTexts = [];
   const gradient = { addColorStop() {} };
   const context = {
     save() {},
@@ -146,7 +147,9 @@ async function loadRealCombatPresentation() {
   return {
     window: contextVm.window,
     presentation: contextVm.window.CombatPresentation.create(canvas, context),
-    setNow(value) { now = value; }
+    setNow(value) { now = value; },
+    drawnTexts,
+    clearDrawnTexts() { drawnTexts.length = 0; }
   };
 }
 
@@ -304,6 +307,100 @@ test("Yuri Racha Neon preserves ability identity and applies its character-speci
   assert.equal(actorFrom(recovery, "scene:ENEMY_PRIMARY").transform.state, "IDLE");
 });
 
+
+
+
+test("Yuri Impulso Mach uses non-attack buff presentation and never enters contact presentation", async () => {
+  const { window, presentation, setNow, drawnTexts, clearDrawnTexts } = await loadRealCombatPresentation();
+  const state = window.GameState.createGameState({ playerId: "yuri-player" });
+  const character = window.CharacterKitSystem.definitionFor("yuri");
+  const enemy = window.EnemyCatalog.createEnemy("iron_guard");
+
+  window.GameState.startBattle(state, {
+    battleId: "yuri-impulso-mach-presentation",
+    seed: 290902,
+    player: {
+      id: "yuri-player",
+      hp: 120,
+      maxHp: 120,
+      stats: { atk: 20, def: 5, skillDamage: 40 }
+    },
+    enemy,
+    characterId: "yuri",
+    character,
+    cardIds: window.CharacterKitSystem.cardIdsFor("yuri")
+  });
+
+  presentation.onCombatStart(state.combat);
+
+  const definition = window.CardSystem.definitionFor("yuri_impulso_mach");
+  assert.ok(definition);
+  assert.equal(definition.characterId, "yuri");
+  assert.equal(definition.type, window.CardSystem.CARD_TYPES.SKILL);
+  assert.equal(definition.targeting, "self");
+  assert.equal(definition.damage, 0);
+  assert.equal(definition.breakDamage, 0);
+  assert.deepEqual(definition.effects.buff, {
+    type: "DAMAGE_OUT",
+    amount: 0.25,
+    durationMs: 2200,
+    stacking: "replace"
+  });
+
+  const card = state.combat.cards.hand.find((entry) => entry.cardId === "yuri_impulso_mach");
+  assert.ok(card, "Impulso Mach must be present in the real Yuri deck");
+
+  const enemyHpBefore = state.combat.enemy.hp;
+  const enemyBreakBefore = state.combat.enemy.breakState.current;
+
+  setNow(1000);
+  const action = window.GameActions.createPlayerSkillAction(state, card.instanceId);
+  assert.equal(action.type, "SKILL");
+  assert.equal(action.source, "PLAYER_SKILL");
+  assert.equal(action.actorId, "yuri-player");
+  assert.equal(action.cardId, "yuri_impulso_mach");
+
+  const resolution = window.CombatEngine.resolveAction(state, action);
+  assert.equal(resolution.actionType, "SKILL");
+  assert.equal(resolution.cardId, "yuri_impulso_mach");
+  assert.equal(resolution.damage, 0);
+  assert.equal(resolution.breakDamage, 0);
+  assert.equal(resolution.hitCount, 0);
+  assert.equal(resolution.hits, null);
+  assert.equal(resolution.buffApplied.type, "DAMAGE_OUT");
+  assert.equal(resolution.buffApplied.amount, 0.25);
+  assert.equal(resolution.buffApplied.durationMs, 2200);
+  assert.equal(state.combat.enemy.hp, enemyHpBefore);
+  assert.equal(state.combat.enemy.breakState.current, enemyBreakBefore);
+
+  presentation.onAction(state.combat, resolution);
+
+  const style = presentation.getPresentationStyleState();
+  assert.equal(style.styleId, "YURI_IMPULSO_MACH");
+  assert.equal(style.characterId, "yuri");
+  assert.equal(style.abilityId, "yuri_impulso_mach");
+  assert.equal(style.actionId, resolution.actionId);
+  assert.equal(style.presentationType, "BUFF");
+  assert.equal(style.cameraShot, "PLAYER_FOCUS");
+  assert.equal(presentation.getAttackStyleState(), null);
+
+  const frame = runFrame(presentation, setNow, state.combat, 1060);
+  const player = actorFrom(frame, "scene:PLAYER");
+  const enemyAtBuff = actorFrom(frame, "scene:ENEMY_PRIMARY");
+  assert.equal(player.transform.state, "IDLE");
+  assert.equal(enemyAtBuff.transform.state, "IDLE");
+  assert.equal(enemyAtBuff.transform.x, 690);
+  assert.ok(drawnTexts.some((value) => value === "POWER +25%"));
+  assert.equal(drawnTexts.some((value) => value.includes("YURI_RACHA_NEON")), false);
+  assert.equal(drawnTexts.some((value) => value.includes("YURI_BREAK_DRIVE")), false);
+
+  clearDrawnTexts();
+  const recovery = runFrame(presentation, setNow, state.combat, 1900);
+  assert.equal(actorFrom(recovery, "scene:PLAYER").transform.state, "IDLE");
+  assert.equal(actorFrom(recovery, "scene:ENEMY_PRIMARY").transform.state, "IDLE");
+  assert.equal(actorFrom(recovery, "scene:ENEMY_PRIMARY").transform.x, 690);
+  assert.equal(drawnTexts.some((value) => value === "POWER +25%"), false);
+});
 
 test("Yuri Break Drive preserves real ability identity with a distinct single-hit presentation", async () => {
   const { window, presentation, setNow } = await loadRealCombatPresentation();

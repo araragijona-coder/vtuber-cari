@@ -21,6 +21,16 @@
       cameraShot: "ATTACK_APPROACH"
     })
   });
+  const NON_ATTACK_STYLE_CONTRACTS = Object.freeze({
+    yuri_impulso_mach: Object.freeze({
+      styleId: "YURI_IMPULSO_MACH",
+      characterId: "yuri",
+      abilityId: "yuri_impulso_mach",
+      presentationType: "BUFF",
+      cameraShot: "PLAYER_FOCUS"
+    })
+  });
+
   const ASSET_SLOTS = Object.freeze([
     "player.portrait",
     "player.sprite",
@@ -140,6 +150,7 @@
       },
       motionTracks: new Map(),
       attackStyle: null,
+      presentationStyle: null,
       visualFreezeStartsAt: 0,
       visualFreezeUntil: 0,
       visualFreezeNow: 0
@@ -1277,6 +1288,7 @@ if (composition.identityLayer) {
       state.seenActions.clear();
       state.motionTracks.clear();
       state.attackStyle = null;
+      state.presentationStyle = null;
       state.visualFreezeUntil = 0;
       state.visualFreezeNow = 0;
       state.combatId = combat?.battleId ? String(combat.battleId) : null;
@@ -1305,11 +1317,21 @@ if (composition.identityLayer) {
       const actionType = String(action.actionType || action.type || "");
       const presentationEvent = state.presentationEvents?.fromAction?.(action) || null;
       const characterId = String(combat?.player?.identity?.characterId || combat?.characterId || "");
+      const definition = (actionType === "SKILL" || actionType === "CARD")
+        ? window.CombatEngine?.cardDefinitionFor?.(combat, action.cardId) ||
+          window.CardSystem?.definitionFor?.(action.cardId)
+        : null;
       const attackStyle = (actionType === "SKILL" || actionType === "CARD")
         ? ATTACK_STYLE_CONTRACTS[String(action.cardId || "")]
         : null;
+      const nonAttackStyle = (actionType === "SKILL" || actionType === "CARD")
+        ? NON_ATTACK_STYLE_CONTRACTS[String(action.cardId || "")]
+        : null;
       const characterAttackStyle = attackStyle && attackStyle.characterId === characterId
         ? attackStyle
+        : null;
+      const characterNonAttackStyle = nonAttackStyle && nonAttackStyle.characterId === characterId
+        ? nonAttackStyle
         : null;
       const targetTeam = teamForId(combat, action.targetId) || (
         action.source === "ENEMY_AUTO_ATTACK" ? "player" : "enemy"
@@ -1318,11 +1340,22 @@ if (composition.identityLayer) {
       const sourceRole = attacker === "enemy" ? "ENEMY_PRIMARY" : "PLAYER";
       const targetRole = targetTeam === "player" ? "PLAYER" : "ENEMY_PRIMARY";
       const eventNow = performance.now();
-      applyPresentationEvent(combat, presentationEvent, eventNow);
+      const hasContactPayload =
+        Number(action.damage || 0) > 0 ||
+        Number(action.blockAbsorbed || 0) > 0 ||
+        Number(action.breakDamage || 0) > 0 ||
+        (Array.isArray(action.hits) && action.hits.length > 0);
+      const isAttackAction =
+        actionType === "AUTO_ATTACK" ||
+        actionType === "ENEMY_BEHAVIOR" ||
+        ((actionType === "SKILL" || actionType === "CARD") &&
+          (String(definition?.type || "").toUpperCase() === "ATTACK" || hasContactPayload)) ||
+        (actionType === "ABILITY" && hasContactPayload);
+      const isAttackPresentation = presentationEvent?.type === "ATTACK" && isAttackAction;
 
-      const isAttackPresentation =
-        presentationEvent?.type === "ATTACK" ||
-        ["AUTO_ATTACK", "SKILL", "CARD", "ABILITY"].includes(action.actionType);
+      if (presentationEvent && (presentationEvent.type !== "ATTACK" || isAttackPresentation)) {
+        applyPresentationEvent(combat, presentationEvent, eventNow);
+      }
       const isImpactPresentation =
         presentationEvent?.type === "IMPACT" ||
         Number(action.damage || 0) > 0 ||
@@ -1404,8 +1437,12 @@ if (composition.identityLayer) {
         state.shotDirector ? setShot("IMPACT") : setCameraPreset("IMPACT");
       } else if (actionType === "ENEMY_BEHAVIOR") {
         state.shotDirector ? setShot("ENEMY_FOCUS") : setCameraPreset("APPROACH");
-      } else if (["AUTO_ATTACK", "SKILL", "CARD", "ABILITY"].includes(actionType)) {
-        state.shotDirector ? setShot("ATTACK_APPROACH") : setCameraPreset("ATTACK");
+      } else if (characterNonAttackStyle) {
+        state.shotDirector ? setShot(characterNonAttackStyle.cameraShot) : setCameraPreset("APPROACH");
+      } else if (isAttackPresentation) {
+        state.shotDirector ? setShot(characterAttackStyle?.cameraShot || "ATTACK_APPROACH") : setCameraPreset("ATTACK");
+      } else if (["SKILL", "CARD", "ABILITY"].includes(actionType)) {
+        state.shotDirector ? setShot("PLAYER_FOCUS") : setCameraPreset("APPROACH");
       }
 
       if (actionType === "AUTO_ATTACK" || actionType === "ENEMY_BEHAVIOR" && action.intent?.type === "ATTACK") {
@@ -1492,6 +1529,18 @@ if (composition.identityLayer) {
       if (action.buffApplied) {
         addEffect("buff", { targetTeam: "player", amount: Number(action.buffApplied.amount || 0) }, 780);
         emitAudio("buff", action);
+      }
+
+      if (characterNonAttackStyle) {
+        state.attackStyle = null;
+        state.presentationStyle = Object.freeze({
+          styleId: characterNonAttackStyle.styleId,
+          characterId: characterNonAttackStyle.characterId,
+          abilityId: characterNonAttackStyle.abilityId,
+          actionId: String(action.actionId || ""),
+          presentationType: characterNonAttackStyle.presentationType,
+          cameraShot: characterNonAttackStyle.cameraShot
+        });
       }
 
       if (Array.isArray(action.cleanseRemoved) && action.cleanseRemoved.length > 0) {
@@ -1702,6 +1751,7 @@ if (composition.identityLayer) {
       getSceneFoundation: () => state.scene?.snapshot?.() || null,
       getShotState: (now) => state.shotDirector?.getShotState?.(now) || null,
       getAttackStyleState: () => state.attackStyle ? { ...state.attackStyle } : null,
+      getPresentationStyleState: () => state.presentationStyle ? { ...state.presentationStyle } : null,
       slotForCatalogRecord,
       getCameraState: () => state.scene?.camera?.getState?.() || null,
       getAsset: assetFor
@@ -1714,6 +1764,7 @@ if (composition.identityLayer) {
     VISUAL_STATES,
     LAYER_ORDER,
     ATTACK_STYLE_CONTRACTS,
+    NON_ATTACK_STYLE_CONTRACTS,
     create
   });
 })();
