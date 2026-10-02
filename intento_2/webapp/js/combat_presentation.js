@@ -160,14 +160,13 @@
 
     function positionFor(team, width, height) {
       const role = team === "player" ? "PLAYER" : "ENEMY_PRIMARY";
-      const staged = state.shotDirector?.getEntityFrame?.(role, width, height);
-      if (staged) {
-        const camera = state.shotFrame?.current || {};
-        return {
-          x: staged.x + Number(camera.offsetX || 0) * (Number(staged.parallax || 1) - 1),
-          y: staged.y + Number(camera.offsetY || 0) * (Number(staged.parallax || 1) - 1)
-        };
+      const actor = state.scene?.getActor?.(role);
+      if (actor?.transform?.visible) {
+        return { x: actor.transform.x, y: actor.transform.y };
       }
+
+      const staged = state.shotDirector?.getEntityFrame?.(role, width, height);
+      if (staged) return { x: staged.x, y: staged.y };
 
       const compact = width < 560;
       return {
@@ -285,6 +284,106 @@
     function applyCamera(width, height, now) {
       if (!state.sceneRenderer) return;
       state.sceneRenderer.applyCamera({ width, height }, now);
+    }
+
+    function ensureFoundationActor(role, transform, stateName = "IDLE") {
+      if (!state.scene || !window.MachGirlsActor) return null;
+      const id = "scene:" + role;
+      let actor = state.scene.getActor(id);
+      if (!actor) {
+        actor = window.MachGirlsActor.create({
+          id,
+          role,
+          layer: "ACTORS",
+          transform: {
+            x: transform.x,
+            y: transform.y,
+            z: transform.z,
+            scale: transform.scale,
+            rotation: transform.rotation,
+            state: stateName,
+            visible: transform.visible !== false
+          },
+          anchor: role,
+          metadata: { foundation: true }
+        });
+        state.scene.registerActor(actor);
+
+        if (role === "PLAYER") {
+          actor.attachChild(window.MachGirlsActor.create({
+            id: "scene:PLAYER:MOTORCYCLE",
+            role: "MOTORCYCLE",
+            layer: "ACTORS",
+            transform: { x: 0, y: 18, z: 0, scale: .82, state: "IDLE", visible: true, anchor: "FEET_CENTER", assetRef: "player.motorcycle" }
+          }));
+          actor.attachChild(window.MachGirlsActor.create({
+            id: "scene:PLAYER:SHADOW",
+            role: "SHADOW",
+            layer: "ACTORS",
+            transform: { x: 0, y: 20, z: 0, scale: 1, state: "IDLE", visible: true, anchor: "CENTER" }
+          }));
+        }
+      } else {
+        actor.setTransform({
+          x: transform.x,
+          y: transform.y,
+          z: transform.z,
+          scale: transform.scale,
+          rotation: transform.rotation,
+          visible: transform.visible !== false,
+          state: stateName
+        });
+      }
+      actor.setState(stateName);
+      return actor;
+    }
+
+    function syncFoundationScene(combat, width, height, now) {
+      if (!state.shotDirector || !state.scene) return;
+      const roles = [
+        "COMPANION_LEFT",
+        "ENEMY_FAR",
+        "ENEMY_SECONDARY",
+        "ENEMY_PRIMARY",
+        "PLAYER",
+        "COMPANION_RIGHT"
+      ];
+      for (const role of roles) {
+        const frame = state.shotDirector.getEntityFrame?.(role, width, height);
+        if (!frame) continue;
+        const combatActor = role === "PLAYER" ? "player" : role.startsWith("ENEMY") ? "enemy" : null;
+        const team = combatActor || "player";
+        let stateName = "IDLE";
+        if (combatActor && combat) {
+          stateName = visualStateFor(team, combat, now, fighterState(team, combat, now)).replace("BURST READY", "IDLE").replace("BURST ACTIVE", "BURST");
+        }
+        ensureFoundationActor(role, {
+          x: frame.x,
+          y: frame.y,
+          z: frame.depth,
+          scale: frame.scale,
+          rotation: 0,
+          visible: frame.enabled
+        }, stateName);
+      }
+    }
+
+    function applyPresentationEvent(combat, event, now) {
+      if (!event || !state.scene) return;
+      const action = event.action || {};
+      const sourceRole = action.source === "ENEMY_AUTO_ATTACK" || action.actionType === "ENEMY_BEHAVIOR"
+        ? "ENEMY_PRIMARY"
+        : "PLAYER";
+      const targetRole = teamForId(combat, action.targetId) === "player" ? "PLAYER" : "ENEMY_PRIMARY";
+      const source = state.scene.getActor("scene:" + sourceRole);
+      const target = state.scene.getActor("scene:" + targetRole);
+      if (event.type === "ATTACK") source?.setState("ATTACK", now);
+      if (event.type === "IMPACT") target?.setState("HIT", now);
+      if (event.type === "BREAK") target?.setState("BREAK", now);
+      if (event.type === "BURST") source?.setState("BURST", now);
+      if (event.type === "VICTORY") source?.setState("VICTORY", now);
+      if (event.type === "DEFEAT") source?.setState("DEFEAT", now);
+      if (event.type === "TELEGRAPH") target?.setState("STAGGER", now);
     }
 
     function slotForCatalogRecord(record, combat) {
@@ -1050,6 +1149,8 @@
       state.seenActions.clear();
       state.combatId = combat?.battleId ? String(combat.battleId) : null;
       state.shotFrame = null;
+      state.scene?.removeActor?.("scene:PLAYER");
+      state.scene?.removeActor?.("scene:ENEMY_PRIMARY");
       state.composition = {
         player: { characterScale: 1, motorcycleScale: .82, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true },
         enemy: { characterScale: 1, motorcycleScale: .78, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true }
@@ -1067,10 +1168,12 @@
       if (rememberAction(action.actionId)) return;
 
       const actionType = String(action.actionType || action.type || "");
+      const presentationEvent = state.presentationEvents?.fromAction?.(action) || null;
       const targetTeam = teamForId(combat, action.targetId) || (
         action.source === "ENEMY_AUTO_ATTACK" ? "player" : "enemy"
       );
       const attacker = action.source === "ENEMY_AUTO_ATTACK" || action.actionType === "ENEMY_BEHAVIOR" ? "enemy" : "player";
+      applyPresentationEvent(combat, presentationEvent, performance.now());
 
       if (action.outcome === "VICTORY") {
         state.shotDirector ? setShot("VICTORY") : setCameraPreset("VICTORY");
@@ -1288,15 +1391,22 @@
         drawFighter("player", currentCombatForRender, width, height, now);
         return;
       }
-      const order = ["COMPANION_LEFT", "ENEMY_FAR", "ENEMY_SECONDARY", "ENEMY_PRIMARY", "PLAYER", "COMPANION_RIGHT"]
-        .map((role, index) => ({ role, index, frame: state.shotDirector.getEntityFrame(role, width, height) }))
-        .filter((entry) => entry.frame?.enabled)
-        .sort((a, b) => a.frame.depth - b.frame.depth || a.index - b.index);
 
-      for (const entry of order) {
-        if (entry.role === "PLAYER") drawFighter("player", currentCombatForRender, width, height, now);
-        else if (entry.role === "ENEMY_PRIMARY") drawFighter("enemy", currentCombatForRender, width, height, now);
-        else drawStagedEntity(entry.role, width, height, now);
+      syncFoundationScene(currentCombatForRender, width, height, now);
+      const actorRenderables = (state.scene?.renderables?.() || [])
+        .filter((item) => item.type === "ACTOR" && item.layer === "ACTORS");
+
+      if (!actorRenderables.length) {
+        drawFighter("enemy", currentCombatForRender, width, height, now);
+        drawFighter("player", currentCombatForRender, width, height, now);
+        return;
+      }
+
+      for (const item of actorRenderables) {
+        const role = item.actor.role;
+        if (role === "PLAYER") drawFighter("player", currentCombatForRender, width, height, now);
+        else if (role === "ENEMY_PRIMARY") drawFighter("enemy", currentCombatForRender, width, height, now);
+        else drawStagedEntity(role, width, height, now);
       }
     }
 
@@ -1308,6 +1418,8 @@
       const rect = canvas.getBoundingClientRect();
       const width = rect.width || 1;
       const height = rect.height || 1;
+      state.viewport = { width, height };
+      if (state.scene?.camera?.setViewportCenter) state.scene.camera.setViewportCenter(width, height);
       context.clearRect(0, 0, width, height);
       context.globalAlpha = 1;
       context.lineWidth = 1;
@@ -1344,10 +1456,11 @@
       setShot,
       setComposition,
       setSceneEntity: (role, spec) => Boolean(state.shotDirector?.setEntity?.(role, spec)),
-      getSceneSnapshot: (width, height) => state.shotDirector?.getSceneSnapshot?.(width, height) || [],
+      getSceneSnapshot: (width, height) => state.scene?.snapshot?.() || state.shotDirector?.getSceneSnapshot?.(width, height) || [],
+      getSceneFoundation: () => state.scene?.snapshot?.() || null,
       getShotState: (now) => state.shotDirector?.getShotState?.(now) || null,
       slotForCatalogRecord,
-      getCameraState: () => ({ active: state.camera.active, current: { ...state.camera.current }, target: { ...state.camera.target } }),
+      getCameraState: () => state.scene?.camera?.getState?.() || null,
       getAsset: assetFor
     });
   }
