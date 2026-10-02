@@ -17,6 +17,7 @@
       const state = camera?.getState?.() || {
         x: width / 2, y: height / 2, zoom: 1, offsetX: 0, offsetY: 0, shake: 0, startedAt: now, durationMs: 0
       };
+      context.save();
       const elapsed = Math.max(0, now - finite(state.startedAt, now));
       const shakeFade = state.durationMs > 0 ? Math.max(0, 1 - elapsed / state.durationMs) : 1;
       const shake = finite(state.shake) * shakeFade;
