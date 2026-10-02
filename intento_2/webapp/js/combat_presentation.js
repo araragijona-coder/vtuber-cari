@@ -11,6 +11,14 @@
       attackState: "ATTACK",
       motion: Object.freeze({ dx: 154, dy: -24, dz: -0.08, rotation: 0.045, scale: 0.055, duration: 360 }),
       cameraShot: "ATTACK_APPROACH"
+    }),
+    yuri_break_drive: Object.freeze({
+      styleId: "YURI_BREAK_DRIVE",
+      characterId: "yuri",
+      abilityId: "yuri_break_drive",
+      attackState: "ATTACK",
+      motion: Object.freeze({ dx: 108, dy: -42, dz: 0.1, rotation: -0.085, scale: 0.035, duration: 470 }),
+      cameraShot: "ATTACK_APPROACH"
     })
   });
   const ASSET_SLOTS = Object.freeze([
