@@ -108,6 +108,50 @@ button:disabled { opacity: .38; cursor: not-allowed; }
   border-radius: inherit;
   box-shadow: inset 0 0 100px rgba(0,0,0,.26);
 }
+.combat-scene-readout {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 12px 8px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 16px;
+  background: rgba(5,8,15,.72);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 32px rgba(0,0,0,.2);
+  pointer-events: none;
+}
+.combat-scene-clock {
+  display: grid;
+  justify-items: center;
+  line-height: 1;
+}
+.combat-scene-clock .eyebrow {
+  font-size: 8px;
+}
+#combat-timer {
+  margin-top: 3px;
+  font-size: clamp(30px, 4vw, 52px);
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 24px rgba(111,183,255,.22);
+}
+.scene-state {
+  min-width: 62px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255,178,77,.3);
+  border-radius: 999px;
+  color: var(--accent-break);
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-align: center;
+}
+
 .arena-hud {
   position: absolute;
   z-index: 4;
@@ -182,7 +226,7 @@ button:disabled { opacity: .38; cursor: not-allowed; }
 .intent-banner {
   position: absolute;
   z-index: 6;
-  top: 28px;
+  top: 82px;
   left: 50%;
   transform: translateX(-50%);
   display: grid;
@@ -468,6 +512,16 @@ button:disabled { opacity: .38; cursor: not-allowed; }
   font-size: 13px;
   font-weight: 950;
 }
+.card-owner {
+  z-index: 1;
+  grid-column: 1 / -1;
+  color: var(--accent-player);
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.card-button.card-attack .card-owner { color: var(--accent-enemy); }
 .card-description {
   z-index: 1;
   grid-column: 1 / -1;
@@ -606,8 +660,10 @@ button:disabled { opacity: .38; cursor: not-allowed; }
   }
   .enemy-hud { top: 10px; right: 10px; }
   .player-hud { bottom: 10px; left: 10px; }
-  .intent-banner { top: 95px; }
+  .intent-banner { top: 112px; }
   .intent-copy strong { font-size: 11px; }
+  .combat-scene-readout { top: 8px; }
+  .intent-banner { top: 94px; }
   .impact-banner { top: 53%; }
   .resource-dock {
     grid-template-columns: 1fr 1fr;
