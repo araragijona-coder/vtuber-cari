@@ -549,3 +549,29 @@ The single Browser/Fish pass confirmed live combat start, timer, cards, enemy pr
 The live motorcycle rendering was UNKNOWN in that pass: the operator saw the placeholder label but did not receive evidence of the rendered motorcycle visual itself.
 
 The phase remains a presentation migration only. Do not interpret this browser result as gameplay validation.
+
+## Phase 28 — 2.5D foundation migration
+
+Phase 28 starts the real presentation migration on the dedicated branch mach-girls-2.5d.
+
+Foundation flow:
+
+WORLD SPACE → SCENE → CAMERA → RENDERER → ACTORS → ANIMATION → PRESENTATION EVENTS → SHOT DIRECTOR
+
+The gameplay brain remains the existing runtime. combat.js remains the integration controller and now owns one main requestAnimationFrame loop that advances the existing simulation and renders the presentation. The reward/progression polling in app.js remains a separate persistence timer, not a second game/render loop.
+
+Foundation modules:
+- js/scene/world_space.js
+- js/scene/camera.js
+- js/scene/scene.js
+- js/scene/actor.js
+- js/scene/animation.js
+- js/scene/renderer.js
+- js/scene/presentation_events.js
+
+The existing Phase 27 Shot Director is reused, not duplicated.
+
+Status:
+2.5D FOUNDATION = CURRENT / VERIFIED BY EXECUTABLE SMOKE TEST
+
+Live shot-by-shot Browser evidence remains separate and must not be inferred from static/runtime verification.
