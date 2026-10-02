@@ -117,7 +117,10 @@ test("resolved attack produces ATTACK state, world movement, distinct contact re
   const preContact = runFrame(presentation, setNow, combat, 1090);
   assert.equal(actorFrom(preContact, "scene:ENEMY_PRIMARY").transform.x, 690);
 
-  const postContact = runFrame(presentation, setNow, combat, 1160);
+  const hitStop = runFrame(presentation, setNow, combat, 1160);
+  assert.equal(actorFrom(hitStop, "scene:ENEMY_PRIMARY").transform.x, 690);
+
+  const postContact = runFrame(presentation, setNow, combat, 1230);
   const enemyPostContact = actorFrom(postContact, "scene:ENEMY_PRIMARY");
   assert.notEqual(enemyPostContact.transform.x, 690);
   assert.equal(enemyPostContact.transform.state, "HIT");
