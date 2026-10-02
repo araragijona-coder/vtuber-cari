@@ -2,7 +2,7 @@
 
 > **MASTER CURRENT DESIGN REFERENCE**
 >
-> Last synchronized against repository HEAD: `2824d599ccd6be5b1130304ccba81eb0c9d5b0c2` (`fix: expose player and enemy preview positions`).
+> Last synchronized by Phase 25 against repository HEAD at the end of the phase.
 >
 > This synchronization records repository state only. The Asset Studio preview-position tooling in that commit does not change combat rules, character canon, Mach-Girls naming status, or Phase 14–16 evidence.
 
@@ -654,3 +654,93 @@ This prevents future sessions from treating accidental wording drift as a delibe
 - Do not treat current proposed gameplay as historical lore.
 - Do not use this index to silently rewrite specialized documents.
 - When a fact is missing, prefer UNKNOWN or OPEN DESIGN QUESTION over invention.
+
+## Phase 25 — Current 2.5D Combat Presentation
+
+### CURRENT / VERIFIED IMPLEMENTATION DIRECTION
+
+The current combat scene is a complete 2.5D presentation layer around the existing semi-real-time combat foundation.
+
+The presentation target is explicitly not `two sprites + cards`.
+
+It includes:
+
+```text
+2.5D battlefield
+character presence
+motorcycle presence
+enemy presence
+depth
+combat timer
+damage feedback
+ability/card feedback
+Energy
+BREAK
+BURST
+telegraphs
+camera motion
+impact effects
+motion trails
+particles
+lighting
+parallax
+layered UI
+```
+
+### Layer architecture
+
+```text
+BACKGROUND
+→ FAR_PARALLAX
+→ MIDGROUND
+→ ENEMY
+→ COMBAT_FX
+→ CHARACTER_MOTORCYCLE
+→ FOREGROUND_FX
+→ HUD
+→ CARDS
+```
+
+Depth is simulated through scale, offsets, z-order, parallax, lighting/intensity hints and interpolated camera motion. No 3D engine is introduced.
+
+### Character + motorcycle
+
+The combat renderer treats the rider and motorcycle as one logical visual composition. Relative scale/offset and a shared anchor are part of the presentation contract.
+
+Current character and motorcycle placeholders are technical fixtures only:
+
+```text
+TECHNICAL CHARACTER PLACEHOLDER · NOT FINAL ART
+TECHNICAL MOTORCYCLE PLACEHOLDER · NOT FINAL ART
+```
+
+Final character art remains human-approval gated.
+
+### Camera and visual states
+
+Reusable camera presets:
+
+`IDLE / APPROACH / ATTACK / IMPACT / BREAK / BURST / VICTORY / DEFEAT`
+
+Visual states:
+
+`NORMAL / ATTACKING / HURT / BREAK / BURST READY / BURST ACTIVE / VICTORY / DEFEAT`
+
+These are presentation states and do not alter combat rules.
+
+### Asset Studio contract
+
+The combat renderer can consume explicitly approved records from:
+
+`mach_girls_asset_catalog_v1`
+
+The Asset Studio remains the authoring and human-approval boundary. Yuri remains the existing formal runtime identity; `maki_mach` is not created.
+
+### Scope preservation
+
+Phase 25 does not redesign:
+
+`CombatClock`, Energy, auto attacks, enemy behavior, BREAK, BURST, cards, save/replay, RNG or telemetry semantics.
+
+`Yuri ↔ Maki Mach` remains an **OPEN DESIGN QUESTION**.
+Nitro/Redline global systems remain **OPEN DESIGN QUESTION** / outside the current authorized runtime boundary.
