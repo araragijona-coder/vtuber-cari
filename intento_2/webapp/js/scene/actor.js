@@ -9,6 +9,14 @@
     return Math.min(max, Math.max(min, finite(value, min)));
   }
 
+  function createLayerMesh(spec) {
+    if (!spec || spec.enabled !== true) return null;
+    if (!window.MachGirlsMeshDeformation?.create) {
+      throw new Error("MachGirlsMeshDeformation must load before mesh-enabled actors");
+    }
+    return window.MachGirlsMeshDeformation.create(spec);
+  }
+
   function normalizeLayer(spec = {}, index = 0) {
     const transform = spec.transform || {};
     return {
@@ -23,11 +31,12 @@
         rotation: finite(transform.rotation),
         scale: clamp(transform.scale ?? 1, 0.01, 10)
       },
-      anchor: String(spec.anchor || "INHERIT")
+      anchor: String(spec.anchor || "INHERIT"),
+      mesh: createLayerMesh(spec.mesh)
     };
   }
 
-  function copyLayer(layer) {
+  function copyLayer(layer, includeMeshRuntime = false) {
     return {
       id: String(layer.id),
       assetId: layer.assetId ? String(layer.assetId) : null,
@@ -40,7 +49,8 @@
         rotation: finite(layer.transform?.rotation),
         scale: clamp(layer.transform?.scale ?? 1, 0.01, 10)
       },
-      anchor: String(layer.anchor || "INHERIT")
+      anchor: String(layer.anchor || "INHERIT"),
+      mesh: includeMeshRuntime ? layer.mesh : layer.mesh?.getSnapshot?.() || null
     };
   }
 
@@ -51,7 +61,7 @@
       .sort((a, b) => (compareDepth
         ? compareDepth(a.layer, b.layer)
         : finite(a.layer.z) - finite(b.layer.z)) || a.index - b.index)
-      .map(({ layer }) => copyLayer(layer));
+      .map(({ layer }) => copyLayer(layer, true));
   }
 
   function create(spec = {}) {
@@ -91,7 +101,7 @@
     }
 
     function getLayers() {
-      return actor.layers.map(copyLayer);
+      return actor.layers.map((layer) => copyLayer(layer, false));
     }
 
     function getRenderLayers() {
