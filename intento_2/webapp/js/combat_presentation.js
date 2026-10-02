@@ -197,13 +197,15 @@
 
     function positionFor(team, width, height) {
       const role = team === "player" ? "PLAYER" : "ENEMY_PRIMARY";
-      const actor = state.scene?.getActor?.(role);
+      const actor = state.scene?.getActor?.("scene:" + role);
       if (actor?.transform?.visible) {
         return { x: actor.transform.x, y: actor.transform.y };
       }
 
       const staged = state.shotDirector?.getEntityFrame?.(role, width, height);
-      if (staged) return { x: staged.x, y: staged.y };
+      if (staged?.coordinateSpace === "WORLD_STAGE_PX") {
+        return { x: staged.x, y: staged.y };
+      }
 
       const compact = width < 560;
       return {
@@ -1487,10 +1489,15 @@ if (composition.identityLayer) {
       const slots = sceneAssetSlots(role);
       const image = slots ? imageFor(slots.character) : null;
       const team = role.startsWith("ENEMY") ? "enemy" : "player";
-      const camera = state.shotFrame?.current || {};
-      const x = frame.x + Number(camera.offsetX || 0) * (Number(frame.parallax || 1) - 1);
-      const y = frame.y + Number(camera.offsetY || 0) * (Number(frame.parallax || 1) - 1);
-      const scale = clamp(frame.scale * (.68 + .42 * frame.depth), .42, 1.45);
+      const actor = state.scene?.getActor?.("scene:" + role);
+      const actorTransform = actor?.transform;
+      const x = actorTransform?.visible
+        ? actorTransform.x
+        : frame.coordinateSpace === "WORLD_STAGE_PX" ? frame.x : 0;
+      const y = actorTransform?.visible
+        ? actorTransform.y
+        : frame.coordinateSpace === "WORLD_STAGE_PX" ? frame.y : 0;
+      const scale = clamp((actorTransform?.scale || frame.scale) * (.68 + .42 * frame.depth), .42, 1.45);
       context.save();
       context.translate(x, y);
       if (image) {
@@ -1559,16 +1566,25 @@ if (composition.identityLayer) {
         () => {
           context.globalAlpha = 1;
           context.lineWidth = 1;
+
+          context.save();
+          context.setTransform?.(1, 0, 0, 1, 0, 0);
           drawBackground(width, height, combat, visualNow);
           drawParallax(width, height, visualNow);
+          context.restore();
+
           if (combat) {
             drawSceneEntities(width, height, visualNow);
             drawIntent(combat, width, height, visualNow);
             renderEffects(combat, width, height, visualNow);
             drawBurstReady(combat, width, height, visualNow);
           }
+
+          context.save();
+          context.setTransform?.(1, 0, 0, 1, 0, 0);
           drawForeground(width, height, visualNow, combat);
           drawLighting(width, height, combat);
+          context.restore();
         },
         now
       );
