@@ -744,3 +744,14 @@ Phase 25 does not redesign:
 
 `Yuri ↔ Maki Mach` remains an **OPEN DESIGN QUESTION**.
 Nitro/Redline global systems remain **OPEN DESIGN QUESTION** / outside the current authorized runtime boundary.
+
+
+## Phase 25 final synchronization — 2026-10-02
+
+Implementation HEAD synchronized: `9e84f8a9b0e8511f3f39f51a6e526030dcd0ae47`.
+
+The permanent runtime CI suite passes 149/149 tests at this code commit. GitHub Pages serves the updated combat timer/scene-state HUD from the deployed root.
+
+Browser/Fish evidence remains limited to the single authorized session, which failed before the battle interaction. Consequently the 2.5D live runtime is not declared browser-verified and no screenshot is treated as evidence.
+
+Final character/motorcycle art remains human approval-gated.
