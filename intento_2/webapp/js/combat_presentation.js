@@ -673,7 +673,7 @@
       });
     }
 
-    function drawIntentdrawIntent(combat, width, height, now) {
+    function drawIntent(combat, width, height, now) {
       const intent = combat?.enemyIntent;
       if (!intent) return;
       const enemyPoint = positionFor("enemy", width, height);
@@ -724,7 +724,7 @@
       }
     }
 
-    function drawImpactdrawImpact(effect, combat, width, height, now) {
+    function drawImpact(effect, combat, width, height, now) {
       const p = progress(now, effect.start, effect.duration);
       const alpha = 1 - smoothstep(p);
       const point = positionFor(effect.targetTeam || teamForId(combat, effect.targetId), width, height);
@@ -753,7 +753,7 @@
       }
     }
 
-    function drawAttackdrawAttack(effect, combat, width, height, now) {
+    function drawAttack(effect, combat, width, height, now) {
       const p = progress(now, effect.start, effect.duration);
       const a = positionFor(effect.attacker, width, height);
       const b = positionFor(effect.targetTeam, width, height);
