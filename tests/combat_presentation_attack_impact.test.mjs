@@ -74,6 +74,82 @@ function actorFrom(snapshot, id) {
   return snapshot.layers.ACTORS.find((actor) => actor.id === id);
 }
 
+const REAL_GAME_FILES = [
+  "intento_2/webapp/js/game/balance.js",
+  "intento_2/webapp/js/game/rng.js",
+  "intento_2/webapp/js/game/status.js",
+  "intento_2/webapp/js/game/modifiers.js",
+  "intento_2/webapp/js/game/energy.js",
+  "intento_2/webapp/js/game/effects.js",
+  "intento_2/webapp/js/game/cards.js",
+  "intento_2/webapp/js/game/character_kits.js",
+  "intento_2/webapp/js/game/abilities.js",
+  "intento_2/webapp/js/game/combat_clock.js",
+  "intento_2/webapp/js/game/auto_attack.js",
+  "intento_2/webapp/js/game/break.js",
+  "intento_2/webapp/js/game/burst.js",
+  "intento_2/webapp/js/game/enemies.js",
+  "intento_2/webapp/js/game/enemy_behavior.js",
+  "intento_2/webapp/js/game/state.js",
+  "intento_2/webapp/js/game/actions.js",
+  "intento_2/webapp/js/game/skill_resolver.js",
+  "intento_2/webapp/js/game/rules.js",
+  ...FILES
+];
+
+async function loadRealCombatPresentation() {
+  let now = 0;
+  const gradient = { addColorStop() {} };
+  const context = {
+    save() {},
+    restore() {},
+    translate() {},
+    scale() {},
+    rotate() {},
+    setTransform() {},
+    clearRect() {},
+    fillRect() {},
+    strokeRect() {},
+    beginPath() {},
+    closePath() {},
+    moveTo() {},
+    lineTo() {},
+    stroke() {},
+    fill() {},
+    arc() {},
+    ellipse() {},
+    arcTo() {},
+    drawImage() {},
+    fillText() {},
+    strokeText() {},
+    setLineDash() {},
+    createLinearGradient() { return gradient; },
+    createRadialGradient() { return gradient; },
+    measureText() { return { width: 0 }; }
+  };
+  const canvas = { getBoundingClientRect: () => ({ width: 1000, height: 600 }) };
+  const window = {
+    MachGirlsPresentationEvents: { create: () => ({ fromAction: () => null }) }
+  };
+  const contextVm = vm.createContext({
+    window,
+    performance: { now: () => now },
+    Math, Number, String, Object, Map, JSON,
+    console
+  });
+
+  for (const file of REAL_GAME_FILES) {
+    const source = await readFile(file, "utf8");
+    vm.runInContext(source, contextVm, { filename: file });
+  }
+
+  return {
+    window: contextVm.window,
+    presentation: contextVm.window.CombatPresentation.create(canvas, context),
+    setNow(value) { now = value; }
+  };
+}
+
 function runFrame(presentation, setNow, combat, now) {
   setNow(now);
   presentation.render(combat, now);
@@ -224,6 +300,88 @@ test("Yuri Racha Neon preserves ability identity and applies its character-speci
   assert.equal(actorFrom(contactFrame, "scene:ENEMY_PRIMARY").transform.state, "HIT");
 
   const recovery = runFrame(presentation, setNow, combat, 2000);
+  assert.equal(actorFrom(recovery, "scene:PLAYER").transform.state, "IDLE");
+  assert.equal(actorFrom(recovery, "scene:ENEMY_PRIMARY").transform.state, "IDLE");
+});
+
+
+test("Yuri Break Drive preserves real ability identity with a distinct single-hit presentation", async () => {
+  const { window, presentation, setNow } = await loadRealCombatPresentation();
+  const state = window.GameState.createGameState({ playerId: "yuri-player" });
+  const character = window.CharacterKitSystem.definitionFor("yuri");
+  const enemy = window.EnemyCatalog.createEnemy("iron_guard");
+
+  window.GameState.startBattle(state, {
+    battleId: "yuri-break-drive-style",
+    seed: 290901,
+    player: {
+      id: "yuri-player",
+      hp: 120,
+      maxHp: 120,
+      stats: { atk: 20, def: 5, skillDamage: 40 }
+    },
+    enemy,
+    characterId: "yuri",
+    character,
+    cardIds: window.CharacterKitSystem.cardIdsFor("yuri")
+  });
+
+  presentation.onCombatStart(state.combat);
+
+  const definition = window.CardSystem.definitionFor("yuri_break_drive");
+  assert.ok(definition);
+  assert.equal(definition.characterId, "yuri");
+  assert.equal(definition.type, window.CardSystem.CARD_TYPES.ATTACK);
+  assert.equal(definition.targeting, "single_enemy");
+
+  const card = state.combat.cards.hand.find((entry) => entry.cardId === "yuri_break_drive");
+  assert.ok(card, "real Yuri card must be present in the real character deck");
+
+  setNow(1000);
+  const action = window.GameActions.createPlayerSkillAction(state, card.instanceId);
+  assert.equal(action.type, "SKILL");
+  assert.equal(action.source, "PLAYER_SKILL");
+  assert.equal(action.actorId, "yuri-player");
+  assert.equal(action.targetId, "iron_guard");
+  assert.equal(action.cardId, "yuri_break_drive");
+
+  const resolution = window.CombatEngine.resolveAction(state, action);
+  assert.equal(resolution.actionType, "SKILL");
+  assert.equal(resolution.cardId, "yuri_break_drive");
+  assert.equal(resolution.actorId, "yuri-player");
+  assert.equal(resolution.targetId, "iron_guard");
+  assert.ok(resolution.damage > 0);
+  assert.equal(resolution.hitCount, 1);
+  assert.equal(resolution.hits, null);
+  assert.equal(state.combat.events.some((event) => event.type === "multi_hit"), false);
+
+  presentation.onAction(state.combat, resolution);
+
+  const style = presentation.getAttackStyleState();
+  assert.equal(style.styleId, "YURI_BREAK_DRIVE");
+  assert.equal(style.characterId, "yuri");
+  assert.equal(style.abilityId, "yuri_break_drive");
+  assert.equal(style.actionId, resolution.actionId);
+  assert.equal(style.attackState, "ATTACK");
+  assert.equal(style.hitCount, 1);
+  assert.equal(style.contactCount, 1);
+  assert.equal(style.cameraShot, "ATTACK_APPROACH");
+  assert.notEqual(style.styleId, "YURI_RACHA_NEON");
+  assert.notEqual(style.abilityId, "yuri_racha_neon");
+
+  const attackFrame = runFrame(presentation, setNow, state.combat, 1060);
+  const player = actorFrom(attackFrame, "scene:PLAYER");
+  assert.equal(player.transform.state, "ATTACK");
+  assert.ok(player.transform.x > 320);
+  assert.ok(player.transform.y < 336);
+  assert.ok(player.transform.rotation < 0);
+  assert.ok(player.transform.scale > 1);
+
+  const contactFrame = runFrame(presentation, setNow, state.combat, 1110);
+  const enemyAtContact = actorFrom(contactFrame, "scene:ENEMY_PRIMARY");
+  assert.equal(enemyAtContact.transform.state, "HIT");
+
+  const recovery = runFrame(presentation, setNow, state.combat, 2000);
   assert.equal(actorFrom(recovery, "scene:PLAYER").transform.state, "IDLE");
   assert.equal(actorFrom(recovery, "scene:ENEMY_PRIMARY").transform.state, "IDLE");
 });
