@@ -179,7 +179,7 @@ function runFrame(presentation, setNow, combat, now) {
 
 
 
-function createCombatEntrypointHarness(search = "?phase29=impulso") {
+async function createCombatEntrypointHarness(search = "?phase29=impulso") {
   const elements = new Map();
 
   function makeElement(id = "") {
