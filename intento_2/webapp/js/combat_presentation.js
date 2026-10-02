@@ -872,8 +872,18 @@
       const burstActive = state.effects.some((effect) => effect.type === "burst" && progress(now, effect.start, effect.duration) < 1);
       if (burstActive) return VISUAL_STATES.BURST_ACTIVE;
       if (team === "player" && window.BurstSystem?.canUse?.(combat)) return VISUAL_STATES.BURST_READY;
-      if (stateForFighter.hit > .34) return VISUAL_STATES.HURT;
-      if (Math.abs(stateForFighter.lunge) > 2) return VISUAL_STATES.ATTACKING;
+      const impactActive = state.effects.some(
+        (effect) => effect.type === "impact" &&
+          effect.targetTeam === team &&
+          progress(now, effect.start, effect.duration) < 1
+      );
+      if (impactActive) return VISUAL_STATES.HURT;
+      const attackActive = state.effects.some(
+        (effect) => effect.type === "attack" &&
+          effect.attacker === team &&
+          progress(now, effect.start, effect.duration) < 1
+      );
+      if (attackActive) return VISUAL_STATES.ATTACKING;
       return VISUAL_STATES.NORMAL;
     }
 
