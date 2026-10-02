@@ -204,16 +204,14 @@ test("Yuri Racha Neon preserves ability identity and applies its character-speci
   });
 
   const style = presentation.getAttackStyleState();
-  assert.deepEqual(style, {
-    styleId: "YURI_RACHA_NEON",
-    characterId: "yuri",
-    abilityId: "yuri_racha_neon",
-    actionId: "yuri-racha-neon-1",
-    attackState: "ATTACK",
-    hitCount: 3,
-    contactCount: 3,
-    cameraShot: "ATTACK_APPROACH"
-  });
+  assert.equal(style.styleId, "YURI_RACHA_NEON");
+  assert.equal(style.characterId, "yuri");
+  assert.equal(style.abilityId, "yuri_racha_neon");
+  assert.equal(style.actionId, "yuri-racha-neon-1");
+  assert.equal(style.attackState, "ATTACK");
+  assert.equal(style.hitCount, 3);
+  assert.equal(style.contactCount, 3);
+  assert.equal(style.cameraShot, "ATTACK_APPROACH");
 
   const attackFrame = runFrame(presentation, setNow, combat, 1060);
   const player = actorFrom(attackFrame, "scene:PLAYER");
