@@ -51,7 +51,23 @@
       return true;
     }
 
-    return Object.freeze({ applyCamera, render });
+    function renderFrame(scene, viewport, drawFrame, now = 0) {
+      if (!scene || typeof drawFrame !== "function" || !context) return false;
+      const width = Math.max(1, finite(viewport?.width, 1));
+      const height = Math.max(1, finite(viewport?.height, 1));
+      context.clearRect?.(0, 0, width, height);
+      if (!applyCamera({ width, height }, now)) return false;
+      try {
+        drawFrame(context, now, scene);
+      } finally {
+        context.restore?.();
+        context.globalAlpha = 1;
+        context.setLineDash?.([]);
+      }
+      return true;
+    }
+
+    return Object.freeze({ applyCamera, render, renderFrame });
   }
 
   window.MachGirlsSceneRenderer = Object.freeze({ create });
