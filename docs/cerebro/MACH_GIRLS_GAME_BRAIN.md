@@ -392,3 +392,55 @@ Current status:
 Human review remains required before this reference becomes an approved final visual baseline. Final character and motorcycle art remain human-approval gated.
 
 Phase 25 live visual runtime remains `NOT VERIFIED`; the Phase 26 document is a design authority and does not replace Browser evidence.
+
+
+## Phase 27 — Cinematic combat staging
+
+Mach-Girls combat now has an explicit presentation architecture:
+
+```text
+STAGE
+→ ENTITIES
+→ SHOT DIRECTOR
+→ CAMERA
+```
+
+The scene is designed to be filmed by a deterministic camera rather than treated as one baked illustration.
+
+Semantic anchors:
+
+```text
+PLAYER
+PLAYER_FOCUS
+COMPANION_LEFT
+COMPANION_RIGHT
+ENEMY_PRIMARY
+ENEMY_SECONDARY
+ENEMY_FAR
+FOREGROUND_LEFT
+FOREGROUND_RIGHT
+```
+
+Cinematic shots:
+
+```text
+ESTABLISHING
+PLAYER_FOCUS
+COMPANION_LEFT_FOCUS
+COMPANION_RIGHT_FOCUS
+ENEMY_FOCUS
+ATTACK_APPROACH
+IMPACT
+BREAK
+BURST
+VICTORY
+DEFEAT
+```
+
+The Shot Director is presentation-only and deterministic. It must not introduce gameplay, RNG, damage changes or roster changes.
+
+Mach-Girls combat remains a complete 2.5D battle stage, not a minimal two-sprite/card interface.
+
+Phase 27 extends Asset Studio staging metadata so user-produced PNGs can later carry scene role, depth, baseline/focus scale, focus offsets and allowed shots while retaining the existing human approval gate.
+
+Phase 25 live visual runtime remains `NOT VERIFIED` until an evidence-producing browser gate completes; Phase 27 implementation status must not be used as runtime visual proof.
