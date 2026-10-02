@@ -1595,7 +1595,10 @@ if (composition.identityLayer) {
       state.viewport = { width, height };
       if (state.scene?.camera?.setViewportCenter) state.scene.camera.setViewportCenter(width, height);
       updateCamera(now, combat, width, height);
-      const visualNow = now < state.visualFreezeUntil ? state.visualFreezeNow : now;
+      const visualNow =
+        now >= state.visualFreezeStartsAt && now < state.visualFreezeUntil
+          ? state.visualFreezeNow
+          : now;
 
       state.sceneRenderer?.renderFrame?.(
         state.scene,
