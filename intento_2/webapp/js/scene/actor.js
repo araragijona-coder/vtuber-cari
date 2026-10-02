@@ -17,6 +17,14 @@
     return window.MachGirlsMeshDeformation.create(spec);
   }
 
+  function createLayerMotion(spec) {
+    if (!spec || typeof spec !== "object") return null;
+    if (!window.MachGirlsProceduralMotion?.create) {
+      throw new Error("MachGirlsProceduralMotion must load before motion-enabled actors");
+    }
+    return window.MachGirlsProceduralMotion.create(spec);
+  }
+
   function normalizeLayer(spec = {}, index = 0) {
     const transform = spec.transform || {};
     return {
@@ -32,7 +40,8 @@
         scale: clamp(transform.scale ?? 1, 0.01, 10)
       },
       anchor: String(spec.anchor || "INHERIT"),
-      mesh: createLayerMesh(spec.mesh)
+      mesh: createLayerMesh(spec.mesh),
+      motion: createLayerMotion(spec.motion)
     };
   }
 
@@ -50,7 +59,8 @@
         scale: clamp(layer.transform?.scale ?? 1, 0.01, 10)
       },
       anchor: String(layer.anchor || "INHERIT"),
-      mesh: includeMeshRuntime ? layer.mesh : layer.mesh?.getSnapshot?.() || null
+      mesh: includeMeshRuntime ? layer.mesh : layer.mesh?.getSnapshot?.() || null,
+      motion: includeMeshRuntime ? layer.motion : layer.motion?.getSnapshot?.() || null
     };
   }
 
@@ -136,6 +146,25 @@
       };
     }
 
+    function evaluateMotion(now = (typeof performance !== "undefined" ? performance.now() : 0)) {
+      let applied = 0;
+      for (const layer of actor.layers) {
+        if (!layer.motion || !layer.mesh) continue;
+        if (layer.motion.applyToMesh(layer.mesh, now)) applied += 1;
+      }
+      return applied;
+    }
+
+    function resetMotion() {
+      let reset = 0;
+      for (const layer of actor.layers) {
+        if (!layer.motion || !layer.mesh) continue;
+        layer.motion.reset(layer.mesh);
+        reset += 1;
+      }
+      return reset;
+    }
+
     function setState(stateName, now = (typeof performance !== "undefined" ? performance.now() : 0)) {
       const target = String(stateName || "IDLE").toUpperCase();
       if (actor.animation?.setState) {
@@ -158,6 +187,8 @@
       setLayers,
       getLayers,
       getRenderLayers,
+      evaluateMotion,
+      resetMotion,
       setState,
       getAnimationState: () => actor.animation?.state || actor.transform.state,
       attachChild,
