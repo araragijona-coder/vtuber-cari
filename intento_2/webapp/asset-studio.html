@@ -198,6 +198,75 @@
           </select>
         </label>
 
+        <div class="panel-heading compact">
+          <div>
+            <p class="eyebrow">03B · CINEMATIC STAGING</p>
+            <h2>SHOT / DEPTH METADATA</h2>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Scene role</span>
+          <select id="asset-scene-role">
+            <option value="">NONE / CATALOG DEFAULT</option>
+            <option>PLAYER</option>
+            <option>PLAYER_FOCUS</option>
+            <option>COMPANION_LEFT</option>
+            <option>COMPANION_RIGHT</option>
+            <option>ENEMY_PRIMARY</option>
+            <option>ENEMY_SECONDARY</option>
+            <option>ENEMY_FAR</option>
+            <option>FOREGROUND_LEFT</option>
+            <option>FOREGROUND_RIGHT</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Depth <output for="asset-depth" id="asset-depth-output">70</output>%</span>
+          <input id="asset-depth" type="range" min="0" max="100" value="70">
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Baseline scale</span>
+            <input id="asset-baseline-scale" type="number" min="0.1" max="4" step="0.05" value="1">
+          </label>
+          <label class="field">
+            <span>Focus scale</span>
+            <input id="asset-focus-scale" type="number" min="0.1" max="4" step="0.05" value="1.08">
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Focus offset X</span>
+            <input id="asset-focus-offset-x" type="number" min="-500" max="500" step="1" value="0">
+          </label>
+          <label class="field">
+            <span>Focus offset Y</span>
+            <input id="asset-focus-offset-y" type="number" min="-500" max="500" step="1" value="0">
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Allowed shots</span>
+          <input id="asset-allowed-shots" type="text" placeholder="ESTABLISHING, PLAYER_FOCUS, IMPACT" spellcheck="false">
+          <small>Lista separada por comas. Vacío = todos los cinematic shots conocidos.</small>
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Foreground priority</span>
+            <input id="asset-foreground-priority" type="number" min="0" max="100" step="1" value="0">
+          </label>
+          <label class="field">
+            <span>Background priority</span>
+            <input id="asset-background-priority" type="number" min="0" max="100" step="1" value="0">
+          </label>
+        </div>
+
+        <p class="guide-box">CINEMATIC STAGING = metadata only · does not create characters or gameplay entities.</p>
+
         <p id="asset-guide" class="guide-box">YURI · ATTACK · THREE_QUARTER · FACING RIGHT · FULL BODY · TRANSPARENT PNG</p>
         <div id="asset-validation" class="validation-box" role="status" aria-live="polite">READY</div>
 
@@ -235,6 +304,13 @@
               <span>Camera preset</span>
               <select id="camera-preset">
                 <option selected>DEFAULT</option>
+                <option>ESTABLISHING</option>
+                <option>PLAYER_FOCUS</option>
+                <option>COMPANION_LEFT_FOCUS</option>
+                <option>COMPANION_RIGHT_FOCUS</option>
+                <option>ENEMY_FOCUS</option>
+                <option>ATTACK_APPROACH</option>
+                <option>IMPACT</option>
                 <option>ATTACK IMPACT</option>
                 <option>BREAK</option>
                 <option>BURST</option>
