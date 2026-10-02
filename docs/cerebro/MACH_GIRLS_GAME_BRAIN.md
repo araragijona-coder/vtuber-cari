@@ -530,3 +530,22 @@ The first required vertical slice remains intentionally small:
 
 Do not expand content until this slice demonstrates the intended game-like scene behavior.
 
+
+
+
+## Phase 27 verification status — 2026-10-02
+
+Phase 27 implementation status:
+
+```text
+SHOT DIRECTOR = VERIFIED BY STATIC / EXECUTABLE SMOKE TEST
+ASSET STAGING METADATA = VERIFIED BY STATIC / EXECUTABLE SMOKE TEST
+NO NEW GAMEPLAY = VERIFIED BY CHANGE SCOPE
+BROWSER LIVE SHOT VISUALS = NOT VERIFIED
+```
+
+The single Browser/Fish pass confirmed live combat start, timer, cards, enemy presence, no JS exception and no freeze/stutter. It did not expose a usable API/control path for invoking the new cinematic shots, so those shot-specific visual behaviors remain NOT VERIFIED.
+
+The live motorcycle rendering was UNKNOWN in that pass: the operator saw the placeholder label but did not receive evidence of the rendered motorcycle visual itself.
+
+The phase remains a presentation migration only. Do not interpret this browser result as gameplay validation.
