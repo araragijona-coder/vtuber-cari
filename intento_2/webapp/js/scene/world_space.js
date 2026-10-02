@@ -28,7 +28,8 @@
   }
 
   function depthFactor(z) {
-    return clamp(1 / (1 + Math.max(-0.75, finite(z)) * 0.12), 0.78, 1.12);
+    const depth = clamp(finite(z), 0, 1);
+    return clamp(0.82 + depth * 0.2, 0.78, 1.05);
   }
 
   function worldToScreen(transform, camera, viewport) {

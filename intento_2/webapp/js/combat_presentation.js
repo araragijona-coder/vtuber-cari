@@ -355,6 +355,14 @@
             transform: { x: 0, y: 20, z: 0, scale: 1, state: "IDLE", visible: true, anchor: "CENTER" }
           }));
         }
+        if (role === "ENEMY_PRIMARY") {
+          actor.attachChild(window.MachGirlsActor.create({
+            id: "scene:ENEMY_PRIMARY:SHADOW",
+            role: "SHADOW",
+            layer: "ACTORS",
+            transform: { x: 0, y: 20, z: 0, scale: .92, state: "IDLE", visible: true, anchor: "CENTER" }
+          }));
+        }
       } else {
         actor.setTransform({
           x: transform.x,
@@ -1220,6 +1228,9 @@
     function onCombatStart(combat) {
       state.effects = [];
       state.seenActions.clear();
+      state.motionTracks.clear();
+      state.visualFreezeUntil = 0;
+      state.visualFreezeNow = 0;
       state.combatId = combat?.battleId ? String(combat.battleId) : null;
       state.shotFrame = null;
       state.scene?.removeActor?.("scene:PLAYER");
@@ -1228,8 +1239,11 @@
         player: { characterScale: 1, motorcycleScale: .82, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true },
         enemy: { characterScale: 1, motorcycleScale: .78, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true }
       };
-      if (state.shotDirector) setShot("ESTABLISHING", true);
-      else setCameraPreset("IDLE", true);
+      if (state.shotDirector) {
+        state.shotDirector.setEntity("COMPANION_LEFT", { enabled: false });
+        state.shotDirector.setEntity("COMPANION_RIGHT", { enabled: false });
+        setShot("ESTABLISHING", true);
+      } else setCameraPreset("IDLE", true);
       loadApprovedCatalog(combat);
     }
 
@@ -1249,10 +1263,13 @@
       const eventNow = performance.now();
       applyPresentationEvent(combat, presentationEvent, eventNow);
 
-      if (presentationEvent?.type === "ATTACK") {
+      if (
+        presentationEvent?.type === "ATTACK" ||
+        ["AUTO_ATTACK", "SKILL", "CARD", "ABILITY"].includes(action.actionType)
+      ) {
         scheduleMotion(
           sourceRole,
-          { dx: sourceRole === "PLAYER" ? 82 : -62, dy: -7, dz: -0.08, duration: 300 },
+          { dx: sourceRole === "PLAYER" ? 82 : -62, dy: -7, dz: sourceRole === "PLAYER" ? 0.03 : -0.03, duration: 300 },
           eventNow
         );
       }
@@ -1565,6 +1582,11 @@
       setShot,
       setComposition,
       setSceneEntity: (role, spec) => Boolean(state.shotDirector?.setEntity?.(role, spec)),
+      stageMotion: (role, spec, now = performance.now()) => {
+        if (!role) return false;
+        scheduleMotion(role, spec, now);
+        return true;
+      },
       getSceneSnapshot: (width, height) => state.scene?.snapshot?.() || state.shotDirector?.getSceneSnapshot?.(width, height) || [],
       getSceneFoundation: () => state.scene?.snapshot?.() || null,
       getShotState: (now) => state.shotDirector?.getShotState?.(now) || null,

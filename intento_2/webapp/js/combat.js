@@ -40,6 +40,7 @@
   const burstBannerEl = document.getElementById("combat-burst-banner");
   const startButton = document.getElementById("start-battle");
   const restartButton = document.getElementById("restart-battle");
+  const cinematicSliceButton = document.getElementById("cinematic-slice");
   const combatTimerEl = document.getElementById("combat-timer");
   const combatSceneStateEl = document.getElementById("combat-scene-state");
 
@@ -49,6 +50,8 @@
   let currentEnemyId = null;
   let mainLoopFrame = null;
   let lastSimulationTime = null;
+  let cinematicToken = 0;
+  let cinematicRunning = false;
   const view = {
     gameState: null,
     lastWidth: 0,
@@ -127,6 +130,163 @@
     };
   }
 
+  function cancelCinematic() {
+    cinematicToken += 1;
+    cinematicRunning = false;
+    if (cinematicSliceButton) cinematicSliceButton.disabled = false;
+  }
+
+  function cinematicSleep(ms, token) {
+    return new Promise((resolve, reject) => {
+      window.setTimeout(() => {
+        if (token !== cinematicToken) {
+          reject(new Error("CINEMATIC_CANCELLED"));
+          return;
+        }
+        resolve();
+      }, Math.max(0, Number(ms) || 0));
+    });
+  }
+
+  function assertCinematic(token) {
+    if (token !== cinematicToken) throw new Error("CINEMATIC_CANCELLED");
+    const combat = view.gameState?.combat;
+    if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
+      throw new Error("CINEMATIC_COMBAT_ENDED");
+    }
+    return combat;
+  }
+
+  function readyCardInstance(cardId) {
+    const combat = view.gameState?.combat;
+    const definition = window.CardSystem?.definitionFor?.(cardId);
+    if (!combat || !definition) return null;
+    const cooldown = Number(combat.cooldowns?.[cardId] || 0);
+    if (cooldown > 0) return null;
+    if (!window.EnergySystem?.canSpend?.(combat.resources, definition.cost)) return null;
+    const card = combat.cards?.hand?.find((entry) => entry.cardId === cardId);
+    return card?.instanceId || null;
+  }
+
+  async function waitForCardReady(cardId, token, timeoutMs = 9000) {
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+    while (true) {
+      assertCinematic(token);
+      const instanceId = readyCardInstance(cardId);
+      if (instanceId) return instanceId;
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (now - startedAt >= timeoutMs) throw new Error("CINEMATIC_CARD_TIMEOUT:" + cardId);
+      await cinematicSleep(80, token);
+    }
+  }
+
+  async function waitForCondition(condition, token, timeoutMs = 12000) {
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+    while (true) {
+      assertCinematic(token);
+      if (condition()) return true;
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (now - startedAt >= timeoutMs) return false;
+      await cinematicSleep(100, token);
+    }
+  }
+
+  async function playCinematicSlice() {
+    if (!presentation || cinematicRunning) return false;
+
+    cinematicToken += 1;
+    const token = cinematicToken;
+    cinematicRunning = true;
+    if (cinematicSliceButton) cinematicSliceButton.disabled = true;
+
+    try {
+      startBattle(createBattleConfig("iron_guard"), { cinematic: true });
+
+      presentation.setSceneEntity?.("COMPANION_LEFT", {
+        enabled: true, baselineScale: 0.58, focusScale: 0.72,
+        focusOffsetX: 0, focusOffsetY: 0, parallax: 0.6, depth: 0.28
+      });
+      presentation.setSceneEntity?.("COMPANION_RIGHT", {
+        enabled: true, baselineScale: 0.58, focusScale: 0.72,
+        focusOffsetX: 0, focusOffsetY: 0, parallax: 0.6, depth: 0.28
+      });
+
+      presentation.setShot("ESTABLISHING", true);
+      await cinematicSleep(650, token);
+      assertCinematic(token);
+
+      presentation.setShot("PLAYER_FOCUS");
+      presentation.stageMotion?.("PLAYER", { dx: 64, dy: -3, dz: 0.04, duration: 850 });
+      await cinematicSleep(650, token);
+      assertCinematic(token);
+
+      presentation.setShot("ENEMY_FOCUS");
+      await cinematicSleep(620, token);
+
+      let broke = false;
+      for (let strike = 0; strike < 5; strike += 1) {
+        assertCinematic(token);
+        presentation.setShot("ATTACK_APPROACH");
+        await cinematicSleep(120, token);
+        const instanceId = await waitForCardReady("yuri_break_drive", token);
+        const resolution = playCard(instanceId);
+        if (!resolution) throw new Error("CINEMATIC_CARD_REJECTED");
+        await cinematicSleep(300, token);
+        if (resolution.broke || window.BreakSystem?.isBroken?.(view.gameState?.combat?.enemy?.breakState)) {
+          broke = true;
+          break;
+        }
+        await cinematicSleep(720, token);
+      }
+
+      assertCinematic(token);
+      if (!broke) {
+        broke = await waitForCondition(
+          () => Boolean(window.BreakSystem?.isBroken?.(view.gameState?.combat?.enemy?.breakState)),
+          token,
+          3000
+        );
+      }
+      if (!broke) throw new Error("CINEMATIC_BREAK_NOT_REACHED");
+
+      presentation.setShot("BREAK");
+      await cinematicSleep(620, token);
+
+      const burstReady = await waitForCondition(
+        () => Boolean(window.BurstSystem?.canUse?.(view.gameState?.combat)),
+        token,
+        12000
+      );
+      if (!burstReady) throw new Error("CINEMATIC_BURST_NOT_READY");
+
+      presentation.setShot("BURST");
+      await cinematicSleep(160, token);
+      useBurst();
+      await cinematicSleep(360, token);
+
+      presentation.setShot("IMPACT");
+      await cinematicSleep(320, token);
+      presentation.setShot("PLAYER_FOCUS");
+      await cinematicSleep(900, token);
+
+      return true;
+    } catch (error) {
+      if (String(error?.message || "") !== "CINEMATIC_CANCELLED") {
+        const message = error?.message || "CINEMATIC_ERROR";
+        if (view.gameState?.session) view.gameState.session.lastMessage = "Cinematic slice · " + message;
+        renderUi();
+      }
+      return false;
+    } finally {
+      if (token === cinematicToken) {
+        cinematicRunning = false;
+        if (cinematicSliceButton) cinematicSliceButton.disabled = false;
+        presentation.setSceneEntity?.("COMPANION_LEFT", { enabled: false });
+        presentation.setSceneEntity?.("COMPANION_RIGHT", { enabled: false });
+      }
+    }
+  }
+
   function resetSimulationClock() {
     lastSimulationTime = null;
   }
@@ -203,7 +363,8 @@
     renderUi();
   }
 
-  function startBattle(config = null) {
+  function startBattle(config = null, options = {}) {
+    if (!options.cinematic) cancelCinematic();
     resetSimulationClock();
     const battleConfig = config || createBattleConfig();
     currentEnemyId = battleConfig.enemy?.id || currentEnemyId;
@@ -226,6 +387,7 @@
   }
 
   function restartBattle() {
+    cancelCinematic();
     startBattle(createBattleConfig(currentEnemyId));
   }
 
@@ -286,9 +448,11 @@
         completeBattleTelemetry(combat);
       }
       renderUi();
+      return resolution;
     } catch (error) {
       view.gameState.session.lastMessage = "Skill rechazada · " + error.message;
       renderUi();
+      return null;
     }
   }
 
@@ -428,6 +592,7 @@
       const cooldown = Number(combat.cooldowns[card.cardId] || 0);
       const visual = cardVisual(definition);
       const disabled =
+        cinematicRunning ||
         combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS ||
         !window.EnergySystem.canSpend(combat.resources, definition.cost) ||
         cooldown > 0;
@@ -544,7 +709,7 @@
     if (burstReadyEl) burstReadyEl.className = "resource-subline ready-state" + (burstReady ? " burst-ready" : "");
 
     if (burstButton) {
-      burstButton.disabled = !combat || !burstReady;
+      burstButton.disabled = cinematicRunning || !combat || !burstReady;
       burstButton.hidden = !combat || outcome !== window.GameState.OUTCOME.IN_PROGRESS;
       burstButton.textContent = broken ? "BURST · BREAK" : "BURST";
       burstButton.setAttribute("aria-label", broken ? "BURST during BREAK window" : "BURST");
@@ -554,7 +719,7 @@
       setText(abilityEl, combat ? ability.name + " · " + combat.resources.playerAbilityUses + "/1" : "—");
     }
     if (abilityButton) {
-      abilityButton.disabled = !combat || !window.CharacterAbilitySystem.canUse(combat);
+      abilityButton.disabled = cinematicRunning || !combat || !window.CharacterAbilitySystem.canUse(combat);
       abilityButton.hidden = !combat || outcome !== window.GameState.OUTCOME.IN_PROGRESS;
       abilityButton.textContent = ability?.name || "ABILITY";
       abilityButton.setAttribute("aria-label", ability ? ability.name + " · " + ability.condition : "Character ability");
@@ -618,6 +783,7 @@
     startBattle,
     restartBattle,
     nextBattle,
+    playCinematicSlice,
     actionButton: playCard,
     useAbility,
     useBurst,
@@ -626,6 +792,7 @@
   });
 
   startButton?.addEventListener("click", () => startBattle());
+  cinematicSliceButton?.addEventListener("click", () => { void playCinematicSlice(); });
   burstButton?.addEventListener("click", useBurst);
   abilityButton?.addEventListener("click", useAbility);
   restartButton?.addEventListener("click", restartBattle);
