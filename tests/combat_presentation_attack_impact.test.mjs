@@ -164,3 +164,68 @@ test("animation state names used by presentation map to the real animation machi
   assert.equal(actorFrom(presentation.getSceneFoundation(), "scene:PLAYER").transform.state, "IDLE");
   assert.equal(actorFrom(presentation.getSceneFoundation(), "scene:ENEMY_PRIMARY").transform.state, "IDLE");
 });
+
+
+test("Yuri Racha Neon preserves ability identity and applies its character-specific attack style", async () => {
+  const { presentation, setNow } = await loadPresentation();
+  const combat = {
+    battleId: "yuri-racha-neon-style",
+    outcome: "IN_PROGRESS",
+    player: {
+      id: "yuri-1",
+      hp: 100,
+      maxHp: 100,
+      identity: { characterId: "yuri" }
+    },
+    enemy: {
+      id: "iron_guard",
+      hp: 100,
+      maxHp: 100,
+      breakState: { current: 0, max: 100 }
+    }
+  };
+
+  presentation.onCombatStart(combat);
+  setNow(1000);
+  presentation.onAction(combat, {
+    actionId: "yuri-racha-neon-1",
+    actionType: "CARD",
+    source: "PLAYER_SKILL",
+    actorId: "yuri-1",
+    targetId: "iron_guard",
+    cardId: "yuri_racha_neon",
+    hits: [
+      { damage: 7, breakDamage: 4 },
+      { damage: 7, breakDamage: 4 },
+      { damage: 7, breakDamage: 4 }
+    ],
+    damage: 21,
+    breakDamage: 12
+  });
+
+  const style = presentation.getAttackStyleState();
+  assert.deepEqual(style, {
+    styleId: "YURI_RACHA_NEON",
+    characterId: "yuri",
+    abilityId: "yuri_racha_neon",
+    actionId: "yuri-racha-neon-1",
+    attackState: "ATTACK",
+    hitCount: 3,
+    contactCount: 3,
+    cameraShot: "ATTACK_APPROACH"
+  });
+
+  const attackFrame = runFrame(presentation, setNow, combat, 1060);
+  const player = actorFrom(attackFrame, "scene:PLAYER");
+  assert.equal(player.transform.state, "ATTACK");
+  assert.ok(player.transform.x > 320);
+  assert.ok(player.transform.scale > 1);
+  assert.ok(player.transform.rotation > 0);
+
+  const contactFrame = runFrame(presentation, setNow, combat, 1110);
+  assert.equal(actorFrom(contactFrame, "scene:ENEMY_PRIMARY").transform.state, "HIT");
+
+  const recovery = runFrame(presentation, setNow, combat, 2000);
+  assert.equal(actorFrom(recovery, "scene:PLAYER").transform.state, "IDLE");
+  assert.equal(actorFrom(recovery, "scene:ENEMY_PRIMARY").transform.state, "IDLE");
+});
