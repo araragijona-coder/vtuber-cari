@@ -833,3 +833,21 @@ Approved staged assets can replace technical scene placeholders without rebuildi
 ### Responsive composition
 
 The stage uses semantic positions and camera transforms rather than fixed-resolution coordinates. Decorative density should compress before tactical information on narrow screens.
+
+
+
+## Phase 27 verification snapshot — 2026-10-02
+
+Implementation source:
+- `intento_2/webapp/js/combat_shot_director.js`
+- `intento_2/webapp/js/combat_presentation.js`
+
+Browser/Fish:
+- exactly one session was run;
+- combat start, timer, cards, enemy presence, no JS exception, no freeze/stutter were observed;
+- PLAYER_FOCUS, ENEMY_FOCUS, ATTACK_APPROACH, IMPACT, BREAK and BURST were **NOT VERIFIED** by live browser evidence because the deployed page exposed no direct shot controls/API to the browser operator;
+- COMPANION_LEFT_FOCUS and COMPANION_RIGHT_FOCUS were **NOT VERIFIED** because companion staging was disabled and no browser-accessible shot control existed;
+- player + motorcycle was **UNKNOWN** in live visual evidence because the operator saw the motorcycle placeholder label but not a rendered motorcycle visual;
+- the Browser/Fish result returned the landing URL rather than distinct screenshot references, so screenshots are not accepted as visual evidence.
+
+This browser result does not invalidate the deterministic unit/smoke verification of the Shot Director. It does mean live visual runtime remains **NOT VERIFIED**.
