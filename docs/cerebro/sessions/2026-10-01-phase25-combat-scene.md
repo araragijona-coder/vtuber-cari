@@ -89,3 +89,33 @@ No visual claim here means final waifu/art quality approval.
 ## Next step
 
 Human art/asset work through Asset Studio remains separate from the combat-scene architecture. Any unresolved Yuri/Maki continuity, new character IDs, final art direction details, Nitro/Redline global design, or other unimplemented future systems remain OPEN DESIGN QUESTION.
+
+
+## Final verification snapshot
+
+Final code HEAD for Phase 25: `9e84f8a9b0e8511f3f39f51a6e526030dcd0ae47`.
+
+### VERIFIED
+
+- Permanent GitHub Actions runtime workflow run 96 completed `success`.
+- Full suite: 149/149 tests passed.
+- Phase 25-specific contracts passed.
+- No new END TURN primitive was introduced by Phase 25.
+- GitHub Pages root serves the game-facing `COMBAT / LIVE` timer and `READY` scene-state HUD.
+- Documentation records the 2.5D scene target, placeholder gate, camera/layer architecture and Asset Studio contract.
+
+### NOT VERIFIED
+
+- The single authorized Browser/Fish combat QA session failed before it could execute the requested start-battle interaction.
+- No combat screenshot was captured by that session.
+- Therefore live visual claims for character presence, motorcycle motion, telegraph timing, camera movement, skill interaction and post-skill effects are not declared browser-verified.
+- Final art approval is not part of this phase.
+
+### CURRENT PROPOSED
+
+The implemented scene architecture remains the current proposed 2.5D presentation layer using technical placeholders and deterministic 2D effects.
+
+### OPEN DESIGN QUESTION
+
+`Yuri ↔ Maki Mach` remains unresolved.
+Nitro / Redline global behavior remains outside the authorized Phase 25 runtime boundary.
