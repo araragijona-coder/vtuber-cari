@@ -154,6 +154,8 @@ test("Phase 29 combat exposes the cinematic slice without adding a second RAF/re
   assert.match(combat, /BreakSystem\.isBroken/);
   assert.match(combat, /BurstSystem\.canUse/);
   assert.match(combat, /createBattleConfig\("iron_guard"\)/);
+  assert.doesNotMatch(combat, /maki_mach/);
+  assert.doesNotMatch(combat, /new CombatEngine/);
 });
 
 test("Phase 29 UI exposes a non-DOM battlefield cinematic trigger", async () => {
