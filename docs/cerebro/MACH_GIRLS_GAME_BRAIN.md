@@ -360,3 +360,35 @@ CI = SUCCESS
 The deployed GitHub Pages root exposes the promoted combat timer and scene-state HUD in the served page. The single authorized Browser/Fish combat QA pass did not complete the requested battle interaction, so visual runtime behavior and screenshots remain NOT VERIFIED by that gate.
 
 Final character and motorcycle art remain technical placeholders / approval-gated.
+
+
+## Phase 26 — Authoritative Combat Visual Reference
+
+The authoritative visual presentation contract is now stored at:
+
+[docs/design/MACH_GIRLS_COMBAT_VISUAL_REFERENCE.md](../design/MACH_GIRLS_COMBAT_VISUAL_REFERENCE.md)
+
+Mach-Girls combat is a complete 2.5D scene, not a minimal two-sprite/card interface.
+
+The contract covers:
+
+- full battlefield composition and layer order;
+- character + motorcycle as one rider unit;
+- enemy spatial staging;
+- timer and combat-state hierarchy;
+- telegraph / threat communication;
+- damage, BREAK and BURST presentation;
+- cards, ownership, role/effect identity, cost and state;
+- Energy and resource readability;
+- camera presets and parallax;
+- foreground FX and lighting;
+- responsive behavior;
+- Asset Studio slots and placeholder policy.
+
+Current status:
+
+`PROPOSED VISUAL REFERENCE`
+
+Human review remains required before this reference becomes an approved final visual baseline. Final character and motorcycle art remain human-approval gated.
+
+Phase 25 live visual runtime remains `NOT VERIFIED`; the Phase 26 document is a design authority and does not replace Browser evidence.
