@@ -197,6 +197,7 @@
     }
 
     function applyCamera(width, height, now) {
+      if (typeof context.translate !== "function" || typeof context.scale !== "function") return;
       const camera = state.camera.current;
       const preset = CAMERA_PRESETS[state.camera.active] || CAMERA_PRESETS.IDLE;
       const elapsed = Math.max(0, now - state.camera.startedAt);
@@ -401,6 +402,7 @@
     }
 
     function drawLighting(width, height, combat) {
+      if (typeof context.createRadialGradient !== "function") return;
       const glow = context.createRadialGradient(width * .5, height * .42, 20, width * .5, height * .42, Math.max(width, height) * .62);
       glow.addColorStop(0, "rgba(91,150,224," + (combat ? ".08" : ".035") + ")");
       glow.addColorStop(.55, "rgba(199,156,255,.025)");
