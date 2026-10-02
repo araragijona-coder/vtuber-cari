@@ -863,3 +863,74 @@ Actors are not intended to be DOM elements. DOM remains reserved for HUD, cards,
 The foundation supports background/environment layers, depth ordering, camera transforms, parallax-ready layer metadata, actor animation state and character+motorcycle composition without requiring final art.
 
 This is a foundation, not the final vertical slice. Live cinematic behavior remains subject to evidence-producing Browser QA.
+
+
+## Phase 29 — First cinematic vertical slice reference
+
+The first vertical slice is a deliberately small composition intended to read as an anime game battlefield rather than a card UI:
+
+```text
+BACKGROUND
+        ↓
+      ENEMY
+
+  TECHNICAL       TECHNICAL
+   COMPANION       COMPANION
+
+       PLAYER
+          +
+      MOTORCYCLE
+          +
+        SHADOW
+```
+
+Depth is explicit:
+
+```text
+lower z = farther plane
+higher z = closer plane
+```
+
+The Player is therefore staged in the foreground/midground while the primary enemy is kept on a deeper plane. Scale follows the same depth rule so the enemy can remain visible behind the player without becoming visually dominant.
+
+### Cinematic motion language
+
+The slice uses controlled presentation-only motion:
+
+```text
+PLAYER_FOCUS
+→ forward approach
+→ ATTACK_APPROACH
+→ IMPACT + short visual freeze
+→ enemy recoil
+→ BREAK emphasis
+→ BURST focus
+→ large player burst movement
+→ IMPACT
+→ camera recovery
+```
+
+The camera is a single scene camera. Shot changes alter its target, zoom, offset, interpolation and shake; camera state is not duplicated inside combat rules.
+
+### Technical asset boundary
+
+The slice may use technical placeholders. Placeholder visuals must remain explicitly labeled as non-final art. Asset replacement is expected to occur through `mach_girls_asset_catalog_v1` and Asset Studio metadata without modifying Scene, Camera, Renderer or gameplay contracts.
+
+No final waifu/character generation is part of Phase 29. Human approval remains required before final character art enters the production asset path.
+
+### Readability target
+
+The scene should communicate, in this order:
+
+```text
+SPACE
+→ DEPTH
+→ CHARACTERS
+→ MOTORCYCLE
+→ ACTION
+→ IMPACT
+→ BREAK / BURST
+→ HUD
+```
+
+The HUD is an overlay. PLAYER, ENEMY, MOTORCYCLE, SHADOW and companions are scene actors, not DOM battlefield elements.
