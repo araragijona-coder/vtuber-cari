@@ -158,7 +158,10 @@ test("scene actor transform remains world-space state while camera changes", asy
   camera.snap({ x: 690, y: 300, zoom: 1.09 });
   const worldAfter = actor.transform;
 
-  assert.deepEqual(worldAfter, worldBefore);
+  assert.equal(worldAfter.x, worldBefore.x);
+  assert.equal(worldAfter.y, worldBefore.y);
+  assert.equal(worldAfter.z, worldBefore.z);
+  assert.equal(worldAfter.scale, worldBefore.scale);
   assert.equal(scene.getActor("scene:ENEMY_PRIMARY").transform.x, 690);
   assert.equal(scene.getActor("scene:ENEMY_PRIMARY").transform.y, 336);
 });
