@@ -106,9 +106,12 @@
     const enemy = window.EnemyCatalog.createEnemy(id);
     currentEnemyId = enemy.id;
     const search = String(window.location?.search || "");
-    const requestedCharacterId = /(?:^|[?&])phase21=support(?:&|$)/.test(search)
-      ? "test_support"
-      : "yuri";
+    const phase29ImpulsoValidation = /(?:^|[?&])phase29=impulso(?:&|$)/.test(search);
+    const requestedCharacterId = phase29ImpulsoValidation
+      ? "yuri"
+      : /(?:^|[?&])phase21=support(?:&|$)/.test(search)
+        ? "test_support"
+        : "yuri";
     const character = window.CharacterKitSystem?.definitionFor?.(requestedCharacterId) || null;
     const saved = typeof window.SaveManager?.load === "function"
       ? window.SaveManager.load().save
@@ -799,6 +802,12 @@
   window.addEventListener("resize", resizeCanvas, { passive: true });
 
   initGameState();
+
+  // TASK 29-O-B: VALIDATION ONLY. Never affects normal loads.
+  if (/(?:^|[?&])phase29=impulso(?:&|$)/.test(String(window.location?.search || ""))) {
+    startBattle(createBattleConfig("iron_guard"));
+  }
+
   resizeCanvas();
   startMainLoop();
 })();
