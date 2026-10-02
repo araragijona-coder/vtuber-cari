@@ -9,6 +9,11 @@
     return Math.min(max, Math.max(min, finite(value, min)));
   }
 
+  // Coordinate-space contract:
+  // transform.x/y/z are WORLD_STAGE_PX. They are independent actor state.
+  // Normalized semantic anchors are resolved by the Shot Director and converted
+  // to WORLD_STAGE_PX before entering Scene actors. worldToScreen() is the
+  // explicit WORLD_STAGE_PX -> SCREEN projection.
   function createTransform(input = {}) {
     return {
       x: finite(input.x),
@@ -33,6 +38,8 @@
   }
 
   function worldToScreen(transform, camera, viewport) {
+    // Input: WORLD_STAGE_PX actor transform + camera WORLD_STAGE_PX state.
+    // Output: SCREEN coordinates for callers that explicitly request projection.
     const view = {
       width: Math.max(1, finite(viewport?.width, 1)),
       height: Math.max(1, finite(viewport?.height, 1))
