@@ -31,7 +31,15 @@
     "burst.icon",
     "telegraph.attack",
     "telegraph.defend",
-    "telegraph.debuff"
+    "telegraph.debuff",
+    "scene.companion_left_character",
+    "scene.companion_left_motorcycle",
+    "scene.companion_right_character",
+    "scene.companion_right_motorcycle",
+    "scene.enemy_secondary_character",
+    "scene.enemy_secondary_motorcycle",
+    "scene.enemy_far_character",
+    "scene.enemy_far_motorcycle"
   ]);
   const CAMERA_PRESETS = Object.freeze({
     IDLE: Object.freeze({ zoom: 1, offsetX: 0, offsetY: 0, duration: 420, shake: 0 }),
@@ -90,8 +98,10 @@
         status: Object.create(null),
         break: Object.create(null),
         burst: Object.create(null),
-        telegraph: Object.create(null)
+        telegraph: Object.create(null),
+        scene: Object.create(null)
       },
+      shotDirector: window.MachGirlsShotDirector?.create?.({ stageSeed: "mach-girls-phase27" }) || null,
       imageCache: new Map(),
       audioHooks: Object.create(null),
       combatId: null,
@@ -145,6 +155,10 @@
     }
 
     function positionFor(team, width, height) {
+      const role = team === "player" ? "PLAYER" : "ENEMY_PRIMARY";
+      const staged = state.shotDirector?.getEntityFrame?.(role, width, height);
+      if (staged) return { x: staged.x, y: staged.y };
+
       const compact = width < 560;
       return {
         x: team === "player" ? width * (compact ? .29 : .31) : width * (compact ? .71 : .69),
@@ -183,7 +197,28 @@
       return { ...preset, name: key };
     }
 
-    function updateCamera(now, combat) {
+    function setShot(name, instant = false, now = performance.now()) {
+      if (!state.shotDirector) return setCameraPreset(name, instant, now);
+      const shot = state.shotDirector.setShot(name, instant, now);
+      const frame = state.shotDirector.getCameraFrame(1000, 600, now);
+      state.camera.active = shot.cameraPreset;
+      state.camera.startedAt = now;
+      state.camera.until = now + Number(shot.profile.duration || 0);
+      state.camera.current = { ...frame.current };
+      state.camera.target = { ...frame.target };
+      return { ...shot, camera: frame.current };
+    }
+
+    function updateCamera(now, combat, width = 1000, height = 600) {
+      if (state.shotDirector) {
+        const frame = state.shotDirector.getCameraFrame(width, height, now);
+        state.shotFrame = frame;
+        state.camera.active = frame.cameraPreset;
+        state.camera.current = { ...frame.current };
+        state.camera.target = { ...frame.target };
+        return state.camera.current;
+      }
+
       if (combat?.outcome === "VICTORY" && state.camera.active !== "VICTORY") setCameraPreset("VICTORY");
       else if (combat?.outcome === "DEFEAT" && state.camera.active !== "DEFEAT") setCameraPreset("DEFEAT");
       else if (window.BreakSystem?.isBroken?.(combat?.enemy?.breakState) && now >= state.camera.until && state.camera.active !== "BURST") setCameraPreset("BREAK");
@@ -198,11 +233,11 @@
 
     function applyCamera(width, height, now) {
       if (typeof context.translate !== "function" || typeof context.scale !== "function") return;
-      const camera = state.camera.current;
+      const camera = state.shotFrame?.current || state.camera.current;
       const preset = CAMERA_PRESETS[state.camera.active] || CAMERA_PRESETS.IDLE;
       const elapsed = Math.max(0, now - state.camera.startedAt);
-      const progressValue = clamp(elapsed / Math.max(1, preset.duration), 0, 1);
-      const shake = preset.shake * (1 - progressValue);
+      const progressValue = clamp(elapsed / Math.max(1, preset.duration || 1), 0, 1);
+      const shake = Number(camera.shake || preset.shake || 0) * (1 - progressValue);
       const shakeX = shake ? Math.sin(now * .085) * shake : 0;
       const shakeY = shake ? Math.cos(now * .071) * shake * .55 : 0;
       context.translate(width / 2 + camera.offsetX + shakeX, height / 2 + camera.offsetY + shakeY);
@@ -219,6 +254,14 @@
       const enemyId = String(combat?.enemy?.id || "");
       const isPlayer = entityId === playerId;
       const isEnemy = entityId === enemyId;
+      const sceneRole = String(record.sceneRole || "").toUpperCase();
+      const sceneSlots = {
+        COMPANION_LEFT: { CHARACTER: "scene.companion_left_character", MOTORCYCLE: "scene.companion_left_motorcycle" },
+        COMPANION_RIGHT: { CHARACTER: "scene.companion_right_character", MOTORCYCLE: "scene.companion_right_motorcycle" },
+        ENEMY_SECONDARY: { CHARACTER: "scene.enemy_secondary_character", MOTORCYCLE: "scene.enemy_secondary_motorcycle" },
+        ENEMY_FAR: { CHARACTER: "scene.enemy_far_character", MOTORCYCLE: "scene.enemy_far_motorcycle" }
+      };
+      if (sceneSlots[sceneRole]?.[type]) return sceneSlots[sceneRole][type];
       if (type === "CHARACTER" && (isPlayer || isEnemy)) return (isPlayer ? "player" : "enemy") + "." + stateName;
       if (type === "PORTRAIT" && (isPlayer || isEnemy)) return (isPlayer ? "player" : "enemy") + ".portrait";
       if (type === "MOTORCYCLE" && (isPlayer || isEnemy)) return (isPlayer ? "player" : "enemy") + ".motorcycle";
@@ -238,8 +281,16 @@
         let loaded = 0;
         for (const record of assets) {
           const slot = slotForCatalogRecord(record, combat);
-          if (!slot || !record.source) continue;
-          if (setAsset(slot, record.source)) loaded += 1;
+          if (slot && record.source && setAsset(slot, record.source)) loaded += 1;
+          const role = String(record.sceneRole || "").toUpperCase();
+          if (state.shotDirector && window.MachGirlsShotDirector?.SCENE_ROLES?.includes(role)) {
+            state.shotDirector.setEntity(role, {
+              enabled: true,
+              scale: Number(record.baselineScale ?? record.scale ?? 1),
+              depth: Number(record.depth ?? 0.5),
+              parallax: Number(record.parallax ?? 1)
+            });
+          }
         }
         return loaded;
       } catch (error) {
@@ -352,8 +403,9 @@
     }
 
     function drawParallax(width, height, now) {
-      const drift = (Number(now) / 95) % 54;
-      context.strokeStyle = "rgba(91,150,224,.13)";
+      const multiplier = Number(state.shotFrame?.current?.parallaxMultiplier || 1);
+      const drift = (Number(now) / 95 * multiplier) % 54;
+      context.strokeStyle = "rgba(91,150,224," + (.13 * Math.min(1.5, multiplier)) + ")";
       context.lineWidth = 1;
       for (let i = 0; i < 10; i += 1) {
         const x = ((i * 131 + drift * .65) % (width + 120)) - 60;
@@ -379,8 +431,9 @@
 
     function drawForeground(width, height, now, combat) {
       const velocity = combat ? 1 : .35;
-      const drift = (Number(now) / 22) % 90;
-      context.strokeStyle = "rgba(255,255,255," + (.05 + .06 * velocity) + ")";
+      const intensity = Number(state.shotFrame?.current?.foregroundIntensity || 1);
+      const drift = (Number(now) / 22 * intensity) % 90;
+      context.strokeStyle = "rgba(255,255,255," + ((.05 + .06 * velocity) * intensity) + ")";
       context.lineWidth = 2;
       for (let i = 0; i < 9; i += 1) {
         const x = ((i * 141 + drift * 2.2) % (width + 160)) - 80;
@@ -390,7 +443,7 @@
         context.lineTo(x - (18 + i * 2) * velocity, y + 8);
         context.stroke();
       }
-      context.strokeStyle = "rgba(110,232,211,.16)";
+      context.strokeStyle = "rgba(110,232,211," + (.16 * intensity) + ")";
       context.beginPath();
       context.moveTo(width * .08, height * .88);
       context.lineTo(width * .34, height * .76);
@@ -403,14 +456,15 @@
 
     function drawLighting(width, height, combat) {
       if (typeof context.createRadialGradient !== "function") return;
+      const intensity = Number(state.shotFrame?.current?.lightingIntensity || 1);
       const glow = context.createRadialGradient(width * .5, height * .42, 20, width * .5, height * .42, Math.max(width, height) * .62);
-      glow.addColorStop(0, "rgba(91,150,224," + (combat ? ".08" : ".035") + ")");
-      glow.addColorStop(.55, "rgba(199,156,255,.025)");
+      glow.addColorStop(0, "rgba(91,150,224," + ((combat ? .08 : .035) * intensity) + ")");
+      glow.addColorStop(.55, "rgba(199,156,255," + (.025 * intensity) + ")");
       glow.addColorStop(1, "rgba(0,0,0,0)");
       context.fillStyle = glow;
       context.fillRect(0, 0, width, height);
       if (combat && window.BreakSystem?.isBroken?.(combat.enemy?.breakState)) {
-        context.fillStyle = "rgba(255,178,77,.045)";
+        context.fillStyle = "rgba(255,178,77," + (.045 * intensity) + ")";
         context.fillRect(0, 0, width, height);
       }
     }
@@ -949,11 +1003,13 @@
       state.effects = [];
       state.seenActions.clear();
       state.combatId = combat?.battleId ? String(combat.battleId) : null;
+      state.shotFrame = null;
       state.composition = {
         player: { characterScale: 1, motorcycleScale: .82, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true },
         enemy: { characterScale: 1, motorcycleScale: .78, motorcycleOffsetX: 0, motorcycleOffsetY: 18, identityLayer: true }
       };
-      setCameraPreset("IDLE", true);
+      if (state.shotDirector) setShot("ESTABLISHING", true);
+      else setCameraPreset("IDLE", true);
       loadApprovedCatalog(combat);
     }
 
@@ -970,12 +1026,21 @@
       );
       const attacker = action.source === "ENEMY_AUTO_ATTACK" || action.actionType === "ENEMY_BEHAVIOR" ? "enemy" : "player";
 
-      if (action.outcome === "VICTORY") setCameraPreset("VICTORY");
-      else if (action.outcome === "DEFEAT") setCameraPreset("DEFEAT");
-      else if (actionType === "BURST") setCameraPreset("BURST");
-      else if (action.broke) setCameraPreset("BREAK");
-      else if (Number(action.damage || 0) > 0 || Number(action.blockAbsorbed || 0) > 0) setCameraPreset("IMPACT");
-      else if (["AUTO_ATTACK", "SKILL", "CARD", "ABILITY", "ENEMY_BEHAVIOR"].includes(actionType)) setCameraPreset("ATTACK");
+      if (action.outcome === "VICTORY") {
+        state.shotDirector ? setShot("VICTORY") : setCameraPreset("VICTORY");
+      } else if (action.outcome === "DEFEAT") {
+        state.shotDirector ? setShot("DEFEAT") : setCameraPreset("DEFEAT");
+      } else if (actionType === "BURST") {
+        state.shotDirector ? setShot("BURST") : setCameraPreset("BURST");
+      } else if (action.broke) {
+        state.shotDirector ? setShot("BREAK") : setCameraPreset("BREAK");
+      } else if (Number(action.damage || 0) > 0 || Number(action.blockAbsorbed || 0) > 0) {
+        state.shotDirector ? setShot("IMPACT") : setCameraPreset("IMPACT");
+      } else if (actionType === "ENEMY_BEHAVIOR") {
+        state.shotDirector ? setShot("ENEMY_FOCUS") : setCameraPreset("APPROACH");
+      } else if (["AUTO_ATTACK", "SKILL", "CARD", "ABILITY"].includes(actionType)) {
+        state.shotDirector ? setShot("ATTACK_APPROACH") : setCameraPreset("ATTACK");
+      }
 
       if (actionType === "AUTO_ATTACK" || actionType === "ENEMY_BEHAVIOR" && action.intent?.type === "ATTACK") {
         addEffect("attack", {
@@ -1127,8 +1192,11 @@
       }
     }
 
+    let currentCombatForRender = null;
+
     function render(combat, now = performance.now()) {
       if (!canvas || !context) return;
+      currentCombatForRender = combat;
       const rect = canvas.getBoundingClientRect();
       const width = rect.width || 1;
       const height = rect.height || 1;
@@ -1136,14 +1204,13 @@
       context.globalAlpha = 1;
       context.lineWidth = 1;
 
-      updateCamera(now, combat);
+      updateCamera(now, combat, width, height);
       context.save();
       applyCamera(width, height, now);
       drawBackground(width, height, combat, now);
       drawParallax(width, height, now);
       if (combat) {
-        drawFighter("enemy", combat, width, height, now);
-        drawFighter("player", combat, width, height, now);
+        drawSceneEntities(width, height, now);
         drawIntent(combat, width, height, now);
         renderEffects(combat, width, height, now);
         drawBurstReady(combat, width, height, now);
@@ -1166,7 +1233,11 @@
       setAsset,
       setAudioHooks,
       setCameraPreset,
+      setShot,
       setComposition,
+      setSceneEntity: (role, spec) => Boolean(state.shotDirector?.setEntity?.(role, spec)),
+      getSceneSnapshot: (width, height) => state.shotDirector?.getSceneSnapshot?.(width, height) || [],
+      getShotState: (now) => state.shotDirector?.getShotState?.(now) || null,
       slotForCatalogRecord,
       getCameraState: () => ({ active: state.camera.active, current: { ...state.camera.current }, target: { ...state.camera.target } }),
       getAsset: assetFor
