@@ -40,7 +40,11 @@
       durationMs: 0,
       startedAt: finite(options.now, typeof performance !== "undefined" ? performance.now() : 0),
       active: "IDLE",
-      shake: 0
+      shake: 0,
+      parallaxOrigin: {
+        x: finite(options.x, DEFAULT.x),
+        y: finite(options.y, DEFAULT.y)
+      }
     };
 
     function setTarget(target = {}, now = typeof performance !== "undefined" ? performance.now() : 0) {
@@ -123,6 +127,7 @@
         state.y = height / 2;
         state.target.x = state.x;
         state.target.y = state.y;
+        state.parallaxOrigin = { x: state.x, y: state.y };
       }
     }
 
@@ -133,6 +138,7 @@
         zoom: state.zoom,
         offsetX: state.offsetX,
         offsetY: state.offsetY,
+        parallaxOrigin: { ...state.parallaxOrigin },
         target: { ...state.target },
         active: state.active,
         durationMs: state.durationMs,

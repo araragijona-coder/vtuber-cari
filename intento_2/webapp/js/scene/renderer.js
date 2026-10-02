@@ -39,8 +39,17 @@
         try {
           for (const item of renderables) {
             const transform = item.actor?.transform;
+            const cameraState = scene.camera?.getState?.() || {};
             const screen = transform && window.MachGirlsWorldSpace
-              ? window.MachGirlsWorldSpace.worldToScreen(transform, scene.camera?.getState?.() || {}, viewport)
+              ? window.MachGirlsWorldSpace.worldToScreen(
+                transform,
+                cameraState,
+                viewport,
+                {
+                  layerZ: item.type === "ACTOR_LAYER" ? item.layerZ : undefined,
+                  parallaxOrigin: cameraState.parallaxOrigin
+                }
+              )
               : null;
             draw(item, screen, context, now);
           }

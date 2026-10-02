@@ -37,7 +37,29 @@
     return clamp(0.82 + depth * 0.2, 0.78, 1.05);
   }
 
-  function worldToScreen(transform, camera, viewport) {
+  function parallaxFactor(layerZ) {
+    // Actor Layer Z is a unitless local depth. Positive layers react slightly
+    // more to camera movement; negative layers react slightly less.
+    const depth = clamp(finite(layerZ), -1, 1);
+    return clamp(1 + depth * 0.25, 0.75, 1.25);
+  }
+
+  function parallaxOffset(camera, layerZ, origin = camera?.parallaxOrigin) {
+    const cameraX = finite(camera?.x);
+    const cameraY = finite(camera?.y);
+    const originX = finite(origin?.x, cameraX);
+    const originY = finite(origin?.y, cameraY);
+    const factor = parallaxFactor(layerZ);
+    const x = (cameraX - originX) * (1 - factor);
+    const y = (cameraY - originY) * (1 - factor);
+    return {
+      x: Object.is(x, -0) ? 0 : x,
+      y: Object.is(y, -0) ? 0 : y,
+      factor
+    };
+  }
+
+  function worldToScreen(transform, camera, viewport, options = {}) {
     // Input: WORLD_STAGE_PX actor transform + camera WORLD_STAGE_PX state.
     // Output: SCREEN coordinates for callers that explicitly request projection.
     const view = {
@@ -51,11 +73,17 @@
     const offsetX = finite(cam.offsetX);
     const offsetY = finite(cam.offsetY);
     const depth = depthFactor(transform?.z);
+    const parallax = options.layerZ === undefined
+      ? { x: 0, y: 0, factor: 1 }
+      : parallaxOffset(cam, options.layerZ, options.parallaxOrigin);
     return {
-      x: view.width / 2 + (finite(transform?.x) - cameraX + offsetX) * zoom,
-      y: view.height / 2 + (finite(transform?.y) - cameraY + offsetY) * zoom,
+      x: view.width / 2 + (finite(transform?.x) - cameraX + offsetX) * zoom + parallax.x * zoom,
+      y: view.height / 2 + (finite(transform?.y) - cameraY + offsetY) * zoom + parallax.y * zoom,
       scale: clamp(finite(transform?.scale, 1) * zoom * depth, 0.01, 10),
       depthFactor: depth,
+      parallaxFactor: parallax.factor,
+      parallaxOffsetX: parallax.x,
+      parallaxOffsetY: parallax.y,
       rotation: finite(transform?.rotation),
       z: finite(transform?.z)
     };
@@ -69,6 +97,8 @@
     createTransform,
     copyTransform,
     depthFactor,
+    parallaxFactor,
+    parallaxOffset,
     worldToScreen,
     compareDepth
   });
