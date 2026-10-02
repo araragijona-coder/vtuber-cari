@@ -121,6 +121,7 @@
         current: { ...CAMERA_PRESETS.IDLE }
       },
       motionTracks: new Map(),
+      visualFreezeStartsAt: 0,
       visualFreezeUntil: 0,
       visualFreezeNow: 0
     };
@@ -1317,8 +1318,12 @@ if (composition.identityLayer) {
           { dx: targetRole === "ENEMY_PRIMARY" ? 52 : -52, dy: -8, dz: 0.07, rotation: targetRole === "ENEMY_PRIMARY" ? 0.07 : -0.07, duration: 320 },
           contactAt
         );
-        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 110);
-        state.visualFreezeNow = eventNow;
+        state.visualFreezeStartsAt = Math.min(
+          state.visualFreezeStartsAt || contactAt,
+          contactAt
+        );
+        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, contactAt + 110);
+        state.visualFreezeNow = contactAt;
       }
       if (presentationEvent?.type === "BREAK") {
         scheduleMotion(
@@ -1326,6 +1331,7 @@ if (composition.identityLayer) {
           { dx: 64, dy: -14, dz: 0.09, rotation: 0.095, duration: 500 },
           eventNow
         );
+        state.visualFreezeStartsAt = eventNow;
         state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 120);
         state.visualFreezeNow = eventNow;
       }
