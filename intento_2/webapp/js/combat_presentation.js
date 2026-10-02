@@ -799,7 +799,12 @@
       const fighter = stateForFighter.fighter;
       if (!fighter) return;
       const point = positionFor(team, width, height);
-      const baseScale = clamp(Math.min(width / 860, height / 590), .72, 1.15);
+      const actorRole = team === "player" ? "PLAYER" : "ENEMY_PRIMARY";
+      const foundationActor = state.scene?.getActor?.("scene:" + actorRole);
+      const foundationScale = foundationActor?.transform?.scale || 1;
+      const foundationDepth = foundationActor?.transform?.z || 0;
+      const depthScale = window.MachGirlsWorldSpace?.depthFactor?.(foundationDepth) || 1;
+      const baseScale = clamp(Math.min(width / 860, height / 590) * foundationScale * depthScale, .62, 1.35);
       const composition = compositionFor(team);
       const scale = baseScale * composition.characterScale;
       const visualState = visualStateFor(team, combat, now, stateForFighter);
