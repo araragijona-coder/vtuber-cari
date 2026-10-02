@@ -851,3 +851,15 @@ Browser/Fish:
 - the Browser/Fish result returned the landing URL rather than distinct screenshot references, so screenshots are not accepted as visual evidence.
 
 This browser result does not invalidate the deterministic unit/smoke verification of the Shot Director. It does mean live visual runtime remains **NOT VERIFIED**.
+
+## Phase 28 — foundation alignment
+
+The visual reference now maps to the implementation foundation:
+
+STAGE → SCENE → WORLD-SPACE ACTORS → CAMERA → RENDERER → PRESENTATION EVENTS → SHOT DIRECTOR
+
+Actors are not intended to be DOM elements. DOM remains reserved for HUD, cards, menus, dialogue, debug and accessibility.
+
+The foundation supports background/environment layers, depth ordering, camera transforms, parallax-ready layer metadata, actor animation state and character+motorcycle composition without requiring final art.
+
+This is a foundation, not the final vertical slice. Live cinematic behavior remains subject to evidence-producing Browser QA.
