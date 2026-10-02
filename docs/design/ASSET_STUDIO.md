@@ -413,3 +413,25 @@ These roles are presentation slots. They do not create new character IDs or game
 `DRAFT`, `TECHNICAL_PLACEHOLDER` and `APPROVED` remain the only asset statuses. Final character art is still human-approved and the Studio does not automatically approve art.
 
 Phase 27 does not change the static/local-first asset-storage model.
+
+
+
+## Phase 27 identity-neutral staging
+
+For presentation-only staging roles:
+
+```text
+COMPANION_LEFT
+COMPANION_RIGHT
+ENEMY_PRIMARY
+ENEMY_SECONDARY
+ENEMY_FAR
+FOREGROUND_LEFT
+FOREGROUND_RIGHT
+```
+
+a `CHARACTER` asset may be registered without a formal characterId when the `sceneRole` itself is the staging binding. This permits user-produced ENEMY/COMPANION PNGs without inventing new formal character IDs.
+
+Formal `PLAYER` / `PLAYER_FOCUS` character assets still require a recognized formal character ID.
+
+`maki_mach` remains disallowed as a formal runtime characterId.
