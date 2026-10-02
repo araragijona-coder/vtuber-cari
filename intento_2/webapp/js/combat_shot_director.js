@@ -178,8 +178,10 @@
 
     function resolveTarget(target) {
       const key = String(target || "STAGE").toUpperCase();
-      if (key === "STAGE") return { x: .5, y: .5, depth: .5 };
-      return state.anchors[key] ? { ...state.anchors[key] } : { x: .5, y: .5, depth: .5 };
+      if (key === "STAGE") return { x: .5, y: .5, depth: .5, coordinateSpace: "NORMALIZED_STAGE" };
+      return state.anchors[key]
+        ? { ...state.anchors[key], coordinateSpace: "NORMALIZED_STAGE" }
+        : { x: .5, y: .5, depth: .5, coordinateSpace: "NORMALIZED_STAGE" };
     }
 
     function cameraFor(profile, width, height) {
@@ -280,6 +282,7 @@
       const baseScale = clamp(entity.baselineScale ?? entity.scale ?? 1, .1, 4);
       return {
         role,
+        coordinateSpace: "WORLD_STAGE_PX",
         enabled: Boolean(entity.enabled),
         x: anchor.x * width + (focused ? finite(entity.focusOffsetX) : 0),
         y: anchor.y * height + (focused ? finite(entity.focusOffsetY) : 0),
