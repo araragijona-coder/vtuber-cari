@@ -151,6 +151,7 @@
       motionTracks: new Map(),
       attackStyle: null,
       presentationStyle: null,
+      presentationRecovery: null,
       visualFreezeStartsAt: 0,
       visualFreezeUntil: 0,
       visualFreezeNow: 0
@@ -327,8 +328,66 @@
       return { ...shot, camera: state.scene?.camera?.getState?.() || cameraTarget };
     }
 
+    const TRANSIENT_PRESENTATION_EFFECTS = Object.freeze([
+      "attack",
+      "trail",
+      "impact",
+      "break",
+      "burst"
+    ]);
+
+    function markPresentationTransient(kind, actionId) {
+      state.presentationRecovery = Object.freeze({
+        kind: String(kind || "ACTION"),
+        actionId: String(actionId || "")
+      });
+      state.presentationStyle = null;
+    }
+
+    function hasActiveTransientPresentation(now) {
+      const activeMotion = [...state.motionTracks.values()].some((track) =>
+        progress(now, track.start, track.duration) < 1
+      );
+      if (activeMotion) return true;
+
+      return state.effects.some((effect) =>
+        TRANSIENT_PRESENTATION_EFFECTS.includes(effect.type) &&
+        progress(now, effect.start, effect.duration) < 1
+      );
+    }
+
+    function stableShotFor(combat) {
+      if (combat?.outcome === "VICTORY") return "VICTORY";
+      if (combat?.outcome === "DEFEAT") return "DEFEAT";
+      return "PLAYER_FOCUS";
+    }
+
+    function recoverPresentation(now, combat) {
+      if (!state.presentationRecovery) return false;
+      if (hasActiveTransientPresentation(now)) return false;
+
+      const activeShot =
+        state.shotDirector?.getShotState?.(now)?.name ||
+        state.shotFrame?.active ||
+        "IDLE";
+      const transientShots = ["ATTACK_APPROACH", "IMPACT", "BREAK", "BURST"];
+      const stableShot = stableShotFor(combat);
+
+      if (transientShots.includes(activeShot) && activeShot !== stableShot) {
+        state.shotDirector
+          ? setShot(stableShot, false, now)
+          : setCameraPreset(stableShot, false, now);
+      }
+
+      state.attackStyle = null;
+      state.presentationRecovery = null;
+      return true;
+    }
+
     function updateCamera(now, combat, width = 1000, height = 600) {
       state.viewport = { width, height };
+
+      recoverPresentation(now, combat);
 
       if (combat?.outcome === "VICTORY" && state.shotDirector?.getShotState?.(now)?.name !== "VICTORY") setShot("VICTORY", false, now);
       else if (combat?.outcome === "DEFEAT" && state.shotDirector?.getShotState?.(now)?.name !== "DEFEAT") setShot("DEFEAT", false, now);
@@ -1289,6 +1348,7 @@ if (composition.identityLayer) {
       state.motionTracks.clear();
       state.attackStyle = null;
       state.presentationStyle = null;
+      state.presentationRecovery = null;
       state.visualFreezeUntil = 0;
       state.visualFreezeNow = 0;
       state.combatId = combat?.battleId ? String(combat.battleId) : null;
@@ -1352,6 +1412,11 @@ if (composition.identityLayer) {
           (String(definition?.type || "").toUpperCase() === "ATTACK" || hasContactPayload)) ||
         (actionType === "ABILITY" && hasContactPayload);
       const isAttackPresentation = presentationEvent?.type === "ATTACK" && isAttackAction;
+
+      if (isAttackPresentation) markPresentationTransient("ATTACK", action.actionId);
+      if (isImpactPresentation) markPresentationTransient("IMPACT", action.actionId);
+      if (presentationEvent?.type === "BREAK") markPresentationTransient("BREAK", action.actionId);
+      if (presentationEvent?.type === "BURST") markPresentationTransient("BURST", action.actionId);
 
       if (presentationEvent && (presentationEvent.type !== "ATTACK" || isAttackPresentation)) {
         applyPresentationEvent(combat, presentationEvent, eventNow);
