@@ -345,3 +345,32 @@ HTML
 → HP
 ```
 
+
+## Phase 28 — foundation migration checkpoint
+
+Phase 28 implements the first safe migration layer on mach-girls-2.5d.
+
+Reused systems:
+GAMEPLAY → existing GameState / CombatEngine / CombatClock / cards / Energy / AI / BREAK / BURST / Save / Telemetry
+PRESENTATION CONTRACT → Phase 27 Shot Director + existing Asset Studio catalog
+
+New foundation:
+WORLD SPACE → x / y / z / scale / rotation / state
+SCENE → independent actors + render layers + effects + camera
+CAMERA → x / y / zoom / target / offsets + interpolation
+RENDERER → camera application + world-to-screen projection + depth/layer ordering
+ACTOR → reusable PLAYER / ENEMY / ALLY representation
+ANIMATION → presentation-only state transitions
+PRESENTATION EVENTS → gameplay action → visual event boundary
+
+Loop consolidation:
+The pre-migration combat runtime had two RAF chains: simulation and presentation. They are now consolidated into one main runtime loop in combat.js:
+ONE MAIN LOOP → advance existing gameplay → capture action/event → update HUD → render presentation
+
+No combat rule was moved into the new foundation.
+
+Legacy status:
+LEGACY != DELETE. The existing combat presentation has not been deleted. Responsibilities are extracted only when the replacement exists and has executable verification.
+
+Phase 28 limits:
+No complete vertical slice, final art, new gameplay, new roster, global Nitro/Redline or second engine.
