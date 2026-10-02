@@ -30,6 +30,13 @@
       offsetX: finite(options.offsetX),
       offsetY: finite(options.offsetY),
       target: { x: DEFAULT.x, y: DEFAULT.y, zoom: DEFAULT.zoom, offsetX: 0, offsetY: 0 },
+      transitionStart: {
+        x: finite(options.x, DEFAULT.x),
+        y: finite(options.y, DEFAULT.y),
+        zoom: clamp(options.zoom ?? DEFAULT.zoom, 0.1, 5),
+        offsetX: finite(options.offsetX),
+        offsetY: finite(options.offsetY)
+      },
       durationMs: 0,
       startedAt: finite(options.now, typeof performance !== "undefined" ? performance.now() : 0),
       active: "IDLE",
@@ -37,6 +44,13 @@
     };
 
     function setTarget(target = {}, now = typeof performance !== "undefined" ? performance.now() : 0) {
+      state.transitionStart = {
+        x: state.x,
+        y: state.y,
+        zoom: state.zoom,
+        offsetX: state.offsetX,
+        offsetY: state.offsetY
+      };
       state.target = {
         x: finite(target.x, state.x),
         y: finite(target.y, state.y),
@@ -48,6 +62,15 @@
       state.startedAt = finite(now, 0);
       state.active = String(target.name || state.active || "IDLE");
       state.shake = Math.max(0, finite(target.shake));
+
+      if (state.durationMs === 0) {
+        state.x = state.target.x;
+        state.y = state.target.y;
+        state.zoom = state.target.zoom;
+        state.offsetX = state.target.offsetX;
+        state.offsetY = state.target.offsetY;
+      }
+
       return getState();
     }
 
@@ -57,6 +80,13 @@
       state.zoom = clamp(frame.zoom ?? state.zoom, 0.1, 5);
       state.offsetX = finite(frame.offsetX, state.offsetX);
       state.offsetY = finite(frame.offsetY, state.offsetY);
+      state.transitionStart = {
+        x: state.x,
+        y: state.y,
+        zoom: state.zoom,
+        offsetX: state.offsetX,
+        offsetY: state.offsetY
+      };
       state.target = { x: state.x, y: state.y, zoom: state.zoom, offsetX: state.offsetX, offsetY: state.offsetY };
       state.durationMs = 0;
       state.startedAt = typeof performance !== "undefined" ? performance.now() : 0;
@@ -69,11 +99,21 @@
       const elapsed = Math.max(0, finite(now) - state.startedAt);
       const raw = state.durationMs > 0 ? clamp(elapsed / state.durationMs, 0, 1) : 1;
       const t = easeInOut(raw);
-      state.x += (state.target.x - state.x) * t;
-      state.y += (state.target.y - state.y) * t;
-      state.zoom += (state.target.zoom - state.zoom) * t;
-      state.offsetX += (state.target.offsetX - state.offsetX) * t;
-      state.offsetY += (state.target.offsetY - state.offsetY) * t;
+      if (raw >= 1) {
+        state.x = state.target.x;
+        state.y = state.target.y;
+        state.zoom = state.target.zoom;
+        state.offsetX = state.target.offsetX;
+        state.offsetY = state.target.offsetY;
+        return getState();
+      }
+
+      const start = state.transitionStart;
+      state.x = start.x + (state.target.x - start.x) * t;
+      state.y = start.y + (state.target.y - start.y) * t;
+      state.zoom = start.zoom + (state.target.zoom - start.zoom) * t;
+      state.offsetX = start.offsetX + (state.target.offsetX - start.offsetX) * t;
+      state.offsetY = start.offsetY + (state.target.offsetY - start.offsetY) * t;
       return getState();
     }
 
