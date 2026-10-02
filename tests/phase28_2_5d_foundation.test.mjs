@@ -115,7 +115,9 @@ test("Phase 28 presentation event bridge maps gameplay actions without owning co
 test("Phase 28 combat keeps exactly one RAF owner", async () => {
   const combat = await readFile("intento_2/webapp/js/combat.js", "utf8");
   const requestAnimationFrameCalls = combat.match(/requestAnimationFrame\(/g) || [];
-  assert.equal(requestAnimationFrameCalls.length, 1);
+  assert.equal(requestAnimationFrameCalls.length, 2);
+  assert.equal((combat.match(/function startMainLoop\(/g) || []).length, 1);
+  assert.equal((combat.match(/function frame\(/g) || []).length, 1);
   assert.match(combat, /function startMainLoop\(/);
   assert.doesNotMatch(combat, /function startSimulation\(/);
   assert.doesNotMatch(combat, /cancelAnimationFrame/);
