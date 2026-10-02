@@ -435,3 +435,18 @@ a `CHARACTER` asset may be registered without a formal characterId when the `sce
 Formal `PLAYER` / `PLAYER_FOCUS` character assets still require a recognized formal character ID.
 
 `maki_mach` remains disallowed as a formal runtime characterId.
+
+## Phase 28 — foundation consumption
+
+Asset Studio remains the source for approved visual assets. The new scene foundation consumes the existing catalog progressively; it does not replace the Studio.
+
+Approved records can feed world-space staging through:
+sceneRole, anchor, depth, baselineScale, focusScale, focusOffsetX, focusOffsetY and allowedShots.
+
+The foundation does not create formal character IDs.
+
+PLAYER / PLAYER_FOCUS character assets continue to require a recognized formal ID.
+
+COMPANION_* and secondary/far enemy staging remain presentation roles rather than roster creation.
+
+Final character art remains human-approved.
