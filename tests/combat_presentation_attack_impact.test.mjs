@@ -159,6 +159,151 @@ function runFrame(presentation, setNow, combat, now) {
   return presentation.getSceneFoundation();
 }
 
+
+
+function createCombatEntrypointHarness(search = "?phase29=impulso") {
+  const elements = new Map();
+
+  function makeElement(id = "") {
+    const listeners = new Map();
+    const element = {
+      id,
+      children: [],
+      parentElement: null,
+      dataset: {},
+      style: {},
+      hidden: false,
+      disabled: false,
+      textContent: "",
+      innerHTML: "",
+      className: "",
+      setAttribute(name, value) {
+        this[name] = String(value);
+      },
+      addEventListener(type, listener) {
+        const list = listeners.get(type) || [];
+        list.push(listener);
+        listeners.set(type, list);
+      },
+      dispatch(type) {
+        for (const listener of listeners.get(type) || []) {
+          listener({ currentTarget: this, target: this });
+        }
+      },
+      appendChild(child) {
+        if (child.parentElement) {
+          child.parentElement.children = child.parentElement.children.filter((entry) => entry !== child);
+        }
+        child.parentElement = this;
+        this.children.push(child);
+        return child;
+      },
+      insertBefore(child, reference) {
+        if (child.parentElement) {
+          child.parentElement.children = child.parentElement.children.filter((entry) => entry !== child);
+        }
+        child.parentElement = this;
+        if (!reference) {
+          this.children.push(child);
+          return child;
+        }
+        const index = this.children.indexOf(reference);
+        if (index < 0) this.children.push(child);
+        else this.children.splice(index, 0, child);
+        return child;
+      },
+      replaceChildren(...children) {
+        for (const child of this.children) child.parentElement = null;
+        this.children = [];
+        for (const child of children) this.appendChild(child);
+      },
+      remove() {
+        if (this.parentElement) {
+          this.parentElement.children = this.parentElement.children.filter((entry) => entry !== this);
+          this.parentElement = null;
+        }
+      }
+    };
+    return element;
+  }
+
+  const gradient = { addColorStop() {} };
+  const context = {
+    save() {},
+    restore() {},
+    translate() {},
+    scale() {},
+    rotate() {},
+    setTransform() {},
+    clearRect() {},
+    fillRect() {},
+    strokeRect() {},
+    beginPath() {},
+    closePath() {},
+    moveTo() {},
+    lineTo() {},
+    stroke() {},
+    fill() {},
+    arc() {},
+    ellipse() {},
+    arcTo() {},
+    drawImage() {},
+    fillText() {},
+    strokeText() {},
+    setLineDash() {},
+    createLinearGradient() { return gradient; },
+    createRadialGradient() { return gradient; },
+    measureText() { return { width: 0 }; }
+  };
+
+  const canvas = makeElement("combat-canvas");
+  canvas.getContext = () => context;
+  canvas.getBoundingClientRect = () => ({ width: 1000, height: 600 });
+
+  const document = {
+    getElementById(id) {
+      if (!elements.has(id)) elements.set(id, id === "combat-canvas" ? canvas : makeElement(id));
+      return elements.get(id);
+    },
+    createElement(tagName) {
+      const element = makeElement();
+      element.tagName = String(tagName).toUpperCase();
+      return element;
+    }
+  };
+
+  const window = {
+    location: { search },
+    document,
+    devicePixelRatio: 1,
+    MachGirlsPresentationEvents: { create: () => ({ fromAction: () => null }) },
+    requestAnimationFrame: () => 1,
+    addEventListener() {},
+    setTimeout() {}
+  };
+
+  const contextVm = vm.createContext({
+    window,
+    document,
+    performance: { now: () => 0 },
+    Math, Number, String, Object, Map, JSON, Date, Promise, console
+  });
+
+  for (const file of REAL_GAME_FILES) {
+    const source = await readFile(file, "utf8");
+    vm.runInContext(source, contextVm, { filename: file });
+  }
+
+  const combatSource = await readFile("intento_2/webapp/js/combat.js", "utf8");
+  vm.runInContext(combatSource, contextVm, { filename: "intento_2/webapp/js/combat.js" });
+
+  return {
+    window: contextVm.window,
+    document,
+    hand: document.getElementById("combat-hand")
+  };
+}
+
 test("resolved attack produces ATTACK state, world movement, distinct contact recoil and recovery", async () => {
   const { presentation, setNow } = await loadPresentation();
   const combat = {
@@ -481,4 +626,70 @@ test("Yuri Break Drive preserves real ability identity with a distinct single-hi
   const recovery = runFrame(presentation, setNow, state.combat, 2000);
   assert.equal(actorFrom(recovery, "scene:PLAYER").transform.state, "IDLE");
   assert.equal(actorFrom(recovery, "scene:ENEMY_PRIMARY").transform.state, "IDLE");
+});
+
+
+test("phase29=impulso auto-starts real Yuri combat with Impulso Mach ready in the real hand", async () => {
+  const { window, hand } = await loadCombatEntrypointHarness();
+
+  const state = window.CariCombat.getGameState();
+  assert.ok(state);
+  assert.ok(state.combat);
+  assert.equal(state.combat.outcome, window.GameState.OUTCOME.IN_PROGRESS);
+  assert.equal(state.combat.player.identity.characterId, "yuri");
+  assert.notEqual(state.combat.player.identity.characterId, "test_support");
+
+  const definition = window.CardSystem.definitionFor("yuri_impulso_mach");
+  assert.ok(definition);
+  assert.equal(definition.type, window.CardSystem.CARD_TYPES.SKILL);
+  assert.equal(definition.characterId, "yuri");
+  assert.equal(definition.targeting, "self");
+  assert.equal(definition.damage, 0);
+  assert.equal(definition.breakDamage, 0);
+
+  const card = state.combat.cards.hand.find((entry) => entry.cardId === "yuri_impulso_mach");
+  assert.ok(card, "Impulso Mach must be available in the real Yuri hand");
+
+  const button = hand.children.find((entry) => entry.dataset.cardInstanceId === card.instanceId);
+  assert.ok(button, "Impulso Mach must have a real hand button");
+  assert.equal(button.disabled, false);
+  assert.match(button.innerText || button.textContent || button.innerHTML, /IMPULSO MACH/);
+
+  assert.equal(state.combat.enemy.hp, state.combat.enemy.maxHp);
+  assert.equal(state.combat.enemy.breakState.current, 0);
+
+  button.dispatch("click");
+
+  const combat = window.CariCombat.getGameState().combat;
+  const resolution = combat.lastAction;
+  assert.equal(resolution.actionType, "SKILL");
+  assert.equal(resolution.source, "PLAYER_SKILL");
+  assert.equal(resolution.actorId, "player-demo");
+  assert.equal(resolution.cardId, "yuri_impulso_mach");
+  assert.equal(resolution.damage, 0);
+  assert.equal(resolution.breakDamage, 0);
+  assert.equal(resolution.hitCount, 0);
+  assert.equal(resolution.hits, null);
+  assert.equal(resolution.buffApplied.type, "DAMAGE_OUT");
+  assert.equal(resolution.buffApplied.amount, 0.25);
+  assert.equal(resolution.buffApplied.durationMs, 2200);
+  assert.equal(combat.enemy.hp, combat.enemy.maxHp);
+  assert.equal(combat.enemy.breakState.current, 0);
+
+  const presentation = window.CariCombat.getPresentation();
+  const style = presentation.getPresentationStyleState();
+  assert.equal(style.styleId, "YURI_IMPULSO_MACH");
+  assert.equal(style.characterId, "yuri");
+  assert.equal(style.abilityId, "yuri_impulso_mach");
+  assert.equal(style.actionId, resolution.actionId);
+  assert.equal(style.presentationType, "BUFF");
+  assert.equal(style.cameraShot, "PLAYER_FOCUS");
+  assert.equal(presentation.getAttackStyleState(), null);
+
+  presentation.render(combat, 1060);
+  const foundation = presentation.getSceneFoundation();
+  assert.equal(actorFrom(foundation, "scene:PLAYER").transform.state, "IDLE");
+  const enemy = actorFrom(foundation, "scene:ENEMY_PRIMARY");
+  assert.equal(enemy.transform.state, "IDLE");
+  assert.equal(enemy.transform.x, 690);
 });
