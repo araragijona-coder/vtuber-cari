@@ -68,7 +68,7 @@
       foregroundIntensity: .7, lightingIntensity: .72
     }),
     PLAYER_FOCUS: Object.freeze({
-      target: "PLAYER_FOCUS", duration: 760, zoom: 1.075, offsetX: 0, offsetY: -4,
+      target: "PLAYER_FOCUS", duration: 1000, zoom: 1.075, offsetX: 0, offsetY: -4,
       easing: "easeOutCubic", shake: 0, parallaxMultiplier: .95,
       foregroundIntensity: .82, lightingIntensity: .9
     }),
@@ -83,27 +83,27 @@
       foregroundIntensity: .78, lightingIntensity: .86
     }),
     ENEMY_FOCUS: Object.freeze({
-      target: "ENEMY_PRIMARY", duration: 700, zoom: 1.09, offsetX: 0, offsetY: -7,
+      target: "ENEMY_PRIMARY", duration: 1000, zoom: 1.09, offsetX: 0, offsetY: -7,
       easing: "easeOutCubic", shake: 0, parallaxMultiplier: 1,
       foregroundIntensity: .88, lightingIntensity: 1
     }),
     ATTACK_APPROACH: Object.freeze({
-      target: "ENEMY_PRIMARY", duration: 300, zoom: 1.055, offsetX: 18, offsetY: -6,
+      target: "ENEMY_PRIMARY", duration: 520, zoom: 1.055, offsetX: 18, offsetY: -6,
       easing: "easeInOutCubic", shake: 2, parallaxMultiplier: 1.12,
       foregroundIntensity: .98, lightingIntensity: 1.04
     }),
     IMPACT: Object.freeze({
-      target: "ENEMY_PRIMARY", duration: 360, zoom: 1.085, offsetX: 0, offsetY: -8,
+      target: "ENEMY_PRIMARY", duration: 650, zoom: 1.085, offsetX: 0, offsetY: -8,
       easing: "easeOutCubic", shake: 7, parallaxMultiplier: 1.2,
       foregroundIntensity: 1.06, lightingIntensity: 1.12
     }),
     BREAK: Object.freeze({
-      target: "ENEMY_PRIMARY", duration: 840, zoom: 1.11, offsetX: 0, offsetY: -10,
+      target: "ENEMY_PRIMARY", duration: 900, zoom: 1.11, offsetX: 0, offsetY: -10,
       easing: "easeOutCubic", shake: 4, parallaxMultiplier: 1.15,
       foregroundIntensity: 1, lightingIntensity: 1.18
     }),
     BURST: Object.freeze({
-      target: "PLAYER_FOCUS", duration: 760, zoom: 1.15, offsetX: 0, offsetY: -12,
+      target: "PLAYER_FOCUS", duration: 900, zoom: 1.15, offsetX: 0, offsetY: -12,
       easing: "easeOutCubic", shake: 10, parallaxMultiplier: 1.28,
       foregroundIntensity: 1.18, lightingIntensity: 1.28
     }),
