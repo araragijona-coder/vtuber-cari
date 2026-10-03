@@ -1,0 +1,38 @@
+name: BONE-001 Candidate Validation
+
+on:
+  push:
+    branches:
+      - validation/bone-001-ci
+
+permissions:
+  contents: read
+
+jobs:
+  validate-bone-001:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact BONE-001 candidate
+        uses: actions/checkout@v4
+        with:
+          ref: faed0c92b5f35635696bb4241097683571b36c2f
+          fetch-depth: 0
+
+      - name: Assert checked-out candidate
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "faed0c92b5f35635696bb4241097683571b36c2f"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Syntax check
+        run: |
+          node --check intento_2/webapp/js/combat.js
+          node --check intento_2/webapp/js/combat_presentation.js
+          node --check tests/combat_presentation_attack_impact.test.mjs
+
+      - name: Run BONE-001 test
+        run: node --test tests/combat_presentation_attack_impact.test.mjs
