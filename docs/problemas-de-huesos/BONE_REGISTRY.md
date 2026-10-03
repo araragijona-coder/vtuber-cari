@@ -5,12 +5,14 @@ STATUS GENERAL: AUDIT IN PROGRESS
 Este registro contiene los riesgos encontrados durante la auditoría arquitectónica.
 
 # BONE-001 — INPUT SPAM / ACTION SYNCHRONIZATION
-STATUS: RED
-El click de carta puede llegar a GameActions y CombatEngine inmediatamente, mientras Presentation sigue reproduciendo una secuencia visual.
-Evidencia: combat.js resuelve acciones desde playCard() sin existir una política global verificada de cola o lock dependiente de la presentación.
-Riesgo: acciones superpuestas, animaciones atrasadas respecto al GameState y resultados difíciles de reproducir.
-Tratamiento: diseñar una única política INPUT → VALIDATION → QUEUE/LOCK → COMBAT → PRESENTATION → READY.
-GREEN: prueba reproducible con 2 o 3 inputs rápidos durante una presentación activa y comportamiento definido.
+STATUS: GREEN / VERIFIED
+Riesgo inicialmente identificado: el input de jugador podía alcanzar GameActions y CombatEngine mientras Presentation seguía reproduciendo una secuencia transitoria.
+Tratamiento implementado: LOCK de acciones de jugador dependiente del estado real de CombatPresentation. Mientras Presentation está ocupada, CARD, BURST y ABILITY son rechazadas antes de llegar a GameActions/CombatEngine.
+Recovery: el lock se mantiene hasta que Presentation deja de estar ocupada; no depende de un timeout artificial.
+No se implementó una cola de acciones.
+Evidencia de implementación: faed0c92b5f35635696bb4241097683571b36c2f.
+Evidencia de validación: CI remoto RUN 37141916695 / JOB 111259002566; test "BONE-001 locks rapid player combat input during active presentation and reopens after recovery" = PASS.
+Estado actual: BONE-001 cerrado y verificado en mach-girls-2.5d.
 
 # BONE-002 — VISUAL LIFECYCLE / DISPOSE
 STATUS: AMBER
@@ -90,7 +92,7 @@ Tratamiento: definir una única autoridad de render para CHARACTER, VEHICLE, VFX
 GREEN: una sola ruta de render por categoría visual.
 
 # HEALTH SUMMARY
-BONE-001 RED
+BONE-001 GREEN / VERIFIED
 BONE-002 AMBER
 BONE-003 AMBER
 BONE-004 GREEN / VERIFIED
