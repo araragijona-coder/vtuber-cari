@@ -121,7 +121,7 @@ async function loadRealCombatPresentation() {
     ellipse() {},
     arcTo() {},
     drawImage() {},
-    fillText() {},
+    fillText(text) { drawnTexts.push(String(text)); },
     strokeText() {},
     setLineDash() {},
     createLinearGradient() { return gradient; },
