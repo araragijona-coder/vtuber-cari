@@ -848,47 +848,35 @@ test("BONE-001 locks rapid player combat input during active presentation and re
 
   let actionFactoryCalls = 0;
   const gameActions = window.GameActions;
-  window.GameActions = new Proxy(gameActions, {
-    get(target, property, receiver) {
-      if (property === "createPlayerSkillAction") {
-        return (...args) => {
-          actionFactoryCalls += 1;
-          return target.createPlayerSkillAction(...args);
-        };
-      }
-      return Reflect.get(target, property, receiver);
+  window.GameActions = {
+    ...gameActions,
+    createPlayerSkillAction(...args) {
+      actionFactoryCalls += 1;
+      return gameActions.createPlayerSkillAction(...args);
     }
-  });
+  };
 
   let resolveCalls = 0;
   const combatEngine = window.CombatEngine;
-  window.CombatEngine = new Proxy(combatEngine, {
-    get(target, property, receiver) {
-      if (property === "resolveAction") {
-        return (...args) => {
-          resolveCalls += 1;
-          return target.resolveAction(...args);
-        };
-      }
-      return Reflect.get(target, property, receiver);
+  window.CombatEngine = {
+    ...combatEngine,
+    resolveAction(...args) {
+      resolveCalls += 1;
+      return combatEngine.resolveAction(...args);
     }
-  });
+  };
 
   let telemetryActionCalls = 0;
   const telemetry = window.RocketBunnyTelemetry || {
     recordCombatAction() {}
   };
-  window.RocketBunnyTelemetry = new Proxy(telemetry, {
-    get(target, property, receiver) {
-      if (property === "recordCombatAction") {
-        return (...args) => {
-          telemetryActionCalls += 1;
-          return target.recordCombatAction(...args);
-        };
-      }
-      return Reflect.get(target, property, receiver);
+  window.RocketBunnyTelemetry = {
+    ...telemetry,
+    recordCombatAction(...args) {
+      telemetryActionCalls += 1;
+      return telemetry.recordCombatAction(...args);
     }
-  });
+  };
 
   setNow(1000);
   const firstResolution = window.CariCombat.actionButton(breakCard.instanceId);
