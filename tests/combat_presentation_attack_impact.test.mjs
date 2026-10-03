@@ -615,7 +615,34 @@ test("Yuri Impulso Mach uses non-attack buff presentation and never enters conta
   assert.equal(state.combat.enemy.hp, enemyHpBefore);
   assert.equal(state.combat.enemy.breakState.current, enemyBreakBefore);
 
-  presentation.onAction(state.combat, resolution);
+  presentation.onCombatEvent(state.combat, {
+    type: "ATTACK_START",
+    actionId: resolution.actionId,
+    actionType: resolution.actionType || resolution.type,
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    cardId: "yuri_break_drive",
+    hitCount: 1,
+    simulationTick: 1,
+    elapsedMs: 0
+  });
+
+  presentation.onCombatEvent(state.combat, {
+    type: "DAMAGE_APPLIED",
+    actionId: resolution.actionId,
+    actionType: resolution.actionType || resolution.type,
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    cardId: "yuri_break_drive",
+    damage: Number(resolution.damage || 0),
+    breakDamage: Number(resolution.breakDamage || 0),
+    hitIndex: 0,
+    hitCount: 1,
+    simulationTick: 2,
+    elapsedMs: 100
+  });
 
   const style = presentation.getPresentationStyleState();
   assert.equal(style.styleId, "YURI_IMPULSO_MACH");
