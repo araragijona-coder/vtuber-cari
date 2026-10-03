@@ -96,6 +96,7 @@ const REAL_GAME_FILES = [
   "intento_2/webapp/js/game/rules.js",
   "intento_2/webapp/js/scene/mesh_deformation.js",
   "intento_2/webapp/js/scene/procedural_motion.js",
+  "intento_2/webapp/js/scene/lighting.js",
   ...FILES
 ];
 
