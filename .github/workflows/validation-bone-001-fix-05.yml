@@ -1,0 +1,34 @@
+name: Validation BONE-001 FIX-05
+
+on:
+  push:
+    branches:
+      - validation/bone-001-fix-05
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bone-001:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact FIX-05
+        uses: actions/checkout@v4
+        with:
+          ref: 85ea23a8c13dd1add6b785d168670200aa92f8b0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify exact SHA
+        run: |
+          test "$(git rev-parse HEAD)" = "85ea23a8c13dd1add6b785d168670200aa92f8b0"
+      - name: Check test syntax
+        run: node --check tests/combat_presentation_attack_impact.test.mjs
+      - name: Check production syntax
+        run: |
+          node --check intento_2/webapp/js/combat.js
+          node --check intento_2/webapp/js/combat_presentation.js
+      - name: Run BONE-001 targeted test
+        run: node --test --test-name-pattern="BONE-001 locks rapid player combat input" tests/combat_presentation_attack_impact.test.mjs
