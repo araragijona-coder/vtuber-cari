@@ -165,6 +165,7 @@ function runFrame(presentation, setNow, combat, now) {
 
 
 async function createCombatEntrypointHarness(search = "?phase29=impulso") {
+  let now = 0;
   const elements = new Map();
 
   function makeElement(id = "") {
@@ -306,7 +307,7 @@ async function createCombatEntrypointHarness(search = "?phase29=impulso") {
   const contextVm = vm.createContext({
     window,
     document,
-    performance: { now: () => 0 },
+    performance: { now: () => now },
     Math, Number, String, Object, Map, JSON, Date, Promise, console
   });
 
@@ -321,7 +322,8 @@ async function createCombatEntrypointHarness(search = "?phase29=impulso") {
   return {
     window: contextVm.window,
     document,
-    hand: document.getElementById("combat-hand")
+    hand: document.getElementById("combat-hand"),
+    setNow(value) { now = Number(value) || 0; }
   };
 }
 
@@ -827,6 +829,111 @@ test("phase29=impulso auto-starts real Yuri combat with Impulso Mach ready in th
   assert.equal(enemy.transform.x, 690);
 });
 
+
+test("BONE-001 locks rapid player combat input during active presentation and reopens after recovery", async () => {
+  const { window, hand, setNow } = await createCombatEntrypointHarness();
+  const state = window.CariCombat.getGameState();
+  const presentation = window.CariCombat.getPresentation();
+  const breakCard = state.combat.cards.hand.find((entry) => entry.cardId === "yuri_break_drive");
+  const impulseCard = state.combat.cards.hand.find((entry) => entry.cardId === "yuri_impulso_mach");
+  assert.ok(breakCard, "Break Drive must be available in the real Yuri hand");
+  assert.ok(impulseCard, "Impulso Mach must be available in the real Yuri hand");
+
+  const breakButton = hand.children.find((entry) => entry.dataset.cardInstanceId === breakCard.instanceId);
+  const impulseButton = hand.children.find((entry) => entry.dataset.cardInstanceId === impulseCard.instanceId);
+  assert.ok(breakButton, "Break Drive must have a real hand button");
+  assert.ok(impulseButton, "Impulso Mach must have a real hand button");
+
+  window.EnergySystem.add(state.combat.resources, 20);
+
+  let actionFactoryCalls = 0;
+  const gameActions = window.GameActions;
+  window.GameActions = new Proxy(gameActions, {
+    get(target, property, receiver) {
+      if (property === "createPlayerSkillAction") {
+        return (...args) => {
+          actionFactoryCalls += 1;
+          return target.createPlayerSkillAction(...args);
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    }
+  });
+
+  let resolveCalls = 0;
+  const combatEngine = window.CombatEngine;
+  window.CombatEngine = new Proxy(combatEngine, {
+    get(target, property, receiver) {
+      if (property === "resolveAction") {
+        return (...args) => {
+          resolveCalls += 1;
+          return target.resolveAction(...args);
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    }
+  });
+
+  let telemetryActionCalls = 0;
+  const telemetry = window.RocketBunnyTelemetry;
+  window.RocketBunnyTelemetry = new Proxy(telemetry, {
+    get(target, property, receiver) {
+      if (property === "recordCombatAction") {
+        return (...args) => {
+          telemetryActionCalls += 1;
+          return target.recordCombatAction(...args);
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    }
+  });
+
+  setNow(1000);
+  const firstResolution = window.CariCombat.actionButton(breakCard.instanceId);
+  assert.ok(firstResolution);
+  assert.equal(actionFactoryCalls, 1);
+  assert.equal(resolveCalls, 1);
+  assert.equal(telemetryActionCalls, 1);
+
+  const combatAfterFirst = window.CariCombat.getGameState().combat;
+  const firstActionId = combatAfterFirst.lastAction.actionId;
+  const lockedEnergy = combatAfterFirst.resources.energy;
+  const lockedHand = combatAfterFirst.cards.hand.map((entry) => entry.instanceId);
+  const lockedInputLog = combatAfterFirst.inputLog.length;
+  const lockedEvents = combatAfterFirst.events.length;
+
+  const activePresentation = window.CariCombat.getPresentation();
+  activePresentation.render(combatAfterFirst, 1000);
+  assert.equal(activePresentation.isBusy(1000), true);
+  assert.equal(impulseButton.disabled, true);
+
+  impulseButton.dispatch("click");
+  impulseButton.dispatch("click");
+
+  const afterRapidInput = window.CariCombat.getGameState().combat;
+  assert.equal(actionFactoryCalls, 1);
+  assert.equal(resolveCalls, 1);
+  assert.equal(telemetryActionCalls, 1);
+  assert.equal(afterRapidInput.lastAction.actionId, firstActionId);
+  assert.equal(afterRapidInput.resources.energy, lockedEnergy);
+  assert.deepEqual(afterRapidInput.cards.hand.map((entry) => entry.instanceId), lockedHand);
+  assert.equal(afterRapidInput.inputLog.length, lockedInputLog);
+  assert.equal(afterRapidInput.events.length, lockedEvents);
+
+  setNow(2000);
+  activePresentation.render(afterRapidInput, 2000);
+  assert.equal(activePresentation.isBusy(2000), false);
+
+  const acceptedAfterRecovery = window.CariCombat.actionButton(impulseCard.instanceId);
+  assert.ok(acceptedAfterRecovery);
+  assert.equal(actionFactoryCalls, 2);
+  assert.equal(resolveCalls, 2);
+  assert.equal(telemetryActionCalls, 2);
+  const afterRecovery = window.CariCombat.getGameState().combat;
+  assert.notEqual(afterRecovery.lastAction.actionId, firstActionId);
+  assert.equal(afterRecovery.lastAction.cardId, "yuri_impulso_mach");
+  assert.ok(afterRecovery.resources.energy < lockedEnergy);
+});
 
 test("Phase 29-W emits ATTACK_START, DAMAGE_APPLIED and BREAK_TRIGGER only for real offensive results", async () => {
   const { window } = await loadRealCombatPresentation();

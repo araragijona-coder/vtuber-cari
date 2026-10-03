@@ -503,6 +503,10 @@
       return true;
     }
 
+    function isBusy(now = performance.now()) {
+      return Boolean(state.presentationRecovery) || hasActiveTransientPresentation(now);
+    }
+
     function updateCamera(now, combat, width = 1000, height = 600) {
       state.viewport = { width, height };
 
@@ -2193,6 +2197,7 @@ if (composition.identityLayer) {
       getLastPresentationEvent: () => state.lastPresentationEvent ? { ...state.lastPresentationEvent } : null,
       slotForCatalogRecord,
       getCameraState: () => state.scene?.camera?.getState?.() || null,
+      isBusy,
       getAsset: assetFor
     });
   }
