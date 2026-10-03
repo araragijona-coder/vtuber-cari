@@ -41,8 +41,9 @@ START BATTLE → PLAYER TURN → CARDS/ENERGY → ENEMY TURN → SEEDED RESOLUTI
 Current runtime systems verified in code:
 - combat state and resolution;
 - Energy;
-- fixed deck/hand/discard;
-- three cards;
+- current player-facing hand capacity: 5;
+- current generic fallback deck: 9 cards;
+- current Yuri character kit: 4 cards, with effective initial hand 4 when Yuri is selected;
 - four enemy definitions;
 - enemy AI;
 - deterministic seeded RNG;
@@ -51,6 +52,9 @@ Current runtime systems verified in code:
 - Telegram initialization;
 - telemetry instrumentation;
 - simple canvas/DOM presentation.
+
+HISTORICAL / PRE-CURRENT RUNTIME:
+The earlier product specification used the wording "fixed deck/hand/discard" and "three cards". Those statements are preserved as historical context and do not describe the current runtime contract.
 
 Not current player-facing systems:
 - Nitro;

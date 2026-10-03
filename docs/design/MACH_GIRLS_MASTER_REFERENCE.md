@@ -415,13 +415,49 @@ The current nine-card vocabulary remains:
 - SOBRECARGA
 - PULSO DEBILITANTE
 
-Status: **MVP / LEGACY VOCABULARY; characterId = null**.
+Status: **CURRENT / VERIFIED MVP / GENERIC CARD VOCABULARY; characterId = null**.
 
 Do not reinterpret these as historical character-owned cards unless a later source explicitly establishes ownership.
 
 Important boundary: **EMBESTIDA NITRO is a card identity, not a global Nitro resource system.**
 
 Global Nitro remains unimplemented and outside the current authorized design/runtime boundary.
+
+## 16A. Current card / deck / hand contract
+
+**CURRENT / VERIFIED FROM CURRENT RUNTIME**
+
+The current player-facing and factory layers are deliberately distinct:
+
+| Layer | Current contract | Classification |
+|---|---|---|
+| Card vocabulary / generic catalog | 9 canonical MVP cards | CURRENT / VERIFIED |
+| Generic fallback runtime deck | 9 cards (INITIAL_DECK) | CURRENT / VERIFIED |
+| CardSystem total definitions | 17 definitions total | CURRENT / VERIFIED FROM CURRENT CODE |
+| Low-level factory default hand limit | 4 (createCombatDeckState() default) | CURRENT / VERIFIED FACTORY DEFAULT |
+| Player-facing hand capacity | 5 | CURRENT / VERIFIED |
+| Yuri playable kit | 4 cards | CURRENT / VERIFIED |
+| Yuri effective initial hand | 4 cards | CURRENT / VERIFIED / DERIVED FROM CURRENT RUNTIME |
+
+The 9-card generic fallback is not the 17-definition CardSystem total and is not the Yuri character kit.
+
+The 4-card Yuri kit is separate from the generic 9-card fallback.
+
+The player-facing capacity is 5. The low-level factory default of 4 must not be read as the player-facing hand capacity.
+
+Yuri's effective initial hand of 4 is **CURRENT / VERIFIED / DERIVED FROM CURRENT RUNTIME**. The repository does not establish that this effective size is an independent intentional design decision:
+
+YURI_EFFECTIVE_HAND_IS_INTENTIONAL = UNRESOLVED.
+
+Do not conflate:
+
+catalog != deck != character kit
+
+or:
+
+handLimit != effective hand.
+
+Historical deck/hand material remains HISTORICAL where explicitly labelled; it must not override the current runtime contract.
 
 ## 17. Character naming
 

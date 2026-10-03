@@ -55,8 +55,9 @@ START BATTLE → PLAYER TURN → CARD/ENERGY ACTION → ENEMY TURN → SEEDED RE
 
 Verified runtime content includes:
 - Energy maximum 3 in the current combat state;
-- hand limit 4;
-- fixed seven-card initial deck;
+- player-facing hand capacity 5;
+- generic fallback initial deck 9 cards;
+- Yuri uses a separate 4-card character kit, producing an effective initial hand of 4 when that kit is selected;
 - DISPARO NEÓN, EMBESTIDA NITRO and ESCUDO DARK;
 - STREET PUNK, IRON GUARD, NITRO RAIDER and BANCHOU ROOKIE;
 - seeded deterministic RNG;
@@ -68,6 +69,10 @@ Verified runtime content includes:
 - client telemetry instrumentation.
 
 This is an MVP combat demonstration, not the complete RPG/garage/narrative product.
+
+HISTORICAL / OUTDATED BASELINE PRESERVED:
+Earlier gameplay-gap documentation described a hand limit of 4 and a fixed seven-card initial deck. Those values are historical documentation context, not the current runtime contract.
+
 
 ## Documented but not current gameplay
 

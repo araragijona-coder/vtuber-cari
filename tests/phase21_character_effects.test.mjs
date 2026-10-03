@@ -115,6 +115,28 @@ function useCard(w, state, cardId) {
   );
 }
 
+test("Yuri current runtime kit has four cards within a five-card player-facing hand", async () => {
+  const w = await loadCore();
+  const yuri = w.CharacterKitSystem.definitionFor("yuri");
+  assert.ok(yuri);
+  assert.equal(yuri.characterId, "yuri");
+  assert.deepEqual(Array.from(yuri.cardIds), [
+    "yuri_racha_neon",
+    "yuri_impulso_mach",
+    "yuri_derrape_expuesto",
+    "yuri_break_drive"
+  ]);
+
+  const state = start(w, "yuri");
+  assert.equal(state.combat.cards.handLimit, 5);
+  assert.equal(state.combat.cards.hand.length, 4);
+  assert.deepEqual(
+    Array.from(state.combat.cards.hand, (entry) => entry.cardId),
+    Array.from(yuri.cardIds)
+  );
+  assert.equal(state.combat.cards.drawPile.length, 0);
+});
+
 test("heal clamps at max HP and records an effect event", async () => {
   const w = await loadCore();
   const state = start(w, "test_support");

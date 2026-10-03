@@ -12,6 +12,15 @@ async function loadCards() {
   return context.window.CardSystem;
 }
 
+test("createCombatDeckState uses four as its low-level factory default", async () => {
+  const cards = await loadCards();
+  const combat = cards.createCombatDeckState();
+  assert.equal(combat.handLimit, 4);
+  cards.drawCards(combat, 4);
+  assert.equal(combat.hand.length, 4);
+  assert.equal(combat.drawPile.length, 5);
+});
+
 test("compact hand starts at four cards from the nine-card skill cycle", async () => {
   const cards = await loadCards();
   const combat = cards.createCombatDeckState(4);
