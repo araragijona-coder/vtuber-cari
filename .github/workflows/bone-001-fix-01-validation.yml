@@ -25,4 +25,4 @@ jobs:
         with:
           node-version: 20
       - name: Run BONE-001 subtest
-        run: node --test tests/combat_presentation_attack_impact.test.mjs --test-name-pattern="BONE-001 locks rapid player combat input"
+        run: node --test --test-name-pattern="BONE-001 locks rapid player combat input" tests/combat_presentation_attack_impact.test.mjs
