@@ -1,0 +1,31 @@
+name: BONE-001 Baseline Validation
+
+on:
+  push:
+    branches:
+      - validation/bone-001-baseline-ci
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 8604e3a7bb54ee73d1f5cf99e9df56992ed92290
+          fetch-depth: 0
+
+      - name: Assert checked-out baseline
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "8604e3a7bb54ee73d1f5cf99e9df56992ed92290"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run baseline presentation test
+        run: node --test tests/combat_presentation_attack_impact.test.mjs
