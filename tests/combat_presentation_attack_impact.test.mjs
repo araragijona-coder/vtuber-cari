@@ -760,7 +760,7 @@ test("Yuri Break Drive preserves real ability identity with a distinct single-hi
 
 
 test("phase29=impulso auto-starts real Yuri combat with Impulso Mach ready in the real hand", async () => {
-  const { window, hand } = await loadCombatEntrypointHarness();
+  const { window, hand } = await createCombatEntrypointHarness();
 
   const state = window.CariCombat.getGameState();
   assert.ok(state);
