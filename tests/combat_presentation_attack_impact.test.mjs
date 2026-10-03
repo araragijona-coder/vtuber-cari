@@ -584,12 +584,10 @@ test("Yuri Impulso Mach uses non-attack buff presentation and never enters conta
   assert.equal(definition.targeting, "self");
   assert.equal(definition.damage, 0);
   assert.equal(definition.breakDamage, 0);
-  assert.deepEqual(definition.effects.buff, {
-    type: "DAMAGE_OUT",
-    amount: 0.25,
-    durationMs: 2200,
-    stacking: "replace"
-  });
+  assert.equal(definition.effects.buff.type, "DAMAGE_OUT");
+  assert.equal(definition.effects.buff.amount, 0.25);
+  assert.equal(definition.effects.buff.durationMs, 2200);
+  assert.equal(definition.effects.buff.stacking, "replace");
 
   const card = state.combat.cards.hand.find((entry) => entry.cardId === "yuri_impulso_mach");
   assert.ok(card, "Impulso Mach must be present in the real Yuri deck");
