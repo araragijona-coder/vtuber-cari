@@ -1,0 +1,30 @@
+name: Validation 30-H-FIX-12 Exact
+
+on:
+  push:
+    branches: [validation/30-h-fix-12-exact]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact production commit
+        uses: actions/checkout@v4
+        with:
+          ref: 76479a6450694f2e741d68123fb5b55ea6938a6b
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify exact HEAD
+        run: |
+          test "$(git rev-parse HEAD)" = "76479a6450694f2e741d68123fb5b55ea6938a6b"
+          git rev-parse HEAD
+      - name: Node syntax check
+        run: node --check tests/combat_presentation_attack_impact.test.mjs
+      - name: Combat presentation tests
+        run: node --test tests/combat_presentation_attack_impact.test.mjs
