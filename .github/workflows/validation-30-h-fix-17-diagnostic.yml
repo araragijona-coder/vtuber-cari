@@ -1,0 +1,26 @@
+name: Validation 30-H-FIX-17 Diagnostic
+
+on:
+  push:
+    branches: [validation/30-h-fix-17-diagnostic]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout diagnostic commit
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify HEAD
+        run: git rev-parse HEAD
+      - name: Node syntax check
+        run: node --check tests/combat_presentation_attack_impact.test.mjs
+      - name: Diagnostic test
+        run: node --test tests/combat_presentation_attack_impact.test.mjs
