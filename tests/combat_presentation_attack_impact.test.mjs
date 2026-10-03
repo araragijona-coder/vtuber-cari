@@ -786,7 +786,10 @@ test("phase29=impulso auto-starts real Yuri combat with Impulso Mach ready in th
   assert.match(button.innerText || button.textContent || button.innerHTML, /IMPULSO MACH/);
 
   assert.equal(state.combat.enemy.hp, state.combat.enemy.maxHp);
-  assert.equal(state.combat.enemy.breakState.current, 0);
+  assert.equal(
+    state.combat.enemy.breakState.current,
+    state.combat.enemy.breakState.max
+  );
 
   button.dispatch("click");
 
