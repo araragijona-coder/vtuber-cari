@@ -498,20 +498,32 @@ test("Yuri Racha Neon preserves ability identity and applies its character-speci
 
   presentation.onCombatStart(combat);
   setNow(1000);
-  presentation.onAction(combat, {
+  presentation.onCombatEvent(combat, {
+    type: "ATTACK_START",
     actionId: "yuri-racha-neon-1",
     actionType: "CARD",
-    source: "PLAYER_SKILL",
-    actorId: "yuri-1",
-    targetId: "iron_guard",
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
     cardId: "yuri_racha_neon",
-    hits: [
-      { damage: 7, breakDamage: 4 },
-      { damage: 7, breakDamage: 4 },
-      { damage: 7, breakDamage: 4 }
-    ],
+    hitCount: 3,
+    simulationTick: 1,
+    elapsedMs: 0
+  });
+  presentation.onCombatEvent(combat, {
+    type: "DAMAGE_APPLIED",
+    actionId: "yuri-racha-neon-1",
+    actionType: "CARD",
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    cardId: "yuri_racha_neon",
     damage: 21,
-    breakDamage: 12
+    breakDamage: 12,
+    hitIndex: 0,
+    hitCount: 3,
+    simulationTick: 2,
+    elapsedMs: 100
   });
 
   const style = presentation.getAttackStyleState();
