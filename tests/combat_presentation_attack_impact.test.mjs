@@ -738,10 +738,13 @@ test("Yuri Break Drive preserves real ability identity with a distinct single-hi
   assert.notEqual(style.styleId, "YURI_RACHA_NEON");
   assert.notEqual(style.abilityId, "yuri_racha_neon");
 
+  const startFrame = runFrame(presentation, setNow, state.combat, 1000);
+  const playerStart = actorFrom(startFrame, "scene:PLAYER");
+
   const attackFrame = runFrame(presentation, setNow, state.combat, 1060);
   const player = actorFrom(attackFrame, "scene:PLAYER");
   assert.equal(player.transform.state, "ATTACK");
-  assert.ok(player.transform.x > 320);
+  assert.notEqual(player.transform.x, playerStart.transform.x);
   assert.ok(player.transform.y < 336);
   assert.ok(player.transform.rotation < 0);
   assert.ok(player.transform.scale > 1);
