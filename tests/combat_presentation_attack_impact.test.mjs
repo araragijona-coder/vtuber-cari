@@ -334,14 +334,17 @@ test("resolved attack produces ATTACK state, world movement, distinct contact re
   presentation.onCombatStart(combat);
   const actionAt = 1000;
   setNow(actionAt);
-  presentation.onAction(combat, {
+  presentation.onCombatEvent(combat, {
+    type: "ATTACK_START",
     actionId: "attack-1",
     actionType: "CARD",
-    source: "PLAYER",
-    targetId: "iron_guard",
-    damage: 12,
-    breakDamage: 0,
-    blockAbsorbed: 0
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    cardId: "",
+    hitCount: 1,
+    simulationTick: 1,
+    elapsedMs: 0
   });
 
   const start = runFrame(presentation, setNow, combat, actionAt);
@@ -355,6 +358,23 @@ test("resolved attack produces ATTACK state, world movement, distinct contact re
   const playerMove = actorFrom(move, "scene:PLAYER");
   assert.notEqual(playerMove.transform.x, playerStart.transform.x);
   assert.equal(playerMove.transform.state, "ATTACK");
+
+  setNow(1050);
+  presentation.onCombatEvent(combat, {
+    type: "DAMAGE_APPLIED",
+    actionId: "attack-1",
+    actionType: "CARD",
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    cardId: "",
+    damage: 12,
+    breakDamage: 0,
+    hitIndex: 0,
+    hitCount: 1,
+    simulationTick: 2,
+    elapsedMs: 100
+  });
 
   const preContact = runFrame(presentation, setNow, combat, 1090);
   assert.equal(actorFrom(preContact, "scene:ENEMY_PRIMARY").transform.x, 690);
