@@ -1,0 +1,30 @@
+name: BONE-001 Fix 04 Validation
+
+on:
+  push:
+    branches: [validation/bone-001-fix-04-ci]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: 3dad31c51903ac97010c3f69943bcc1e22cb26e5
+      - name: Verify exact HEAD
+        run: |
+          test "$(git rev-parse HEAD)" = "3dad31c51903ac97010c3f69943bcc1e22cb26e5"
+          git rev-parse HEAD
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Node syntax check
+        run: node --check tests/combat_presentation_attack_impact.test.mjs
+      - name: BONE-001 targeted test
+        run: node --test --test-name-pattern="BONE-001 locks rapid player combat input" tests/combat_presentation_attack_impact.test.mjs
