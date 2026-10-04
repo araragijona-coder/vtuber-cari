@@ -458,11 +458,20 @@
     if (definition.type === window.CardSystem.CARD_TYPES.ATTACK) {
       const multiHit = skillMeta.multiHit;
       const hitCount = Math.max(1, Math.floor(Number(multiHit?.hits || 1)));
+      const progressionBreakBonus = Number(
+        window.ProgressionSystem?.breakBonusForCard?.(
+          combat.progression,
+          combat.characterId,
+          definition.cardId,
+          skillMeta.conditionalTriggered
+        ) || 0
+      );
       emitAttackStart(combat, action, { hitCount });
 
       for (let hitIndex = 0; hitIndex < hitCount; hitIndex += 1) {
         const hitDamage = Number(multiHit?.damagePerHit ?? definition.damage ?? 0);
-        const hitBreak = Number(multiHit?.breakDamagePerHit ?? definition.breakDamage ?? 0);
+        const baseBreak = Number(multiHit?.breakDamagePerHit ?? definition.breakDamage ?? 0);
+        const hitBreak = baseBreak + (hitIndex === 0 ? progressionBreakBonus : 0);
         const rolled = rollDamage(combat, actor, target, { ...definition, damage: hitDamage, breakDamage: hitBreak });
         combat.rng = Object.freeze({ seed: combat.seed >>> 0, state: rolled.rng.state >>> 0 });
         const hp = applyDamage(target, rolled);

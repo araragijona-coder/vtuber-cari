@@ -181,3 +181,17 @@ No repository evidence is sufficient to conclude either:
 OPEN DESIGN QUESTION
 
 This entry is the durable decision record for the Yuri/Maki continuity question.
+
+
+## Phase 33 — Yuri progression payoff implementation
+
+Phase 33 decision `33-GAMEPLAY-YURI-PROGRESSION-DECISION-02` selected **C — `yuri_derrape_break_payoff`** as the primary Yuri progression slice.
+
+**CURRENT PROPOSED / TEST-ONLY / PROVISIONAL**
+
+- `DERRAPE YURI` against `EXPOSED` adds `+6 BREAK` as a separate progression payoff.
+- Without `EXPOSED`, the progression adds no BREAK.
+- The existing `yuri_derrape_expuesto.effects.bonus = 10` remains untouched; GP-004 is not repaired by this phase.
+- The reward option is character-bound to `yuri`, persists in the existing saveVersion 1 progression payload and remains separate from legacy `cardDamageBonuses` data.
+- `+6 BREAK` is explicitly **TEST-ONLY / PROVISIONAL** and is not final balance or canon.
+

@@ -92,7 +92,8 @@
         progressionConfirmButton.disabled = true;
       }
       if (progressionChangeEl) progressionChangeEl.textContent = "Elegí una mejora para tu próximo combate.";
-      for (const option of window.ProgressionSystem.options()) {
+      const characterId = save?.progression?.pendingDecision?.characterId || null;
+      for (const option of window.ProgressionSystem.optionsForCharacter(characterId, save?.progression)) {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "progression-choice";
@@ -101,7 +102,13 @@
         button.addEventListener("click", () => {
           selectedChoiceId = option.id;
           for (const sibling of progressionOptionsEl.querySelectorAll("button")) sibling.setAttribute("aria-pressed", String(sibling === button));
-          if (progressionChangeEl) progressionChangeEl.textContent = option.description + " [PROTOTYPE VALUE: +" + option.value + "].";
+          const valueLabel = option.effect === "break_payoff"
+            ? "+" + option.value + " BREAK"
+            : "+" + option.value + " damage";
+          if (progressionChangeEl) {
+            progressionChangeEl.textContent =
+              option.description + " [TEST-ONLY / PROVISIONAL: " + valueLabel + "].";
+          }
           if (progressionConfirmButton) progressionConfirmButton.disabled = false;
           window.RocketBunnyTelemetry?.progressionSelected(option, { combat_id: save?.progression?.pendingDecision?.battleId ?? null });
         });
@@ -128,7 +135,13 @@
       if (progressionConfirmButton) progressionConfirmButton.hidden = true;
       if (progressionChangeEl) {
         const choice = save?.progression?.lastChoice;
-        progressionChangeEl.textContent = choice ? "PROGRESSION SELECTED · " + choice.cardId + " +" + choice.value + " damage." : "PROGRESSION SELECTED";
+        if (choice?.effect === "break_payoff") {
+          progressionChangeEl.textContent =
+            "PROGRESSION SELECTED · DERRAPE YURI + EXPOSED → +" + choice.value + " BREAK · TEST-ONLY / PROVISIONAL.";
+        } else {
+          progressionChangeEl.textContent =
+            choice ? "PROGRESSION SELECTED · " + choice.cardId + " +" + choice.value + " damage." : "PROGRESSION SELECTED";
+        }
       }
       if (nextObjectiveEl) nextObjectiveEl.hidden = false;
       if (nextBattleButton) nextBattleButton.hidden = false;
@@ -192,13 +205,21 @@
         if (!claimed.success) {
           console.error("[Reward] No se pudo reclamar:", claimed.error);
         } else {
-          const progressionReady = window.ProgressionSystem.prepareAfterReward(claimed.save, claimed.reward);
+          const progressionReady = window.ProgressionSystem.prepareAfterReward(
+            claimed.save,
+            claimed.reward,
+            current.combat?.characterId
+          );
           const saved = window.SaveManager.save(progressionReady);
           if (!saved.success) {
             console.error("[Player Save] No se pudo guardar recompensa + progresión:", saved.error);
           } else {
             syncPlayerFromSave(saved.save, current);
-            showProgression(saved.save, claimed.reward);
+            if (saved.save.progression?.pendingDecision) {
+              showProgression(saved.save, claimed.reward);
+            } else {
+              showNextObjective(saved.save);
+            }
             window.RocketBunnyTelemetry?.rewardReceived(claimed.reward, { combat_id: current.combat.battleId });
           }
         }
