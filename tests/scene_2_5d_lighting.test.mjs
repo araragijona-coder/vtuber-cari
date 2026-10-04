@@ -5,6 +5,7 @@ import vm from "node:vm";
 
 const FILES = [
   "intento_2/webapp/js/scene/world_space.js",
+  "intento_2/webapp/js/scene/camera.js",
   "intento_2/webapp/js/scene/mesh_deformation.js",
   "intento_2/webapp/js/scene/procedural_motion.js",
   "intento_2/webapp/js/scene/lighting.js",

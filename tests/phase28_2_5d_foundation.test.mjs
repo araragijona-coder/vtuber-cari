@@ -33,10 +33,15 @@ test("Phase 28 world-space actor supports x/y/z/scale/rotation/state and camera 
     layer: "ACTORS",
     transform: { x: 300, y: 350, z: 0.7, scale: 1.1, rotation: 0.1, state: "IDLE" }
   });
-  assert.deepEqual(actor.transform, {
-    x: 300, y: 350, z: 0.7, scale: 1.1, rotation: 0.1, state: "IDLE",
-    visible: true, anchor: "CENTER", assetRef: null
-  });
+  assert.equal(actor.transform.x, 300);
+  assert.equal(actor.transform.y, 350);
+  assert.equal(actor.transform.z, 0.7);
+  assert.equal(actor.transform.scale, 1.1);
+  assert.equal(actor.transform.rotation, 0.1);
+  assert.equal(actor.transform.state, "IDLE");
+  assert.equal(actor.transform.visible, true);
+  assert.equal(actor.transform.anchor, "CENTER");
+  assert.equal(actor.transform.assetRef, null);
 
   const camera = win.MachGirlsSceneCamera.create({ x: 300, y: 350, zoom: 1 });
   const projected = win.MachGirlsWorldSpace.worldToScreen(actor.transform, camera.getState(), { width: 1200, height: 700 });
@@ -53,7 +58,7 @@ test("Phase 28 scene registers independent actors and sorts by layer then depth"
   assert.equal(scene.registerActor(far), true);
   assert.equal(scene.registerActor(near), true);
   const renderables = scene.renderables();
-  assert.deepEqual(renderables.map((item) => item.actor.id), ["far", "near"]);
+  assert.deepEqual(Array.from(renderables, (item) => item.actor.id), ["far", "near"]);
   assert.equal(scene.removeActor("far"), true);
   assert.equal(scene.getActor("far"), null);
 });
@@ -162,7 +167,7 @@ test("Phase 28 player foundation carries motorcycle and shadow as composition ch
     transform: { x: 0, y: 20, z: 0, scale: 1, state: "IDLE" }
   }));
   const snapshot = actor.getSnapshot();
-  assert.deepEqual(snapshot.children.map((child) => child.id), [
+  assert.deepEqual(Array.from(snapshot.children, (child) => child.id), [
     "scene:PLAYER:MOTORCYCLE",
     "scene:PLAYER:SHADOW"
   ]);
