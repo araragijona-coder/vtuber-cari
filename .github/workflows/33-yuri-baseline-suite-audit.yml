@@ -1,0 +1,48 @@
+name: 33-GAMEPLAY-YURI-Baseline-Suite-Audit
+
+on:
+  push:
+    branches: [validation/33-yuri-baseline-suite-audit-01]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: Baseline 994f1337
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 994f1337add562dd899cc3908a57a4884255bd3b
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify checkout SHA
+        run: |
+          test "$(git rev-parse HEAD)" = "994f1337add562dd899cc3908a57a4884255bd3b"
+          git rev-parse HEAD
+      - name: Full suite
+        run: node --test tests/*.test.mjs
+
+  candidate:
+    name: Candidate 19dd44c2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: 19dd44c28cc4a14ff622acbc0d94b9e349c5d995
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify checkout SHA
+        run: |
+          test "$(git rev-parse HEAD)" = "19dd44c28cc4a14ff622acbc0d94b9e349c5d995"
+          git rev-parse HEAD
+      - name: Full suite
+        run: node --test tests/*.test.mjs
