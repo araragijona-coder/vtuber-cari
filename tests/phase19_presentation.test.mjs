@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import vm from "node:vm";
+import { createScenePresentationHarness, makeCombatFixture } from "./shared_scene_presentation_harness.mjs";
 
 function makeCanvas() {
   const calls = [];
@@ -191,11 +192,37 @@ test("presentation renderer is isolated from authoritative combat state", async 
 });
 
 test("telegraph presentation reflects the live enemy intent", async () => {
-  const loaded = await loadPresentation();
-  const presentation = loaded.api.create(loaded.fake.canvas, loaded.fake.context);
-  const combat = combatFixture();
-  presentation.render(combat, 1200);
-  assert.ok(loaded.fake.context.calls.includes("!"));
+  const harness = await createScenePresentationHarness();
+  const intents = [
+    { type: "ATTACK", label: "ATTACK 7", expected: "!" },
+    { type: "DEFEND", label: "DEFEND", expected: "◆" }
+  ];
+  const observedTelegraphs = [];
+
+  for (const intent of intents) {
+    const combat = makeCombatFixture({
+      battleId: "phase19-intent-" + intent.type.toLowerCase(),
+      enemyIntent: {
+        type: intent.type,
+        label: intent.label,
+        remainingMs: 900
+      }
+    });
+    const before = JSON.stringify(combat);
+    harness.canvas.reset();
+    harness.presentation.onCombatStart(combat);
+    const foundation = harness.render(combat, 1200);
+
+    assert.ok(foundation.layers.ACTORS.some((actor) => actor.id === "scene:PLAYER"));
+    assert.ok(foundation.layers.ACTORS.some((actor) => actor.id === "scene:ENEMY_PRIMARY"));
+    assert.ok(harness.canvas.textCalls.includes(intent.expected));
+    observedTelegraphs.push(
+      harness.canvas.textCalls.find((value) => ["!", "◆", "☄"].includes(value))
+    );
+    assert.equal(JSON.stringify(combat), before);
+  }
+
+  assert.deepEqual(observedTelegraphs, ["!", "◆"]);
 });
 
 test("BREAK presentation reflects BreakSystem state", async () => {
@@ -212,36 +239,116 @@ test("BREAK presentation reflects BreakSystem state", async () => {
 });
 
 test("BURST presentation is triggered by the BURST action", async () => {
-  const loaded = await loadPresentation();
-  const presentation = loaded.api.create(loaded.fake.canvas, loaded.fake.context);
-  const combat = combatFixture();
-  presentation.onAction(combat, {
+  const harness = await createScenePresentationHarness();
+  const combat = makeCombatFixture();
+  const before = JSON.stringify(combat);
+
+  harness.presentation.onCombatStart(combat);
+  harness.setNow(1000);
+  assert.equal(harness.presentation.onCombatEvent(combat, {
+    type: "BURST_START",
     actionId: "burst-1",
     actionType: "BURST",
-    targetId: "enemy",
-    damage: 32
-  });
-  presentation.render(combat, 1100);
-  assert.ok(loaded.fake.context.calls.includes("BURST!"));
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    damage: 32,
+    breakDamage: 0
+  }), true);
+
+  const foundation = harness.render(combat, 1060);
+  const player = foundation.layers.ACTORS.find((actor) => actor.id === "scene:PLAYER");
+
+  assert.equal(harness.presentation.getShotState(1060).name, "BURST");
+  assert.equal(player.transform.state, "BURST");
+  assert.ok(foundation.effects.some((effect) => effect.type === "BURST"));
+  assert.ok(harness.canvas.textCalls.includes("BURST!"));
+  assert.equal(harness.presentation.isBusy(1060), true);
+  assert.equal(JSON.stringify(combat), before);
 });
 
 test("skill feedback produces impact and does not replace DOM concerns", async () => {
-  const source = await readFile("intento_2/webapp/js/combat.js", "utf8");
-  assert.match(source, /presentation\?\.onAction\(combat, resolution\)/);
-  assert.match(source, /button\.dataset\.cardInstanceId/);
-  assert.match(source, /button\.dataset\.renderSignature/);
+  const harness = await createScenePresentationHarness();
+  const combat = makeCombatFixture();
+  const hand = harness.dom.createElement("div");
+  hand.id = "combat-hand";
+  const button = harness.dom.createElement("button");
+  button.dataset.cardInstanceId = "card-skill-feedback";
+  hand.appendChild(button);
+  harness.dom.body.appendChild(hand);
+
+  const domBefore = harness.dom.snapshot();
+  const combatBefore = JSON.stringify(combat);
+
+  harness.presentation.onCombatStart(combat);
+  harness.setNow(1000);
+  assert.equal(harness.presentation.onCombatEvent(combat, {
+    type: "DAMAGE_APPLIED",
+    actionId: "skill-feedback-1",
+    actionType: "SKILL",
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    cardId: "test_skill",
+    damage: 12,
+    breakDamage: 0,
+    hitIndex: 0,
+    hitCount: 1
+  }), true);
+
+  harness.render(combat, 1150);
+
+  assert.ok(harness.canvas.textCalls.includes("-12"));
+  assert.equal(button.dataset.cardInstanceId, "card-skill-feedback");
+  assert.deepEqual(harness.dom.snapshot(), domBefore);
+  assert.equal(JSON.stringify(combat), combatBefore);
 });
 
 test("card interaction remains a real HTML button while realtime render continues", async () => {
-  const [html, css, combat] = await Promise.all([
-    readFile("intento_2/webapp/index.html", "utf8"),
-    readFile("intento_2/webapp/css/style.css", "utf8"),
-    readFile("intento_2/webapp/js/combat.js", "utf8")
-  ]);
-  assert.match(html, /<div id="combat-hand" class="combat-hand"/);
-  assert.match(combat, /document\.createElement\("button"\)/);
-  assert.match(combat, /requestAnimationFrame\(drawFrame\)/);
-  assert.match(css, /button:focus-visible/);
+  const harness = await createScenePresentationHarness();
+  const combat = makeCombatFixture();
+  const hand = harness.dom.createElement("div");
+  hand.id = "combat-hand";
+  const button = harness.dom.createElement("button");
+  button.dataset.cardInstanceId = "card-001";
+  hand.appendChild(button);
+  harness.dom.body.appendChild(hand);
+
+  let interactions = 0;
+  button.addEventListener("click", () => {
+    interactions += 1;
+    harness.presentation.onAction(combat, {
+      actionId: "button-action-1",
+      actionType: "AUTO_ATTACK",
+      source: "PLAYER_AUTO_ATTACK",
+      actorId: "player",
+      targetId: "enemy"
+    });
+    harness.window.requestAnimationFrame((timestamp) => {
+      harness.render(combat, timestamp);
+    });
+  });
+
+  const domBefore = harness.dom.snapshot();
+  assert.equal(button.tagName, "BUTTON");
+  assert.equal(button.dataset.cardInstanceId, "card-001");
+
+  button.dispatch("click");
+
+  assert.equal(interactions, 1);
+  assert.equal(button.dataset.cardInstanceId, "card-001");
+  assert.equal(harness.raf.pending(), 1);
+  assert.equal(harness.raf.step(1060), true);
+  assert.equal(harness.raf.pending(), 0);
+  assert.ok(harness.canvas.clearCount > 0);
+
+  const foundation = harness.presentation.getSceneFoundation();
+  const player = foundation.layers.ACTORS.find((actor) => actor.id === "scene:PLAYER");
+  const enemy = foundation.layers.ACTORS.find((actor) => actor.id === "scene:ENEMY_PRIMARY");
+  assert.ok(player);
+  assert.ok(enemy);
+  assert.equal(player.transform.state, "ATTACK");
+  assert.deepEqual(harness.dom.snapshot(), domBefore);
 });
 
 test("BREAK and BURST presentation hooks are additive to existing fixed-step systems", async () => {
@@ -257,33 +364,67 @@ test("BREAK and BURST presentation hooks are additive to existing fixed-step sys
 });
 
 test("visual asset and audio hooks exist without introducing gameplay dependencies", async () => {
-  const presentation = await readFile("intento_2/webapp/js/combat_presentation.js", "utf8");
-  assert.match(presentation, /ASSET_SLOTS/);
-  assert.match(presentation, /setAsset/);
-  assert.match(presentation, /setAudioHooks/);
-  assert.doesNotMatch(presentation, /Math\.random\(/);
+  const harness = await createScenePresentationHarness();
+  const combat = makeCombatFixture();
+  const before = JSON.stringify(combat);
+  const audioEvents = [];
+
+  assert.equal(harness.presentation.setAsset("player.attack", "player-attack.png"), true);
+  assert.equal(harness.presentation.getAsset("player.attack"), "player-attack.png");
+  harness.presentation.setAudioHooks({
+    impact: (payload) => audioEvents.push(payload.actionId)
+  });
+
+  harness.presentation.onCombatStart(combat);
+  harness.setNow(1000);
+  assert.equal(harness.presentation.onCombatEvent(combat, {
+    type: "DAMAGE_APPLIED",
+    actionId: "asset-audio-1",
+    actionType: "SKILL",
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    cardId: "test_skill",
+    damage: 5,
+    breakDamage: 0,
+    hitIndex: 0,
+    hitCount: 1
+  }), true);
+
+  assert.deepEqual(audioEvents, ["asset-audio-1"]);
+  assert.equal(harness.presentation.getAsset("player.attack"), "player-attack.png");
+  assert.equal(JSON.stringify(combat), before);
 });
 
 
 test("state-specific fighter assets override the generic sprite slot", async () => {
-  const source = await readFile("intento_2/webapp/js/combat_presentation.js", "utf8");
-  const loaded = await loadPresentationWithImageTracking(source);
-  const presentation = loaded.api.create(loaded.fake.canvas, loaded.fake.context);
-  presentation.setAsset("player.sprite", "player-idle.png");
-  presentation.setAsset("player.attack", "player-attack.png");
-  const combat = combatFixture();
-  presentation.onCombatStart(combat);
-  presentation.onAction(combat, {
+  const harness = await createScenePresentationHarness({ fakeImage: true });
+  const combat = makeCombatFixture();
+
+  assert.equal(harness.presentation.setAsset("player.sprite", "player-sprite.png"), true);
+  assert.equal(harness.presentation.setAsset("player.attack", "player-attack.png"), true);
+
+  harness.presentation.onCombatStart(combat);
+  harness.setNow(1000);
+  harness.presentation.onAction(combat, {
     actionId: "attack-asset-1",
     actionType: "AUTO_ATTACK",
     source: "PLAYER_AUTO_ATTACK",
     actorId: "player",
-    targetId: "enemy",
-    damage: 7
+    targetId: "enemy"
   });
-  presentation.render(combat, 1100);
-  assert.ok(loaded.imageSources.includes("player-attack.png"));
-  assert.equal(loaded.imageSources.includes("player-idle.png"), false);
+
+  harness.render(combat, 1000);
+  harness.render(combat, 1001);
+
+  assert.ok(harness.imageRequests.includes("player-attack.png"));
+  assert.equal(harness.imageRequests.includes("player-sprite.png"), false);
+  assert.ok(harness.imageDraws.includes("player-attack.png"));
+  assert.equal(harness.imageDraws.includes("player-sprite.png"), false);
+
+  const foundation = harness.presentation.getSceneFoundation();
+  const player = foundation.layers.ACTORS.find((actor) => actor.id === "scene:PLAYER");
+  assert.equal(player.transform.state, "ATTACK");
 });
 
 test("skill energy delta produces player-facing energy feedback", async () => {
