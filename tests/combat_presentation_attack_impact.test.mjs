@@ -875,7 +875,9 @@ test("BONE-001 locks rapid player combat input during active presentation and re
   });
 
   let telemetryActionCalls = 0;
-  const telemetry = window.RocketBunnyTelemetry;
+  const telemetry = window.RocketBunnyTelemetry || {
+    recordCombatAction() {}
+  };
   window.RocketBunnyTelemetry = new Proxy(telemetry, {
     get(target, property, receiver) {
       if (property === "recordCombatAction") {
