@@ -844,7 +844,7 @@ test("BONE-001 locks rapid player combat input during active presentation and re
   assert.ok(breakButton, "Break Drive must have a real hand button");
   assert.ok(impulseButton, "Impulso Mach must have a real hand button");
 
-  window.EnergySystem.gain(state.combat.resources, 20);
+  window.EnergySystem.gain(state.combat.resources, 30);
 
   let actionFactoryCalls = 0;
   const gameActions = window.GameActions;
