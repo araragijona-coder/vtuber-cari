@@ -186,10 +186,7 @@
     return { instanceId: cardId + "-" + index, cardId };
   }
 
-  // Low-level factory default; player-facing capacity is owned by GameState.
-  const FACTORY_DEFAULT_HAND_LIMIT = 4;
-
-  function createCombatDeckState(handLimit = FACTORY_DEFAULT_HAND_LIMIT, cardIds = INITIAL_DECK) {
+  function createCombatDeckState(handLimit = 4, cardIds = INITIAL_DECK) {
     const ids = Array.isArray(cardIds) && cardIds.length
       ? cardIds.map(String)
       : [...INITIAL_DECK];

@@ -66,6 +66,7 @@ async function loadPresentation() {
 
   return {
     presentation: contextVm.window.CombatPresentation.create(canvas, context),
+    presentationEvents: contextVm.window.MachGirlsPresentationEvents.create(),
     setNow(value) { now = value; }
   };
 }
@@ -558,6 +559,156 @@ test("Yuri Racha Neon preserves ability identity and applies its character-speci
 
 
 
+
+test("BURST presentation ingress stays at BURST priority", async () => {
+  const combat = {
+    battleId: "burst-parity",
+    outcome: "IN_PROGRESS",
+    player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
+    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100 } }
+  };
+  const actionHarness = await loadPresentation();
+  const eventHarness = await loadPresentation();
+
+  actionHarness.presentation.onCombatStart(combat);
+  eventHarness.presentation.onCombatStart(combat);
+  actionHarness.setNow(1000);
+  eventHarness.setNow(1000);
+
+  actionHarness.presentation.onAction(combat, {
+    actionId: "burst-parity-1",
+    actionType: "BURST",
+    source: "PLAYER",
+    targetId: "iron_guard",
+    damage: 24,
+    breakDamage: 0
+  });
+
+  eventHarness.presentation.onCombatEvent(combat, {
+    type: "BURST_START",
+    actionId: "burst-parity-1",
+    actionType: "BURST",
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    cardId: "",
+    simulationTick: 1,
+    elapsedMs: 0
+  });
+  eventHarness.presentation.onCombatEvent(combat, {
+    type: "DAMAGE_APPLIED",
+    actionId: "burst-parity-1",
+    actionType: "BURST",
+    sourceRole: "PLAYER",
+    targetRole: "ENEMY_PRIMARY",
+    characterId: "yuri",
+    cardId: "",
+    damage: 24,
+    breakDamage: 0,
+    hitIndex: 0,
+    hitCount: 1,
+    simulationTick: 2,
+    elapsedMs: 100
+  });
+
+  assert.equal(actionHarness.presentation.getShotState(1000).name, "BURST");
+  assert.equal(eventHarness.presentation.getShotState(1000).name, "BURST");
+  assert.notEqual(actionHarness.presentation.getShotState(1000).name, "IMPACT");
+  assert.notEqual(eventHarness.presentation.getShotState(1000).name, "IMPACT");
+});
+
+test("multi-hit presentation ingresses preserve hitIndex order and staggered contact timing", async () => {
+  const { presentation, presentationEvents } = await loadPresentation();
+  const action = {
+    actionId: "multi-hit-parity",
+    actionType: "SKILL",
+    source: "PLAYER_SKILL",
+    actorId: "player-1",
+    targetId: "iron_guard",
+    hits: [
+      { damage: 7, breakDamage: 1 },
+      { damage: 8, breakDamage: 2 },
+      { damage: 9, breakDamage: 3 }
+    ],
+    simulationTick: 7,
+    elapsedMs: 700
+  };
+
+  const actionEvents = presentationEvents.fromActionEvents(action);
+  const actionImpacts = actionEvents.filter((event) => event.type === "DAMAGE_APPLIED");
+  assert.deepEqual(Array.from(actionImpacts, (event) => Number(event.hitIndex)), [0, 1, 2]);
+
+  const combatImpacts = [1, 2, 3].map((hitIndex) =>
+    presentationEvents.fromCombatEvent({
+      type: "DAMAGE_APPLIED",
+      actionId: action.actionId,
+      actionType: "SKILL",
+      sourceRole: "PLAYER",
+      targetRole: "ENEMY_PRIMARY",
+      characterId: "yuri",
+      cardId: "yuri_racha_neon",
+      damage: 7,
+      breakDamage: 1,
+      hitIndex,
+      hitCount: 3,
+      simulationTick: 7,
+      elapsedMs: 700
+    })
+  );
+  assert.deepEqual(Array.from(combatImpacts, (event) => Number(event.action.hitIndex)), [0, 1, 2]);
+
+  const contactDelays = [0, 1, 2].map((hitIndex) =>
+    presentationEvents.contactDelayMsForHitIndex(hitIndex)
+  );
+  assert.deepEqual(contactDelays, [110, 200, 290]);
+  assert.notEqual(contactDelays[0], contactDelays[1]);
+  assert.notEqual(contactDelays[1], contactDelays[2]);
+});
+
+test("enemy behavior presentation attacks only for offensive intents", async () => {
+  const combat = {
+    battleId: "enemy-behavior-presentation",
+    outcome: "IN_PROGRESS",
+    player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
+    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100 } }
+  };
+
+  for (const [intentType, targetId, value] of [
+    ["DEFEND", "iron_guard", 18],
+    ["DEBUFF", "player-1", 2200]
+  ]) {
+    const { presentation, setNow } = await loadPresentation();
+    presentation.onCombatStart(combat);
+    setNow(1000);
+    presentation.onAction(combat, {
+      actionId: "enemy-" + intentType.toLowerCase(),
+      actionType: "ENEMY_BEHAVIOR",
+      source: "ENEMY_BEHAVIOR",
+      actorId: "iron_guard",
+      targetId,
+      damage: 0,
+      breakDamage: 0,
+      intent: { type: intentType, value }
+    });
+    assert.notEqual(presentation.getShotState(1000).name, "ATTACK_APPROACH");
+    assert.equal(presentation.getAttackStyleState(), null);
+  }
+
+  const offensive = await loadPresentation();
+  offensive.presentation.onCombatStart(combat);
+  offensive.setNow(1000);
+  offensive.presentation.onAction(combat, {
+    actionId: "enemy-attack",
+    actionType: "ENEMY_BEHAVIOR",
+    source: "ENEMY_BEHAVIOR",
+    actorId: "iron_guard",
+    targetId: "player-1",
+    damage: 0,
+    breakDamage: 0,
+    intent: { type: "ATTACK", value: 10 }
+  });
+  assert.equal(offensive.presentation.getShotState(1000).name, "ATTACK_APPROACH");
+});
 
 test("Yuri Impulso Mach uses non-attack buff presentation and never enters contact presentation", async () => {
   const { window, presentation, setNow, drawnTexts, clearDrawnTexts } = await loadRealCombatPresentation();

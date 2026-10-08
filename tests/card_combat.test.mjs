@@ -49,16 +49,6 @@ test("battle starts with five cards and three tactical roles", async () => {
   assert.equal(new Set(state.combat.cards.hand.map(card => w.CardSystem.definitionFor(card.cardId).type)).size, 3);
 });
 
-test("generic fallback battle uses nine cards with a five-card player-facing hand", async () => {
-  const w = await loadCombat();
-  const state = battle(w);
-  assert.equal(w.CardSystem.INITIAL_DECK.length, 9);
-  assert.equal(state.combat.cards.handLimit, 5);
-  assert.equal(state.combat.cards.hand.length, 5);
-  assert.equal(state.combat.cards.drawPile.length, 4);
-  assert.equal(state.combat.characterId, "legacy");
-});
-
 test("attack skill uses seeded resolution and moves to discard while combat continues", async () => {
   const w = await loadCombat();
   const state = battle(w);

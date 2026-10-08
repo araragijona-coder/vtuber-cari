@@ -30,7 +30,7 @@ async function loadShotDirectorAndPresentation() {
 
 test("Phase 27 exposes deterministic cinematic shot profiles and semantic anchors", async () => {
   const { director } = await loadShotDirectorAndPresentation();
-  assert.deepEqual(Array.from(director.SHOT_NAMES), [
+  assert.deepEqual(director.SHOT_NAMES, [
     "ESTABLISHING",
     "PLAYER_FOCUS",
     "COMPANION_LEFT_FOCUS",

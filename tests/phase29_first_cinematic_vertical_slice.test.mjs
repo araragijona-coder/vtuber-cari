@@ -61,12 +61,12 @@ test("Phase 29 scene composes player, motorcycle, shadow and enemy in distinct d
   scene.registerActor(enemy);
 
   const snapshot = player.getSnapshot();
-  assert.deepEqual(Array.from(snapshot.children, (child) => child.id), [
+  assert.deepEqual(snapshot.children.map((child) => child.id), [
     "scene:PLAYER:MOTORCYCLE",
     "scene:PLAYER:SHADOW"
   ]);
   assert.ok(win.MachGirlsWorldSpace.depthFactor(player.transform.z) > win.MachGirlsWorldSpace.depthFactor(enemy.transform.z));
-  assert.deepEqual(Array.from(scene.renderables(), (item) => item.actor.id), [
+  assert.deepEqual(scene.renderables().map((item) => item.actor.id), [
     "scene:ENEMY_PRIMARY",
     "scene:PLAYER"
   ]);
