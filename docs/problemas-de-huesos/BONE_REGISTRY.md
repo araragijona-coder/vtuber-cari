@@ -10,9 +10,10 @@ Riesgo inicialmente identificado: el input de jugador podía alcanzar GameAction
 Tratamiento implementado: LOCK de acciones de jugador dependiente del estado real de CombatPresentation. Mientras Presentation está ocupada, CARD, BURST y ABILITY son rechazadas antes de llegar a GameActions/CombatEngine.
 Recovery: el lock se mantiene hasta que Presentation deja de estar ocupada; no depende de un timeout artificial.
 No se implementó una cola de acciones.
-Evidencia de implementación: candidato verificado 35e9456ae7816d48b4f5b2d0dabe125e670e07e3; promoción funcional aplicada sobre mach-girls-2.5d.
-Evidencia de validación histórica del candidato: CI remoto RUN 37807078957 / JOB 113414062871; test "BONE-001 locks rapid player combat input during active presentation and reopens after recovery" = PASS.
-Estado actual: BONE-001 cerrado y verificado; la validación del HEAD promovido queda registrada por CI posterior a la promoción.
+Evidencia de implementación: candidato funcional 35e9456ae7816d48b4f5b2d0dabe125e670e07e3; promoción funcional aplicada sobre mach-girls-2.5d.
+CANDIDATE VALIDATION: CI remoto RUN 37807078957 / JOB 113414062871; test "BONE-001 locks rapid player combat input during active presentation and reopens after recovery" = PASS.
+PROMOTED DEV HEAD VALIDATION: SHA 8ac72e8392fb6a045f5a12f6c7ad4270e527e7cd; Rocket Bunny Runtime Tests RUN 37822621222; BONE-001 = PASS.
+Conclusión: BONE-001 cerrado y verificado en el HEAD actual de mach-girls-2.5d.
 
 # BONE-002 — VISUAL LIFECYCLE / DISPOSE
 STATUS: AMBER
