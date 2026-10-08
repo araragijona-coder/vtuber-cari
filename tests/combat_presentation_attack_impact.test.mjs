@@ -848,7 +848,7 @@ test("BONE-001 locks rapid player combat input during active presentation and re
 
   let actionFactoryCalls = 0;
   const gameActions = window.GameActions;
-  window.GameActions = new Proxy(gameActions, {
+  window.GameActions = new Proxy({ ...gameActions }, {
     get(target, property, receiver) {
       if (property === "createPlayerSkillAction") {
         return (...args) => {
@@ -862,7 +862,7 @@ test("BONE-001 locks rapid player combat input during active presentation and re
 
   let resolveCalls = 0;
   const combatEngine = window.CombatEngine;
-  window.CombatEngine = new Proxy(combatEngine, {
+  window.CombatEngine = new Proxy({ ...combatEngine }, {
     get(target, property, receiver) {
       if (property === "resolveAction") {
         return (...args) => {
