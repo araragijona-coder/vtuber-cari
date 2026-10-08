@@ -1,0 +1,60 @@
+name: Diagnostic BONE-003 Base Motion
+
+on:
+  push:
+    branches: [validation/bone-003-base-motion-diag]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 539f9bc0300142f980440cd2eaa84e750fa8065f
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Diagnostic
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const vm = require("node:vm");
+          let now = 0;
+          const gradient = { addColorStop() {} };
+          const context = {
+            save(){}, restore(){}, translate(){}, scale(){}, rotate(){}, setTransform(){},
+            clearRect(){}, fillRect(){}, strokeRect(){}, beginPath(){}, closePath(){},
+            moveTo(){}, lineTo(){}, stroke(){}, fill(){}, arc(){}, ellipse(){}, arcTo(){},
+            drawImage(){}, fillText(){}, strokeText(){}, setLineDash(){},
+            createLinearGradient(){ return gradient; }, createRadialGradient(){ return gradient; },
+            measureText(){ return {width:0}; }
+          };
+          const canvas = { getBoundingClientRect:()=>({width:1000,height:600}) };
+          const window = {BreakSystem:{isBroken:()=>false},BurstSystem:{canUse:()=>false,chargeOf:()=>0,maxChargeOf:()=>100}};
+          const ctx=vm.createContext({window,performance:{now:()=>now},Math,Number,String,Object,Map,JSON,console});
+          const files=[
+            "intento_2/webapp/js/scene/world_space.js",
+            "intento_2/webapp/js/scene/camera.js",
+            "intento_2/webapp/js/scene/animation.js",
+            "intento_2/webapp/js/scene/presentation_events.js",
+            "intento_2/webapp/js/scene/actor.js",
+            "intento_2/webapp/js/scene/scene.js",
+            "intento_2/webapp/js/scene/renderer.js",
+            "intento_2/webapp/js/combat_shot_director.js",
+            "intento_2/webapp/js/combat_presentation.js"
+          ];
+          for (const file of files) vm.runInContext(fs.readFileSync(file,"utf8"),ctx,{filename:file});
+          const p=ctx.window.CombatPresentation.create(canvas,context);
+          const combat={battleId:"diag",outcome:"IN_PROGRESS",player:{id:"player-1",hp:100,maxHp:100,identity:{characterId:"yuri"}},enemy:{id:"iron_guard",hp:100,maxHp:100,breakState:{current:0,max:100}}};
+          p.onCombatStart(combat);
+          p.onCombatEvent(combat,{type:"ATTACK_START",actionId:"a",actionType:"CARD",sourceRole:"PLAYER",targetRole:"ENEMY_PRIMARY",characterId:"yuri",cardId:"",hitCount:1,simulationTick:1,elapsedMs:0});
+          p.render(combat,1000);
+          console.log("x1000",p.getSceneFoundation().layers.ACTORS.find(a=>a.id==="scene:PLAYER").transform.x);
+          p.render(combat,1050);
+          console.log("x1050",p.getSceneFoundation().layers.ACTORS.find(a=>a.id==="scene:PLAYER").transform.x);
+          console.log("shot",p.getShotState(1050)?.name);
+          NODE
