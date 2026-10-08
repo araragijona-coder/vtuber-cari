@@ -36,11 +36,11 @@ This is a target identity. The audit below determines what currently exists.
 ## 2. Current gameplay
 
 The current player-facing slice is:
-START BATTLE → PLAYER TURN → CARDS/ENERGY → ENEMY TURN → SEEDED RESOLUTION → VICTORY/DEFEAT → REWARD/SAVE → NEXT BATTLE.
+START BATTLE → REAL-TIME / SEMI-REALTIME COMBAT → CARD / ENERGY ACTIONS → AUTOMATIC ENEMY BEHAVIOR → SEEDED RESOLUTION → VICTORY / DEFEAT → REWARD / PROGRESSION → SAVE → NEXT BATTLE.
 
 Current runtime systems verified in code:
 - combat state and resolution;
-- Energy;
+- Energy; maximum 100; start 35;
 - current player-facing hand capacity: 5;
 - current generic fallback deck: 9 cards;
 - current Yuri character kit: 4 cards, with effective initial hand 4 when Yuri is selected;

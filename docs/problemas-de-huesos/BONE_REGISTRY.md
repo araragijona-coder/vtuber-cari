@@ -57,11 +57,18 @@ Tratamiento: definir una frontera de UI antes de que el entrypoint crezca.
 GREEN: separación clara sin duplicar GameState ni crear un segundo controller de combate.
 
 # BONE-007 — DOCUMENTATION ↔ RUNTIME DRIFT
-STATUS: RED
-La documentación auditada describe hand limit 4 y un fixed deck de 7 en su baseline, mientras el runtime actual usa handLimit 5 por defecto y INITIAL_DECK contiene 9 cartas.
-Riesgo: Cerebro, Obrero, tests y runtime pueden operar con contratos distintos.
-Tratamiento: reconciliar CODE ↔ DESIGN DOCS ↔ TESTS mediante una decisión explícita; no elegir valores arbitrariamente.
-GREEN: un único contrato verificable y documentación sincronizada.
+STATUS: AMBER
+TRUE_DRIFT_COUNT: 0
+
+Drifts corregidos en esta sincronización:
+1. `docs/design/GAMEPLAY_GAP_ANALYSIS.md` documentaba Energy maximum = 3; el contrato runtime actual es Energy maximum = 100.
+2. `docs/design/POST_PHASE16_CHARACTER_GAMEPLAY_SPEC.md` y `docs/design/GAMEPLAY_GAP_ANALYSIS.md` describían el current combat como PLAYER TURN → ENEMY TURN; el contrato runtime actual es SEMI_REALTIME / REAL_TIME, con comportamiento enemigo automático y sin ownership por turnos.
+
+`YURI_EFFECTIVE_HAND_IS_INTENTIONAL = UNRESOLVED`
+Clasificación: OPEN DESIGN QUESTION.
+La mano efectiva de Yuri permanece documentada como CURRENT / VERIFIED / DERIVED FROM CURRENT RUNTIME = 4 cards y no se convierte en drift ni en decisión de diseño.
+
+Conclusión: los 2 true drifts identificados por la auditoría han sido reconciliados documentalmente. BONE-007 permanece AMBER porque la sincronización elimina el drift factual actual, pero no convierte automáticamente la cuestión de diseño de Yuri en una decisión cerrada.
 
 # BONE-008 — SAVE SCHEMA EVOLUTION
 STATUS: AMBER
@@ -99,7 +106,7 @@ BONE-003 AMBER
 BONE-004 GREEN / VERIFIED
 BONE-005 AMBER
 BONE-006 AMBER
-BONE-007 RED
+BONE-007 AMBER
 BONE-008 AMBER
 BONE-009 AMBER
 BONE-010 AMBER
