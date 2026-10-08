@@ -892,7 +892,22 @@ test("BONE-001 locks rapid player combat input during active presentation and re
 
   setNow(1000);
   const firstResolution = window.CariCombat.actionButton(breakCard.instanceId);
-  assert.ok(firstResolution);
+  assert.ok(
+    firstResolution,
+    [
+      "BONE-001 firstResolution rejected",
+      "message=" + state.session.lastMessage,
+      "energy=" + state.combat.resources.energy,
+      "cardId=" + breakCard.cardId,
+      "instanceId=" + breakCard.instanceId,
+      "cooldown=" + Number(state.combat.cooldowns?.[breakCard.cardId] || 0),
+      "outcome=" + state.combat.outcome,
+      "presentationBusy=" + presentation.isBusy(1000),
+      "actionFactoryCalls=" + actionFactoryCalls,
+      "resolveCalls=" + resolveCalls,
+      "telemetryActionCalls=" + telemetryActionCalls
+    ].join(" | ")
+  );
   assert.equal(actionFactoryCalls, 1);
   assert.equal(resolveCalls, 1);
   assert.equal(telemetryActionCalls, 1);
