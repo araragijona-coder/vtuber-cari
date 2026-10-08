@@ -764,6 +764,50 @@ Visual states:
 
 These are presentation states and do not alter combat rules.
 
+### Presentation lifecycle and ownership
+
+**CURRENT / DOCUMENTED CONTRACT**
+
+El lifecycle visual de Mach-Girls se define como:
+
+CREATE → MOUNT → ACTIVE → RECOVER / RESET → REUSE → DISPOSE
+
+#### Ownership
+
+**CURRENT MVP OWNER:** combat runtime / combat entrypoint.
+
+**CURRENT MVP SCOPE:** una instancia persistente durante la vida del runtime actual, reutilizada mientras exista un owner válido.
+
+**FUTURE MULTI-SCREEN:** la pantalla o feature que monte Presentation deberá ser el owner explícito de su lifetime cuando exista navegación que pueda abandonar definitivamente esa instancia.
+
+#### Lifecycle states
+
+- **CREATE:** construye la instancia visual y sus recursos internos: Camera, Scene, Renderer, PresentationEvents, ShotDirector y caches.
+- **MOUNT:** conecta la instancia con su owner/runtime, canvas/contexto y mecanismos de presentación. En el MVP actual este paso es implícito; no existe una API pública de mount.
+- **ACTIVE:** la instancia puede renderizar, consumir presentation events y mantener actors, VFX, cámara y animation presentation.
+- **RECOVER / RESET:** limpia el estado transitorio y devuelve la instancia a un estado reutilizable. No equivale a Dispose.
+- **REUSE:** la misma instancia puede continuar siendo utilizada mientras conserve un owner válido.
+- **DISPOSE:** significa que el owner deja de necesitar la instancia, no volverá a reutilizarla y sus listeners, referencias y recursos asociados deben dejar de mantenerse activos. Esta fase es contractual y todavía no implementada de forma general.
+
+#### Responsibility boundaries
+
+- **CombatPresentation:** owner del estado de presentación; no es autoridad sobre HP, Energy, Break, Outcome, Deck, Save, gameplay clock ni combat rules.
+- **Scene:** owner de los actors/effects registrados dentro de la escena.
+- **Actor:** owner de sus children y presentation state.
+- **VFX:** owner de su estado transitorio mientras esté registrado en Scene.
+- **Renderer:** responsable de renderizar; no se convierte en owner del gameplay.
+- **GameState / CombatEngine:** continúan existiendo independientemente del lifecycle visual.
+
+#### MVP decision
+
+El MVP actual NO requiere una API general de dispose() o destroy(). Recovery/reset + reutilización cubren el lifecycle del scope actual. Dispose se convierte en requisito cuando exista una pérdida definitiva del owner, especialmente durante navegación multi-screen o reemplazo del runtime/canvas.
+
+#### Teardown trigger
+
+La necesidad de teardown real se activa cuando aparezca alguno de estos eventos: cambio de pantalla que abandona la escena; recreación de CombatPresentation; reemplazo del canvas/context; múltiples instancias coexistiendo; mount/unmount repetido; listeners por instancia; RAF dedicado por instancia; o caches que ya no deban vivir con el runtime.
+
+Este contrato no introduce LifecycleManager, UIManager, EventBus, un segundo controller, un segundo reloj ni una segunda instancia de presentación por defecto.
+
 ### Asset Studio contract
 
 The combat renderer can consume explicitly approved records from:

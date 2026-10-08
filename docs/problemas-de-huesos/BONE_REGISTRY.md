@@ -17,10 +17,29 @@ Conclusión: BONE-001 cerrado y verificado en el HEAD actual de mach-girls-2.5d.
 
 # BONE-002 — VISUAL LIFECYCLE / DISPOSE
 STATUS: AMBER
-No se encontró una API general dispose()/destroy() en la superficie auditada de CombatPresentation/Scene.
-Hay cachés de imágenes, actores, efectos, listeners y una escena persistente asociada a la presentación.
-Riesgo: referencias retenidas y crecimiento de memoria al añadir Garage, Story y Deckbuilding.
-Tratamiento: definir lifecycle create → mount → active → pause → dispose.
+TRUE_LIFECYCLE_DEFECTS: 0
+No se encontró una fuga funcional reproducible, duplicación continua de listeners o RAF, VFX inmortales, acumulación indefinida de actors ni crecimiento ilimitado de cachés dentro del MVP auditado.
+La superficie actual de CombatPresentation/Scene no expone una API general dispose()/destroy(), pero esta ausencia no se clasifica como bug inmediato mientras el owner actual mantenga una instancia reutilizable y el runtime tenga recovery/reset.
+CURRENT MVP:
+- lifecycle operativo suficiente por reutilización + recovery/reset para el scope actual;
+- owner actual: combat runtime / combat entrypoint;
+- una instancia visual persistente durante la vida del runtime actual;
+- mount actualmente implícito; no se añade una API de mount en esta fase.
+DESIGN GAP:
+- no existe todavía un contrato formal de ownership/dispose para navegación multi-screen o reemplazo definitivo del owner.
+DECISIÓN:
+- formalizar el contrato CREATE → MOUNT → ACTIVE → RECOVER / RESET → REUSE → DISPOSE;
+- no implementar dispose()/destroy() general mientras el MVP no tenga una necesidad real de desmontaje;
+- convertir Dispose en requisito cuando una instancia visual pueda perder definitivamente su owner.
+OWNERSHIP:
+- CombatPresentation: owner del estado de presentación;
+- Scene: owner de actors/effects registrados dentro de la escena;
+- Actor: owner de sus children/presentation state;
+- VFX: owner de su estado transitorio mientras esté registrado en Scene;
+- Renderer: no es owner del gameplay;
+- GameState / CombatEngine: no dependen del lifecycle visual para existir.
+FUTURE MULTI-SCREEN / TEARDOWN TRIGGERS:
+cambio de pantalla que abandona la escena; recreación de CombatPresentation; reemplazo del canvas/context; múltiples instancias de presentación coexistiendo; mount/unmount repetido; listeners registrados por instancia; RAF dedicado por instancia; cachés que ya no deban vivir con el runtime.
 Nota: mientras el runtime siga usando Canvas 2D, no asumir problemas de VRAM propios de WebGL.
 
 # BONE-003 — EVENT CONTRACT / OBSERVABILITY
