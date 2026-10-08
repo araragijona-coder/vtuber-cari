@@ -14,8 +14,6 @@
     DEFEAT: "DEFEAT"
   });
 
-  const PLAYER_FACING_HAND_LIMIT = 5;
-
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
   }
@@ -214,7 +212,7 @@
         burstMax: 100,
         playerAbilityUses: 1
       }),
-      cards: window.CardSystem.createCombatDeckState(PLAYER_FACING_HAND_LIMIT, config.cardIds),
+      cards: window.CardSystem.createCombatDeckState(5, config.cardIds),
       cooldowns: {},
       enemyIntent: null,
       enemyBehavior: null,
@@ -228,7 +226,7 @@
 
     window.EnergySystem.sync(state.combat.resources);
     window.BurstSystem.sync(state.combat);
-    window.CardSystem.drawCards(state.combat.cards, PLAYER_FACING_HAND_LIMIT);
+    window.CardSystem.drawCards(state.combat.cards, 5);
 
     state.combat.enemyBehavior = window.EnemyBehaviorSystem.createState(state.combat);
     state.combat.enemyIntent = window.EnemyBehaviorSystem.previewIntent(state.combat);

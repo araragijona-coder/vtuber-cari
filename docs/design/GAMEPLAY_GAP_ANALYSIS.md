@@ -49,15 +49,14 @@ IMPLEMENTED/VERIFIED means directly evidenced in runtime code. DOCUMENTED_ONLY m
 
 ## Current playable gameplay
 
-The actual runtime is a compact semi-real-time loop:
+The actual runtime is a compact loop:
 
-START BATTLE → REAL-TIME / SEMI-REALTIME COMBAT → CARD / ENERGY ACTIONS → AUTOMATIC ENEMY BEHAVIOR → SEEDED RESOLUTION → VICTORY / DEFEAT → REWARD / PROGRESSION → SAVE → NEXT BATTLE.
+START BATTLE → PLAYER TURN → CARD/ENERGY ACTION → ENEMY TURN → SEEDED RESOLUTION → REPEAT → VICTORY/DEFEAT → REWARD → PROGRESSION CHOICE → SAVE → NEXT OBJECTIVE → NEXT BATTLE.
 
 Verified runtime content includes:
-- Energy maximum 100 in the current combat state;
-- player-facing hand capacity 5;
-- generic fallback initial deck 9 cards;
-- Yuri uses a separate 4-card character kit, producing an effective initial hand of 4 when that kit is selected;
+- Energy maximum 3 in the current combat state;
+- hand limit 4;
+- fixed seven-card initial deck;
 - DISPARO NEÓN, EMBESTIDA NITRO and ESCUDO DARK;
 - STREET PUNK, IRON GUARD, NITRO RAIDER and BANCHOU ROOKIE;
 - seeded deterministic RNG;
@@ -69,10 +68,6 @@ Verified runtime content includes:
 - client telemetry instrumentation.
 
 This is an MVP combat demonstration, not the complete RPG/garage/narrative product.
-
-HISTORICAL / OUTDATED BASELINE PRESERVED:
-Earlier gameplay-gap documentation described a hand limit of 4 and a fixed seven-card initial deck. Those values are historical documentation context, not the current runtime contract.
-
 
 ## Documented but not current gameplay
 

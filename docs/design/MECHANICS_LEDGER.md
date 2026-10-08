@@ -10,22 +10,6 @@
 | Cards | RESEARCHED | Shot, Guard, Pump, Ram. VERIFIED. | Experimental vocabulary | No | OPEN DESIGN QUESTION: role clarity. |
 | Deck / Hand / Discard | RESEARCHED | Frozen-state context. VERIFIED. | Research context | No | OPEN DESIGN QUESTION: availability and opportunity cost. |
 
-## Current runtime deck / hand contract
-
-The Deck / Hand / Discard row above is **HISTORICAL / RESEARCHED context**. It documents earlier experimental deck opportunity-cost material and must not be read as the current player-facing runtime contract.
-
-**CURRENT / VERIFIED runtime contract:**
-
-- generic MVP vocabulary / fallback deck = 9 cards;
-- CardSystem total definitions = 17;
-- Yuri character kit = 4 cards;
-- player-facing hand capacity = 5;
-- Yuri effective initial hand = 4, **CURRENT / VERIFIED / DERIVED FROM CURRENT RUNTIME**;
-- YURI_EFFECTIVE_HAND_IS_INTENTIONAL = UNRESOLVED;
-- low-level createCombatDeckState() factory default hand limit = 4.
-
-These layers remain distinct: catalog/vocabulary != runtime deck != character kit, and hand capacity != effective initial hand.
-
 ## Redline history
 Phase 6: SUPPORTS / KEEP.
 Phase 7: SUPPORTS / KEEP.

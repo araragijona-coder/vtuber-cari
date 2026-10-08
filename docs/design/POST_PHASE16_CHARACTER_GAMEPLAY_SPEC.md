@@ -36,14 +36,13 @@ This is a target identity. The audit below determines what currently exists.
 ## 2. Current gameplay
 
 The current player-facing slice is:
-START BATTLE → REAL-TIME / SEMI-REALTIME COMBAT → CARD / ENERGY ACTIONS → AUTOMATIC ENEMY BEHAVIOR → SEEDED RESOLUTION → VICTORY / DEFEAT → REWARD / PROGRESSION → SAVE → NEXT BATTLE.
+START BATTLE → PLAYER TURN → CARDS/ENERGY → ENEMY TURN → SEEDED RESOLUTION → VICTORY/DEFEAT → REWARD/SAVE → NEXT BATTLE.
 
 Current runtime systems verified in code:
 - combat state and resolution;
-- Energy; maximum 100; start 35;
-- current player-facing hand capacity: 5;
-- current generic fallback deck: 9 cards;
-- current Yuri character kit: 4 cards, with effective initial hand 4 when Yuri is selected;
+- Energy;
+- fixed deck/hand/discard;
+- three cards;
 - four enemy definitions;
 - enemy AI;
 - deterministic seeded RNG;
@@ -52,9 +51,6 @@ Current runtime systems verified in code:
 - Telegram initialization;
 - telemetry instrumentation;
 - simple canvas/DOM presentation.
-
-HISTORICAL / PRE-CURRENT RUNTIME:
-The earlier product specification used the wording "fixed deck/hand/discard" and "three cards". Those statements are preserved as historical context and do not describe the current runtime contract.
 
 Not current player-facing systems:
 - Nitro;

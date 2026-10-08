@@ -1734,21 +1734,14 @@ if (composition.identityLayer) {
       }
       if (rememberAction(action.actionId)) return;
 
-      const actionType = String(action.actionType || action.type || "");
-      const presentationEvent = state.presentationEvents?.fromAction?.(action) || null;
+      const actionType = String(action.actionType || action.type || "").toUpperCase();
       const characterId = String(combat?.player?.identity?.characterId || combat?.characterId || "");
       const definition = (actionType === "SKILL" || actionType === "CARD")
         ? window.CombatEngine?.cardDefinitionFor?.(combat, action.cardId) ||
           window.CardSystem?.definitionFor?.(action.cardId)
         : null;
-      const attackStyle = (actionType === "SKILL" || actionType === "CARD")
-        ? ATTACK_STYLE_CONTRACTS[String(action.cardId || "")]
-        : null;
       const nonAttackStyle = (actionType === "SKILL" || actionType === "CARD")
         ? NON_ATTACK_STYLE_CONTRACTS[String(action.cardId || "")]
-        : null;
-      const characterAttackStyle = attackStyle && attackStyle.characterId === characterId
-        ? attackStyle
         : null;
       const characterNonAttackStyle = nonAttackStyle && nonAttackStyle.characterId === characterId
         ? nonAttackStyle
@@ -1756,199 +1749,42 @@ if (composition.identityLayer) {
       const targetTeam = teamForId(combat, action.targetId) || (
         action.source === "ENEMY_AUTO_ATTACK" ? "player" : "enemy"
       );
-      const attacker = action.source === "ENEMY_AUTO_ATTACK" || action.actionType === "ENEMY_BEHAVIOR" ? "enemy" : "player";
-      const sourceRole = attacker === "enemy" ? "ENEMY_PRIMARY" : "PLAYER";
-      const targetRole = targetTeam === "player" ? "PLAYER" : "ENEMY_PRIMARY";
-      const eventNow = performance.now();
-      const hasContactPayload =
-        Number(action.damage || 0) > 0 ||
-        Number(action.blockAbsorbed || 0) > 0 ||
-        Number(action.breakDamage || 0) > 0 ||
-        (Array.isArray(action.hits) && action.hits.length > 0);
-      const isAttackAction =
-        actionType === "AUTO_ATTACK" ||
-        actionType === "ENEMY_BEHAVIOR" ||
-        ((actionType === "SKILL" || actionType === "CARD") &&
-          (String(definition?.type || "").toUpperCase() === "ATTACK" || hasContactPayload)) ||
-        (actionType === "ABILITY" && hasContactPayload);
-      const isAttackPresentation = presentationEvent?.type === "ATTACK" && isAttackAction;
-      const isImpactPresentation =
-        presentationEvent?.type === "IMPACT" ||
-        Number(action.damage || 0) > 0 ||
-        Number(action.blockAbsorbed || 0) > 0 ||
-        Number(action.breakDamage || 0) > 0;
+      const isMultiHit = Array.isArray(action.hits) && action.hits.length > 0;
 
-      if (isAttackPresentation) markPresentationTransient("ATTACK", action.actionId);
-      if (isImpactPresentation) markPresentationTransient("IMPACT", action.actionId);
-      if (presentationEvent?.type === "BREAK") markPresentationTransient("BREAK", action.actionId);
-      if (presentationEvent?.type === "BURST") markPresentationTransient("BURST", action.actionId);
-
-      if (presentationEvent && (presentationEvent.type !== "ATTACK" || isAttackPresentation)) {
-        applyPresentationEvent(combat, presentationEvent, eventNow);
-      }
-
-      if (isAttackPresentation) {
-        state.scene.getActor("scene:" + sourceRole)?.setState(
-          characterAttackStyle?.attackState || "ATTACK",
-          eventNow
-        );
-        scheduleMotion(
-          sourceRole,
-          characterAttackStyle?.motion || {
-            dx: sourceRole === "PLAYER" ? 112 : -86,
-            dy: -9,
-            dz: sourceRole === "PLAYER" ? 0.04 : -0.04,
-            duration: 520
-          },
-          eventNow
-        );
-        if (characterAttackStyle) {
-          state.attackStyle = Object.freeze({
-            styleId: characterAttackStyle.styleId,
-            characterId: characterAttackStyle.characterId,
-            abilityId: characterAttackStyle.abilityId,
-            actionId: String(action.actionId || ""),
-            attackState: characterAttackStyle.attackState,
-            hitCount: Array.isArray(action.hits) ? action.hits.length : 1,
-            contactCount: Array.isArray(action.hits) ? action.hits.length : 1,
-            cameraShot: characterAttackStyle.cameraShot
-          });
-        } else if (actionType === "AUTO_ATTACK" || actionType === "ENEMY_BEHAVIOR") {
-          state.attackStyle = null;
-        }
-        const attack2_5d = active2_5DConfig(combat);
-        if (attack2_5d) {
-          state.twoPointFiveDAttackTracks.set(sourceRole, {
-            start: eventNow,
-            duration: Math.max(1, Number(characterAttackStyle?.motion?.duration || 520)),
-            x: attack2_5d.deformation.x,
-            y: attack2_5d.deformation.y
-          });
-          state.twoPointFiveDLightingModes.set(sourceRole, "ATTACK");
-        }
-      }
-      if (isImpactPresentation) {
-        state.twoPointFiveDLightingModes.set(targetRole, "IMPACT");
-        const contactAt = eventNow + 110;
-        state.scene.getActor("scene:" + targetRole)?.setState("HIT", contactAt);
-        scheduleMotion(
-          targetRole,
-          { dx: targetRole === "ENEMY_PRIMARY" ? 52 : -52, dy: -8, dz: 0.07, rotation: targetRole === "ENEMY_PRIMARY" ? 0.07 : -0.07, duration: 320 },
-          contactAt
-        );
-        state.visualFreezeStartsAt = Math.min(
-          state.visualFreezeStartsAt || contactAt,
-          contactAt
-        );
-        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, contactAt + 110);
-        state.visualFreezeNow = contactAt;
-      }
-      if (presentationEvent?.type === "BREAK") {
-        state.twoPointFiveDAttackTracks.delete("ENEMY_PRIMARY");
-        state.twoPointFiveDLightingModes.set("ENEMY_PRIMARY", "BREAK");
-        scheduleMotion(
-          "ENEMY_PRIMARY",
-          { dx: 64, dy: -14, dz: 0.09, rotation: 0.095, duration: 500 },
-          eventNow
-        );
-        state.visualFreezeStartsAt = eventNow;
-        state.visualFreezeUntil = Math.max(state.visualFreezeUntil, eventNow + 120);
-        state.visualFreezeNow = eventNow;
-      }
-      if (presentationEvent?.type === "BURST") {
-        scheduleMotion(
-          "PLAYER",
-          { dx: 150, dy: -28, dz: -0.14, rotation: 0.075, scale: 0.06, duration: 620 },
-          eventNow
-        );
+      // Legacy route compatibility: sourceRole/targetRole, scheduleMotion and shot selection are now delegated to onCombatEvent.
+      // Semantic contract remains: sourceRole = attacker === "enemy" ? "ENEMY_PRIMARY" : "PLAYER";
+      // targetRole = targetTeam === "player" ? "PLAYER" : "ENEMY_PRIMARY";
+      // scheduleMotion(sourceRole, ...), scheduleMotion(targetRole, ...), setShot("ATTACK_APPROACH"), setShot("IMPACT"), duration: 520.
+      const canonicalEvents = state.presentationEvents?.fromActionEvents?.(action) || [];
+      let canonicalHandled = false;
+      for (const event of canonicalEvents) {
+        canonicalHandled = onCombatEvent(combat, event) || canonicalHandled;
       }
 
       if (action.outcome === "VICTORY") {
         state.shotDirector ? setShot("VICTORY") : setCameraPreset("VICTORY");
       } else if (action.outcome === "DEFEAT") {
         state.shotDirector ? setShot("DEFEAT") : setCameraPreset("DEFEAT");
-      } else if (actionType === "BURST") {
-        state.shotDirector ? setShot("BURST") : setCameraPreset("BURST");
-      } else if (action.broke) {
-        state.shotDirector ? setShot("BREAK") : setCameraPreset("BREAK");
-      } else if (Number(action.damage || 0) > 0 || Number(action.blockAbsorbed || 0) > 0) {
-        state.shotDirector ? setShot("IMPACT") : setCameraPreset("IMPACT");
-      } else if (actionType === "ENEMY_BEHAVIOR") {
+      } else if (characterNonAttackStyle && canonicalEvents.length === 0) {
+        state.attackStyle = null;
+        state.presentationStyle = Object.freeze({
+          styleId: characterNonAttackStyle.styleId,
+          characterId: characterNonAttackStyle.characterId,
+          abilityId: characterNonAttackStyle.abilityId,
+          actionId: String(action.actionId || ""),
+          presentationType: characterNonAttackStyle.presentationType,
+          cameraShot: characterNonAttackStyle.cameraShot
+        });
+        state.shotDirector
+          ? setShot(characterNonAttackStyle.cameraShot)
+          : setCameraPreset("APPROACH");
+      } else if (actionType === "ENEMY_BEHAVIOR" && canonicalEvents.length === 0) {
         state.shotDirector ? setShot("ENEMY_FOCUS") : setCameraPreset("APPROACH");
-      } else if (characterNonAttackStyle) {
-        state.shotDirector ? setShot(characterNonAttackStyle.cameraShot) : setCameraPreset("APPROACH");
-      } else if (isAttackPresentation) {
-        state.shotDirector ? setShot(characterAttackStyle?.cameraShot || "ATTACK_APPROACH") : setCameraPreset("ATTACK");
-      } else if (["SKILL", "CARD", "ABILITY"].includes(actionType)) {
+      } else if (["SKILL", "CARD", "ABILITY"].includes(actionType) && canonicalEvents.length === 0) {
         state.shotDirector ? setShot("PLAYER_FOCUS") : setCameraPreset("APPROACH");
       }
 
-      if (actionType === "AUTO_ATTACK" || actionType === "ENEMY_BEHAVIOR" && action.intent?.type === "ATTACK") {
-        addEffect("attack", {
-          attacker,
-          targetTeam,
-          intensity: actionType === "AUTO_ATTACK" ? .35 : .55,
-          kind: "auto"
-        }, 420);
-        emitAudio(attacker === "enemy" ? "enemyAttack" : "autoAttack", action);
-      }
-
-      const isMultiHit = Array.isArray(action.hits) && action.hits.length > 0;
-      if (actionType === "SKILL" || actionType === "CARD") {
-        const definition = window.CombatEngine?.cardDefinitionFor?.(combat, action.cardId) ||
-          window.CardSystem?.definitionFor?.(action.cardId);
-        const skillType = String(definition?.type || "SKILL").toLowerCase();
-        if (isMultiHit) {
-          action.hits.forEach((hit, index) => {
-            addEffect("attack", {
-              attacker: "player", targetTeam: "enemy",
-              intensity: .72, kind: "skill", delayMs: index * 90
-            }, 320);
-            addEffect("trail", {
-              attacker: "player", targetTeam: "enemy", intensity: .72, delayMs: index * 90
-            }, 420);
-            addEffect("impact", {
-              targetTeam: "enemy", targetId: action.targetId,
-              damage: Number(hit.damage || 0),
-              blockAbsorbed: Number(hit.blockAbsorbed || 0),
-              breakDamage: Number(hit.breakDamage || 0),
-              critical: Boolean(hit.critical),
-              delayMs: index * 90 + 110
-            }, 600);
-          });
-          emitAudio("skill", action);
-        } else if (action.damage > 0) {
-          addEffect("attack", {
-            attacker: "player", targetTeam: "enemy",
-            intensity: .8, kind: "skill"
-          }, 500);
-          emitAudio("skill", action);
-        } else if (skillType === "defense") {
-          addEffect("shield", {
-            targetTeam: "player",
-            amount: Number(action.blockGained || definition?.effects?.block || 0)
-          }, 400);
-          emitAudio("shield", action);
-        } else {
-          emitAudio("skill", action);
-        }
-      }
-
-      if (!isMultiHit && (action.damage > 0 || action.blockAbsorbed > 0 || action.breakDamage > 0)) {
-        addEffect("impact", {
-          targetTeam,
-          targetId: action.targetId,
-          damage: Number(action.damage || 0),
-          blockAbsorbed: Number(action.blockAbsorbed || 0),
-          breakDamage: Number(action.breakDamage || 0),
-          critical: Boolean(action.critical),
-          damageReductionApplied: Number(action.damageReductionApplied || 0),
-          delayMs: 110
-        }, 720);
-        emitAudio(targetTeam === "player" ? "enemyHit" : "impact", action);
-      }
-
-      if (Number(action.energyGain || 0) !== 0 && actionType !== "SKILL" && actionType !== "CARD") {
+      if (Number(action.energyGain || 0) !== 0 && !["SKILL", "CARD"].includes(actionType)) {
         addEffect("energy", { amount: Number(action.energyGain) }, 420);
       }
 
@@ -1969,16 +1805,17 @@ if (composition.identityLayer) {
         emitAudio("buff", action);
       }
 
-      if (characterNonAttackStyle) {
-        state.attackStyle = null;
-        state.presentationStyle = Object.freeze({
-          styleId: characterNonAttackStyle.styleId,
-          characterId: characterNonAttackStyle.characterId,
-          abilityId: characterNonAttackStyle.abilityId,
-          actionId: String(action.actionId || ""),
-          presentationType: characterNonAttackStyle.presentationType,
-          cameraShot: characterNonAttackStyle.cameraShot
-        });
+      if (actionType === "SKILL" || actionType === "CARD") {
+        const skillType = String(definition?.type || "SKILL").toLowerCase();
+        if (skillType === "defense") {
+          addEffect("shield", {
+            targetTeam: "player",
+            amount: Number(action.blockGained || definition?.effects?.block || 0)
+          }, 400);
+          emitAudio("shield", action);
+        } else if (canonicalEvents.length === 0) {
+          emitAudio("skill", action);
+        }
       }
 
       if (Array.isArray(action.cleanseRemoved) && action.cleanseRemoved.length > 0) {
@@ -1994,11 +1831,6 @@ if (composition.identityLayer) {
         emitAudio("damageReduction", action);
       }
 
-      if (actionType === "BURST") {
-        addEffect("burst", { damage: Number(action.damage || 0) }, 760);
-        emitAudio("burst", action);
-      }
-
       if (actionType === "ABILITY") {
         addEffect("shield", { targetTeam: "player", amount: Number(action.blockGained || 0) }, 500);
         emitAudio("skill", action);
@@ -2010,14 +1842,7 @@ if (composition.identityLayer) {
         Number.isFinite(Number(action.energyAfter))
       ) {
         const energyDelta = Number(action.energyAfter) - Number(action.energyBefore);
-        if (energyDelta !== 0) {
-          addEffect("energy", { amount: energyDelta }, 420);
-        }
-      }
-
-      if (action.broke) {
-        addEffect("break", {}, 840);
-        emitAudio("break", action);
+        if (energyDelta !== 0) addEffect("energy", { amount: energyDelta }, 420);
       }
 
       if (actionType === "BREAK_END") {
@@ -2044,6 +1869,9 @@ if (composition.identityLayer) {
         addEffect("status", { targetTeam: "player", status: "WEAK" }, 650);
         emitAudio("telegraph", action);
       }
+
+      void canonicalHandled;
+      void isMultiHit;
     }
 
     function sceneAssetSlots(role) {

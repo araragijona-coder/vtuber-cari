@@ -52,7 +52,6 @@
   let lastSimulationTime = null;
   let cinematicToken = 0;
   let cinematicRunning = false;
-  let playerActionLock = null;
   const view = {
     gameState: null,
     lastWidth: 0,
@@ -77,37 +76,6 @@
 
   function setHidden(element, hidden) {
     if (element) element.hidden = Boolean(hidden);
-  }
-
-  function syncPlayerActionLock(now = performance.now()) {
-    if (!playerActionLock || cinematicRunning) return false;
-    const busy = Boolean(presentation?.isBusy?.(now));
-    if (busy) {
-      playerActionLock.presentationObserved = true;
-      return true;
-    }
-    if (playerActionLock.presentationObserved) {
-      playerActionLock = null;
-      return false;
-    }
-    return true;
-  }
-
-  function shouldLockPlayerAction(combat, actionId) {
-    if (cinematicRunning || !combat?.battleId || !actionId) return false;
-    return hasCinematicPresentationEvent(combat, actionId) ||
-      Boolean(presentation?.isBusy?.(performance.now()));
-  }
-
-  function lockPlayerAction(actionId) {
-    playerActionLock = {
-      actionId: String(actionId || ""),
-      presentationObserved: false
-    };
-  }
-
-  function isPlayerActionLocked(now = performance.now()) {
-    return syncPlayerActionLock(now);
   }
 
   function formatCombatTimer(elapsedMs) {
@@ -403,7 +371,6 @@
   function startBattle(config = null, options = {}) {
     if (!options.cinematic) cancelCinematic();
     resetSimulationClock();
-    playerActionLock = null;
     const battleConfig = config || createBattleConfig();
     currentEnemyId = battleConfig.enemy?.id || currentEnemyId;
     if (battleConfig.progression && typeof window.ProgressionSystem?.normalizeProgression === "function") {
@@ -480,7 +447,6 @@
   function playCard(cardInstanceId) {
     const combat = view.gameState?.combat;
     if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
-    if (isPlayerActionLocked()) return;
     try {
       const action = window.GameActions.createPlayerSkillAction(view.gameState, cardInstanceId);
       const resolution = window.CombatEngine.resolveAction(view.gameState, action);
@@ -491,12 +457,6 @@
         type: resolution.actionType
       });
       showResult(resolution, combat);
-      if (
-        resolution.outcome === window.GameState.OUTCOME.IN_PROGRESS &&
-        shouldLockPlayerAction(combat, resolution.actionId)
-      ) {
-        lockPlayerAction(resolution.actionId);
-      }
       if (resolution.outcome !== window.GameState.OUTCOME.IN_PROGRESS) {
         resetSimulationClock();
         completeBattleTelemetry(combat);
@@ -513,7 +473,6 @@
   function useBurst() {
     const combat = view.gameState?.combat;
     if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
-    if (isPlayerActionLocked()) return;
     try {
       const action = window.GameActions.createPlayerBurstAction(view.gameState);
       const resolution = window.CombatEngine.resolveAction(view.gameState, action);
@@ -526,12 +485,6 @@
       view.gameState.session.lastMessage = "BURST · " + resolution.damage + " DAMAGE" +
         (resolution.brokenPayoff ? " · BREAK PAYOFF" : "");
       showResult(resolution, combat);
-      if (
-        resolution.outcome === window.GameState.OUTCOME.IN_PROGRESS &&
-        shouldLockPlayerAction(combat, resolution.actionId)
-      ) {
-        lockPlayerAction(resolution.actionId);
-      }
       renderUi();
     } catch (error) {
       view.gameState.session.lastMessage = "Burst rechazada · " + error.message;
@@ -542,7 +495,6 @@
   function useAbility() {
     const combat = view.gameState?.combat;
     if (!combat || combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS) return;
-    if (isPlayerActionLocked()) return;
     try {
       const action = window.GameActions.createPlayerAbilityAction(view.gameState);
       const resolution = window.CombatEngine.resolveAction(view.gameState, action);
@@ -553,12 +505,6 @@
       });
       view.gameState.session.lastMessage = "ABILITY · " + window.CharacterAbilitySystem.definition().name;
       showResult(resolution, combat);
-      if (
-        resolution.outcome === window.GameState.OUTCOME.IN_PROGRESS &&
-        shouldLockPlayerAction(combat, resolution.actionId)
-      ) {
-        lockPlayerAction(resolution.actionId);
-      }
       renderUi();
     } catch (error) {
       view.gameState.session.lastMessage = "Ability rechazada · " + error.message;
@@ -658,11 +604,9 @@
       }
 
       const cooldown = Number(combat.cooldowns[card.cardId] || 0);
-      const inputLocked = isPlayerActionLocked();
       const visual = cardVisual(definition);
       const disabled =
         cinematicRunning ||
-        inputLocked ||
         combat.outcome !== window.GameState.OUTCOME.IN_PROGRESS ||
         !window.EnergySystem.canSpend(combat.resources, definition.cost) ||
         cooldown > 0;
@@ -779,7 +723,7 @@
     if (burstReadyEl) burstReadyEl.className = "resource-subline ready-state" + (burstReady ? " burst-ready" : "");
 
     if (burstButton) {
-      burstButton.disabled = cinematicRunning || isPlayerActionLocked() || !combat || !burstReady;
+      burstButton.disabled = cinematicRunning || !combat || !burstReady;
       burstButton.hidden = !combat || outcome !== window.GameState.OUTCOME.IN_PROGRESS;
       burstButton.textContent = broken ? "BURST · BREAK" : "BURST";
       burstButton.setAttribute("aria-label", broken ? "BURST during BREAK window" : "BURST");
@@ -789,7 +733,7 @@
       setText(abilityEl, combat ? ability.name + " · " + combat.resources.playerAbilityUses + "/1" : "—");
     }
     if (abilityButton) {
-      abilityButton.disabled = cinematicRunning || isPlayerActionLocked() || !combat || !window.CharacterAbilitySystem.canUse(combat);
+      abilityButton.disabled = cinematicRunning || !combat || !window.CharacterAbilitySystem.canUse(combat);
       abilityButton.hidden = !combat || outcome !== window.GameState.OUTCOME.IN_PROGRESS;
       abilityButton.textContent = ability?.name || "ABILITY";
       abilityButton.setAttribute("aria-label", ability ? ability.name + " · " + ability.condition : "Character ability");

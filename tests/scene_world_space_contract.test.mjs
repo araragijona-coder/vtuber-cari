@@ -87,7 +87,7 @@ test("shot director labels semantic anchors separately from world-stage actor fr
   assert.equal(target.coordinateSpace, "NORMALIZED_STAGE");
   assert.equal(frame.coordinateSpace, "WORLD_STAGE_PX");
   assert.equal(frame.x, 310);
-  assert.ok(Math.abs(frame.y - 336) < 1e-9);
+  assert.equal(frame.y, 336);
   assert.equal(frame.depth, 0.72);
 });
 

@@ -108,21 +108,7 @@ Labels:
 | G-Force Affinity | No | no runtime system | OPEN DESIGN QUESTION / PROPOSED DESIGN |
 | Mach Breaker | No | no independent runtime system | OPEN DESIGN QUESTION / PROPOSED DESIGN |
 
-## 2A. Current card / deck / hand contract
-
-**CURRENT / VERIFIED FROM CURRENT CODE**
-
-- Generic MVP card vocabulary / generic fallback deck: **9 cards** (INITIAL_DECK).
-- CardSystem total definitions: **17** (9 generic + 4 Yuri + 4 TEST SUPPORT).
-- Yuri playable kit: **4 cards**, separate from the generic 9-card fallback.
-- Player-facing hand capacity: **5**.
-- createCombatDeckState() low-level factory default: **4**.
-- Yuri effective initial hand: **4**, classified **CURRENT / VERIFIED / DERIVED FROM CURRENT RUNTIME** rather than as an independently decided design value.
-- YURI_EFFECTIVE_HAND_IS_INTENTIONAL = UNRESOLVED.
-
-The generic 9-card fallback is a runtime deck contract, not the entire CardSystem definition set. A character-specific kit is a separate source of card IDs and must not be inferred from the generic fallback vocabulary.
-
-## 3. Audit of the nine current generic fallback cards
+## 3. Audit of the nine current cards
 | Card | Primary role | Secondary role | Current effect | Identity reading | Class compatibility | Design gap |
 |---|---|---|---|---|---|---|
 | DISPARO NEÓN | ATTACK | BREAK | damage + 10 BREAK | fast offensive pressure | Striker | ownership/personality not encoded |
