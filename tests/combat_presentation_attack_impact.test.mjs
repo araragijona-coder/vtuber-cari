@@ -848,23 +848,37 @@ test("BONE-001 locks rapid player combat input during active presentation and re
 
   let actionFactoryCalls = 0;
   const gameActions = window.GameActions;
-  window.GameActions = {
-    ...gameActions,
-    createPlayerSkillAction(...args) {
-      actionFactoryCalls += 1;
-      return gameActions.createPlayerSkillAction(...args);
+  window.GameActions = new Proxy(
+    { ...gameActions },
+    {
+      get(target, property, receiver) {
+        if (property === "createPlayerSkillAction") {
+          return (...args) => {
+            actionFactoryCalls += 1;
+            return gameActions.createPlayerSkillAction(...args);
+          };
+        }
+        return Reflect.get(target, property, receiver);
+      }
     }
-  };
+  );
 
   let resolveCalls = 0;
   const combatEngine = window.CombatEngine;
-  window.CombatEngine = {
-    ...combatEngine,
-    resolveAction(...args) {
-      resolveCalls += 1;
-      return combatEngine.resolveAction(...args);
+  window.CombatEngine = new Proxy(
+    { ...combatEngine },
+    {
+      get(target, property, receiver) {
+        if (property === "resolveAction") {
+          return (...args) => {
+            resolveCalls += 1;
+            return combatEngine.resolveAction(...args);
+          };
+        }
+        return Reflect.get(target, property, receiver);
+      }
     }
-  };
+  );
 
   let telemetryActionCalls = 0;
   const telemetry = window.RocketBunnyTelemetry || {
