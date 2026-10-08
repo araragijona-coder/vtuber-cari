@@ -1,0 +1,45 @@
+name: Diagnostic BONE-003 Motion State
+
+on:
+  push:
+    branches: [validation/bone-003-motion-state]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9c6216596190b03274a6486f6b5b3c0705505480
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Inspect internal motion state
+        run: |
+          node <<'NODE'
+          const fs=require("node:fs"),vm=require("node:vm");
+          let now=1000; const gradient={addColorStop(){}};
+          const context={save(){},restore(){},translate(){},scale(){},rotate(){},setTransform(){},clearRect(){},fillRect(){},strokeRect(){},beginPath(){},closePath(){},moveTo(){},lineTo(){},stroke(){},fill(){},arc(){},ellipse(){},arcTo(){},drawImage(){},fillText(){},strokeText(){},setLineDash(){},createLinearGradient(){return gradient},createRadialGradient(){return gradient},measureText(){return {width:0}}};
+          const canvas={getBoundingClientRect:()=>({width:1000,height:600})};
+          const window={BreakSystem:{isBroken:()=>false},BurstSystem:{canUse:()=>false,chargeOf:()=>0,maxChargeOf:()=>100}};
+          const ctx=vm.createContext({window,performance:{now:()=>now},Math,Number,String,Object,Map,JSON,console});
+          for(const f of ["intento_2/webapp/js/scene/world_space.js","intento_2/webapp/js/scene/camera.js","intento_2/webapp/js/scene/animation.js","intento_2/webapp/js/scene/presentation_events.js","intento_2/webapp/js/scene/actor.js","intento_2/webapp/js/scene/scene.js","intento_2/webapp/js/scene/renderer.js","intento_2/webapp/js/combat_shot_director.js"]) vm.runInContext(fs.readFileSync(f,"utf8"),ctx,{filename:f});
+          let src=fs.readFileSync("intento_2/webapp/js/combat_presentation.js","utf8");
+          src=src.replace(
+            '      getAsset: assetFor',
+            '      getAsset: assetFor, getDebugMotion: () => ({ size: state.motionTracks.size, player: state.motionTracks.get("PLAYER") || null })'
+          );
+          vm.runInContext(src,ctx,{filename:"intento_2/webapp/js/combat_presentation.js"});
+          const p=ctx.window.CombatPresentation.create(canvas,context);
+          const combat={battleId:"diag",outcome:"IN_PROGRESS",player:{id:"p",hp:100,maxHp:100,identity:{characterId:"yuri"}},enemy:{id:"e",hp:100,maxHp:100,breakState:{current:0,max:100}}};
+          p.onCombatStart(combat); 
+          console.log("before",p.getDebugMotion());
+          p.onCombatEvent(combat,{type:"ATTACK_START",actionId:"a",actionType:"CARD",sourceRole:"PLAYER",targetRole:"ENEMY_PRIMARY",characterId:"yuri",cardId:"",hitCount:1,simulationTick:1,elapsedMs:0});
+          console.log("afterEvent",p.getDebugMotion());
+          p.render(combat,1000);
+          console.log("afterRender",p.getDebugMotion());
+          p.render(combat,1050);
+          console.log("after1050",p.getDebugMotion());
+          NODE
