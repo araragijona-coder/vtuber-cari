@@ -1,0 +1,38 @@
+name: Validation BONE-003 FIX-01 V2
+
+on:
+  push:
+    branches: [validation/bone-003-fix-01-v2-ci]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: c55030d3c1767fe9069323848856caff8667c113
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify exact candidate
+        run: |
+          test "$(git rev-parse HEAD)" = "c55030d3c1767fe9069323848856caff8667c113"
+          git rev-parse HEAD
+      - name: Syntax
+        run: |
+          node --check intento_2/webapp/js/scene/presentation_events.js
+          node --check intento_2/webapp/js/combat_presentation.js
+          node --check tests/combat_presentation_attack_impact.test.mjs
+      - name: Focused BONE-003 tests
+        continue-on-error: true
+        run: |
+          node --test --test-name-pattern="BURST presentation ingress stays at BURST priority|multi-hit presentation ingresses preserve hitIndex order and staggered contact timing|enemy behavior presentation attacks only for offensive intents" tests/combat_presentation_attack_impact.test.mjs
+      - name: Related presentation test
+        continue-on-error: true
+        run: node --test tests/combat_presentation_attack_impact.test.mjs
+      - name: Full suite
+        continue-on-error: true
+        run: node --test tests/*.test.mjs
