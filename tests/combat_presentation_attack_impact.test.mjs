@@ -65,6 +65,7 @@ async function loadPresentation() {
   }
 
   return {
+    window: contextVm.window,
     presentation: contextVm.window.CombatPresentation.create(canvas, context),
     setNow(value) { now = value; }
   };
@@ -403,6 +404,123 @@ test("resolved attack produces ATTACK state, world movement, distinct contact re
   assert.equal(enemyRecovery.transform.state, "IDLE");
   assert.equal(presentation.getAttackStyleState(), null);
   assert.equal(presentation.getShotState(2000).name, "PLAYER_FOCUS");
+});
+
+test("presentation event adapter preserves legacy payload classifications", async () => {
+  const { window } = await loadPresentation();
+  const adapter = window.MachGirlsPresentationEvents.create();
+
+  assert.equal(adapter.fromAction({ damage: 10 }).type, "IMPACT");
+  assert.equal(adapter.fromAction({ broke: true }).type, "BREAK");
+});
+
+test("BURST keeps shot priority across canonical combat events and the onAction compatibility adapter", async () => {
+  const canonical = await loadPresentation();
+  const burstActionId = "burst-priority-canonical";
+  const canonicalCombat = {
+    battleId: burstActionId,
+    outcome: "IN_PROGRESS",
+    player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
+    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 100, max: 100 } },
+    events: [
+      {
+        type: "BURST_START",
+        actionId: burstActionId,
+        actionType: "BURST",
+        sourceRole: "PLAYER",
+        targetRole: "ENEMY_PRIMARY",
+        characterId: "yuri"
+      },
+      {
+        type: "DAMAGE_APPLIED",
+        actionId: burstActionId,
+        actionType: "BURST",
+        sourceRole: "PLAYER",
+        targetRole: "ENEMY_PRIMARY",
+        characterId: "yuri",
+        damage: 32,
+        breakDamage: 0
+      }
+    ]
+  };
+
+  canonical.presentation.onCombatStart(canonicalCombat);
+  canonical.setNow(1000);
+  canonical.presentation.consumeCombatEvents(canonicalCombat);
+  assert.equal(canonical.presentation.getShotState(1000).name, "BURST");
+
+  const compatibility = await loadPresentation();
+  const compatibilityCombat = {
+    ...canonicalCombat,
+    battleId: "burst-priority-on-action",
+    events: []
+  };
+  compatibility.presentation.onCombatStart(compatibilityCombat);
+  compatibility.setNow(1000);
+  compatibility.presentation.onAction(compatibilityCombat, {
+    actionId: "burst-priority-on-action",
+    actionType: "BURST",
+    source: "PLAYER",
+    actorId: "player-1",
+    targetId: "iron_guard",
+    damage: 32,
+    breakDamage: 0
+  });
+  assert.equal(compatibility.presentation.getShotState(1000).name, "BURST");
+});
+
+test("enemy DEFEND and DEBUFF stay non-attack while an offensive enemy intent moves its actor", async () => {
+  for (const intentType of ["DEFEND", "DEBUFF"]) {
+    const loaded = await loadPresentation();
+    const combat = {
+      battleId: "enemy-intent-" + intentType,
+      outcome: "IN_PROGRESS",
+      player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
+      enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 100, max: 100 } }
+    };
+
+    loaded.presentation.onCombatStart(combat);
+    loaded.setNow(1000);
+    loaded.presentation.render(combat, 1000);
+    loaded.presentation.onAction(combat, {
+      actionId: "enemy-intent-" + intentType,
+      actionType: "ENEMY_BEHAVIOR",
+      source: "ENEMY_BEHAVIOR",
+      actorId: "iron_guard",
+      targetId: intentType === "DEFEND" ? "iron_guard" : "player-1",
+      intent: { type: intentType, value: 18 },
+      damage: 0,
+      breakDamage: 0
+    });
+    const afterIntent = runFrame(loaded.presentation, loaded.setNow, combat, 1050);
+    assert.notEqual(actorFrom(afterIntent, "scene:ENEMY_PRIMARY").transform.state, "ATTACK");
+    assert.notEqual(loaded.presentation.getShotState(1050).name, "ATTACK_APPROACH");
+    assert.equal(loaded.presentation.getAttackStyleState(), null);
+  }
+
+  const loaded = await loadPresentation();
+  const combat = {
+    battleId: "enemy-offensive-intent",
+    outcome: "IN_PROGRESS",
+    player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
+    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 100, max: 100 } }
+  };
+  loaded.presentation.onCombatStart(combat);
+  const baseline = runFrame(loaded.presentation, loaded.setNow, combat, 1000);
+  const enemyStart = actorFrom(baseline, "scene:ENEMY_PRIMARY");
+  loaded.presentation.onAction(combat, {
+    actionId: "enemy-offensive-intent",
+    actionType: "ENEMY_BEHAVIOR",
+    source: "ENEMY_BEHAVIOR",
+    actorId: "iron_guard",
+    targetId: "player-1",
+    intent: { type: "ATTACK", value: 7 },
+    damage: 7,
+    breakDamage: 0
+  });
+  const move = runFrame(loaded.presentation, loaded.setNow, combat, 1050);
+  assert.notEqual(actorFrom(move, "scene:ENEMY_PRIMARY").transform.x, enemyStart.transform.x);
+  assert.equal(actorFrom(move, "scene:ENEMY_PRIMARY").transform.state, "ATTACK");
 });
 
 test("explicit presentation recovery returns BREAK and BURST to a stable player focus shot", async () => {
@@ -971,6 +1089,70 @@ test("Phase 29-W emits ATTACK_START, DAMAGE_APPLIED and BREAK_TRIGGER only for r
     assert.equal(supportEvents.some((event) => event.type === "DAMAGE_APPLIED"), false);
     assert.equal(supportEvents.some((event) => event.type === "BREAK_TRIGGER"), false);
   }
+});
+
+test("multi-hit presentation normalizes runtime hit indices once and preserves 110/200/290ms contacts", async () => {
+  const { window, presentation, setNow, drawnTexts, clearDrawnTexts } = await loadRealCombatPresentation();
+  const state = window.GameState.createGameState({ playerId: "bone003-multihit-player" });
+  const character = window.CharacterKitSystem.definitionFor("yuri");
+  const enemy = window.EnemyCatalog.createEnemy("iron_guard");
+  window.GameState.startBattle(state, {
+    battleId: "bone003-multihit-timing",
+    seed: 313003,
+    player: {
+      id: "bone003-multihit-player",
+      hp: 120,
+      maxHp: 120,
+      stats: { atk: 20, def: 5, skillDamage: 40 }
+    },
+    enemy,
+    characterId: "yuri",
+    character,
+    cardIds: window.CharacterKitSystem.cardIdsFor("yuri")
+  });
+
+  presentation.onCombatStart(state.combat);
+  window.EnergySystem.gain(state.combat.resources, 20);
+  const card = state.combat.cards.hand.find((entry) => entry.cardId === "yuri_racha_neon");
+  assert.ok(card, "Yuri Racha Neon must be in the real Yuri hand");
+
+  const action = window.GameActions.createPlayerSkillAction(state, card.instanceId);
+  const resolution = window.CombatEngine.resolveAction(state, action);
+  assert.equal(resolution.hitCount, 3);
+  assert.equal(resolution.hits.length, 3);
+
+  const rawDamageEvents = state.combat.events.filter((event) =>
+    event.actionId === action.id && event.type === "DAMAGE_APPLIED"
+  );
+  assert.deepEqual(Array.from(rawDamageEvents, (event) => event.hitIndex), [1, 2, 3]);
+  const adapter = window.MachGirlsPresentationEvents.create();
+  assert.deepEqual(
+    Array.from(rawDamageEvents, (event) => adapter.fromCombatEvent(event, state.combat).action.hitIndex),
+    [0, 1, 2]
+  );
+
+  setNow(1000);
+  presentation.onAction(state.combat, resolution);
+  presentation.render(state.combat, 1000);
+  assert.equal(presentation.getAttackStyleState().styleId, "YURI_RACHA_NEON");
+
+  const checkpoints = [
+    [109, 0],
+    [110, 1],
+    [199, 1],
+    [200, 2],
+    [289, 2],
+    [290, 3]
+  ];
+  const observed = [];
+  for (const [elapsedMs] of checkpoints) {
+    clearDrawnTexts();
+    const now = 1000 + elapsedMs;
+    setNow(now);
+    presentation.render(state.combat, now);
+    observed.push(drawnTexts.filter((value) => /^-\d+$/.test(value)).length);
+  }
+  assert.deepEqual(observed, checkpoints.map((entry) => entry[1]));
 });
 
 test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINISH on recovery", async () => {

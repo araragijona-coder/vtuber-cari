@@ -98,12 +98,17 @@ async function loadPresentationWithImageTracking(source) {
     Map,
     JSON
   });
+  const eventSource = await readFile("intento_2/webapp/js/scene/presentation_events.js", "utf8");
+  vm.runInContext(eventSource, context, { filename: "presentation_events.js" });
   vm.runInContext(source, context, { filename: "combat_presentation.js" });
   return { api: context.window.CombatPresentation, fake, imageSources };
 }
 
 async function loadPresentation() {
-  const source = await readFile("intento_2/webapp/js/combat_presentation.js", "utf8");
+  const [eventSource, source] = await Promise.all([
+    readFile("intento_2/webapp/js/scene/presentation_events.js", "utf8"),
+    readFile("intento_2/webapp/js/combat_presentation.js", "utf8")
+  ]);
   const fake = makeCanvas();
   const window = {
     BreakSystem: { isBroken: (state) => state?.state === "BROKEN" && Number(state?.remainingMs) > 0 },
@@ -138,8 +143,9 @@ async function loadPresentation() {
     Map,
     JSON
   });
+  vm.runInContext(eventSource, context, { filename: "presentation_events.js" });
   vm.runInContext(source, context, { filename: "combat_presentation.js" });
-  return { api: context.window.CombatPresentation, fake };
+  return { api: context.window.CombatPresentation, fake, window: context.window };
 }
 
 function combatFixture() {
@@ -244,16 +250,48 @@ test("card interaction remains a real HTML button while realtime render continue
   assert.match(css, /button:focus-visible/);
 });
 
-test("BREAK and BURST presentation hooks are additive to existing fixed-step systems", async () => {
-  const [combat, presentation, clock] = await Promise.all([
+test("BREAK and BURST presentation feedback is additive to existing fixed-step systems", async () => {
+  const [combatSource, clock] = await Promise.all([
     readFile("intento_2/webapp/js/combat.js", "utf8"),
-    readFile("intento_2/webapp/js/combat_presentation.js", "utf8"),
     readFile("intento_2/webapp/js/game/combat_clock.js", "utf8")
   ]);
-  assert.match(combat, /CombatEngine\.advanceTime\(view\.gameState, deltaMs\)/);
-  assert.match(presentation, /if \(action\.broke\)/);
-  assert.match(presentation, /actionType === "BURST"/);
+  assert.match(combatSource, /CombatEngine\.advanceTime\(view\.gameState, deltaMs\)/);
   assert.match(clock, /DEFAULT_STEP_MS/);
+
+  const broken = await loadPresentation();
+  const breakPresentation = broken.api.create(broken.fake.canvas, broken.fake.context);
+  const breakCombat = combatFixture();
+  breakPresentation.onCombatStart(breakCombat);
+  breakPresentation.onAction(breakCombat, {
+    actionId: "break-behavior-1",
+    actionType: "SKILL",
+    source: "PLAYER_SKILL",
+    actorId: "player",
+    targetId: "enemy",
+    cardId: "test-attack",
+    damage: 12,
+    breakDamage: 12,
+    broke: true
+  });
+  breakPresentation.render(breakCombat, 1300);
+  assert.ok(broken.fake.context.calls.includes("BREAK!"));
+
+  const bursting = await loadPresentation();
+  const burstPresentation = bursting.api.create(bursting.fake.canvas, bursting.fake.context);
+  const burstCombat = combatFixture();
+  burstPresentation.onCombatStart(burstCombat);
+  burstPresentation.onAction(burstCombat, {
+    actionId: "burst-behavior-1",
+    actionType: "BURST",
+    source: "PLAYER",
+    actorId: "player",
+    targetId: "enemy",
+    damage: 32,
+    breakDamage: 0
+  });
+  assert.equal(burstPresentation.getShotState(1000).name, "BURST");
+  burstPresentation.render(burstCombat, 1100);
+  assert.ok(bursting.fake.context.calls.includes("BURST!"));
 });
 
 test("visual asset and audio hooks exist without introducing gameplay dependencies", async () => {
