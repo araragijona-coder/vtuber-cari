@@ -1155,6 +1155,91 @@ test("multi-hit presentation normalizes runtime hit indices once and preserves 1
   assert.deepEqual(observed, checkpoints.map((entry) => entry[1]));
 });
 
+test("multi-hit onAction fallback preserves independent 110/200/290ms contacts without canonical events", async () => {
+  const { window, presentation, setNow, drawnTexts, clearDrawnTexts } = await loadRealCombatPresentation();
+  const state = window.GameState.createGameState({ playerId: "bone003-fallback-multihit-player" });
+  const character = window.CharacterKitSystem.definitionFor("yuri");
+  const enemy = window.EnemyCatalog.createEnemy("iron_guard");
+  window.GameState.startBattle(state, {
+    battleId: "bone003-fallback-multihit-timing",
+    seed: 313006,
+    player: {
+      id: "bone003-fallback-multihit-player",
+      hp: 120,
+      maxHp: 120,
+      stats: { atk: 20, def: 5, skillDamage: 40 }
+    },
+    enemy,
+    characterId: "yuri",
+    character,
+    cardIds: window.CharacterKitSystem.cardIdsFor("yuri")
+  });
+
+  presentation.onCombatStart(state.combat);
+  window.EnergySystem.gain(state.combat.resources, 20);
+  const card = state.combat.cards.hand.find((entry) => entry.cardId === "yuri_racha_neon");
+  assert.ok(card, "Yuri Racha Neon must be in the real Yuri hand");
+
+  const action = window.GameActions.createPlayerSkillAction(state, card.instanceId);
+  const resolution = window.CombatEngine.resolveAction(state, action);
+  assert.equal(resolution.hitCount, 3);
+  assert.equal(resolution.hits.length, 3);
+  assert.ok(resolution.hits.every((hit) => Number(hit.damage) > 0));
+
+  const actionId = String(resolution.actionId || resolution.id || action.id || "");
+  assert.ok(actionId, "the real multi-hit resolution must retain its actionId");
+  const canonicalEventTypes = new Set(["ATTACK_START", "DAMAGE_APPLIED", "BREAK_TRIGGER", "BURST_START"]);
+  const originalActionEvents = state.combat.events.filter((event) =>
+    String(event.actionId || "") === actionId &&
+    canonicalEventTypes.has(String(event.type || "").toUpperCase())
+  );
+  assert.ok(originalActionEvents.length > 0, "the real resolution must originally emit canonical action events");
+
+  const fallbackCombat = {
+    ...state.combat,
+    events: state.combat.events.filter((event) => !(
+      String(event.actionId || "") === actionId &&
+      canonicalEventTypes.has(String(event.type || "").toUpperCase())
+    ))
+  };
+  assert.equal(
+    fallbackCombat.events.some((event) =>
+      String(event.actionId || "") === actionId &&
+      canonicalEventTypes.has(String(event.type || "").toUpperCase())
+    ),
+    false,
+    "the fallback fixture must not expose canonical events for this action"
+  );
+  assert.ok(
+    state.combat.events.some((event) => String(event.actionId || "") === actionId),
+    "the original CombatEngine event history remains intact"
+  );
+
+  setNow(1000);
+  presentation.onAction(fallbackCombat, resolution);
+  presentation.render(fallbackCombat, 1000);
+  assert.equal(presentation.getAttackStyleState().styleId, "YURI_RACHA_NEON");
+
+  const checkpoints = [
+    [109, 0],
+    [110, 1],
+    [199, 1],
+    [200, 2],
+    [289, 2],
+    [290, 3]
+  ];
+  const observed = [];
+  for (const [elapsedMs] of checkpoints) {
+    clearDrawnTexts();
+    const now = 1000 + elapsedMs;
+    setNow(now);
+    presentation.render(fallbackCombat, now);
+    observed.push(drawnTexts.filter((value) => /^-\d+$/.test(value)).length);
+  }
+
+  assert.deepEqual(observed, checkpoints.map((entry) => entry[1]));
+});
+
 test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINISH on recovery", async () => {
   const { presentation, setNow } = await loadPresentation();
   const combat = {
