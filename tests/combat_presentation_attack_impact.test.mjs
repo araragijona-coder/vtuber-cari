@@ -1331,6 +1331,19 @@ test("scene-backed canonical BREAK and BURST retain visual feedback and emit mat
     });
     const combat = state.combat;
 
+    if (scenario.name === "BREAK") {
+      const breakState = combat.enemy.breakState;
+      const breakResult = window.BreakSystem.applyImpact(
+        breakState,
+        breakState.current,
+        combat.simulationTick
+      );
+      assert.equal(breakResult.broke, true, "BREAK fixture must transition through the real BreakSystem");
+      assert.equal(window.BreakSystem.isBroken(breakState), true);
+      combat.enemy.breakCurrent = breakState.current;
+      combat.enemy.breakMax = breakState.max;
+    }
+
     presentation.onCombatStart(combat);
     setNow(1000);
     presentation.render(combat, 1000);
