@@ -1392,22 +1392,60 @@ test("scene-backed canonical BREAK and BURST retain visual feedback and emit mat
 });
 
 test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINISH on recovery", async () => {
-  const { presentation, setNow } = await loadPresentation();
-  const combat = {
+  const { window, presentation, setNow } = await loadRealCombatPresentation();
+  const state = window.GameState.createGameState({ playerId: "phase29w-player" });
+  const character = window.CharacterKitSystem.definitionFor("yuri");
+  const enemy = window.EnemyCatalog.createEnemy("iron_guard");
+  window.GameState.startBattle(state, {
     battleId: "phase29w-break",
-    outcome: "IN_PROGRESS",
-    player: { id: "player-1", hp: 100, maxHp: 100, identity: { characterId: "yuri" } },
-    enemy: { id: "iron_guard", hp: 100, maxHp: 100, breakState: { current: 0, max: 100 } },
-    events: [
-      { type: "ATTACK_START", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive" },
-      { type: "DAMAGE_APPLIED", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 },
-      { type: "BREAK_TRIGGER", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 }
-    ]
-  };
+    seed: 290929,
+    player: {
+      id: "phase29w-player",
+      hp: 100,
+      maxHp: 100,
+      stats: { atk: 20, def: 5, skillDamage: 40 }
+    },
+    enemy,
+    characterId: "yuri",
+    character,
+    cardIds: window.CharacterKitSystem.cardIdsFor("yuri")
+  });
+  const combat = state.combat;
+
+  // Break Drive contributes 12 BREAK damage; begin at 12 remaining so the real
+  // BreakSystem produces the matching BREAK transition for this event sequence.
+  const breakState = combat.enemy.breakState;
+  assert.ok(breakState, "real enemy fixture must provide BreakSystem state");
+  breakState.current = 12;
+  combat.enemy.breakCurrent = breakState.current;
+  combat.enemy.breakMax = breakState.max;
+  const breakResult = window.BreakSystem.applyImpact(
+    breakState,
+    12,
+    combat.simulationTick
+  );
+  assert.equal(breakResult.broke, true, "BREAK fixture must transition through the real BreakSystem");
+  assert.equal(window.BreakSystem.isBroken(breakState), true);
+  combat.enemy.breakCurrent = breakState.current;
+  combat.enemy.breakMax = breakState.max;
+
   presentation.onCombatStart(combat);
   setNow(1000);
-  presentation.consumeCombatEvents(combat);
+  presentation.render(combat, 1000);
+  const initializedScene = presentation.getSceneFoundation();
+  assert.ok(actorFrom(initializedScene, "scene:PLAYER"), "player actor must be materialized before presentation events");
+  assert.ok(actorFrom(initializedScene, "scene:ENEMY_PRIMARY"), "enemy actor must be materialized before presentation events");
+
+  const breakEvents = [
+    { type: "ATTACK_START", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive" },
+    { type: "DAMAGE_APPLIED", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 },
+    { type: "BREAK_TRIGGER", actionId: "break-1", actionType: "CARD", sourceRole: "PLAYER", targetRole: "ENEMY_PRIMARY", characterId: "yuri", cardId: "yuri_break_drive", damage: 12, breakDamage: 12 }
+  ];
+  combat.events.push(...breakEvents);
+  assert.equal(presentation.consumeCombatEvents(combat), breakEvents.length);
   assert.equal(presentation.getShotState(1000).name, "BREAK");
+
+  presentation.render(combat, 1000);
   assert.equal(actorFrom(presentation.getSceneFoundation(), "scene:ENEMY_PRIMARY").transform.state, "BREAK");
 
   const burst = {
