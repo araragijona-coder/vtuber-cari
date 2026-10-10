@@ -1600,7 +1600,7 @@ if (composition.identityLayer) {
     }
 
     function applyCanonicalPresentationEvent(combat, presentationEvent, sourceEvent, now = performance.now()) {
-      if (!presentationEvent || !state.scene) return false;
+      if (!presentationEvent) return false;
 
       const action = presentationEvent.action || {};
       const original = sourceEvent || presentationEvent.gameplayEvent || action;
@@ -1630,7 +1630,7 @@ if (composition.identityLayer) {
         const accepted = markPresentationTransient("ATTACK", actionId);
         if (!accepted) return true;
 
-        state.scene.getActor("scene:" + sourceRole)?.setState(style?.attackState || "ATTACK", now);
+        state.scene?.getActor?.("scene:" + sourceRole)?.setState(style?.attackState || "ATTACK", now);
         state.attackStyle = style ? Object.freeze({
           styleId: style.styleId,
           characterId: style.characterId,
@@ -1688,7 +1688,7 @@ if (composition.identityLayer) {
 
         state.twoPointFiveDLightingModes.set(targetRole, "IMPACT");
         if (!multiHit || hitIndex === 0) {
-          state.scene.getActor("scene:" + targetRole)?.setState("HIT", contactAt);
+          state.scene?.getActor?.("scene:" + targetRole)?.setState("HIT", contactAt);
           scheduleMotion(targetRole, {
             dx: targetRole === "ENEMY_PRIMARY" ? 52 : -52,
             dy: -8,
@@ -1747,7 +1747,7 @@ if (composition.identityLayer) {
         state.motionTracks.delete("ENEMY_PRIMARY");
         state.twoPointFiveDAttackTracks.delete("ENEMY_PRIMARY");
         state.twoPointFiveDLightingModes.set("ENEMY_PRIMARY", "BREAK");
-        state.scene.getActor("scene:ENEMY_PRIMARY")?.setState("BREAK", now);
+        state.scene?.getActor?.("scene:ENEMY_PRIMARY")?.setState("BREAK", now);
         scheduleMotion("ENEMY_PRIMARY", {
           dx: 64,
           dy: -14,
@@ -1770,7 +1770,7 @@ if (composition.identityLayer) {
       if (eventType === "BURST") {
         const accepted = markPresentationTransient("BURST", actionId);
         state.attackStyle = null;
-        state.scene.getActor("scene:PLAYER")?.setState("BURST", now);
+        state.scene?.getActor?.("scene:PLAYER")?.setState("BURST", now);
         scheduleMotion("PLAYER", {
           dx: 150,
           dy: -28,
@@ -1789,14 +1789,14 @@ if (composition.identityLayer) {
 
       if (eventType === "VICTORY" || eventType === "DEFEAT") {
         const stateName = eventType;
-        state.scene.getActor("scene:PLAYER")?.setState(stateName, now);
+        state.scene?.getActor?.("scene:PLAYER")?.setState(stateName, now);
         state.shotDirector ? setShot(stateName) : setCameraPreset(stateName);
         emitAudio(eventType.toLowerCase(), original);
         return true;
       }
 
       if (eventType === "TELEGRAPH") {
-        state.scene.getActor("scene:" + targetRole)?.setState("STAGGER", now);
+        state.scene?.getActor?.("scene:" + targetRole)?.setState("STAGGER", now);
         return true;
       }
 

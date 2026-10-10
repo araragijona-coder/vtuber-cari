@@ -1240,6 +1240,144 @@ test("multi-hit onAction fallback preserves independent 110/200/290ms contacts w
   assert.deepEqual(observed, checkpoints.map((entry) => entry[1]));
 });
 
+
+test("scene-backed canonical BREAK and BURST retain visual feedback and emit matching audio once", async () => {
+  const scenarios = [
+    {
+      name: "BREAK",
+      actionId: "bone003-scene-break-1",
+      expectedHook: "break",
+      label: "BREAK!",
+      actorId: "scene:ENEMY_PRIMARY",
+      actorState: "BREAK",
+      action: {
+        actionType: "SKILL",
+        source: "PLAYER_SKILL",
+        cardId: "yuri_break_drive",
+        damage: 12,
+        breakDamage: 12,
+        broke: true
+      },
+      events: [
+        {
+          type: "BREAK_TRIGGER",
+          actionType: "SKILL",
+          sourceRole: "PLAYER",
+          targetRole: "ENEMY_PRIMARY",
+          characterId: "yuri",
+          cardId: "yuri_break_drive",
+          damage: 12,
+          breakDamage: 12
+        }
+      ]
+    },
+    {
+      name: "BURST",
+      actionId: "bone003-scene-burst-1",
+      expectedHook: "burst",
+      label: "BURST!",
+      actorId: "scene:PLAYER",
+      actorState: "BURST",
+      action: {
+        actionType: "BURST",
+        source: "PLAYER",
+        damage: 32,
+        breakDamage: 0
+      },
+      events: [
+        {
+          type: "BURST_START",
+          actionType: "BURST",
+          sourceRole: "PLAYER",
+          targetRole: "ENEMY_PRIMARY",
+          characterId: "yuri",
+          damage: 32,
+          breakDamage: 0
+        },
+        {
+          type: "DAMAGE_APPLIED",
+          actionType: "BURST",
+          sourceRole: "PLAYER",
+          targetRole: "ENEMY_PRIMARY",
+          characterId: "yuri",
+          damage: 32,
+          breakDamage: 0,
+          hitIndex: 0,
+          hitCount: 1
+        }
+      ]
+    }
+  ];
+
+  for (const scenario of scenarios) {
+    const { window, presentation, setNow, drawnTexts, clearDrawnTexts } = await loadRealCombatPresentation();
+    const playerId = `bone003-${scenario.name.toLowerCase()}-player`;
+    const state = window.GameState.createGameState({ playerId });
+    const character = window.CharacterKitSystem.definitionFor("yuri");
+    const enemy = window.EnemyCatalog.createEnemy("iron_guard");
+    window.GameState.startBattle(state, {
+      battleId: `bone003-scene-${scenario.name.toLowerCase()}`,
+      seed: scenario.name === "BREAK" ? 303009 : 303010,
+      player: {
+        id: playerId,
+        hp: 120,
+        maxHp: 120,
+        stats: { atk: 20, def: 5, skillDamage: 40 }
+      },
+      enemy,
+      characterId: "yuri",
+      character,
+      cardIds: window.CharacterKitSystem.cardIdsFor("yuri")
+    });
+    const combat = state.combat;
+
+    presentation.onCombatStart(combat);
+    setNow(1000);
+    presentation.render(combat, 1000);
+    assert.ok(actorFrom(presentation.getSceneFoundation(), "scene:PLAYER"));
+    assert.ok(actorFrom(presentation.getSceneFoundation(), "scene:ENEMY_PRIMARY"));
+    clearDrawnTexts();
+
+    const hooksObserved = [];
+    presentation.setAudioHooks({
+      victory: () => hooksObserved.push("victory"),
+      defeat: () => hooksObserved.push("defeat"),
+      break: () => hooksObserved.push("break"),
+      burst: () => hooksObserved.push("burst")
+    });
+    combat.events.push(...scenario.events.map((event) => ({
+      ...event,
+      actionId: scenario.actionId
+    })));
+    const action = {
+      ...scenario.action,
+      actionId: scenario.actionId,
+      actorId: combat.player.id,
+      targetId: combat.enemy.id
+    };
+    presentation.onAction(combat, action);
+
+    assert.deepEqual(
+      hooksObserved,
+      [],
+      `${scenario.name} compatibility entrypoint must not emit audio when canonical events exist`
+    );
+    assert.equal(presentation.consumeCombatEvents(combat), scenario.events.length);
+
+    setNow(1100);
+    presentation.render(combat, 1100);
+    assert.deepEqual(hooksObserved, [scenario.expectedHook]);
+    assert.ok(drawnTexts.includes(scenario.label));
+    assert.equal(actorFrom(presentation.getSceneFoundation(), scenario.actorId).transform.state, scenario.actorState);
+
+    presentation.onAction(combat, action);
+    assert.equal(presentation.consumeCombatEvents(combat), 0);
+    setNow(1110);
+    presentation.render(combat, 1110);
+    assert.deepEqual(hooksObserved, [scenario.expectedHook]);
+  }
+});
+
 test("Phase 29-W presentation consumes BREAK over IMPACT and records BURST_FINISH on recovery", async () => {
   const { presentation, setNow } = await loadPresentation();
   const combat = {

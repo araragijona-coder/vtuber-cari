@@ -343,6 +343,86 @@ test("skill energy delta produces player-facing energy feedback", async () => {
   assert.ok(loaded.fake.context.calls.includes("-18 ENERGY"));
 });
 
+
+test("scene-optional fallback emits BREAK, BURST, VICTORY, and DEFEAT audio hooks exactly once", async () => {
+  const scenarios = [
+    {
+      name: "BREAK",
+      expectedHook: "break",
+      action: {
+        actionId: "phase19-scene-optional-break",
+        actionType: "SKILL",
+        source: "PLAYER_SKILL",
+        actorId: "player",
+        targetId: "enemy",
+        cardId: "test-attack",
+        damage: 12,
+        breakDamage: 12,
+        broke: true
+      }
+    },
+    {
+      name: "BURST",
+      expectedHook: "burst",
+      action: {
+        actionId: "phase19-scene-optional-burst",
+        actionType: "BURST",
+        source: "PLAYER",
+        actorId: "player",
+        targetId: "enemy",
+        damage: 32
+      }
+    },
+    {
+      name: "VICTORY",
+      expectedHook: "victory",
+      action: {
+        actionId: "phase19-scene-optional-victory",
+        actionType: "BURST",
+        source: "PLAYER",
+        actorId: "player",
+        targetId: "enemy",
+        outcome: "VICTORY"
+      }
+    },
+    {
+      name: "DEFEAT",
+      expectedHook: "defeat",
+      action: {
+        actionId: "phase19-scene-optional-defeat",
+        actionType: "BURST",
+        source: "PLAYER",
+        actorId: "player",
+        targetId: "enemy",
+        outcome: "DEFEAT"
+      }
+    }
+  ];
+
+  for (const scenario of scenarios) {
+    const loaded = await loadPresentation();
+    const presentation = loaded.api.create(loaded.fake.canvas, loaded.fake.context);
+    const hooksObserved = [];
+    presentation.setAudioHooks({
+      victory: () => hooksObserved.push("victory"),
+      defeat: () => hooksObserved.push("defeat"),
+      break: () => hooksObserved.push("break"),
+      burst: () => hooksObserved.push("burst")
+    });
+    const combat = combatFixture();
+    presentation.onCombatStart(combat);
+
+    presentation.onAction(combat, scenario.action);
+    presentation.onAction(combat, scenario.action);
+
+    assert.deepEqual(
+      hooksObserved,
+      [scenario.expectedHook],
+      `${scenario.name} fallback without Scene must emit only its matching hook once`
+    );
+  }
+});
+
 test("victory and defeat expose presentation audio hooks", async () => {
   const loaded = await loadPresentation();
   const presentation = loaded.api.create(loaded.fake.canvas, loaded.fake.context);
