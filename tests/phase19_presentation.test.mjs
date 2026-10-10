@@ -3,8 +3,24 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import vm from "node:vm";
 
+const PRESENTATION_FILES = [
+  "intento_2/webapp/js/scene/world_space.js",
+  "intento_2/webapp/js/scene/camera.js",
+  "intento_2/webapp/js/scene/animation.js",
+  "intento_2/webapp/js/scene/mesh_deformation.js",
+  "intento_2/webapp/js/scene/procedural_motion.js",
+  "intento_2/webapp/js/scene/lighting.js",
+  "intento_2/webapp/js/scene/presentation_events.js",
+  "intento_2/webapp/js/scene/actor.js",
+  "intento_2/webapp/js/scene/scene.js",
+  "intento_2/webapp/js/scene/renderer.js",
+  "intento_2/webapp/js/combat_shot_director.js",
+  "intento_2/webapp/js/combat_presentation.js"
+];
+
 function makeCanvas() {
   const calls = [];
+  const gradient = { addColorStop() {} };
   const context = {
     calls,
     globalAlpha: 1,
@@ -30,28 +46,36 @@ function makeCanvas() {
     save() {},
     restore() {},
     translate() {},
+    scale() {},
+    rotate() {},
+    setTransform() {},
     createLinearGradient() {
-      return { addColorStop() {} };
+      return gradient;
+    },
+    createRadialGradient() {
+      return gradient;
     },
     drawImage() {},
     fillText(text) {
       calls.push(String(text));
+    },
+    strokeText() {},
+    measureText() {
+      return { width: 0 };
     }
   };
   return {
     context,
     canvas: {
+      width: 720,
+      height: 520,
       getBoundingClientRect: () => ({ width: 720, height: 520 })
     }
   };
 }
 
-
-
-async function loadPresentationWithImageTracking(source) {
-  const fake = makeCanvas();
-  const imageSources = [];
-  const window = {
+function makePresentationWindow() {
+  return {
     BreakSystem: { isBroken: (state) => state?.state === "BROKEN" && Number(state?.remainingMs) > 0 },
     StatusSystem: {
       entries: (fighter) => Object.entries(fighter?.statuses || {}).map(([type, value]) => ({
@@ -70,6 +94,11 @@ async function loadPresentationWithImageTracking(source) {
     },
     CardSystem: { definitionFor: () => null }
   };
+}
+
+async function loadPresentationHarness({ sourceOverride = null, imageTracking = false } = {}) {
+  const fake = makeCanvas();
+  const imageSources = [];
   class FakeImage {
     constructor() {
       this.complete = true;
@@ -84,10 +113,11 @@ async function loadPresentationWithImageTracking(source) {
       return this._src;
     }
   }
+
   const context = vm.createContext({
-    window,
+    window: makePresentationWindow(),
     performance: { now: () => 1000 },
-    Image: FakeImage,
+    Image: imageTracking ? FakeImage : undefined,
     console,
     Math,
     Number,
@@ -98,54 +128,30 @@ async function loadPresentationWithImageTracking(source) {
     Map,
     JSON
   });
-  const eventSource = await readFile("intento_2/webapp/js/scene/presentation_events.js", "utf8");
-  vm.runInContext(eventSource, context, { filename: "presentation_events.js" });
-  vm.runInContext(source, context, { filename: "combat_presentation.js" });
-  return { api: context.window.CombatPresentation, fake, imageSources };
+
+  for (const file of PRESENTATION_FILES) {
+    const script = file === "intento_2/webapp/js/combat_presentation.js" && typeof sourceOverride === "string"
+      ? sourceOverride
+      : await readFile(file, "utf8");
+    vm.runInContext(script, context, { filename: file });
+  }
+
+  return {
+    api: context.window.CombatPresentation,
+    fake,
+    window: context.window,
+    imageSources
+  };
+}
+
+async function loadPresentationWithImageTracking(source) {
+  const loaded = await loadPresentationHarness({ sourceOverride: source, imageTracking: true });
+  return { api: loaded.api, fake: loaded.fake, imageSources: loaded.imageSources };
 }
 
 async function loadPresentation() {
-  const [eventSource, source] = await Promise.all([
-    readFile("intento_2/webapp/js/scene/presentation_events.js", "utf8"),
-    readFile("intento_2/webapp/js/combat_presentation.js", "utf8")
-  ]);
-  const fake = makeCanvas();
-  const window = {
-    BreakSystem: { isBroken: (state) => state?.state === "BROKEN" && Number(state?.remainingMs) > 0 },
-    StatusSystem: {
-      entries: (fighter) => Object.entries(fighter?.statuses || {}).map(([type, value]) => ({
-        type,
-        label: type,
-        remainingMs: Number(value?.remainingMs || 0)
-      }))
-    },
-    CombatEngine: {
-      cardDefinitionFor: (_combat, cardId) => ({
-        cardId,
-        name: "TEST SKILL",
-        type: "ATTACK",
-        effects: {}
-      })
-    },
-    CardSystem: { definitionFor: () => null }
-  };
-  const context = vm.createContext({
-    window,
-    performance: { now: () => 1000 },
-    Image: undefined,
-    console,
-    Math,
-    Number,
-    String,
-    Object,
-    Array,
-    Set,
-    Map,
-    JSON
-  });
-  vm.runInContext(eventSource, context, { filename: "presentation_events.js" });
-  vm.runInContext(source, context, { filename: "combat_presentation.js" });
-  return { api: context.window.CombatPresentation, fake, window: context.window };
+  const loaded = await loadPresentationHarness();
+  return { api: loaded.api, fake: loaded.fake, window: loaded.window };
 }
 
 function combatFixture() {
